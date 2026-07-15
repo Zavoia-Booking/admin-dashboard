@@ -158,7 +158,8 @@
     "E14": "Regional prices overlap for a country",
     "E15": "We couldn’t find this payment",
     "E16": "This style’s regional pricing is invalid",
-    "E17": "This style isn’t supported by the builder yet"
+    "E17": "This style isn’t supported by the builder yet",
+    "E18": "The price changed since you opened the builder. Review the updated total and try again"
   },
   "WEBSITE_SECTIONS": {
     "E01": "This premium section isn’t available anymore",

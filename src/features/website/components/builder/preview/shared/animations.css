@@ -13,3 +13,10 @@
 @media (prefers-reduced-motion: reduce) {
   .mc-mask-in, .mc-locx-fade, .mc-locx-rowin { animation: none !important; }
 }
+/* The dashboard globally assigns every button a 44px minimum. The microsite is its own
+   design context, just like the reference iframe, so its controls must use section-owned sizes. */
+.mc-root.mc-root button,
+.mc-root.mc-root [role="button"] {
+  min-width: 0;
+  min-height: 0;
+}

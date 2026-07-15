@@ -7,7 +7,7 @@ import { cn } from "../../../../../shared/lib/utils";
 
 import "./shared/animations.css";
 import { UNNUMBERED } from "./shared/constants";
-import { heroMode, findScrollParent } from "./shared/util";
+import { heroMode, findScrollParent, prefersReducedMotion } from "./shared/util";
 import { useFooterReveal } from "./shared/hooks";
 import { Interlude } from "./sections/interlude/Interlude";
 import { AnnouncementBar } from "./sections/announcement/Announcement";
@@ -65,7 +65,9 @@ function LivePreviewImpl({ layout, data, chrome = true, startNumber = 1, focusTy
   const rootRef = useRef<HTMLDivElement>(null);
   const footerRef = useRef<HTMLElement>(null);
   const [navH, setNavH] = useState(0);
-  const [progress, setProgress] = useState(0);
+  const [scrollProgress, setScrollProgress] = useState(0);
+  const reducedMotion = prefersReducedMotion();
+  const progress = !chrome || !overHero ? 0 : reducedMotion ? 1 : scrollProgress;
 
   // The footer is pinned behind the page and uncovered on scroll — drive its reveal off the scroll container.
   useFooterReveal(rootRef, footerRef, chrome && footerOn && stacked.length > 0);
@@ -81,16 +83,7 @@ function LivePreviewImpl({ layout, data, chrome = true, startNumber = 1, focusTy
   }, [chrome]);
 
   useEffect(() => {
-    if (!chrome || !overHero) {
-      setProgress(0);
-      return;
-    }
-    // Reduced motion: skip the scroll-driven frost and land the settled (paper) bar, which stays legible
-    // over both the hero and the paper sections — mirrors how the parallax + CSS reveals bail.
-    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
-      setProgress(1);
-      return;
-    }
+    if (!chrome || !overHero || reducedMotion) return;
     const nav = navRef.current;
     if (!nav || !heroRef.current) return;
     const sc = findScrollParent(nav);
@@ -99,7 +92,7 @@ function LivePreviewImpl({ layout, data, chrome = true, startNumber = 1, focusTy
     const update = () => {
       raf = 0;
       // Drive off absolute scroll distance so the frost arrives quickly and consistently regardless of hero height.
-      setProgress(Math.round(Math.min(1, sc.scrollTop / FROST_DIST) * 100) / 100);
+      setScrollProgress(Math.round(Math.min(1, sc.scrollTop / FROST_DIST) * 100) / 100);
     };
     const onScroll = () => {
       if (!raf) raf = requestAnimationFrame(update);
@@ -110,7 +103,7 @@ function LivePreviewImpl({ layout, data, chrome = true, startNumber = 1, focusTy
       sc.removeEventListener("scroll", onScroll);
       if (raf) cancelAnimationFrame(raf);
     };
-  }, [chrome, overHero, stacked.length]);
+  }, [chrome, overHero, reducedMotion, stacked.length]);
 
   // Section numbers (mono kicker) follow the visible non-bar order, mirroring the microsite's "0N —".
   // `startNumber` lets the scoped one-section preview carry its real page ordinal instead of restarting at 1.
@@ -118,7 +111,7 @@ function LivePreviewImpl({ layout, data, chrome = true, startNumber = 1, focusTy
 
   return (
     <div
-      className={chrome ? "" : "overflow-hidden rounded-xl ring-1 ring-black/5"}
+      className={cn("mc-root", !chrome && "overflow-hidden rounded-xl ring-1 ring-black/5")}
       ref={rootRef}
       style={{ ...previewVars(data.brandColor, data.fontKey), backgroundColor: "var(--mc-bg)", containerType: "inline-size" } as CSSProperties}
     >

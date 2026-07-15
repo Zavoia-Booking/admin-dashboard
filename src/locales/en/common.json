@@ -9,7 +9,8 @@
     "selectMinute": "Select minute",
     "selectPeriod": "Select period",
     "clearSearch": "Clear search",
-    "loading": "Loading"
+    "loading": "Loading",
+    "close": "Close"
   },
   "loading": "Loading...",
   "businessSetupGate": {

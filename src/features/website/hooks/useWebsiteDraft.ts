@@ -2,12 +2,15 @@ import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import type {
   WebsiteDraft,
-  UpdateWebsiteDraftPayload,
+  UpdateWebsiteDraftBody,
   SectionEntry,
   PageTheme,
   FaqItem,
   AnnouncementContent,
-  AnnouncementCta,
+  WebsiteAutosaveStatus,
+  WebsiteDraftConflict,
+  WebsiteSaveFailure,
+  WebsiteThemeAssetCatalogItem,
 } from "../types";
 import type { SaveWebsiteDraftRequest, PublishWebsiteRequest } from "../actions";
 import {
@@ -19,6 +22,7 @@ import {
   REQUIRED_TYPES,
   SECTION_META,
 } from "../components/builder/sectionCatalog";
+import { BRAND_ACCENT_CATALOG } from "../components/builder/theme";
 import { validateUrlField } from "../../../shared/utils/validation";
 
 interface UseWebsiteDraftProps {
@@ -29,36 +33,104 @@ interface UseWebsiteDraftProps {
   onSave: (request: SaveWebsiteDraftRequest) => void;
   /** Save-then-publish entry point; optional so read-only embeds can omit it. */
   onPublish?: (request: PublishWebsiteRequest) => void;
+  /** Current owner-scoped location ids. Stale saved references are removed before a PUT. */
+  allowedLocationIds?: readonly number[];
+  /** Autosave is capability-gated; read-only users keep the same local presentation. */
+  autosaveEnabled: boolean;
+  /** True only while the serialized lane is executing a draft PUT. */
+  isSaving: boolean;
+  /** Any active/queued Website mutation that must stay ordered with draft saves. */
+  mutationBusy: boolean;
+  conflict: WebsiteDraftConflict | null;
+  saveFailure: WebsiteSaveFailure | null;
+}
+
+const AUTOSAVE_DELAY_MS = 750;
+
+/** The builder API stores only explicit HTTP(S) URLs. Keep the forgiving input
+ * experience, but never send the protocol-less value that the backend rejects. */
+function normalizeHttpUrl(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed || /^https?:\/\//i.test(trimmed)) return trimmed;
+  return `https://${trimmed}`;
+}
+
+const isPlainRecord = (value: unknown): value is Record<string, unknown> =>
+  !!value && typeof value === "object" && !Array.isArray(value);
+
+const stringValue = (value: unknown): string =>
+  typeof value === "string" ? value : "";
+
+function normalizeLocaleText(value: unknown): { en: string; ro: string } {
+  const source = isPlainRecord(value) ? value : {};
+  return {
+    en: stringValue(source.en),
+    ro: stringValue(source.ro),
+  };
 }
 
 /** Fill a saved/empty announcement to the full working shape, migrating the legacy `link` and the
  *  older `cta.target` shape into the flat `cta.url` + opt-in `cta.enabled`. */
 function normalizeAnnouncement(raw?: AnnouncementContent | null): AnnouncementContent {
-  const legacyLink = (raw?.link ?? "").trim();
-  const cta = raw?.cta as
-    | (Partial<AnnouncementCta> & { target?: { type?: string; url?: string } })
-    | undefined;
-  const legacyTargetUrl = cta?.target?.type === "url" ? cta.target.url ?? "" : "";
-  const url = cta?.url || legacyTargetUrl || legacyLink || "";
+  const source: Record<string, unknown> = isPlainRecord(raw as unknown)
+    ? (raw as unknown as Record<string, unknown>)
+    : {};
+  const legacyLink = stringValue(source.link).trim();
+  const cta = isPlainRecord(source.cta) ? source.cta : {};
+  const target = isPlainRecord(cta.target) ? cta.target : {};
+  const legacyTargetUrl = target.type === "url" ? stringValue(target.url) : "";
+  const url = normalizeHttpUrl(stringValue(cta.url) || legacyTargetUrl || legacyLink);
+  const rawSchedule = isPlainRecord(source.schedule) ? source.schedule : null;
   return {
-    message: raw?.message ?? { en: "", ro: "" },
+    message: normalizeLocaleText(source.message),
     cta: {
-      enabled: cta?.enabled ?? url.trim() !== "",
-      label: cta?.label ?? { en: "", ro: "" },
+      enabled: typeof cta.enabled === "boolean" ? cta.enabled : url !== "",
+      label: normalizeLocaleText(cta.label),
       url,
-      newTab: cta?.newTab ?? false,
-      showArrow: cta?.showArrow ?? true,
+      newTab: typeof cta.newTab === "boolean" ? cta.newTab : false,
+      showArrow: typeof cta.showArrow === "boolean" ? cta.showArrow : true,
     },
-    schedule: raw?.schedule ?? null,
+    schedule: rawSchedule
+      ? {
+          start:
+            typeof rawSchedule.start === "string" || rawSchedule.start === null
+              ? rawSchedule.start
+              : null,
+          end:
+            typeof rawSchedule.end === "string" || rawSchedule.end === null
+              ? rawSchedule.end
+              : null,
+          timezone:
+            typeof rawSchedule.timezone === "string" || rawSchedule.timezone === null
+              ? rawSchedule.timezone
+              : null,
+        }
+      : null,
   };
 }
 
-const initialFontKey = (theme?: PageTheme | null): string => theme?.fontKey || DEFAULT_FONT_KEY;
+function normalizeFaqItems(raw: unknown): FaqItem[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter(isPlainRecord)
+    .map((item) => ({
+      q: normalizeLocaleText(item.q),
+      a: normalizeLocaleText(item.a),
+    }));
+}
+
+const initialFontKey = (theme?: PageTheme | null): string => {
+  const stored = typeof theme?.fontKey === "string" ? theme.fontKey.trim() : "";
+  // Rendering safely falls back through displayFontFor, but the raw key must
+  // round-trip so an older client never destroys a newer/legacy font identity.
+  return stored || DEFAULT_FONT_KEY;
+};
 
 interface DraftValues {
   tagline: string;
   aboutContent: string;
   brandColorHex: string;
+  brandColorKey: string;
   layout: SectionEntry[];
   fontKey: string;
   faqItems: FaqItem[];
@@ -76,6 +148,7 @@ function cloneValues(values: DraftValues): DraftValues {
     tagline: values.tagline,
     aboutContent: values.aboutContent,
     brandColorHex: values.brandColorHex,
+    brandColorKey: values.brandColorKey,
     layout: JSON.parse(JSON.stringify(values.layout)),
     fontKey: values.fontKey,
     faqItems: JSON.parse(JSON.stringify(values.faqItems)),
@@ -87,14 +160,31 @@ function serializeValues(values: DraftValues): string {
   return JSON.stringify(values);
 }
 
+function canonicalJson(value: unknown): string {
+  const normalize = (entry: unknown): unknown => {
+    if (Array.isArray(entry)) return entry.map(normalize);
+    if (entry && typeof entry === "object") {
+      return Object.fromEntries(
+        Object.entries(entry as Record<string, unknown>)
+          .filter(([, item]) => item !== undefined)
+          .sort(([left], [right]) => left.localeCompare(right))
+          .map(([key, item]) => [key, normalize(item)]),
+      );
+    }
+    return entry;
+  };
+  return JSON.stringify(normalize(value));
+}
+
 function valuesFromDraft(draft: WebsiteDraft | null): DraftValues {
   return {
     tagline: draft?.tagline ?? "",
     aboutContent: draft?.aboutContent ?? "",
     brandColorHex: draft?.brandColorHex ?? "",
+    brandColorKey: draft?.brandColorKey ?? draft?.pageTheme?.brandColorKey ?? "",
     layout: buildInitialLayout(draft?.pageLayout),
     fontKey: initialFontKey(draft?.pageTheme),
-    faqItems: draft?.faq ?? [],
+    faqItems: normalizeFaqItems(draft?.faq),
     announcementContent: normalizeAnnouncement(draft?.announcement),
   };
 }
@@ -151,13 +241,25 @@ function reorderLayout(prev: SectionEntry[], from: number, to: number): SectionE
  * hook's unsaved state (the reducer only moves draft.heroImageUrl/version/updatedAt;
  * the seeded content fields keep their identity, so no re-seed fires).
  */
-export function useWebsiteDraft({ draft, lastSavedRequestId, onSave, onPublish }: UseWebsiteDraftProps) {
+export function useWebsiteDraft({
+  draft,
+  lastSavedRequestId,
+  onSave,
+  onPublish,
+  allowedLocationIds,
+  autosaveEnabled,
+  isSaving,
+  mutationBusy,
+  conflict,
+  saveFailure,
+}: UseWebsiteDraftProps) {
   const { t } = useTranslation("website");
   const [baseline, setBaseline] = useState<DraftBaseline>(() => baselineFromDraft(draft));
   const baselineRef = useRef<DraftBaseline>(baseline);
   const [tagline, setTagline] = useState<string>(baseline.values.tagline);
   const [aboutContent, setAboutContent] = useState<string>(baseline.values.aboutContent);
-  const [brandColorHex, setBrandColorHex] = useState<string>(baseline.values.brandColorHex);
+  const [brandColorHex, setBrandColorHexState] = useState<string>(baseline.values.brandColorHex);
+  const [brandColorKey, setBrandColorKey] = useState<string>(baseline.values.brandColorKey);
   const [layout, setLayout] = useState<SectionEntry[]>(() => cloneValues(baseline.values).layout);
   const [fontKey, setFontKey] = useState<string>(baseline.values.fontKey);
   const [faqItems, setFaqItems] = useState<FaqItem[]>(() => cloneValues(baseline.values).faqItems);
@@ -165,19 +267,50 @@ export function useWebsiteDraft({ draft, lastSavedRequestId, onSave, onPublish }
     cloneValues(baseline.values).announcementContent,
   );
 
+  const setBrandColorHex = useCallback((value: string) => {
+    setBrandColorHexState(value);
+    const catalogEntry = BRAND_ACCENT_CATALOG.find(
+      (entry) => entry.hex.toLowerCase() === value.toLowerCase(),
+    );
+    setBrandColorKey(catalogEntry?.key ?? "");
+  }, []);
+
   const workingValues = useMemo<DraftValues>(
-    () => ({ tagline, aboutContent, brandColorHex, layout, fontKey, faqItems, announcementContent }),
-    [tagline, aboutContent, brandColorHex, layout, fontKey, faqItems, announcementContent],
+    () => ({ tagline, aboutContent, brandColorHex, brandColorKey, layout, fontKey, faqItems, announcementContent }),
+    [tagline, aboutContent, brandColorHex, brandColorKey, layout, fontKey, faqItems, announcementContent],
   );
   const workingSignature = useMemo(() => serializeValues(workingValues), [workingValues]);
-  const pendingSaveRef = useRef<{ requestId: string; submittedSignature: string } | null>(null);
+  const pendingSaveRef = useRef<SaveWebsiteDraftRequest | null>(null);
+  const failedSaveRef = useRef<SaveWebsiteDraftRequest | null>(null);
+  // Once a PUT result is ambiguous, every later local snapshot must prove server state with
+  // GET before another PUT. This deliberately survives subsequent edits/signature changes.
+  const reconciliationRequiredRef = useRef(false);
+  const [pendingSave, setPendingSave] = useState<SaveWebsiteDraftRequest | null>(null);
   const acceptNextServerBaselineRef = useRef(false);
+  const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [readyAutosaveSignature, setReadyAutosaveSignature] = useState<string | null>(null);
+  const [isOnline, setIsOnline] = useState(() =>
+    typeof navigator === "undefined" ? true : navigator.onLine,
+  );
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
 
   const applyWorkingValues = useCallback((values: DraftValues) => {
     const next = cloneValues(values);
     setTagline(next.tagline);
     setAboutContent(next.aboutContent);
-    setBrandColorHex(next.brandColorHex);
+    setBrandColorHexState(next.brandColorHex);
+    setBrandColorKey(next.brandColorKey);
     setLayout(next.layout);
     setFontKey(next.fontKey);
     setFaqItems(next.faqItems);
@@ -205,7 +338,9 @@ export function useWebsiteDraft({ draft, lastSavedRequestId, onSave, onPublish }
 
     if (pendingSave?.requestId === lastSavedRequestId) {
       pendingSaveRef.current = null;
-      if (workingSignature === pendingSave.submittedSignature) {
+      failedSaveRef.current = null;
+      reconciliationRequiredRef.current = false;
+      if (workingSignature === pendingSave.workingSignature) {
         applyWorkingValues(serverBaseline.values);
       }
       return;
@@ -222,6 +357,26 @@ export function useWebsiteDraft({ draft, lastSavedRequestId, onSave, onPublish }
     }
     acceptNextServerBaselineRef.current = false;
   }, [applyWorkingValues, lastSavedRequestId, serverBaseline, serverSignature, workingSignature]);
+
+  useEffect(() => {
+    const pending = pendingSaveRef.current;
+    if (!pending) return;
+    if (
+      conflict ||
+      (saveFailure && saveFailure.requestId === pending.requestId)
+    ) {
+      if (saveFailure?.requestId === pending.requestId) {
+        if (saveFailure.kind === "cancelled") {
+          failedSaveRef.current = null;
+        } else {
+          failedSaveRef.current = pending;
+          reconciliationRequiredRef.current = true;
+        }
+      }
+      if (conflict) reconciliationRequiredRef.current = false;
+      pendingSaveRef.current = null;
+    }
+  }, [conflict, saveFailure]);
 
   // ----- Structural validation (blocks save — the server rejects these shapes) -----
   const taglineError = useMemo(
@@ -265,6 +420,10 @@ export function useWebsiteDraft({ draft, lastSavedRequestId, onSave, onPublish }
       : null;
   }, [announcementContent.schedule, t]);
 
+  // Unknown future sections are opaque records. Their schema belongs to the newer client, so
+  // requiring today's variant/visible/config shape would prevent unrelated edits from saving.
+  const layoutError: string | null = null;
+
   // ----- Readiness (guidance only — never blocks a draft save) -----
   const announcementMessageWarning = useMemo(() => {
     if (!announcementVisible) return null;
@@ -277,7 +436,8 @@ export function useWebsiteDraft({ draft, lastSavedRequestId, onSave, onPublish }
     taglineError ||
     brandColorError ||
     announcementUrlError ||
-    announcementScheduleError
+    announcementScheduleError ||
+    layoutError
   );
 
   // ----- Layout operations (pinned/required invariants match sectionCatalog) -----
@@ -324,6 +484,68 @@ export function useWebsiteDraft({ draft, lastSavedRequestId, onSave, onPublish }
     setLayout((prev) => prev.map((s, i) => (i === index ? { ...s, variant } : s)));
   }, []);
 
+  /** Apply checkout selections only after the return flow has independently proven their
+   * ownership. Registry validation keeps a stale/future catalog key out of today's draft;
+   * the resulting layout change follows the same ordinary autosave path as a manual pick. */
+  const applyOwnedVariantSelections = useCallback(
+    (selections: ReadonlyArray<{ sectionType: string; variantKey: string }>) => {
+      if (!autosaveEnabled || selections.length === 0) return;
+      const selectionByType = new Map(
+        selections.map((selection) => [selection.sectionType, selection.variantKey]),
+      );
+      setLayout((current) => {
+        let changed = false;
+        const next = current.map((entry) => {
+          const variantKey = selectionByType.get(entry.type);
+          if (
+            !variantKey ||
+            variantKey === entry.variant ||
+            !isKnownSectionType(entry.type) ||
+            !SECTION_META[entry.type].variants.some((variant) => variant.id === variantKey)
+          ) {
+            return entry;
+          }
+          changed = true;
+          return { ...entry, variant: variantKey };
+        });
+        return changed ? next : current;
+      });
+    },
+    [autosaveEnabled],
+  );
+
+  const applyThemeAssetSelection = useCallback((asset: WebsiteThemeAssetCatalogItem) => {
+    if (asset.kind === "color") {
+      // The server catalog is the identity authority. Do not feed this through the legacy
+      // hex-only setter, which derives a key from the dashboard's static presentation registry.
+      setBrandColorHexState(asset.value);
+      setBrandColorKey(asset.assetKey);
+      return;
+    }
+    setFontKey(asset.assetKey);
+  }, []);
+
+  const applyOwnedThemeSelections = useCallback(
+    (
+      selections: ReadonlyArray<{
+        kind: "color" | "font";
+        assetKey: string;
+        value: string;
+      }>,
+    ) => {
+      if (!autosaveEnabled || selections.length === 0) return;
+      selections.forEach((selection) => {
+        if (selection.kind === "color") {
+          setBrandColorHexState(selection.value);
+          setBrandColorKey(selection.assetKey);
+        } else {
+          setFontKey(selection.assetKey);
+        }
+      });
+    },
+    [autosaveEnabled],
+  );
+
   const setSectionConfig = useCallback((index: number, config: Record<string, unknown>) => {
     setLayout((prev) =>
       prev.map((s, i) => (i === index ? { ...s, config: { ...s.config, ...config } } : s)),
@@ -335,73 +557,389 @@ export function useWebsiteDraft({ draft, lastSavedRequestId, onSave, onPublish }
 
   /**
    * The exact PUT /website-builder payload. Unknown stored sections are carried through
-   * unchanged so an older dashboard cannot erase data created by a newer schema. Known
-   * section variants still normalize to the local registry fallback when malformed.
+   * unchanged so an older dashboard cannot erase data created by a newer schema. Future
+   * variant keys on known sections are also retained until the owner explicitly changes them.
    */
-  const buildPayload = useCallback((): UpdateWebsiteDraftPayload => {
+  const buildDraftBody = useCallback((): UpdateWebsiteDraftBody => {
     const brandColor = brandColorHex.trim() || null;
     const announcement = normalizeAnnouncement(announcementContent);
+    const allowedLocationIdSet = allowedLocationIds
+      ? new Set(allowedLocationIds)
+      : null;
     return {
-      expectedVersion: baseline.version,
       tagline: tagline || null,
       aboutContent: aboutContent || null,
       brandColorHex: brandColor,
+      brandColorKey: brandColorKey.trim() || null,
       pageLayout: layout.map((s) => {
         if (!isKnownSectionType(s.type)) {
-          const opaqueEntry: SectionEntry = {
-            type: s.type,
-            variant: s.variant,
-            visible: s.visible,
-          };
-          if (Object.prototype.hasOwnProperty.call(s, "config")) {
-            opaqueEntry.config = s.config;
-          }
-          return opaqueEntry;
+          // A newer dashboard may have added fields beside type/variant/visible/config.
+          // Unknown entries are opaque JSON records: never reconstruct them from the
+          // subset this build understands, because doing so erases forward data.
+          return JSON.parse(JSON.stringify(s)) as SectionEntry;
+        }
+        const config = { ...(s.config ?? {}) };
+        if (s.type === "locations") {
+          const hiddenIds = Array.isArray(config.hiddenLocationIds)
+            ? config.hiddenLocationIds.filter(
+                (id): id is number =>
+                  Number.isInteger(id) &&
+                  id > 0 &&
+                  (!allowedLocationIdSet || allowedLocationIdSet.has(id)),
+              )
+            : [];
+          config.hiddenLocationIds = [...new Set(hiddenIds)];
         }
         return {
           type: s.type,
-          variant: SECTION_META[s.type].variants.some((v) => v.id === s.variant)
-            ? s.variant
-            : SECTION_META[s.type].variants[0].id,
+          // A future client may add a variant before this registry knows about it. Preserve the
+          // stored key unless the owner explicitly selects another style in this client.
+          variant: s.variant,
           visible: s.visible,
-          config: s.config ?? {},
+          config,
         };
       }),
-      pageTheme: { brandColor, fontKey },
+      pageTheme: { brandColor, brandColorKey: brandColorKey.trim() || null, fontKey },
       faq: faqItems,
       announcement,
       layoutVersion: LAYOUT_SCHEMA_VERSION,
     };
-  }, [baseline.version, tagline, aboutContent, brandColorHex, layout, fontKey, faqItems, announcementContent]);
+  }, [
+    allowedLocationIds,
+    tagline,
+    aboutContent,
+    brandColorHex,
+    brandColorKey,
+    layout,
+    fontKey,
+    faqItems,
+    announcementContent,
+  ]);
 
-  const handleSave = useCallback(() => {
-    if (hasBlockingErrors) return;
+  const createSaveSnapshot = useCallback((): SaveWebsiteDraftRequest => {
+    const body = buildDraftBody();
     const requestId = createSaveRequestId();
-    pendingSaveRef.current = { requestId, submittedSignature: workingSignature };
-    onSave({ requestId, payload: buildPayload() });
-  }, [hasBlockingErrors, buildPayload, onSave, workingSignature]);
+    return {
+      requestId,
+      workingSignature,
+      bodySignature: canonicalJson(body),
+      body,
+      ...(reconciliationRequiredRef.current ? { reconcileFirst: true } : {}),
+    };
+  }, [buildDraftBody, workingSignature]);
+
+  const submitAutosave = useCallback(
+    (options?: { force?: boolean; reconcileFirst?: boolean }) => {
+      if (
+        !autosaveEnabled ||
+        !isDirty ||
+        hasBlockingErrors ||
+        conflict ||
+        !isOnline ||
+        mutationBusy ||
+        pendingSaveRef.current
+      ) {
+        return;
+      }
+      const failureMatchesCurrent =
+        saveFailure?.kind !== "cancelled" &&
+        saveFailure?.workingSignature === workingSignature;
+      if (failureMatchesCurrent && !options?.force) return;
+
+      const request = createSaveSnapshot();
+      if (options?.reconcileFirst || reconciliationRequiredRef.current) {
+        request.reconcileFirst = true;
+      }
+      pendingSaveRef.current = request;
+      setPendingSave(request);
+      onSave(request);
+    },
+    [
+      autosaveEnabled,
+      conflict,
+      createSaveSnapshot,
+      hasBlockingErrors,
+      isDirty,
+      isOnline,
+      mutationBusy,
+      onSave,
+      saveFailure?.kind,
+      saveFailure?.workingSignature,
+      workingSignature,
+    ],
+  );
+  const submitAutosaveRef = useRef(submitAutosave);
+  useEffect(() => {
+    submitAutosaveRef.current = submitAutosave;
+  }, [submitAutosave]);
+
+  // Debounce the newest valid local state. The timer records which exact signature is
+  // ready; if another mutation still owns the lane, status becomes queued and the same
+  // immutable snapshot is submitted when the lane clears.
+  useEffect(() => {
+    if (autosaveTimerRef.current) {
+      clearTimeout(autosaveTimerRef.current);
+      autosaveTimerRef.current = null;
+    }
+    const failureMatchesCurrent =
+      saveFailure?.kind !== "cancelled" &&
+      saveFailure?.workingSignature === workingSignature;
+    if (
+      !autosaveEnabled ||
+      !isDirty ||
+      hasBlockingErrors ||
+      conflict ||
+      failureMatchesCurrent
+    ) {
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setReadyAutosaveSignature(workingSignature);
+      submitAutosaveRef.current();
+    }, AUTOSAVE_DELAY_MS);
+    autosaveTimerRef.current = timer;
+    return () => {
+      clearTimeout(timer);
+      if (autosaveTimerRef.current === timer) autosaveTimerRef.current = null;
+    };
+  }, [
+    autosaveEnabled,
+    baseline.contentSignature,
+    conflict,
+    hasBlockingErrors,
+    isDirty,
+    saveFailure?.kind,
+    saveFailure?.workingSignature,
+    workingSignature,
+  ]);
+
+  // A ready snapshot may have waited behind hero/save/publish work. Re-check whenever
+  // the lane or acknowledgement changes; the submit callback prevents duplicates.
+  useEffect(() => {
+    if (
+      readyAutosaveSignature !== workingSignature ||
+      !isDirty ||
+      hasBlockingErrors ||
+      conflict
+    ) {
+      return;
+    }
+    const timer = setTimeout(() => submitAutosaveRef.current(), 0);
+    return () => clearTimeout(timer);
+  }, [
+    conflict,
+    hasBlockingErrors,
+    isDirty,
+    isSaving,
+    isOnline,
+    lastSavedRequestId,
+    mutationBusy,
+    readyAutosaveSignature,
+    saveFailure,
+    workingSignature,
+  ]);
+
+  const retryAutosave = useCallback(() => {
+    const failed = failedSaveRef.current;
+    if (!failed || failed.workingSignature !== workingSignature) return;
+    submitAutosave({ force: true, reconcileFirst: true });
+  }, [submitAutosave, workingSignature]);
+
+  /**
+   * Flush the newest valid local snapshot immediately. If another Website mutation owns
+   * the serialized lane, mark this exact signature ready and let the existing queue effect
+   * submit it as soon as the lane clears. A failed ambiguous save always reconciles first.
+   */
+  const flushAutosave = useCallback(() => {
+    if (
+      !autosaveEnabled ||
+      !isDirty ||
+      hasBlockingErrors ||
+      conflict ||
+      !isOnline
+    ) {
+      return;
+    }
+    if (autosaveTimerRef.current) {
+      clearTimeout(autosaveTimerRef.current);
+      autosaveTimerRef.current = null;
+    }
+    setReadyAutosaveSignature(workingSignature);
+    const failureMatchesCurrent =
+      saveFailure?.kind !== "cancelled" &&
+      saveFailure?.workingSignature === workingSignature;
+    submitAutosave({
+      force: true,
+      reconcileFirst: failureMatchesCurrent,
+    });
+  }, [
+    autosaveEnabled,
+    conflict,
+    hasBlockingErrors,
+    isDirty,
+    isOnline,
+    saveFailure?.kind,
+    saveFailure?.workingSignature,
+    submitAutosave,
+    workingSignature,
+  ]);
+
+  // Ctrl/Cmd+S is an invisible autosave accelerator, not a browser-page download.
+  // Only claim the shortcut when there is a valid, saveable local change.
+  useEffect(() => {
+    const canHandleShortcut =
+      autosaveEnabled &&
+      isDirty &&
+      !hasBlockingErrors &&
+      !conflict &&
+      isOnline;
+    if (!canHandleShortcut || typeof window === "undefined") return;
+
+    const handleSaveShortcut = (event: KeyboardEvent) => {
+      if (
+        event.defaultPrevented ||
+        event.isComposing ||
+        event.altKey ||
+        event.shiftKey ||
+        (!event.ctrlKey && !event.metaKey) ||
+        event.key.toLowerCase() !== "s"
+      ) {
+        return;
+      }
+      event.preventDefault();
+      flushAutosave();
+    };
+
+    window.addEventListener("keydown", handleSaveShortcut);
+    return () => window.removeEventListener("keydown", handleSaveShortcut);
+  }, [
+    autosaveEnabled,
+    conflict,
+    flushAutosave,
+    hasBlockingErrors,
+    isDirty,
+    isOnline,
+  ]);
+
+  /**
+   * Called only after the user has fetched the latest server baseline and explicitly
+   * confirmed replacing it. This intentionally bypasses the stale conflict flag; the
+   * controller clears that flag synchronously before dispatch, and the saga injects the
+   * freshly fetched Redux draft version as expectedVersion.
+   */
+  const replaceLatestWithLocal = useCallback(() => {
+    if (!autosaveEnabled || !isDirty) return;
+    if (autosaveTimerRef.current) {
+      clearTimeout(autosaveTimerRef.current);
+      autosaveTimerRef.current = null;
+    }
+    setReadyAutosaveSignature(workingSignature);
+    if (
+      hasBlockingErrors ||
+      !isOnline ||
+      mutationBusy ||
+      pendingSaveRef.current
+    ) {
+      return;
+    }
+    const request = createSaveSnapshot();
+    pendingSaveRef.current = request;
+    setPendingSave(request);
+    onSave(request);
+  }, [
+    autosaveEnabled,
+    createSaveSnapshot,
+    hasBlockingErrors,
+    isDirty,
+    isOnline,
+    mutationBusy,
+    onSave,
+    workingSignature,
+  ]);
+
+  const currentFailure =
+    saveFailure?.kind !== "cancelled" &&
+    saveFailure?.workingSignature === workingSignature
+      ? saveFailure
+      : null;
 
   /**
    * Save-then-publish: a dirty form ships its draft alongside the publish request (the saga
    * saves first and the pending-save reconciliation adopts the returned baseline exactly as
-   * a plain save would); a clean form publishes the current baseline version directly.
+   * a plain save would). Version zero may be the server's synthetic "no listing yet" draft,
+   * so it also needs a normalization save before the first publish even when visually clean.
    */
   const handlePublish = useCallback(() => {
-    if (!onPublish || hasBlockingErrors) return;
-    if (isDirty) {
-      const requestId = createSaveRequestId();
-      pendingSaveRef.current = { requestId, submittedSignature: workingSignature };
-      onPublish({
-        save: { requestId, payload: buildPayload() },
-        expectedVersion: baseline.version,
-      });
-      return;
+    if (!onPublish || hasBlockingErrors || !isOnline || currentFailure) return false;
+    if (autosaveTimerRef.current) {
+      clearTimeout(autosaveTimerRef.current);
+      autosaveTimerRef.current = null;
     }
-    onPublish({ save: null, expectedVersion: baseline.version });
-  }, [onPublish, hasBlockingErrors, isDirty, buildPayload, workingSignature, baseline.version]);
+    if (conflict) return false;
+    // A synthetic version-zero draft needs the normalizing PUT only when this user may
+    // edit. Publish is an independent capability: a publish-only user must never issue an
+    // unauthorized draft write, so the publish endpoint receives the existing version and
+    // performs its own server-side validation/normalization.
+    if (isDirty || (baseline.version === 0 && autosaveEnabled)) {
+      const request = createSaveSnapshot();
+      pendingSaveRef.current = request;
+      setPendingSave(request);
+      onPublish({ save: request });
+      return true;
+    }
+    onPublish({ save: null });
+    return true;
+  }, [
+    baseline.version,
+    autosaveEnabled,
+    conflict,
+    createSaveSnapshot,
+    hasBlockingErrors,
+    isDirty,
+    isOnline,
+    onPublish,
+    currentFailure,
+  ]);
+
+  const effectivePending = (() => {
+    const pending = pendingSave;
+    if (!pending) return null;
+    if (
+      pending.requestId === lastSavedRequestId ||
+      pending.requestId === saveFailure?.requestId ||
+      conflict
+    ) {
+      return null;
+    }
+    return pending;
+  })();
+  const autosaveStatus: WebsiteAutosaveStatus = conflict
+    ? "conflict"
+    : hasBlockingErrors
+      ? "invalid"
+      : (!isOnline && isDirty) || currentFailure?.kind === "offline"
+        ? "offline"
+        : currentFailure?.kind === "failed"
+          ? "failed"
+          : effectivePending
+            ? effectivePending.workingSignature === workingSignature && isSaving
+              ? "saving"
+              : "queued"
+            : isDirty &&
+                readyAutosaveSignature === workingSignature &&
+                mutationBusy
+              ? "queued"
+              : isDirty
+                ? "dirty"
+                : "clean";
 
   const acceptNextServerBaseline = useCallback(() => {
     acceptNextServerBaselineRef.current = true;
+  }, []);
+
+  const preserveWorkingValuesOnNextServerBaseline = useCallback(() => {
+    acceptNextServerBaselineRef.current = false;
   }, []);
 
   return {
@@ -409,6 +947,7 @@ export function useWebsiteDraft({ draft, lastSavedRequestId, onSave, onPublish }
     tagline,
     aboutContent,
     brandColorHex,
+    brandColorKey,
     layout,
     fontKey,
     faqItems,
@@ -418,31 +957,42 @@ export function useWebsiteDraft({ draft, lastSavedRequestId, onSave, onPublish }
     brandColorError,
     announcementUrlError,
     announcementScheduleError,
+    layoutError,
     hasBlockingErrors,
     // Readiness guidance (never blocks)
     announcementMessageWarning,
     isDirty,
+    isOnline,
+    autosaveStatus,
+    canRetryAutosave: !!currentFailure,
     // Setters + layout operations
     setTagline,
     setAboutContent,
     setBrandColorHex,
+    setBrandColorKey,
     setFontKey,
     setFaqItems,
     setAnnouncementContent,
     reorderSections: reorder,
     toggleSectionVisible: toggleVisible,
     setSectionVariant: setVariant,
+    applyOwnedVariantSelections,
+    applyThemeAssetSelection,
+    applyOwnedThemeSelections,
     setSectionConfig,
     // Type-keyed variants for undo closures (see above)
     moveSectionOfType,
     setSectionVisibleByType,
     setSectionConfigByType,
-    // Save + discard
-    handleSave,
+    // Autosave recovery, publish barrier + discard
+    retryAutosave,
+    flushAutosave,
+    replaceLatestWithLocal,
     handlePublish,
-    buildPayload,
+    buildDraftBody,
     resetToBaseline,
     acceptNextServerBaseline,
+    preserveWorkingValuesOnNextServerBaseline,
   };
 }
 

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { telHref } from "../../../shared/contact";
 import { FootSocials } from "../parts/FootSocials";
 import type { FooterBodyProps } from "../types";
@@ -12,10 +12,8 @@ export function Minimal({ data, t }: FooterBodyProps) {
   const multi = locs.length > 1;
 
   const [sel, setSel] = useState(0);
-  useEffect(() => {
-    if (sel >= locs.length) setSel(0);
-  }, [locs.length, sel]);
-  const here = locs[sel] ?? locs[0] ?? null;
+  const selectedIndex = sel >= 0 && sel < locs.length ? sel : 0;
+  const here = locs[selectedIndex] ?? null;
   const phone = here?.phone?.trim();
 
   return (
@@ -23,7 +21,7 @@ export function Minimal({ data, t }: FooterBodyProps) {
       <div className="mc-fmin-top">
         <div className="mc-fmin-brand">
           {data.logo ? (
-            <img className="mc-foot-logo" src={data.logo} alt={name} />
+            <img className="mc-foot-logo" src={data.logo} alt={name} loading="lazy" decoding="async" />
           ) : (
             <div className="mc-foot-lockup">
               <span className="mc-foot-mark" aria-hidden>
@@ -44,7 +42,7 @@ export function Minimal({ data, t }: FooterBodyProps) {
             <button
               key={l.id}
               type="button"
-              style={i === sel ? { color: "var(--mc-accent)" } : undefined}
+              style={i === selectedIndex ? { color: "var(--mc-accent)" } : undefined}
               onClick={() => setSel(i)}
             >
               {l.name}

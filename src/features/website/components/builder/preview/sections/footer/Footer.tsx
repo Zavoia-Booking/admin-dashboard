@@ -18,7 +18,11 @@ export function Footer({ data, t, footerRef, variant }: FooterVariantProps) {
   const v = variant && Object.hasOwn(VARIANTS, variant) ? (variant as keyof typeof VARIANTS) : "default";
   const Body = VARIANTS[v];
   return (
-    <footer className={`mc-footer mc-footer--${v}`} ref={footerRef as React.RefObject<HTMLElement>}>
+    <footer
+      className={`mc-footer mc-footer--${v}`}
+      data-preview-section="footer"
+      ref={footerRef as React.RefObject<HTMLElement>}
+    >
       <Body data={data} t={t} />
       <FootBottom data={data} t={t} showWordmark={v === "default"} />
     </footer>

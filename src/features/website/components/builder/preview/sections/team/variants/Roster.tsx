@@ -21,7 +21,7 @@ export function Roster({ members, ratings, nameOf, initialsOf, roleOf, t }: Team
               <span className="mc-rrow-no">{String(i + 1).padStart(2, "0")}</span>
               <span className="mc-rrow-ava">
                 {m.profileImage ? (
-                  <img src={m.profileImage} alt={nameOf(m)} />
+                  <img src={m.profileImage} alt={nameOf(m)} loading="lazy" decoding="async" />
                 ) : (
                   <span
                     className="flex h-full w-full items-center justify-center text-base"

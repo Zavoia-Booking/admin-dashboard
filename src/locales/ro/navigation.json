@@ -19,6 +19,12 @@
     "detail": "Detalii"
   },
   "sidebar": {
+    "navigation": "Navigație principală",
+    "notifications": "Notificări",
+    "notificationsUnread_one": "{{count}} notificare necitită",
+    "notificationsUnread_few": "{{count}} notificări necitite",
+    "notificationsUnread_other": "{{count}} de notificări necitite",
+    "openSection": "Deschide {{name}}",
     "dashboard": "Acasă",
     "calendar": "Calendar",
     "assignments": "Alocări",
@@ -70,6 +76,7 @@
     }
   },
   "mobileNav": {
+    "navigation": "Navigație mobilă",
     "more": "Mai mult",
     "assignments": "Alocări",
     "marketplace": "Marketplace"

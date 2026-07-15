@@ -12,13 +12,17 @@ export const selectWebsiteUnpublishing = (state: RootState) => state.website.isU
 export const selectWebsiteSaving = (state: RootState) => state.website.isSaving;
 export const selectWebsiteHeroMutating = (state: RootState) => state.website.isHeroMutating;
 export const selectWebsiteLastSavedRequestId = (state: RootState) => state.website.lastSavedRequestId;
+export const selectWebsiteSaveFailure = (state: RootState) => state.website.saveFailure;
 export const selectWebsiteConflict = (state: RootState) => state.website.conflict;
 export const selectWebsitePublishLockedItems = (state: RootState) => state.website.publishLockedItems;
 export const selectWebsiteVariantCatalog = (state: RootState) => state.website.variantCatalog;
 export const selectWebsiteSectionCatalog = (state: RootState) => state.website.sectionCatalog;
+export const selectWebsiteThemeAssetCatalog = (state: RootState) => state.website.themeAssetCatalog;
 export const selectWebsiteCatalogLoading = (state: RootState) => state.website.isLoadingCatalog;
 export const selectWebsiteCatalogLoaded = (state: RootState) => state.website.catalogLoaded;
+export const selectWebsiteCatalogError = (state: RootState) => state.website.catalogError;
 export const selectWebsiteCheckoutCreating = (state: RootState) => state.website.isCreatingCheckout;
 export const selectWebsiteVariantCart = (state: RootState) => state.website.variantCart;
 export const selectWebsiteSectionCart = (state: RootState) => state.website.sectionCart;
+export const selectWebsiteThemeAssetCart = (state: RootState) => state.website.themeAssetCart;
 export const selectWebsiteCartBusinessId = (state: RootState) => state.website.cartBusinessId;

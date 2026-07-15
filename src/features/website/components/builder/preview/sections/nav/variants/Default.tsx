@@ -93,6 +93,7 @@ export function Default({
   return (
     <nav
       ref={navRef}
+      data-preview-section="nav"
       className={cn(
         sticky ? "sticky top-0" : "relative",
         // Below the @xl link breakpoint the center links drop away, so the grid loses its center track:
@@ -106,6 +107,8 @@ export function Default({
           <img
             src={data.logo}
             alt=""
+            loading="lazy"
+            decoding="async"
             className="h-[44px] w-[44px] shrink-0 rounded-full object-cover"
             style={{ boxShadow: `0 0 0 1px ${ringColor}`, transition: txt }}
           />

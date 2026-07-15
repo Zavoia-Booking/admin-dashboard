@@ -34,7 +34,13 @@ export function CoverPlate({ data, t, parallax, name, eyebrow, eyebrowDot, monog
       </div>
       <div className="mc-plate-photo">
         <div ref={parallaxRef} className="mc-plate-track">
-          <img src={data.heroImageUrl ?? undefined} alt="" />
+          <img
+            src={data.heroImageUrl ?? undefined}
+            alt=""
+            loading={parallax ? "eager" : "lazy"}
+            decoding="async"
+            fetchPriority={parallax ? "high" : "auto"}
+          />
         </div>
       </div>
       <div className="mc-plate-card">

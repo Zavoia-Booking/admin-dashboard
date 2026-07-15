@@ -1,28 +1,32 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Loader2, LockOpen, X } from "lucide-react";
+import { ChevronRight, Loader2, Lock, LockOpen, X } from "lucide-react";
 import { cn } from "../../../../shared/lib/utils";
 import { Button } from "../../../../shared/components/ui/button";
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "../../../../shared/components/ui/sheet";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "../../../../shared/components/ui/dialog";
 import { useFormatPrice } from "../../../../shared/hooks/useFormatPrice";
-import { variantPriceLabel } from "./VariantPurchaseDialog";
+import { variantPriceLabel } from "./pricing";
+import { displayFontFor } from "./theme";
 
 /** One queued unlock — a paid style or a section unlock, resolved against the catalog. */
 export interface UnlockLineItem {
   /** Stable render key across kinds (e.g. "section-3" / "variant-7"). */
   key: string;
   id: number;
-  kind: "section" | "variant";
+  kind: "section" | "variant" | "color" | "font";
   name: string;
   priceMinor: number;
   currency: string;
+  /** Canonical hex/font value for a real theme specimen. */
+  value?: string;
+  assetKey?: string;
 }
 
 interface PendingUnlocksProps {
@@ -30,9 +34,16 @@ interface PendingUnlocksProps {
   entries: UnlockLineItem[];
   /** Combined checkout session being created (ends with a redirect to Stripe). */
   isLoading: boolean;
+  /** Authoritative ownership/catalog reconciliation currently makes the tray read-only. */
+  isBlocked?: boolean;
   onRemove: (item: UnlockLineItem) => void;
   onClear: () => void;
   onCheckout: () => void;
+}
+
+interface PendingUnlocksTriggerProps extends PendingUnlocksProps {
+  /** Keep the existing workspace trigger by default; Atelier supplies compact desktop/mobile controls. */
+  variant?: "default" | "atelier-header" | "atelier-mobile-bar";
 }
 
 interface UnlockListProps extends PendingUnlocksProps {
@@ -61,8 +72,8 @@ export function PendingUnlocksPanel(props: PendingUnlocksProps) {
         <button
           type="button"
           onClick={props.onClear}
-          disabled={props.isLoading}
-          className="shrink-0 px-1 py-1 text-[12px] font-medium text-foreground-3 outline-none transition-colors hover:text-foreground-1 focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-50"
+          disabled={props.isLoading || props.isBlocked}
+          className="min-h-11 shrink-0 px-2 text-[12px] font-medium text-foreground-3 outline-none transition-colors hover:text-foreground-1 focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-50"
         >
           {t("businessPage.paidVariants.unlocks.clear")}
         </button>
@@ -73,74 +84,138 @@ export function PendingUnlocksPanel(props: PendingUnlocksProps) {
 }
 
 /**
- * Compact trigger + sheet for everything below xl: a side sheet on landscape tablet, a
- * bottom sheet on portrait tablet/phone. It never covers the editor by default.
+ * Atelier's premium-selection trigger. The review surface uses one Radix dialog at every
+ * viewport so keyboard focus, Escape, backdrop dismissal, and focus restoration stay identical.
+ * CSS places it as the supplied top-right tray from 920px up and as a compact floating card
+ * above the dashboard mobile navigation below 920px.
  */
-export function PendingUnlocksTrigger(props: PendingUnlocksProps) {
+export function PendingUnlocksTrigger({ variant = "default", ...props }: PendingUnlocksTriggerProps) {
   const { t } = useTranslation("website");
-  const [sheetOpen, setSheetOpen] = useState(false);
-  const [tabletLandscape, setTabletLandscape] = useState(false);
-
-  useEffect(() => {
-    const media = window.matchMedia("(min-width: 768px) and (max-width: 1279px) and (orientation: landscape)");
-    const update = () => setTabletLandscape(media.matches);
-    update();
-    media.addEventListener("change", update);
-    return () => media.removeEventListener("change", update);
-  }, []);
+  const { formatPrice } = useFormatPrice();
+  const [trayOpen, setTrayOpen] = useState(false);
 
   if (props.entries.length === 0) return null;
 
+  const totalsByCurrency = unlockTotalsByCurrency(props.entries);
+  const total = totalsByCurrency
+    .map((subtotal) => variantPriceLabel(formatPrice, subtotal))
+    .join(" + ");
+  const interactionBlocked = props.isLoading || props.isBlocked;
+  const trigger = variant === "atelier-header" ? (
+    <button
+      type="button"
+      disabled={interactionBlocked}
+      className="website-atelier-focus website-atelier-press relative flex h-8 shrink-0 items-center gap-[9px] whitespace-nowrap rounded-full border border-[var(--atelier-border)] bg-[var(--atelier-surface-strong)] py-0 pl-[7px] pr-[9px] text-[12px] font-semibold text-[var(--atelier-ink)] after:absolute after:-inset-y-1.5 after:inset-x-0 after:content-[''] hover:border-[color-mix(in_srgb,var(--atelier-ink)_28%,transparent)] disabled:cursor-not-allowed disabled:opacity-60"
+      aria-label={`${t("businessPage.paidVariants.unlocks.title")}: ${props.entries.length}, ${total}`}
+    >
+      <span className="grid size-[19px] shrink-0 place-items-center rounded-full bg-[color-mix(in_srgb,var(--atelier-warning)_18%,var(--atelier-surface-strong))] text-[#9a7a2a] dark:text-[#d6b966]">
+        <Lock className="size-2.5" strokeWidth={2.4} aria-hidden />
+      </span>
+      <span className="inline-flex items-baseline gap-1 tabular-nums">
+        <span>{props.entries.length}</span>
+        <span className="hidden min-[1120px]:inline">
+          {t("businessPage.paidVariants.unlocks.compactLabel")}
+        </span>
+      </span>
+      <span className="font-normal tabular-nums text-[var(--atelier-muted)]">{total}</span>
+      <ChevronRight
+        className="hidden size-[13px] text-[var(--atelier-muted-soft)] min-[1120px]:block"
+        strokeWidth={2}
+        aria-hidden
+      />
+    </button>
+  ) : variant === "atelier-mobile-bar" ? (
+    <button
+      type="button"
+      disabled={interactionBlocked}
+      className="atelier-mobile-unlocks website-atelier-focus website-atelier-press disabled:cursor-not-allowed disabled:opacity-60"
+      aria-label={`${t("businessPage.paidVariants.unlocks.title")}: ${props.entries.length}, ${total}`}
+    >
+      <span className="atelier-mobile-unlocks-summary">
+        <span className="atelier-mobile-unlocks-dot" aria-hidden />
+        <span className="truncate">
+          {t("businessPage.paidVariants.unlocks.mobileSummary", {
+            count: props.entries.length,
+            total,
+          })}
+        </span>
+      </span>
+      <span className="atelier-mobile-unlocks-review">
+        {t("businessPage.paidVariants.unlocks.review")}
+      </span>
+    </button>
+  ) : (
+    <Button
+      type="button"
+      variant="outline"
+      size="sm"
+      rounded="default"
+      disabled={interactionBlocked}
+      className="relative min-h-11 gap-1.5 px-3 text-[12px] font-semibold"
+      aria-label={t("businessPage.paidVariants.unlocks.title")}
+    >
+      <LockOpen className="size-4" strokeWidth={1.8} aria-hidden />
+      <span>{t("businessPage.paidVariants.unlocks.triggerLabel")}</span>
+      <span className="inline-flex min-w-4 justify-center rounded-full bg-primary/10 px-1.5 py-0.5 text-[11px] font-semibold tabular-nums text-primary">
+        {props.entries.length}
+      </span>
+    </Button>
+  );
+
   return (
-    <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-      <SheetTrigger asChild>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          rounded="default"
-          className="relative min-h-11 gap-1.5 px-3 text-[12px] font-semibold"
-          aria-label={t("businessPage.paidVariants.unlocks.title")}
-        >
-          <LockOpen className="size-4" strokeWidth={1.8} aria-hidden />
-          <span>{t("businessPage.paidVariants.unlocks.triggerLabel")}</span>
-          <span className="inline-flex min-w-4 justify-center rounded-full bg-primary/10 px-1.5 py-0.5 text-[11px] font-semibold tabular-nums text-primary">
-            {props.entries.length}
-          </span>
-        </Button>
-      </SheetTrigger>
-      <SheetContent
-        side={tabletLandscape ? "right" : "bottom"}
-        overlayClassName="z-[70]"
-        className={cn(
-          "z-[70] gap-0 p-0",
-          tabletLandscape
-            ? "!w-[min(420px,100vw)] !max-w-none border-y-0 border-r-0"
-            : "max-h-[min(80dvh,640px)] rounded-t-lg border-x-0 border-b-0",
-        )}
-      >
-        <SheetHeader className="border-b border-border px-4 py-3.5 pr-12 text-left">
-          <SheetTitle className="text-[15px]">{t("businessPage.paidVariants.unlocks.title")}</SheetTitle>
-          <SheetDescription className="sr-only">
-            {t("businessPage.paidVariants.unlocks.title")}
-          </SheetDescription>
-        </SheetHeader>
+    <Dialog
+      open={trayOpen}
+      onOpenChange={(open) => {
+        if (!interactionBlocked) setTrayOpen(open);
+      }}
+    >
+      <DialogTrigger asChild>{trigger}</DialogTrigger>
+      <DialogContent className="website-atelier atelier-unlock-tray-dialog gap-0 p-4">
+        <DialogHeader className="atelier-unlock-tray-header gap-0 pr-12 text-left">
+          <div className="atelier-unlock-popover-heading">
+            <DialogTitle>{t("businessPage.paidVariants.unlocks.title")}</DialogTitle>
+            <span className="atelier-unlock-header-actions">
+              <span className="tabular-nums">{props.entries.length}</span>
+              <button
+                type="button"
+                onClick={props.onClear}
+                disabled={interactionBlocked}
+                className="atelier-unlock-clear website-atelier-focus"
+              >
+                {t("businessPage.paidVariants.unlocks.clear")}
+              </button>
+            </span>
+          </div>
+          <DialogDescription className="atelier-unlock-popover-hint text-pretty">
+            {t("businessPage.paidVariants.unlocks.popoverHint")}
+          </DialogDescription>
+        </DialogHeader>
         <UnlockList
           {...props}
           showHeading={false}
-          className={cn(
-            "overflow-y-auto p-4",
-            !tabletLandscape && "pb-[calc(1rem+env(safe-area-inset-bottom))]",
-          )}
+          className="atelier-unlock-popover-list"
         />
-      </SheetContent>
-    </Sheet>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function unlockTotalsByCurrency(entries: UnlockLineItem[]) {
+  return Array.from(
+    entries.reduce((groups, entry) => {
+      const key = entry.currency.toUpperCase();
+      const current = groups.get(key) ?? { currency: entry.currency, priceMinor: 0 };
+      current.priceMinor += entry.priceMinor;
+      groups.set(key, current);
+      return groups;
+    }, new Map<string, { currency: string; priceMinor: number }>()).values(),
   );
 }
 
 function UnlockList({
   entries,
   isLoading,
+  isBlocked = false,
   onRemove,
   onClear,
   onCheckout,
@@ -150,18 +225,11 @@ function UnlockList({
 }: UnlockListProps & { bare?: boolean }) {
   const { t } = useTranslation("website");
   const { formatPrice } = useFormatPrice();
+  const interactionBlocked = isLoading || isBlocked;
 
   // A Stripe session accepts one currency. Keep subtotals separate rather than displaying
   // invalid arithmetic when regional catalog pricing differs.
-  const totalsByCurrency = Array.from(
-    entries.reduce((groups, entry) => {
-      const key = entry.currency.toUpperCase();
-      const current = groups.get(key) ?? { currency: entry.currency, priceMinor: 0 };
-      current.priceMinor += entry.priceMinor;
-      groups.set(key, current);
-      return groups;
-    }, new Map<string, { currency: string; priceMinor: number }>()).values(),
-  );
+  const totalsByCurrency = unlockTotalsByCurrency(entries);
   const hasMixedCurrencies = totalsByCurrency.length > 1;
   const total = totalsByCurrency
     .map((subtotal) => variantPriceLabel(formatPrice, subtotal))
@@ -188,69 +256,115 @@ function UnlockList({
           <button
             type="button"
             onClick={onClear}
-            disabled={isLoading}
-            className="min-h-11 shrink-0 px-1 text-[12px] font-medium text-foreground-3 outline-none transition-colors hover:text-foreground-1 focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-50 xl:min-h-9"
+            disabled={interactionBlocked}
+            className="min-h-11 shrink-0 px-2 text-[12px] font-medium text-foreground-3 outline-none transition-colors hover:text-foreground-1 focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-50"
           >
             {t("businessPage.paidVariants.unlocks.clear")}
           </button>
         </div>
       ) : null}
 
-      <ul className={cn("mb-3 space-y-1.5 overflow-y-auto", bare ? "max-h-40" : "max-h-52")} aria-live="polite">
-        {entries.map((entry) => (
-          <li
-            key={entry.key}
-            className="flex items-center justify-between gap-2 rounded-lg bg-surface-hover/60 px-3 py-1.5"
-          >
-            <span className="min-w-0 flex-1 truncate text-[13px] text-foreground-2" title={entry.name}>
-              {entry.name}
-            </span>
-            <span className="shrink-0 text-[13px] font-medium tabular-nums text-foreground-1">
-              {variantPriceLabel(formatPrice, entry)}
-            </span>
-            <button
-              type="button"
-              onClick={() => onRemove(entry)}
-              disabled={isLoading}
-              aria-label={t("businessPage.paidVariants.unlocks.removeAria", { name: entry.name })}
-              className={cn(
-                "grid shrink-0 place-items-center rounded-md text-foreground-3 outline-none transition-colors hover:bg-surface-active hover:text-foreground-1 focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-50",
-                bare ? "size-8" : "size-11 xl:size-9",
-              )}
-            >
-              <X className="size-3.5" strokeWidth={2} aria-hidden />
-            </button>
-          </li>
-        ))}
+      <ul
+        className={cn("atelier-unlock-lines mb-3 space-y-1 overflow-y-auto", bare ? "max-h-40" : "max-h-52")}
+        aria-live="polite"
+      >
+        {entries.map((entry) => {
+          const kindLabel = t(
+            entry.kind === "section"
+              ? "businessPage.paidVariants.sectionEyebrow"
+              : entry.kind === "variant"
+                ? "businessPage.paidVariants.eyebrow"
+                : entry.kind === "color"
+                  ? "businessPage.theme.accentColor"
+                  : "businessPage.theme.fontLabel",
+          );
+
+          return (
+            <li key={entry.key} className="atelier-unlock-line">
+              <UnlockSpecimen entry={entry} />
+              <span className="min-w-0 flex-1">
+                <span className="atelier-unlock-line-title block truncate text-[12.5px] font-medium text-[var(--atelier-ink)]" title={entry.name}>
+                  {entry.name}
+                </span>
+                <span className="atelier-unlock-line-kind mt-0.5 block truncate text-[10.5px] text-[var(--atelier-muted)]">
+                  {kindLabel}
+                </span>
+              </span>
+              <span className="atelier-unlock-line-price shrink-0 font-mono text-[11.5px] tabular-nums text-[var(--atelier-ink-soft)]">
+                {variantPriceLabel(formatPrice, entry)}
+              </span>
+              <button
+                type="button"
+                onClick={() => onRemove(entry)}
+                disabled={interactionBlocked}
+                aria-label={t("businessPage.paidVariants.unlocks.removeAria", { name: entry.name })}
+                className="website-atelier-focus atelier-unlock-remove relative grid size-6 shrink-0 place-items-center rounded-[7px] text-[var(--atelier-muted-soft)] outline-none before:absolute before:-inset-[10px] before:content-[''] transition-colors hover:bg-[var(--atelier-field)] hover:text-[var(--atelier-ink)] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <X className="size-3" strokeWidth={1.9} aria-hidden />
+              </button>
+            </li>
+          );
+        })}
       </ul>
 
-      <div className="border-t border-border-subtle pt-3">
+      <div className="atelier-unlock-summary border-t border-[var(--atelier-border-soft)] pt-3">
         {hasMixedCurrencies ? (
           <p id="website-unlocks-currency-note" className="mb-2 text-xs leading-5 text-warning" role="status">
             {t("businessPage.paidVariants.unlocks.mixedCurrency")}
           </p>
         ) : null}
-        <div className="flex items-end justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-foreground-3">
-              {totalLabel}
-            </p>
-            <p className="text-[17px] font-semibold tabular-nums text-foreground-1">{total}</p>
-          </div>
-          <Button
-            type="button"
-            disabled={isLoading || hasMixedCurrencies}
-            aria-describedby={hasMixedCurrencies ? "website-unlocks-currency-note" : undefined}
-            onClick={onCheckout}
-            className={cn("shrink-0", bare ? "min-h-10" : "min-h-11 xl:min-h-10")}
-          >
-            {isLoading ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
-            {isLoading
-              ? t("businessPage.paidVariants.processing")
-              : t("businessPage.paidVariants.unlocks.complete")}
-          </Button>
+        <div className="atelier-unlock-total flex items-baseline justify-between gap-3 px-0.5">
+          <p>{totalLabel}</p>
+          <p className="text-[16px] font-semibold tabular-nums text-[var(--atelier-ink)]">{total}</p>
         </div>
+        <Button
+          type="button"
+          disabled={interactionBlocked || hasMixedCurrencies}
+          aria-describedby={hasMixedCurrencies ? "website-unlocks-currency-note" : undefined}
+          onClick={onCheckout}
+          className="atelier-unlock-checkout relative mt-3 h-[38px] min-h-0 w-full before:absolute before:-inset-y-[3px] before:inset-x-0 before:content-['']"
+        >
+          {isLoading ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
+          {isLoading
+            ? t("businessPage.paidVariants.processing")
+            : t("businessPage.paidVariants.unlocks.complete")}
+        </Button>
       </div>
     </div>
+  );
+}
+
+/** Compact composition specimen matching the artifact's preview language. Catalog line items do
+ * not include thumbnail geometry, so the two real unlock kinds use distinct, deterministic
+ * schematics instead of unrelated generic icons. */
+function UnlockSpecimen({ entry }: { entry: UnlockLineItem }) {
+  if (entry.kind === "color") {
+    return (
+      <span
+        className="atelier-unlock-specimen atelier-unlock-specimen--color"
+        style={{ backgroundColor: entry.value }}
+        aria-hidden
+      />
+    );
+  }
+  if (entry.kind === "font") {
+    const font = displayFontFor(entry.assetKey ?? entry.value);
+    return (
+      <span
+        className="atelier-unlock-specimen atelier-unlock-specimen--font"
+        style={{ fontFamily: font.stack, fontWeight: font.weight }}
+        aria-hidden
+      >
+        Aa
+      </span>
+    );
+  }
+  return (
+    <span className="atelier-unlock-specimen" data-kind={entry.kind} aria-hidden>
+      <i />
+      <i />
+      <i />
+      <i />
+    </span>
   );
 }

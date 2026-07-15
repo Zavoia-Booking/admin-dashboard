@@ -39,6 +39,8 @@ interface AnnouncementEditorProps {
   /** True when the announcement section is visible → show a readiness hint when its message is empty. */
   required?: boolean;
   canWrite?: boolean;
+  /** Atelier renders inside a fixed 332px rail, so viewport breakpoints must not create two columns. */
+  variant?: "default" | "atelier";
 }
 
 /** A picker `Date` (local midnight) → the stored `YYYY-MM-DD` calendar key. */
@@ -51,7 +53,16 @@ const toDateKey = (d: Date) =>
  * app's validated TextField, DatePicker and a native
  * radio list so it matches the rest of the dashboard.
  */
-export function AnnouncementEditor({ value, onChange, config, onConfigChange, locale, required, canWrite = true }: AnnouncementEditorProps) {
+export function AnnouncementEditor({
+  value,
+  onChange,
+  config,
+  onConfigChange,
+  locale,
+  required,
+  canWrite = true,
+  variant = "default",
+}: AnnouncementEditorProps) {
   const { t } = useTranslation("website");
   const tone: AnnouncementTone = config.tone ?? "neutral";
 
@@ -263,7 +274,7 @@ export function AnnouncementEditor({ value, onChange, config, onConfigChange, lo
         <Collapsible open={scheduleOn} onOpenChange={setScheduleOn}>
           <CollapsibleContent>
             <div className="space-y-3 pt-3">
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className={cn("grid grid-cols-1 gap-3", variant !== "atelier" && "sm:grid-cols-2")}>
                 <div className="space-y-2">
                   <Label>{t("businessPage.builder.announcement.schedule.start")}</Label>
                   <DatePicker

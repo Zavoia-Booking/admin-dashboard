@@ -26,7 +26,13 @@ export function Cards({ shown, idx, onSelect, t }: LocationsVariantProps) {
           >
             <div className="mc-locc-fig">
               {photo ? (
-                <img src={photo} alt={l.name} className="absolute inset-0 h-full w-full object-cover" />
+                <img
+                  src={photo}
+                  alt={l.name}
+                  loading="lazy"
+                  decoding="async"
+                  className="absolute inset-0 h-full w-full object-cover"
+                />
               ) : (
                 <div className="absolute inset-0" style={{ background: "var(--mc-accent-field)" }} />
               )}

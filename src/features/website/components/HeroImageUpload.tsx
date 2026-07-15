@@ -8,10 +8,11 @@ import { Spinner } from "../../../shared/components/ui/spinner";
 import { cn } from "../../../shared/lib/utils";
 import { deleteWebsiteHeroAction, uploadWebsiteHeroAction } from "../actions";
 import {
-  selectWebsiteDraft,
   selectWebsiteHeroMutating,
+  selectWebsiteConflict,
   selectWebsitePublishing,
   selectWebsiteSaving,
+  selectWebsiteSaveFailure,
   selectWebsiteUnpublishing,
 } from "../selectors";
 
@@ -36,6 +37,8 @@ const EXT_TO_MIME: Record<string, string> = {
 interface HeroImageUploadProps {
   heroImageUrl: string | null;
   canWrite: boolean;
+  /** The Atelier inspector retains the same upload behavior with a compact visual treatment. */
+  variant?: "default" | "atelier";
 }
 
 /**
@@ -43,20 +46,31 @@ interface HeroImageUploadProps {
  * versioned hero endpoints: every mutation sends the current draft version, and a
  * success advances only the saved baseline (unsaved text/layout edits are preserved).
  */
-export function HeroImageUpload({ heroImageUrl, canWrite }: HeroImageUploadProps) {
+export function HeroImageUpload({ heroImageUrl, canWrite, variant = "default" }: HeroImageUploadProps) {
   const { t } = useTranslation("website");
   const dispatch = useDispatch();
-  const draft = useSelector(selectWebsiteDraft);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const dragCounterRef = useRef(0);
   const [dragActive, setDragActive] = useState(false);
   const isHeroMutating = useSelector(selectWebsiteHeroMutating);
+  const conflict = useSelector(selectWebsiteConflict);
   const isSaving = useSelector(selectWebsiteSaving);
+  const saveFailure = useSelector(selectWebsiteSaveFailure);
   const isPublishing = useSelector(selectWebsitePublishing);
   const isUnpublishing = useSelector(selectWebsiteUnpublishing);
-  // Publish counts as busy: a hero mutation mid-publish bumps the draft version and would
-  // 409 the in-flight publish (whose expectedVersion is already fixed).
-  const busy = isHeroMutating || isSaving || isPublishing || isUnpublishing;
+  // Publish counts as busy in this surface. The serialized mutation lane protects ordering,
+  // but blocking a second gesture keeps the image control predictable while it is queued.
+  // A failed save may have committed without returning its response. Until the GET-first
+  // recovery resolves that ambiguity, Redux cannot prove the latest server version for a
+  // hero command.
+  const saveRecoveryRequired = !!saveFailure && saveFailure.kind !== "cancelled";
+  const busy =
+    isHeroMutating ||
+    isSaving ||
+    isPublishing ||
+    isUnpublishing ||
+    !!conflict ||
+    saveRecoveryRequired;
 
   const validateFile = (file: File): boolean => {
     const extension = file.name.split(".").pop()?.toLowerCase();
@@ -81,12 +95,12 @@ export function HeroImageUpload({ heroImageUrl, canWrite }: HeroImageUploadProps
   const handleFile = (file: File | undefined | null) => {
     if (!file || busy) return;
     if (!validateFile(file)) return;
-    dispatch(uploadWebsiteHeroAction.request({ file, expectedVersion: draft?.version ?? 0 }));
+    dispatch(uploadWebsiteHeroAction.request({ file }));
   };
 
   const handleRemove = () => {
     if (busy) return;
-    dispatch(deleteWebsiteHeroAction.request({ expectedVersion: draft?.version ?? 0 }));
+    dispatch(deleteWebsiteHeroAction.request());
   };
 
   const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -106,7 +120,7 @@ export function HeroImageUpload({ heroImageUrl, canWrite }: HeroImageUploadProps
     }
   };
 
-  const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
+  const handleDrop = (event: React.DragEvent<HTMLButtonElement>) => {
     event.preventDefault();
     event.stopPropagation();
     dragCounterRef.current = 0;
@@ -116,7 +130,7 @@ export function HeroImageUpload({ heroImageUrl, canWrite }: HeroImageUploadProps
   };
 
   return (
-    <div>
+    <div className={variant === "atelier" ? "atelier-hero-image-upload" : undefined}>
       <input
         ref={inputRef}
         type="file"
@@ -127,13 +141,20 @@ export function HeroImageUpload({ heroImageUrl, canWrite }: HeroImageUploadProps
       />
 
       {heroImageUrl ? (
-        // Asset row — thumbnail + purpose + actions in one grouped surface. The full-size cover
-        // already renders in the live preview below, so this stays a compact management control.
-        <div className="flex items-center gap-3 rounded-xl border border-border bg-surface p-2 shadow-sm">
-          <div className="relative h-12 w-[4.5rem] shrink-0 overflow-hidden rounded-lg border border-border bg-muted/40">
+        // The default dashboard keeps a compact asset row. Atelier expands this same state into
+        // the artifact's cover specimen and paired actions without changing upload behavior.
+        <div
+          className={cn(
+            "flex items-center gap-3 rounded-xl border border-border bg-surface p-2 shadow-sm",
+            variant === "atelier" && "atelier-hero-cover-card",
+          )}
+        >
+          <div className="atelier-hero-cover-preview relative h-12 w-[4.5rem] shrink-0 overflow-hidden rounded-lg border border-border bg-muted/40">
             <img
               src={heroImageUrl}
               alt={t("businessPage.branding.hero.alt")}
+              loading="eager"
+              decoding="async"
               draggable={false}
               className="h-full w-full object-cover"
             />
@@ -144,7 +165,7 @@ export function HeroImageUpload({ heroImageUrl, canWrite }: HeroImageUploadProps
             )}
           </div>
 
-          <div className="min-w-0 flex-1">
+          <div className="atelier-hero-cover-copy min-w-0 flex-1">
             <p className="truncate text-[13px] font-medium text-foreground-1">
               {t("businessPage.branding.hero.label")}
             </p>
@@ -154,46 +175,65 @@ export function HeroImageUpload({ heroImageUrl, canWrite }: HeroImageUploadProps
           </div>
 
           {canWrite && (
-            <div className="flex shrink-0 items-center gap-0.5">
-              <Button
-                type="button"
-                size="sm"
-                variant="ghost"
-                onClick={() => inputRef.current?.click()}
-                disabled={busy}
-                className="min-h-11 text-foreground-2 xl:h-8 xl:min-h-0"
-              >
-                <UploadCloud className="h-3.5 w-3.5" />
-                {t("businessPage.branding.hero.replace")}
-              </Button>
-              <Button
-                type="button"
-                size="icon"
-                variant="ghost"
-                onClick={handleRemove}
-                disabled={busy}
-                aria-label={t("businessPage.branding.hero.remove")}
-                title={t("businessPage.branding.hero.remove")}
-                className="size-11 text-foreground-3 hover:bg-destructive/10 hover:text-destructive xl:size-8"
-              >
-                <X className="h-4 w-4" />
-              </Button>
+            <div className="atelier-hero-cover-actions flex shrink-0 items-center gap-0.5">
+              {variant === "atelier" ? (
+                <>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => inputRef.current?.click()}
+                    disabled={busy}
+                    className="atelier-hero-cover-action"
+                  >
+                    {t("businessPage.branding.hero.replace")}
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={handleRemove}
+                    disabled={busy}
+                    className="atelier-hero-cover-action atelier-hero-cover-remove"
+                  >
+                    {t("businessPage.branding.hero.remove")}
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => inputRef.current?.click()}
+                    disabled={busy}
+                    className="min-h-11 text-foreground-2 xl:h-8 xl:min-h-0"
+                  >
+                    <UploadCloud className="h-3.5 w-3.5" />
+                    {t("businessPage.branding.hero.replace")}
+                  </Button>
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    onClick={handleRemove}
+                    disabled={busy}
+                    aria-label={t("businessPage.branding.hero.remove")}
+                    title={t("businessPage.branding.hero.remove")}
+                    className="size-11 text-foreground-3 hover:bg-destructive/10 hover:text-destructive xl:size-8"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </>
+              )}
             </div>
           )}
         </div>
       ) : (
-        <div
-          role="button"
-          tabIndex={canWrite ? 0 : -1}
-          aria-disabled={!canWrite}
-          onClick={() => canWrite && !busy && inputRef.current?.click()}
-          onKeyDown={(e) => {
-            if (!canWrite || busy) return;
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              inputRef.current?.click();
-            }
-          }}
+        <button
+          type="button"
+          disabled={!canWrite || busy}
+          onClick={() => inputRef.current?.click()}
           onDrop={handleDrop}
           onDragOver={(e) => {
             e.preventDefault();
@@ -202,7 +242,9 @@ export function HeroImageUpload({ heroImageUrl, canWrite }: HeroImageUploadProps
           onDragEnter={handleDrag}
           onDragLeave={handleDrag}
           className={cn(
-            "flex w-full items-center gap-3 rounded-xl border border-dashed px-3.5 py-3 text-left outline-none cursor-pointer transition-[border-color,background-color,box-shadow] duration-200",
+            "flex w-full items-center gap-3 rounded-xl border border-dashed px-3.5 py-3 text-left outline-none transition-[border-color,background-color,box-shadow] duration-200",
+            variant === "atelier" && "atelier-hero-dropzone",
+            canWrite && !busy ? "cursor-pointer" : "cursor-not-allowed opacity-60",
             dragActive
               ? "border-primary bg-primary/10 ring-2 ring-primary/20"
               : "border-border-strong/40 bg-muted/10 hover:border-primary/50 hover:bg-surface-hover focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-focus",
@@ -230,7 +272,7 @@ export function HeroImageUpload({ heroImageUrl, canWrite }: HeroImageUploadProps
               {t("businessPage.branding.hero.hint")}
             </p>
           </div>
-        </div>
+        </button>
       )}
     </div>
   );

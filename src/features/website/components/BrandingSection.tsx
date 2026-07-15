@@ -1,11 +1,39 @@
-import type { KeyboardEvent } from "react";
+import { useId, useRef, useState, type CSSProperties, type KeyboardEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
-import { ArrowUpRight, Building2, Check, ChevronDown } from "lucide-react";
-import type { Business } from "../types";
+import {
+  AlertTriangle,
+  ArrowUpRight,
+  Building2,
+  Check,
+  ChevronDown,
+  ChevronRight,
+  Lock,
+  RotateCcw,
+  X,
+} from "lucide-react";
+import type { Business, WebsiteThemeAssetCatalogItem } from "../types";
 import { cn } from "../../../shared/lib/utils";
+import { useFormatPrice } from "../../../shared/hooks/useFormatPrice";
+import { Button } from "../../../shared/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "../../../shared/components/ui/popover";
-import { BRAND_ACCENTS, FALLBACK_BRAND, displayFontFor, safeBrandColor } from "./builder/theme";
+import { RadioGroup, RadioGroupItem } from "../../../shared/components/ui/radio-group";
+import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "../../../shared/components/ui/sheet";
+import {
+  BRAND_ACCENT_CATALOG,
+  BRAND_ACCENTS,
+  displayFontFor,
+  safeBrandColor,
+  type BrandAccentOption,
+} from "./builder/theme";
 
 // Shared micro-label for each brand group (mirrors the section-list mono labels).
 const GROUP_LABEL = "text-[11px] font-semibold uppercase text-foreground-3";
@@ -26,6 +54,28 @@ interface BrandColorControlProps {
   canWrite: boolean;
   brandColorHex: string;
   setBrandColorHex: (value: string) => void;
+  /** The Atelier workspace uses a compact row and keeps the complete palette in the popover. */
+  variant?: "default" | "atelier";
+  /** At Atelier's 920px compact boundary, the palette becomes a bottom drawer. */
+  compact?: boolean;
+  /** Authoritative Website catalog entries. Only Atelier consumes paid theme assets. */
+  themeAssets?: WebsiteThemeAssetCatalogItem[];
+  /** True only after the authoritative catalog request has completed successfully. */
+  catalogReady?: boolean;
+  /** Initial catalog failures render a local recovery action inside the open picker. */
+  catalogError?: string | null;
+  onRetryCatalog?: () => void;
+  /** Locked paid choices are selectable only while pricing/ownership is freshly authoritative. */
+  premiumSelectionReady?: boolean;
+  /** Effective preview color. It may differ from the persisted draft for a locked selection. */
+  effectiveBrandColorHex?: string;
+  /** Routes every authoritative Atelier choice through the workspace ownership flow. */
+  onThemeAssetSelect?: (asset: WebsiteThemeAssetCatalogItem) => void;
+}
+
+interface AtelierAccentChoice {
+  option: BrandAccentOption;
+  asset?: WebsiteThemeAssetCatalogItem;
 }
 
 /**
@@ -46,7 +96,7 @@ export function BrandingSection({
     <div className="flex min-w-0 items-center gap-3.5 sm:gap-4">
       <div className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-surface shadow-xs dark:bg-neutral-900">
         {business?.logo ? (
-          <img src={business.logo} alt="" className="h-full w-full object-cover" />
+          <img src={business.logo} alt="" loading="eager" decoding="async" className="h-full w-full object-cover" />
         ) : (
           <Building2 className="size-6 text-foreground-3" aria-hidden />
         )}
@@ -79,11 +129,28 @@ export function BrandColorControl({
   canWrite,
   brandColorHex,
   setBrandColorHex,
+  variant = "default",
+  compact = false,
+  themeAssets,
+  catalogReady,
+  catalogError,
+  onRetryCatalog,
+  premiumSelectionReady = true,
+  effectiveBrandColorHex,
+  onThemeAssetSelect,
 }: BrandColorControlProps) {
   const { t } = useTranslation("website");
-  const activeAccent = (brandColorHex || FALLBACK_BRAND).toLowerCase();
-  const accentHex = safeBrandColor(brandColorHex);
-  const activeAccentEntry = BRAND_ACCENTS.find((a) => a.hex.toLowerCase() === activeAccent);
+  const { formatPrice } = useFormatPrice();
+  const [atelierPickerOpen, setAtelierPickerOpen] = useState(false);
+  const [atelierAnnouncement, setAtelierAnnouncement] = useState("");
+  const atelierTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const [atelierPopoverAlignOffset, setAtelierPopoverAlignOffset] = useState(0);
+  const accentGroupId = useId();
+  const persistedAccent = safeBrandColor(brandColorHex).toLowerCase();
+  const effectiveAccentHex = safeBrandColor(effectiveBrandColorHex ?? brandColorHex);
+  const activeAccent = effectiveAccentHex.toLowerCase();
+  const accentHex = effectiveAccentHex;
+  const activeAccentEntry = BRAND_ACCENT_CATALOG.find((a) => a.hex.toLowerCase() === activeAccent);
   const activeAccentName = activeAccentEntry
     ? t(`businessPage.branding.brandColor.swatches.${activeAccentEntry.key}`)
     : accentHex.toUpperCase();
@@ -148,6 +215,369 @@ export function BrandColorControl({
       setBrandColorHex(next.hex);
       event.currentTarget.querySelector<HTMLButtonElement>(`[data-swatch="${next.key}"]`)?.focus();
     };
+
+  if (variant === "atelier") {
+    const usesAuthoritativeCatalog =
+      themeAssets !== undefined ||
+      catalogReady !== undefined ||
+      catalogError !== undefined ||
+      onRetryCatalog !== undefined ||
+      effectiveBrandColorHex !== undefined ||
+      onThemeAssetSelect !== undefined;
+    const catalogIsReady = usesAuthoritativeCatalog ? catalogReady === true : true;
+    const atelierLabel = t("businessPage.theme.assetStatus.accentPickerLabel");
+    const colorAssets = (themeAssets ?? []).filter((asset) => asset.kind === "color");
+    const accentChoices: AtelierAccentChoice[] = usesAuthoritativeCatalog
+      ? catalogIsReady
+        ? BRAND_ACCENT_CATALOG.map((option) => ({
+            option,
+            asset: colorAssets.find(
+              (asset) =>
+                asset.assetKey === option.key &&
+                asset.value.toLowerCase() === option.hex.toLowerCase(),
+            ),
+          }))
+            .filter(
+              (choice): choice is AtelierAccentChoice & { asset: WebsiteThemeAssetCatalogItem } =>
+                choice.asset !== undefined,
+            )
+            .sort((left, right) => left.asset.sortOrder - right.asset.sortOrder)
+        : []
+      : BRAND_ACCENTS.map((option) => ({ option }));
+    const includedChoices = accentChoices.filter((choice) =>
+      usesAuthoritativeCatalog ? choice.asset?.isIncluded === true : true,
+    );
+    const premiumChoices = accentChoices.filter(
+      (choice) => usesAuthoritativeCatalog && choice.asset?.isIncluded === false,
+    );
+    const orderedChoices = [...includedChoices, ...premiumChoices];
+    const hexFor = (choice: AtelierAccentChoice) =>
+      safeBrandColor(
+        usesAuthoritativeCatalog && choice.asset ? choice.asset.value : choice.option.hex,
+      );
+    const activeChoice = orderedChoices.find(
+      (choice) => hexFor(choice).toLowerCase() === activeAccent,
+    );
+
+    const localizedName = (choice: AtelierAccentChoice) =>
+      t(`businessPage.branding.brandColor.swatches.${choice.option.key}`, {
+        defaultValue: choice.asset?.name ?? choice.option.name,
+      });
+    const isLocked = (choice: AtelierAccentChoice | undefined) =>
+      !!choice?.asset && !choice.asset.isIncluded && !choice.asset.owned;
+    const isPreviewing = (choice: AtelierAccentChoice | undefined) =>
+      !!choice &&
+      hexFor(choice).toLowerCase() === activeAccent &&
+      isLocked(choice) &&
+      activeAccent !== persistedAccent;
+    const canSelect = (choice: AtelierAccentChoice) =>
+      canWrite &&
+      (usesAuthoritativeCatalog
+        ? catalogIsReady &&
+          !!choice.asset &&
+          (choice.asset.available || choice.asset.owned) &&
+          (!isLocked(choice) || premiumSelectionReady) &&
+          !!onThemeAssetSelect
+        : true);
+    const statusFor = (choice: AtelierAccentChoice | undefined) => {
+      if (!catalogIsReady) return t("businessPage.theme.assetStatus.checking");
+      if (!choice) return t("businessPage.theme.assetStatus.unavailable");
+      if (!usesAuthoritativeCatalog || choice.asset?.isIncluded) {
+        return t("businessPage.paidVariants.includedBadge");
+      }
+      if (choice.asset?.owned) return t("businessPage.theme.assetStatus.premiumOwned");
+      if (!choice.asset?.available) return t("businessPage.theme.assetStatus.unavailable");
+      return t("businessPage.theme.assetStatus.premiumPrice", {
+        price: formatPrice(choice.asset.priceMinor, choice.asset.currency),
+      });
+    };
+    const activeStatus = statusFor(activeChoice);
+    const atelierActiveName = activeChoice ? localizedName(activeChoice) : activeAccentName;
+    const activeLocked = isLocked(activeChoice);
+    const activePreviewing = isPreviewing(activeChoice);
+
+    const selectChoice = (choice: AtelierAccentChoice) => {
+      if (!canSelect(choice)) return;
+      const replacingPreview = orderedChoices.some(
+        (candidate) => candidate !== choice && isPreviewing(candidate),
+      );
+      const clearingPreview = !isLocked(choice) && orderedChoices.some(isPreviewing);
+
+      if (usesAuthoritativeCatalog) {
+        if (!choice.asset) return;
+        onThemeAssetSelect?.(choice.asset);
+      } else {
+        setBrandColorHex(choice.option.hex);
+      }
+
+      const name = localizedName(choice);
+      if (isLocked(choice)) {
+        setAtelierAnnouncement(
+          t(
+            replacingPreview
+              ? "businessPage.theme.assetStatus.previewReplaced"
+              : "businessPage.theme.assetStatus.previewAnnounced",
+            { name },
+          ),
+        );
+      } else {
+        setAtelierAnnouncement(
+          t(
+            clearingPreview
+              ? "businessPage.theme.assetStatus.previewCleared"
+              : "businessPage.theme.assetStatus.selectionApplied",
+            { name },
+          ),
+        );
+      }
+    };
+
+    const renderAtelierSwatch = (choice: AtelierAccentChoice) => {
+      const { option, asset } = choice;
+      const swatchHex = hexFor(choice);
+      const locked = isLocked(choice);
+      const previewing = isPreviewing(choice);
+      const owned = !!asset && !asset.isIncluded && asset.owned;
+      const selectable = canSelect(choice);
+      const name = localizedName(choice);
+      const status = statusFor(choice);
+      const accessibleLabel = t(
+        previewing
+          ? "businessPage.theme.assetStatus.optionPreviewingAria"
+          : "businessPage.theme.assetStatus.optionAria",
+        { name, status },
+      );
+
+      return (
+        <RadioGroupItem
+          key={option.key}
+          value={option.key}
+          aria-label={accessibleLabel}
+          title={accessibleLabel}
+          data-theme-asset-option={option.key}
+          data-locked={locked || undefined}
+          data-owned={owned || undefined}
+          data-previewing={previewing || undefined}
+          disabled={!selectable}
+          style={{ "--atelier-swatch": swatchHex } as CSSProperties}
+          className={cn(
+            "atelier-brand-swatch-option website-atelier-focus website-atelier-press",
+            selectable ? "cursor-pointer" : "cursor-not-allowed opacity-55",
+          )}
+        >
+          <span className="atelier-brand-swatch-disc" style={{ backgroundColor: swatchHex }} aria-hidden>
+            {locked && (
+              <span className="atelier-brand-swatch-lock">
+                <Lock strokeWidth={2.6} />
+              </span>
+            )}
+          </span>
+          <span className="atelier-brand-swatch-name">{name}</span>
+        </RadioGroupItem>
+      );
+    };
+
+    const uniformPremiumAsset = premiumChoices[0]?.asset;
+    const hasUniformPremiumPrice =
+      !!uniformPremiumAsset &&
+      premiumChoices.every(
+        (choice) =>
+          choice.asset?.priceMinor === uniformPremiumAsset.priceMinor &&
+          choice.asset.currency.toLowerCase() === uniformPremiumAsset.currency.toLowerCase(),
+      );
+    const premiumHeading = hasUniformPremiumPrice
+      ? t("businessPage.theme.assetStatus.premiumEach", {
+          price: formatPrice(uniformPremiumAsset.priceMinor, uniformPremiumAsset.currency),
+        })
+      : t("businessPage.theme.assetStatus.premiumUnlockOnce");
+
+    const pickerOptions = !catalogIsReady && catalogError ? (
+      <div className="atelier-brand-picker-error" role="alert">
+        <AlertTriangle aria-hidden />
+        <p>{t("page.publishReview.catalogErrorDescription")}</p>
+        {onRetryCatalog ? (
+          <Button type="button" variant="outline" size="sm" onClick={onRetryCatalog}>
+            <RotateCcw aria-hidden />
+            {t("page.publishReview.retryCatalog")}
+          </Button>
+        ) : null}
+      </div>
+    ) : !catalogIsReady ? (
+      <p className="atelier-brand-picker-state" role="status">
+        {t("businessPage.theme.assetStatus.checking")}
+      </p>
+    ) : orderedChoices.length === 0 ? (
+      <p className="atelier-brand-picker-state" role="status">
+        {t("businessPage.theme.assetStatus.empty")}
+      </p>
+    ) : (
+      <RadioGroup
+        value={activeChoice?.option.key ?? ""}
+        onValueChange={(key) => {
+          const choice = orderedChoices.find((candidate) => candidate.option.key === key);
+          if (choice) selectChoice(choice);
+        }}
+        aria-label={t("businessPage.branding.brandColor.allSwatches")}
+        aria-busy={!catalogIsReady}
+        className="atelier-brand-accent-options block gap-0"
+      >
+        {includedChoices.length > 0 && (
+          <div
+            role="group"
+            aria-labelledby={`${accentGroupId}-included`}
+            className="atelier-brand-option-group atelier-brand-option-group--included"
+          >
+            <p id={`${accentGroupId}-included`} className="atelier-brand-options-label">
+              {t("businessPage.paidVariants.includedBadge")}
+            </p>
+            <div className="atelier-brand-swatch-grid">{includedChoices.map(renderAtelierSwatch)}</div>
+          </div>
+        )}
+        {premiumChoices.length > 0 && (
+          <div
+            role="group"
+            aria-labelledby={`${accentGroupId}-premium`}
+            className="atelier-brand-option-group atelier-brand-option-group--premium"
+          >
+            <p id={`${accentGroupId}-premium`} className="atelier-brand-options-label atelier-brand-options-label--locked">
+              <Lock strokeWidth={2.2} aria-hidden />
+              <span>{premiumHeading}</span>
+            </p>
+            <div className="atelier-brand-swatch-grid">{premiumChoices.map(renderAtelierSwatch)}</div>
+          </div>
+        )}
+        <span className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+          {atelierAnnouncement}
+        </span>
+      </RadioGroup>
+    );
+
+    const handleAtelierPickerOpenChange = (open: boolean) => {
+      if (open && !compact) {
+        const triggerTop = atelierTriggerRef.current?.getBoundingClientRect().top;
+        const builderBodyTop = document
+          .querySelector<HTMLElement>("#website-builder-main .website-atelier-body")
+          ?.getBoundingClientRect().top;
+        if (triggerTop != null && builderBodyTop != null) {
+          setAtelierPopoverAlignOffset(builderBodyTop + 56 - triggerTop);
+        }
+      }
+      setAtelierPickerOpen(open);
+    };
+    const handlePickerOpenAutoFocus = (event: Event) => {
+      const selected = (event.currentTarget as HTMLElement).querySelector<HTMLButtonElement>(
+        '[role="radio"][tabindex="0"]:not(:disabled)',
+      );
+      if (!selected) return;
+      event.preventDefault();
+      selected.focus();
+    };
+    const trigger = (
+      <button
+        ref={atelierTriggerRef}
+        type="button"
+        disabled={!canWrite}
+        aria-label={t("businessPage.theme.assetStatus.triggerAria", {
+          label: atelierLabel,
+          name: atelierActiveName,
+          status: activeStatus,
+        })}
+        data-locked={activeLocked || undefined}
+        data-previewing={activePreviewing || undefined}
+        data-owned={
+          (!!activeChoice?.asset &&
+            !activeChoice.asset.isIncluded &&
+            activeChoice.asset.owned) ||
+          undefined
+        }
+        className={cn(
+          "group/brand-control atelier-brand-control website-atelier-focus website-atelier-press",
+          !canWrite && "cursor-not-allowed opacity-60",
+        )}
+      >
+        <span
+          className="atelier-brand-control-swatch"
+          style={{ backgroundColor: accentHex }}
+          aria-hidden
+        />
+        <span className="atelier-brand-control-copy">
+          <span className="atelier-brand-control-name">{atelierActiveName}</span>
+          <span className="atelier-brand-control-meta">
+            {activeLocked && <Lock className="atelier-brand-control-lock" strokeWidth={2.4} aria-hidden />}
+            <span>{activeStatus}</span>
+          </span>
+        </span>
+        <ChevronRight
+          className="atelier-brand-control-chevron transition-transform duration-150 group-data-[state=open]/brand-control:rotate-90"
+          strokeWidth={1.8}
+          aria-hidden
+        />
+      </button>
+    );
+
+    if (compact) {
+      return (
+        <Sheet open={atelierPickerOpen} onOpenChange={handleAtelierPickerOpenChange}>
+          <SheetTrigger asChild>{trigger}</SheetTrigger>
+          <SheetContent
+            side="bottom"
+            onOpenAutoFocus={handlePickerOpenAutoFocus}
+            portalContainer={typeof document === "undefined" ? null : document.getElementById("website-builder-main")}
+            overlayClassName="!absolute z-50 bg-black/40"
+            showCloseButton={false}
+            className="website-atelier atelier-brand-drawer z-50 !absolute !flex !max-h-[84dvh] flex-col overflow-hidden rounded-t-[18px] border-x-0 border-b-0 border-[var(--atelier-border)] bg-[var(--atelier-canvas)] px-[18px] pb-[calc(1.875rem+env(safe-area-inset-bottom))] pt-2 text-[var(--atelier-ink)] data-[state=closed]:duration-200 data-[state=open]:duration-200"
+          >
+            <span className="atelier-sheet-grab" aria-hidden />
+            <SheetHeader className="mb-4 flex-row items-center justify-between gap-3 p-0 text-left">
+              <SheetTitle className="text-[16px] tracking-[-0.01em]">
+                {atelierLabel}
+              </SheetTitle>
+              <SheetDescription className="sr-only">
+                {t("businessPage.branding.brandColor.allSwatches")}
+              </SheetDescription>
+              <SheetClose
+                aria-label={t("common:aria.close")}
+                className="atelier-drawer-close website-atelier-focus website-atelier-press"
+              >
+                <X className="size-[15px]" strokeWidth={2} aria-hidden />
+              </SheetClose>
+            </SheetHeader>
+            <div className="atelier-brand-picker-scroll website-atelier-scrollbar">{pickerOptions}</div>
+          </SheetContent>
+        </Sheet>
+      );
+    }
+
+    return (
+      <Popover open={atelierPickerOpen} onOpenChange={handleAtelierPickerOpenChange}>
+        <PopoverTrigger asChild>
+          {trigger}
+        </PopoverTrigger>
+        <PopoverContent
+          side="right"
+          onOpenAutoFocus={handlePickerOpenAutoFocus}
+          align="start"
+          alignOffset={atelierPopoverAlignOffset}
+          sideOffset={28}
+          collisionPadding={12}
+          className="website-atelier atelier-brand-popover atelier-brand-popover--accent z-50 flex max-h-[calc(100dvh-130px)] w-[min(302px,calc(100vw-2rem))] flex-col overflow-hidden rounded-[14px] border-[var(--atelier-border)] bg-[var(--atelier-surface-strong)] p-[13px] text-[var(--atelier-ink)]"
+        >
+          <div className="atelier-brand-popover-header">
+            <h3>{atelierLabel}</h3>
+            <button
+              type="button"
+              onClick={() => setAtelierPickerOpen(false)}
+              aria-label={t("common:close")}
+              className="atelier-brand-popover-close website-atelier-focus website-atelier-press"
+            >
+              <X className="size-[11px]" strokeWidth={2} aria-hidden />
+            </button>
+          </div>
+          <div className="atelier-brand-picker-scroll website-atelier-scrollbar">{pickerOptions}</div>
+        </PopoverContent>
+      </Popover>
+    );
+  }
 
   return (
     <div className="space-y-2.5">

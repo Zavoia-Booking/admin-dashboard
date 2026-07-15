@@ -80,7 +80,14 @@ export function Carousel({ images, onOpen, t }: GalleryVariantProps) {
               }}
             >
               <div className="mc-galcar-img" data-gimg={i}>
-                <img src={g.src} alt={g.alt} draggable={false} onLoad={() => i === active && recalc(active)} />
+                <img
+                  src={g.src}
+                  alt={g.alt}
+                  loading="lazy"
+                  decoding="async"
+                  draggable={false}
+                  onLoad={() => i === active && recalc(active)}
+                />
                 {i === active && (
                   <span className="mc-galcar-expand">
                     <Maximize2 className="h-3.5 w-3.5" strokeWidth={1.8} /> {t("businessPage.builder.preview.galleryViewFull")}

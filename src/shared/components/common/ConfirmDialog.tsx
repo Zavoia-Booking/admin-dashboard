@@ -9,6 +9,7 @@ import {
   AlertDialogTitle,
 } from "../ui/alert-dialog.tsx";
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { X } from "lucide-react";
 import { cn } from "../../lib/utils";
 import type { LucideIcon } from "lucide-react";
@@ -54,6 +55,8 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   cancelClassName,
   confirmClassName,
 }) => {
+  const { t } = useTranslation("common");
+
   const handleConfirm = () => {
     onConfirm();
     if (onOpenChange) {
@@ -88,7 +91,7 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
             )}
           >
             <X className="h-6 w-6" />
-            <span className="sr-only">Close</span>
+            <span className="sr-only">{t("aria.close")}</span>
           </button>
         )}
         <AlertDialogHeader className={cn("space-y-3 text-left pr-6 cursor-default", headerClassName)}>

@@ -24,6 +24,8 @@ export function StagePhoto({ src, alt }: { src: string; alt: string }) {
           key={it.k}
           src={it.src}
           alt={i === stack.length - 1 ? alt : ""}
+          loading="lazy"
+          decoding="async"
           className={cn("absolute inset-0 h-full w-full object-cover", i === stack.length - 1 && "mc-locx-img")}
         />
       ))}

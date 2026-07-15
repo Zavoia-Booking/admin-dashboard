@@ -1,5 +1,24 @@
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useBlocker } from "react-router-dom";
+
+type GuardedAction = () => void;
+type ExternalGuard = (action: GuardedAction) => boolean;
+
+const externalGuards = new Set<ExternalGuard>();
+
+/**
+ * Runs an application-level action (for example logout) through the same unresolved-work
+ * guard used by router navigation. The most recently mounted active editor gets first refusal.
+ * Returns true when the action ran immediately and false when a guard deferred it.
+ */
+export function requestGuardedUnsavedAction(action: GuardedAction): boolean {
+  const guards = Array.from(externalGuards).reverse();
+  for (const guard of guards) {
+    if (guard(action)) return false;
+  }
+  action();
+  return true;
+}
 
 interface UseUnsavedChangesBlockerOptions {
   /** Block internal navigation while true. */
@@ -24,6 +43,8 @@ interface UseUnsavedChangesBlockerOptions {
  */
 export function useUnsavedChangesBlocker({ when, proceedWhen = !when }: UseUnsavedChangesBlockerOptions) {
   const shouldBlock = when;
+  const pendingExternalActionRef = useRef<GuardedAction | null>(null);
+  const [externalActionBlocked, setExternalActionBlocked] = useState(false);
 
   const blocker = useBlocker(
     useCallback(
@@ -53,6 +74,32 @@ export function useUnsavedChangesBlocker({ when, proceedWhen = !when }: UseUnsav
     }
   }, [blocker, proceedWhen]);
 
+  useEffect(() => {
+    if (!shouldBlock) return;
+    const guard: ExternalGuard = (action) => {
+      pendingExternalActionRef.current = action;
+      setExternalActionBlocked(true);
+      return true;
+    };
+    externalGuards.add(guard);
+    return () => {
+      externalGuards.delete(guard);
+    };
+  }, [shouldBlock]);
+
+  // Match router behavior: if the unresolved work saves successfully while the dialog is
+  // open, continue the originally requested application action.
+  useEffect(() => {
+    if (!externalActionBlocked || !proceedWhen) return;
+    const frame = window.requestAnimationFrame(() => {
+      const action = pendingExternalActionRef.current;
+      pendingExternalActionRef.current = null;
+      setExternalActionBlocked(false);
+      action?.();
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [externalActionBlocked, proceedWhen]);
+
   // Browser close/refresh uses the native prompt.
   useEffect(() => {
     if (!shouldBlock) return;
@@ -65,14 +112,22 @@ export function useUnsavedChangesBlocker({ when, proceedWhen = !when }: UseUnsav
   }, [shouldBlock]);
 
   return {
-    isBlocked: blocker.state === "blocked",
+    isBlocked: blocker.state === "blocked" || externalActionBlocked,
     /** Keep the draft and URL unchanged. */
     stay: () => {
       if (blocker.state === "blocked") blocker.reset();
+      pendingExternalActionRef.current = null;
+      setExternalActionBlocked(false);
     },
     /** Caller resets local state to the server baseline BEFORE calling this. */
     discard: () => {
-      if (blocker.state === "blocked") blocker.proceed();
+      if (blocker.state === "blocked") {
+        blocker.proceed();
+      }
+      const action = pendingExternalActionRef.current;
+      pendingExternalActionRef.current = null;
+      setExternalActionBlocked(false);
+      action?.();
     },
   };
 }

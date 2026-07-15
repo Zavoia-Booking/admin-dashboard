@@ -85,10 +85,9 @@ export function GalleryLightbox({
     const thumb = thumbFor(index);
     const cur = images[index];
     if (prefersReducedMotion() || !thumb || !cur) {
-      setFigVisible(true);
-      return;
+      const frame = requestAnimationFrame(() => setFigVisible(true));
+      return () => cancelAnimationFrame(frame);
     }
-    setFigVisible(false);
     const from = thumb.getBoundingClientRect();
     const to = lightboxRect(thumb.naturalWidth, thumb.naturalHeight);
     lightboxMorph(cur.src, from, to, 540, () => setFigVisible(true));
@@ -182,7 +181,7 @@ export function GalleryLightbox({
       </button>
       <figure className="mc-lbox-fig" onClick={(e) => e.stopPropagation()} style={{ opacity: figVisible ? 1 : 0 }}>
         <span className="mc-lbox-swap" key={index} data-dir={dir}>
-          <img ref={figRef} src={cur.src} alt={cur.alt} />
+          <img ref={figRef} src={cur.src} alt={cur.alt} loading="eager" decoding="async" />
         </span>
       </figure>
       <button

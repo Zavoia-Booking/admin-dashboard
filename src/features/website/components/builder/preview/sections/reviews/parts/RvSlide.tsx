@@ -7,15 +7,13 @@ import type { PreviewReview, T } from "../../../shared/types";
 export function RvSlide({ item, animateIn, italic, t }: { item: PreviewReview; animateIn: boolean; italic: boolean; t: T }) {
   // Resting state is visible; only hide-then-rise when actually animating in, so a frozen first paint
   // never traps the words off-screen.
-  const [shown, setShown] = useState(!animateIn);
+  const [entered, setEntered] = useState(false);
   useEffect(() => {
-    if (!animateIn) {
-      setShown(true);
-      return;
-    }
-    const id = setTimeout(() => setShown(true), 30);
+    if (!animateIn) return;
+    const id = setTimeout(() => setEntered(true), 30);
     return () => clearTimeout(id);
   }, [animateIn]);
+  const shown = !animateIn || entered;
   const initial = (item.customerName || "?").trim().charAt(0).toUpperCase() || "?";
   const sub = [item.locationName, formatReviewDate(item.createdAt)].filter(Boolean).join(" · ");
   const words = item.comment.split(" ");

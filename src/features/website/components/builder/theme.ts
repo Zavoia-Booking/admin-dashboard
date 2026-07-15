@@ -11,10 +11,26 @@
  */
 import type { CSSProperties } from "react";
 
+/** Static presentation grouping only. Ownership, availability, prices, and checkout identifiers
+ * come from the Website catalog API and intentionally do not live in this frontend registry. */
+export type ThemeOptionTier = "included" | "premium";
+export type FontCategory = "serif" | "sans";
+export type FontPreset = "modern" | "classic" | "elegant" | "friendly";
+
+export type FontLoadingMetadata =
+  | { source: "bundled" }
+  | { source: "google-fonts"; stylesheetUrl: string };
+
 export interface FontOption {
   key: string;
+  /** Stable human-readable catalog name; localized UI can continue to use labelKey. */
+  name: string;
   /** i18n key under website:businessPage.theme.fonts.<key> */
   labelKey: string;
+  tier: ThemeOptionTier;
+  category: FontCategory;
+  /** Closest production engine personality for layout/behaviour defaults. */
+  preset: FontPreset;
   /** Display (heading) stack — varies per personality. */
   stack: string;
   /** Display weight + tracking tuned per face (mirrors microsite [data-font] presets). */
@@ -22,52 +38,273 @@ export interface FontOption {
   tracking: string;
   /** Whether italic pull-quotes/marquee read well in this face (serifs: yes; grotesques: no). */
   italicOk: boolean;
+  /** How the selected display face is loaded. Remote faces stay lazy and selection-driven. */
+  loading: FontLoadingMetadata;
 }
 
 /** Body + label faces are constant across personalities (only the display face changes). */
 export const SANS_STACK =
-  '"Geist", -apple-system, BlinkMacSystemFont, system-ui, "Segoe UI", Roboto, sans-serif';
-export const MONO_STACK = '"Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace';
+  '"Geist Variable", -apple-system, BlinkMacSystemFont, system-ui, "Segoe UI", Roboto, sans-serif';
+export const MONO_STACK = '"Geist Mono Variable", ui-monospace, SFMono-Regular, Menlo, monospace';
 
-export const FONT_OPTIONS: FontOption[] = [
+/** Canonical display-font registry. The first four entries preserve the current production
+ * mappings exactly; premium entries layer their real face over the closest production preset. */
+export const FONT_CATALOG: FontOption[] = [
   {
     key: "modern",
+    name: "Modern",
     labelKey: "businessPage.theme.fonts.modern",
-    stack: '"Geist", system-ui, -apple-system, sans-serif',
+    tier: "included",
+    category: "sans",
+    preset: "modern",
+    stack: '"Geist Variable", system-ui, -apple-system, sans-serif',
     weight: 700,
     tracking: "-0.035em",
     italicOk: false,
+    loading: { source: "bundled" },
   },
   {
     key: "classic",
+    name: "Classic",
     labelKey: "businessPage.theme.fonts.classic",
+    tier: "included",
+    category: "serif",
+    preset: "classic",
     stack: '"Libre Caslon Display", Georgia, "Times New Roman", serif',
     weight: 400,
     tracking: "-0.005em",
     italicOk: true,
+    loading: {
+      source: "google-fonts",
+      stylesheetUrl:
+        "https://fonts.googleapis.com/css2?family=Libre+Caslon+Display&display=swap",
+    },
   },
   {
     key: "elegant",
+    name: "Elegant",
     labelKey: "businessPage.theme.fonts.elegant",
+    tier: "included",
+    category: "serif",
+    preset: "elegant",
     stack: '"Bodoni Moda", Georgia, "Times New Roman", serif',
     weight: 600,
     tracking: "-0.02em",
     italicOk: true,
+    loading: {
+      source: "google-fonts",
+      stylesheetUrl:
+        "https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,500;0,6..96,600;0,6..96,700;1,6..96,500;1,6..96,600&display=swap",
+    },
   },
   {
     key: "friendly",
+    name: "Friendly",
     labelKey: "businessPage.theme.fonts.friendly",
+    tier: "included",
+    category: "sans",
+    preset: "friendly",
     stack: '"Bricolage Grotesque", system-ui, -apple-system, sans-serif',
     weight: 600,
     tracking: "-0.02em",
     italicOk: false,
+    loading: {
+      source: "google-fonts",
+      stylesheetUrl:
+        "https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&display=swap",
+    },
+  },
+  {
+    key: "playfair",
+    name: "Playfair",
+    labelKey: "businessPage.theme.fonts.playfair",
+    tier: "premium",
+    category: "serif",
+    preset: "elegant",
+    stack: '"Playfair Display", Georgia, "Times New Roman", serif',
+    weight: 500,
+    tracking: "-0.02em",
+    italicOk: true,
+    loading: {
+      source: "google-fonts",
+      stylesheetUrl:
+        "https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400&display=swap",
+    },
+  },
+  {
+    key: "cormorant",
+    name: "Cormorant",
+    labelKey: "businessPage.theme.fonts.cormorant",
+    tier: "premium",
+    category: "serif",
+    preset: "elegant",
+    stack: '"Cormorant Garamond", Georgia, "Times New Roman", serif',
+    weight: 600,
+    tracking: "-0.02em",
+    italicOk: true,
+    loading: {
+      source: "google-fonts",
+      stylesheetUrl:
+        "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap",
+    },
+  },
+  {
+    key: "italiana",
+    name: "Italiana",
+    labelKey: "businessPage.theme.fonts.italiana",
+    tier: "premium",
+    category: "serif",
+    preset: "elegant",
+    // Italiana intentionally stays faithful to Atelier. Its sparse glyph coverage falls through
+    // to Bodoni/Georgia per character, so Romanian and other unsupported text remains readable.
+    stack: '"Italiana", "Bodoni Moda", Georgia, "Times New Roman", serif',
+    weight: 400,
+    tracking: "-0.02em",
+    italicOk: false,
+    loading: {
+      source: "google-fonts",
+      stylesheetUrl: "https://fonts.googleapis.com/css2?family=Italiana&display=swap",
+    },
+  },
+  {
+    key: "marcellus",
+    name: "Marcellus",
+    labelKey: "businessPage.theme.fonts.marcellus",
+    tier: "premium",
+    category: "serif",
+    preset: "classic",
+    stack: '"Marcellus", Georgia, "Times New Roman", serif',
+    weight: 400,
+    tracking: "-0.005em",
+    italicOk: false,
+    loading: {
+      source: "google-fonts",
+      stylesheetUrl: "https://fonts.googleapis.com/css2?family=Marcellus&display=swap",
+    },
+  },
+  {
+    key: "dmserif",
+    name: "DM Serif",
+    labelKey: "businessPage.theme.fonts.dmserif",
+    tier: "premium",
+    category: "serif",
+    preset: "classic",
+    stack: '"DM Serif Display", Georgia, "Times New Roman", serif',
+    weight: 400,
+    tracking: "-0.005em",
+    italicOk: true,
+    loading: {
+      source: "google-fonts",
+      stylesheetUrl:
+        "https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&display=swap",
+    },
+  },
+  {
+    key: "crimson",
+    name: "Crimson",
+    labelKey: "businessPage.theme.fonts.crimson",
+    tier: "premium",
+    category: "serif",
+    preset: "classic",
+    stack: '"Crimson Pro", Georgia, "Times New Roman", serif',
+    weight: 500,
+    tracking: "-0.005em",
+    italicOk: true,
+    loading: {
+      source: "google-fonts",
+      stylesheetUrl:
+        "https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,500;0,600;1,400&display=swap",
+    },
+  },
+  {
+    key: "grotesk",
+    name: "Grotesk",
+    labelKey: "businessPage.theme.fonts.grotesk",
+    tier: "premium",
+    category: "sans",
+    preset: "modern",
+    stack: '"Space Grotesk", "Geist Variable", system-ui, -apple-system, sans-serif',
+    weight: 600,
+    tracking: "-0.035em",
+    italicOk: false,
+    loading: {
+      source: "google-fonts",
+      stylesheetUrl:
+        "https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap",
+    },
+  },
+  {
+    key: "sora",
+    name: "Sora",
+    labelKey: "businessPage.theme.fonts.sora",
+    tier: "premium",
+    category: "sans",
+    preset: "modern",
+    stack: '"Sora", "Geist Variable", system-ui, -apple-system, sans-serif',
+    weight: 600,
+    tracking: "-0.035em",
+    italicOk: false,
+    loading: {
+      source: "google-fonts",
+      stylesheetUrl:
+        "https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&display=swap",
+    },
+  },
+  {
+    key: "manrope",
+    name: "Manrope",
+    labelKey: "businessPage.theme.fonts.manrope",
+    tier: "premium",
+    category: "sans",
+    preset: "friendly",
+    stack: '"Manrope", "Bricolage Grotesque", system-ui, -apple-system, sans-serif',
+    weight: 700,
+    tracking: "-0.02em",
+    italicOk: false,
+    loading: {
+      source: "google-fonts",
+      stylesheetUrl:
+        "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap",
+    },
+  },
+  {
+    key: "unbounded",
+    name: "Unbounded",
+    labelKey: "businessPage.theme.fonts.unbounded",
+    tier: "premium",
+    category: "sans",
+    preset: "friendly",
+    stack: '"Unbounded", "Bricolage Grotesque", system-ui, -apple-system, sans-serif',
+    weight: 500,
+    tracking: "-0.02em",
+    italicOk: false,
+    loading: {
+      source: "google-fonts",
+      stylesheetUrl:
+        "https://fonts.googleapis.com/css2?family=Unbounded:wght@400;500;600&display=swap",
+    },
   },
 ];
 
-const DEFAULT_FONT = FONT_OPTIONS[0];
+export const INCLUDED_FONT_OPTIONS = FONT_CATALOG.filter((font) => font.tier === "included");
+export const PREMIUM_FONT_OPTIONS = FONT_CATALOG.filter((font) => font.tier === "premium");
+
+/** Compatibility export for the current editor, which only understands included choices. */
+export const FONT_OPTIONS = INCLUDED_FONT_OPTIONS;
+
+const DEFAULT_FONT = INCLUDED_FONT_OPTIONS[0];
+
+export function fontOptionFor(key: string | null | undefined): FontOption | undefined {
+  return FONT_CATALOG.find((font) => font.key === key);
+}
 
 export function displayFontFor(key: string | null | undefined): FontOption {
-  return FONT_OPTIONS.find((f) => f.key === key) ?? DEFAULT_FONT;
+  return fontOptionFor(key) ?? DEFAULT_FONT;
+}
+
+export function fontStylesheetFor(key: string | null | undefined): string | undefined {
+  const font = fontOptionFor(key);
+  return font?.loading.source === "google-fonts" ? font.loading.stylesheetUrl : undefined;
 }
 
 // ---------------------------------------------------------------------------
@@ -91,36 +328,64 @@ export const EASE_OUT_STRONG = "cubic-bezier(0.23, 1, 0.32, 1)";
 
 const HEX6 = /^#[0-9a-fA-F]{6}$/;
 
-/**
- * Curated accent palette — the owner picks ONE swatch (the only brand-driven colour). Each is a deep,
- * muted editorial tone (heritage paint / fashion-house / apothecary) tuned for the warm-paper lookbook:
- * deep enough that warm-white text (#FBF7F0) clears WCAG AA on a fully drenched hero field — every hex
- * verified at ≥5.5:1 (relative luminance ≤ ~0.19), so brandField() leaves them unchanged. Ordered as a
- * warm → cool → neutral arc; terracotta is the signature default (FALLBACK_BRAND), not necessarily index 0.
- * i18n names live under website:businessPage.branding.brandColor.swatches.<key>.
- */
-export const BRAND_ACCENTS: { key: string; hex: string }[] = [
-  { key: "burgundy", hex: "#8E2C45" },
-  { key: "brick", hex: "#7A2E2A" },
-  { key: "terracotta", hex: "#C2552F" },
-  { key: "rust", hex: "#9A3B22" },
-  { key: "amber", hex: "#A66A1E" },
-  { key: "caramel", hex: "#6B3A24" },
-  { key: "olive", hex: "#5F6324" },
-  { key: "pine", hex: "#3E6B36" },
-  { key: "forest", hex: "#1B4332" },
-  { key: "teal", hex: "#1E6E6E" },
-  { key: "peacock", hex: "#0E3D44" },
-  { key: "navy", hex: "#283B52" },
-  { key: "indigo", hex: "#3E4E80" },
-  { key: "violet", hex: "#3E2E55" },
-  { key: "plum", hex: "#86436F" },
-  { key: "rose", hex: "#7A3850" },
-  { key: "slate", hex: "#3A3F3D" },
-  { key: "greige", hex: "#4A4039" },
-  { key: "graphite", hex: "#2A2E33" },
-  { key: "ink", hex: "#26211C" },
+/** Curated raw accents from Atelier plus the requested extensions. The registry preserves every
+ * authored hex exactly; contrast-safe preview derivatives are calculated below without mutating it. */
+export interface BrandAccentOption {
+  key: string;
+  name: string;
+  hex: string;
+  tier: ThemeOptionTier;
+}
+
+/** Canonical accent registry. Tier is only the static design grouping; the server catalog remains
+ * authoritative for ownership, sale availability, pricing, and checkout identifiers. */
+export const BRAND_ACCENT_CATALOG: BrandAccentOption[] = [
+  // Included Atelier palette.
+  { key: "terracotta", name: "Terracotta", hex: "#C2552F", tier: "included" },
+  { key: "jade", name: "Jade", hex: "#1B9C85", tier: "included" },
+  { key: "mulberry", name: "Mulberry", hex: "#7A3B57", tier: "included" },
+  { key: "forest", name: "Forest", hex: "#2F5D4A", tier: "included" },
+  { key: "marine", name: "Marine", hex: "#2F6E8F", tier: "included" },
+
+  // Premium Atelier palette.
+  { key: "ink", name: "Ink", hex: "#1C1C1A", tier: "premium" },
+  { key: "espresso", name: "Espresso", hex: "#5A4335", tier: "premium" },
+  { key: "ochre", name: "Ochre", hex: "#A97E22", tier: "premium" },
+  { key: "olive", name: "Olive", hex: "#71722F", tier: "premium" },
+  { key: "moss", name: "Moss", hex: "#4F6E3D", tier: "premium" },
+  { key: "pine", name: "Pine", hex: "#1F5F4E", tier: "premium" },
+  { key: "petrol", name: "Petrol", hex: "#206E78", tier: "premium" },
+  { key: "slate", name: "Slate", hex: "#47617C", tier: "premium" },
+  { key: "indigo", name: "Indigo", hex: "#4A4F9E", tier: "premium" },
+  { key: "violet", name: "Violet", hex: "#71499A", tier: "premium" },
+  { key: "orchid", name: "Orchid", hex: "#9A4B85", tier: "premium" },
+  { key: "plum", name: "Plum", hex: "#83365D", tier: "premium" },
+  { key: "rosewood", name: "Rosewood", hex: "#A64457", tier: "premium" },
+  { key: "blush", name: "Blush", hex: "#BC6E76", tier: "premium" },
+  { key: "copper", name: "Copper", hex: "#A55E2E", tier: "premium" },
+
+  // Requested coherent extensions to the premium palette.
+  { key: "brick", name: "Brick", hex: "#7A2E2A", tier: "premium" },
+  { key: "rust", name: "Rust", hex: "#9A3B22", tier: "premium" },
+  { key: "amber", name: "Amber", hex: "#A66A1E", tier: "premium" },
+  { key: "caramel", name: "Caramel", hex: "#6B3A24", tier: "premium" },
+  { key: "greige", name: "Greige", hex: "#4A4039", tier: "premium" },
+  { key: "teal", name: "Teal", hex: "#1E6E6E", tier: "premium" },
+  { key: "peacock", name: "Peacock", hex: "#0E3D44", tier: "premium" },
+  { key: "navy", name: "Navy", hex: "#283B52", tier: "premium" },
+  { key: "burgundy", name: "Burgundy", hex: "#8E2C45", tier: "premium" },
+  { key: "graphite", name: "Graphite", hex: "#2A2E33", tier: "premium" },
 ];
+
+export const INCLUDED_BRAND_ACCENTS = BRAND_ACCENT_CATALOG.filter(
+  (accent) => accent.tier === "included",
+);
+export const PREMIUM_BRAND_ACCENTS = BRAND_ACCENT_CATALOG.filter(
+  (accent) => accent.tier === "premium",
+);
+
+/** Compatibility export for the current editor, which only understands included choices. */
+export const BRAND_ACCENTS = INCLUDED_BRAND_ACCENTS;
 
 /** Fallback brand accent when the owner hasn't picked one — the lookbook's signature terracotta. */
 export const FALLBACK_BRAND = "#C2552F";
@@ -177,9 +442,9 @@ const WARM_WHITE_LUM = 0.933;
 
 /**
  * Accent deepened just enough that warm-white body text clears WCAG AA (4.5:1) on a fully drenched hero
- * field. Most curated swatches already pass and return unchanged; only the two lightest (terracotta,
- * amber) are nudged a couple of points darker. A flat fill — the vivid brand hue is kept and there is no
- * gradient (the old paper wash read as cheap). 4.5:1 vs warm-white ⇒ field luminance ≤ ~0.166.
+ * field. Swatches that already pass return unchanged; lighter swatches and custom colours are nudged
+ * darker. A flat fill keeps the brand hue and avoids introducing a theme-dependent gradient.
+ * 4.5:1 vs warm-white ⇒ field luminance ≤ ~0.166.
  */
 export function brandField(hex: string): string {
   const c = safeBrandColor(hex).slice(1);

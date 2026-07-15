@@ -11,7 +11,13 @@ export function Default({ images, data, t }: InterludeVariantProps) {
 
   return (
     <section className="relative isolate flex min-h-[clamp(280px,52cqw,460px)] flex-col justify-end overflow-hidden">
-      <img src={src} alt="" className="absolute inset-0 -z-10 h-full w-full object-cover" />
+      <img
+        src={src}
+        alt=""
+        loading="lazy"
+        decoding="async"
+        className="absolute inset-0 -z-10 h-full w-full object-cover"
+      />
       <div
         className="absolute inset-0 -z-10"
         style={{ background: "linear-gradient(180deg, rgba(16,15,14,0.36) 0%, rgba(16,15,14,0.04) 36%, rgba(16,15,14,0.5) 100%)" }}

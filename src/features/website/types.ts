@@ -46,6 +46,12 @@ export interface SectionEntry {
   variant: string;
   visible: boolean;
   config?: Record<string, unknown>;
+  /**
+   * The API's layout JSON may contain fields introduced by a newer builder. Unknown
+   * section entries are opaque records: the current dashboard may move them, but it
+   * must round-trip every field without narrowing the record to today's schema.
+   */
+  [key: string]: unknown;
 }
 
 export type PageLayout = SectionEntry[];
@@ -104,9 +110,11 @@ export interface ReviewsConfig extends SectionCopyConfig {
 /** Theme tokens: brand accent color + a curated font "personality" key (mapped to a stack on render). */
 export interface PageTheme {
   // Mirrors the listing-level `brandColorHex`. Intentionally named `brandColor` here to match the
-  // backend `pageTheme` JSON column shape ({ brandColor, fontKey }) — this is the renderer contract,
-  // so do NOT rename it to brandColorHex.
+  // backend `pageTheme` JSON column shape ({ brandColor, brandColorKey, fontKey }) — this is the
+  // renderer contract, so do NOT rename it to brandColorHex.
   brandColor?: string | null;
+  /** Stable catalog identity for the accent; the hex remains the frozen renderer value. */
+  brandColorKey?: string | null;
   fontKey?: string | null;
 }
 
@@ -151,7 +159,8 @@ export interface AnnouncementContent {
 
 /** Canonical Business identity inherited by the Website — read-only here, edited in the Business profile. */
 export interface WebsiteIdentity {
-  name: string;
+  /** Nullable on the wire for businesses whose profile name has not been completed yet. */
+  name: string | null;
   logo: string | null;
   email: string | null;
   phone: string | null;
@@ -170,6 +179,8 @@ export interface WebsiteDraft {
   tagline: string | null;
   aboutContent: string | null;
   brandColorHex: string | null;
+  /** Additive during legacy-color migration; absent/null drafts still round-trip by hex. */
+  brandColorKey?: string | null;
   pageLayout: SectionEntry[] | null;
   pageTheme: PageTheme | null;
   faq: FaqItem[] | null;
@@ -193,10 +204,10 @@ export interface WebsiteAccess {
 }
 
 /**
- * Publish state: owner intent + snapshot metadata. The public app serves the frozen
- * snapshot only while isPublished AND the tier-2 subscription is active (suspend on
- * lapse, auto-restore on renewal). `hasUnpublishedChanges` is the server's view at
- * fetch time; the workspace derives it live from draft.version vs publishedVersion.
+ * Publish state: owner intent + frozen snapshot metadata. No current frontend consumes
+ * that snapshot as a public Website, so this type deliberately makes no delivery/URL claim.
+ * `hasUnpublishedChanges` is the server's view at fetch time; the workspace derives it
+ * live from draft.version vs publishedVersion.
  */
 export interface WebsitePublishState {
   isPublished: boolean;
@@ -205,10 +216,18 @@ export interface WebsitePublishState {
   hasUnpublishedChanges: boolean;
 }
 
-/** E07 details: paid content in the layout that must be unlocked before it can go live. */
+/** E07 details: paid content that must be unlocked before a snapshot can be published. */
 export interface WebsiteUnownedPublishItems {
   unownedVariants: Array<{ sectionType: string; variantKey: string; name: string }>;
   unownedSections: Array<{ sectionType: string; name: string }>;
+  unownedThemeAssets: Array<{
+    id: number;
+    kind: WebsiteThemeAssetKind;
+    assetKey: string;
+    /** Canonical catalog value; optional for older API responses. */
+    value?: string;
+    name: string;
+  }>;
 }
 
 /** GET /website-builder response. `locations` reuses the marketplace location projection. */
@@ -226,6 +245,8 @@ export interface UpdateWebsiteDraftPayload {
   tagline: string | null;
   aboutContent: string | null;
   brandColorHex: string | null;
+  /** Stable catalog identity paired with brandColorHex; optional for legacy drafts. */
+  brandColorKey?: string | null;
   pageLayout: SectionEntry[];
   pageTheme: PageTheme;
   faq: FaqItem[];
@@ -233,11 +254,35 @@ export interface UpdateWebsiteDraftPayload {
   layoutVersion: number;
 }
 
+/** Versionless UI snapshot. `expectedVersion` is injected by the serialized mutation
+ * coordinator immediately before the API call, never captured by the component. */
+export type UpdateWebsiteDraftBody = Omit<UpdateWebsiteDraftPayload, 'expectedVersion'>;
+
 /** 409 payload surfaced when a stale tab tries to overwrite a newer draft. */
 export interface WebsiteDraftConflict {
   currentVersion: number;
   updatedAt: string | null;
 }
+
+/** A non-conflict draft-save failure. The signature pins the failure to the exact
+ * local snapshot that failed, so a later edit is new intent rather than a blind retry. */
+export type WebsiteSaveFailureKind = 'offline' | 'failed' | 'cancelled';
+
+export interface WebsiteSaveFailure {
+  requestId: string;
+  workingSignature: string;
+  kind: WebsiteSaveFailureKind;
+}
+
+export type WebsiteAutosaveStatus =
+  | 'clean'
+  | 'dirty'
+  | 'invalid'
+  | 'saving'
+  | 'queued'
+  | 'offline'
+  | 'failed'
+  | 'conflict';
 
 export interface WebsiteHeroMutationResponse {
   heroImageUrl: string | null;
@@ -290,38 +335,78 @@ export interface WebsiteSectionCatalogEntry {
   available?: boolean;
 }
 
+export type WebsiteThemeAssetKind = 'color' | 'font';
+
+/** One server-driven accent colour or typeface available to the Website Builder. */
+export interface WebsiteThemeAssetCatalogItem {
+  id: number;
+  uuid: string;
+  kind: WebsiteThemeAssetKind;
+  /** Stable draft/snapshot identity (for example `terracotta` or `playfair`). */
+  assetKey: string;
+  /** Canonical hex for colors; trusted renderer key/value for fonts. */
+  value: string;
+  name: string;
+  description: string | null;
+  isIncluded: boolean;
+  /** Integer minor units; included assets resolve to 0. */
+  priceMinor: number;
+  currency: string;
+  /** Included assets and completed purchases are owned. */
+  owned: boolean;
+  /** False means no new purchase, while an existing owner may keep using it. */
+  available: boolean;
+  sortOrder: number;
+}
+
 /** GET /website-variants/catalog — the builder's full server-driven offering. */
 export interface WebsiteCatalogResponse {
   sections: WebsiteSectionCatalogEntry[];
   variants: WebsiteVariantCatalogEntry[];
+  themeAssets: WebsiteThemeAssetCatalogItem[];
 }
 
 /**
  * Payload for POST /website-variants/checkout (one-time Stripe purchase).
- * Single purchase: variantId or sectionIds: [id]. Cart purchase: variantIds
- * and/or sectionIds — all bought in ONE Stripe session (the backend sums them
- * and invoices them together).
+ * Single purchase: variantId, sectionIds: [id], or themeAssetIds: [id]. Cart
+ * purchase combines any/all item kinds in ONE Stripe session.
  */
 export interface WebsiteVariantCheckoutPayload {
   variantId?: number;
   variantIds?: number[];
   /** Section unlocks bought in the same session/cart. */
   sectionIds?: number[];
+  /** Paid accent colours/typefaces bought in the same session/cart. */
+  themeAssetIds?: number[];
+  /** Exact catalog quote the owner reviewed; the API rejects any per-item price drift. */
+  expectedLineItems?: Array<{
+    kind: 'variant' | 'section' | WebsiteThemeAssetKind;
+    catalogId: number;
+    priceMinor: number;
+    currency: string;
+  }>;
   successUrl: string;
   cancelUrl: string;
 }
 
 /** GET /website-variants/checkout-status/:sessionId — owner-scoped return reconciliation. */
-export type WebsiteCheckoutItemStatus = 'pending' | 'completed' | 'partial' | 'failed' | 'refunded' | 'expired';
+export type WebsiteCheckoutItemStatus = 'pending' | 'completed' | 'partial' | 'failed' | 'expired';
 
 export interface WebsiteCheckoutStatusResponse {
   sessionId: string;
   status: WebsiteCheckoutItemStatus;
   variants: Array<{ variantId: number; status: WebsiteCheckoutItemStatus; owned: boolean }>;
   sections: Array<{ sectionId: number; status: WebsiteCheckoutItemStatus; owned: boolean }>;
+  themeAssets: Array<{
+    themeAssetId: number;
+    kind: WebsiteThemeAssetKind;
+    status: WebsiteCheckoutItemStatus;
+    owned: boolean;
+  }>;
   /** Item ids whose ownership is confirmed by the server, including a partial checkout. */
   ownedVariantIds: number[];
   ownedSectionIds: number[];
+  ownedThemeAssetIds: number[];
 }
 
 // --- Redux state ---
@@ -329,6 +414,11 @@ export interface WebsiteCheckoutStatusResponse {
 export interface WebsiteState {
   /** Account/business scope that owns every value in this slice. */
   scopeBusinessId: string | null;
+  /** Monotonic auth-scope generation. Prevents an old async result from being adopted after
+   * logout/relogin to the same business id. */
+  scopeRevision: number;
+  /** Monotonic generation for queued Website writes within the current auth scope. */
+  mutationGeneration: number;
   isLoading: boolean;
   error: string | null;
   /** GET /website-builder view — identity, saved draft, locations, access. */
@@ -346,14 +436,19 @@ export interface WebsiteState {
   isHeroMutating: boolean;
   /** Request identity of the last save that reached the server. */
   lastSavedRequestId: string | null;
+  /** Last non-conflict save failure, scoped to the submitted working signature. */
+  saveFailure: WebsiteSaveFailure | null;
   /** Set when a save hit 409 — a newer draft exists on the server. */
   conflict: WebsiteDraftConflict | null;
-  /** Names of unowned premium items that blocked the last publish (E07); null when none. */
-  publishLockedItems: string[] | null;
-  // Store: server-driven offering (sections + their variants)
+  /** Structured E07/save-time ownership drift. Kept until the saved draft proves it resolved. */
+  publishLockedItems: WebsiteUnownedPublishItems | null;
+  // Store: server-driven offering (sections, variants, and theme assets)
   variantCatalog: WebsiteVariantCatalogEntry[];
   sectionCatalog: WebsiteSectionCatalogEntry[];
+  themeAssetCatalog: WebsiteThemeAssetCatalogItem[];
   isLoadingCatalog: boolean;
+  /** Catalog failures stay separate from the page-level builder load error. */
+  catalogError: string | null;
   /** The catalog fetch has SUCCEEDED at least once. Flips the builder from permissive (every
    *  implemented section renders) to authoritative (only catalogued content renders). A later
    *  failure keeps this true and the last-good arrays, so a transient error never empties the
@@ -364,6 +459,8 @@ export interface WebsiteState {
   variantCart: number[];
   /** Shopping cart of section catalog ids (unlocks) — checked out together with the variants. */
   sectionCart: number[];
+  /** Shopping cart of paid color/font catalog ids — checked out with sections and variants. */
+  themeAssetCart: number[];
   /** The business that supplied the currently hydrated carts; null until hydration completes. */
   cartBusinessId: string | null;
 }

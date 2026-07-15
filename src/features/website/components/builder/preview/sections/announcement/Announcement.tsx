@@ -56,6 +56,7 @@ export function AnnouncementBar({ entry, data, t, sample = false }: { entry: Sec
   return (
     <div
       className={className}
+      data-preview-section="announcement"
       style={{ "--mc-anno-italic": italic ? "italic" : "normal" } as CSSProperties}
       role="region"
       aria-label={t("businessPage.builder.preview.aria.announcement")}

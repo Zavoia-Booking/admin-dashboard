@@ -30,7 +30,7 @@ export function FaqEditor({ items, onChange, locale }: FaqEditorProps) {
   };
 
   return (
-    <div className="space-y-3">
+    <div className="atelier-faq-editor space-y-3">
       {items.map((item, i) => {
         const answerLen = item.a[locale].length;
         const near = answerLen >= MAX_ANSWER * 0.9;
@@ -40,7 +40,7 @@ export function FaqEditor({ items, onChange, locale }: FaqEditorProps) {
         return (
           <div
             key={i}
-            className="space-y-2 rounded-xl border border-border bg-surface p-3 transition-colors duration-150 hover:border-border-strong"
+            className="atelier-faq-item space-y-2 rounded-xl border border-border bg-surface p-3 transition-colors duration-150 hover:border-border-strong"
           >
             <div className="flex items-end gap-2">
               <div className="min-w-0 flex-1 space-y-1.5">
@@ -62,7 +62,7 @@ export function FaqEditor({ items, onChange, locale }: FaqEditorProps) {
                 size="icon"
                 onClick={() => onChange(items.filter((_, idx) => idx !== i))}
                 aria-label={t("businessPage.builder.faq.remove", { number })}
-                className="size-11 shrink-0 text-foreground-3 hover:text-destructive xl:size-9"
+                className="atelier-faq-remove size-11 shrink-0 text-foreground-3 hover:text-destructive xl:size-9"
               >
                 <Trash2 className="h-4 w-4" />
               </Button>
@@ -97,7 +97,7 @@ export function FaqEditor({ items, onChange, locale }: FaqEditorProps) {
           variant="outline"
           size="sm"
           onClick={() => onChange([...items, emptyItem()])}
-          className="min-h-11 gap-1.5 xl:min-h-0"
+          className="atelier-faq-add min-h-11 gap-1.5 xl:min-h-0"
         >
           <Plus className="h-4 w-4" />
           {t("businessPage.builder.faq.add")}

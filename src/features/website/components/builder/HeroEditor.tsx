@@ -19,6 +19,8 @@ interface HeroEditorProps {
   onConfigChange: (patch: Partial<HeroConfig>) => void;
   /** Whether the business has any reviews yet — the rating toggle only appears when it does. */
   hasReviews: boolean;
+  /** Presentation only: the Atelier inspector uses compact editorial field treatment. */
+  variant?: "default" | "atelier";
 }
 
 /**
@@ -36,6 +38,7 @@ export function HeroEditor({
   config,
   onConfigChange,
   hasReviews,
+  variant = "default",
 }: HeroEditorProps) {
   const { t } = useTranslation("website");
   const showEyebrow = config.showEyebrow !== false;
@@ -43,7 +46,7 @@ export function HeroEditor({
   const coverLayout = config.coverLayout ?? "full";
 
   return (
-    <div className="space-y-4">
+    <div className={cn("space-y-4", variant === "atelier" && "atelier-hero-editor")}>
       <TextField
         id="business-page-tagline"
         label={t("businessPage.branding.tagline.label")}
@@ -51,12 +54,12 @@ export function HeroEditor({
         value={tagline}
         onChange={setTagline}
         error={taglineError}
-        icon={Building2}
+        icon={variant === "atelier" ? null : Building2}
         maxLength={200}
-        className="!pt-0"
+        className={cn("!pt-0", variant === "atelier" && "atelier-hero-tagline-field")}
       />
 
-      <HeroImageUpload heroImageUrl={heroImageUrl} canWrite={canWrite} />
+      <HeroImageUpload heroImageUrl={heroImageUrl} canWrite={canWrite} variant={variant} />
 
       {/* Cover layout — only meaningful once a cover photo exists. Full-bleed cinematic cover vs the
           "cover plate" (tall photo bleed with a paper card over it). No cover ⇒ drenched field, no choice. */}

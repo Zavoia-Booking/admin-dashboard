@@ -19,7 +19,7 @@ export function Editorial({ images, onOpen }: GalleryVariantProps) {
             onClick={() => onOpen(i)}
             style={{ aspectRatio: ESSAY_AR[i % 6], animationDelay: `${(i % 2) * 100}ms` }}
           >
-            <img src={g.src} alt={g.alt} />
+            <img src={g.src} alt={g.alt} loading="lazy" decoding="async" />
             <ZoomBadge />
           </button>
         </figure>

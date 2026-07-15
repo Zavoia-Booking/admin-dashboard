@@ -244,6 +244,9 @@ export function isKnownSectionType(type: string): type is SectionType {
   return Object.prototype.hasOwnProperty.call(SECTION_META, type);
 }
 
+const isPlainRecord = (value: unknown): value is Record<string, unknown> =>
+  !!value && typeof value === "object" && !Array.isArray(value);
+
 /**
  * Build the editor's working layout from a saved one:
  *  - keep saved entries (order / visibility / variant / config) as-is, including any unknown type
@@ -258,52 +261,77 @@ export function buildInitialLayout(saved?: SectionEntry[] | null): SectionEntry[
   // (forward-compat / render-skip). All-malformed (or empty/null) falls back to the default layout.
   const raw: unknown[] = Array.isArray(saved) ? (saved as unknown[]) : [];
   const valid = raw.filter(
-    (s): s is SectionEntry =>
-      !!s &&
-      typeof s === "object" &&
-      !Array.isArray(s) &&
-      typeof (s as { type?: unknown }).type === "string" &&
-      (s as { type: string }).type.length > 0 &&
+    (s): s is Record<string, unknown> =>
+      isPlainRecord(s) &&
+      typeof s.type === "string" &&
+      s.type.trim().length > 0 &&
       // The standalone Contact ("Visit") section was removed — its content now lives in the footer. Drop any
       // saved contact entries (a deliberate deprecation, unlike the forward-compat preservation of unknown types).
-      (s as { type: string }).type !== "contact",
+      s.type !== "contact",
   );
   if (valid.length === 0) {
     return DEFAULT_LAYOUT.map((s) => ({ ...s, config: { ...s.config } }));
   }
-  const present = new Set(valid.map((s) => s.type));
+
+  // Known entries are runtime-normalized before entering controlled React state. The wire
+  // endpoint exposes legacy JSONB, so its compile-time SectionEntry[] type cannot guarantee
+  // booleans, variants, configs, or uniqueness. Unknown entries stay byte-for-byte opaque
+  // (forward compatibility); known duplicates keep the first occurrence deterministically.
+  const seenKnown = new Set<SectionType>();
+  const normalizedSaved: SectionEntry[] = [];
+  valid.forEach((rawEntry) => {
+    const type = rawEntry.type as string;
+    if (!isKnownSectionType(type)) {
+      normalizedSaved.push(JSON.parse(JSON.stringify(rawEntry)) as SectionEntry);
+      return;
+    }
+    if (seenKnown.has(type)) return;
+    seenKnown.add(type);
+
+    const meta = SECTION_META[type];
+    const config = isPlainRecord(rawEntry.config)
+      ? { ...meta.defaultConfig, ...rawEntry.config }
+      : { ...meta.defaultConfig };
+    normalizedSaved.push({
+      type,
+      variant:
+        typeof rawEntry.variant === "string" && rawEntry.variant.trim()
+          ? rawEntry.variant
+          : meta.variants[0].id,
+      visible: REQUIRED_TYPES.has(type)
+        ? true
+        : typeof rawEntry.visible === "boolean"
+          ? rawEntry.visible
+          : !meta.defaultHidden,
+      config,
+    });
+  });
+
+  if (normalizedSaved.length === 0) {
+    return DEFAULT_LAYOUT.map((s) => ({ ...s, config: { ...s.config } }));
+  }
+
+  const present = new Set(normalizedSaved.map((s) => s.type));
   const appended = SECTION_TYPES.filter((t) => !present.has(t)).map((t) => ({
     ...makeEntry(t),
     // Newly-added catalog sections default hidden so they don't disturb an existing page — except the
     // always-shown chrome (nav/hero/footer), which must stay visible so existing pages don't lose them.
     visible: REQUIRED_TYPES.has(t),
   }));
-  const normalizedSaved = valid.map((s) => {
-    // A section from a newer registry is opaque to this editor. Preserve the full entry so
-    // a read/save round trip cannot manufacture defaults or erase future config keys.
-    if (!isKnownSectionType(s.type)) return JSON.parse(JSON.stringify(s)) as SectionEntry;
-    return {
-      type: s.type,
-      variant: s.variant,
-      // The header, hero, and footer are always shown — force them visible even if a legacy save hid one.
-      visible: REQUIRED_TYPES.has(s.type) ? true : s.visible,
-      config: s.config ? { ...s.config } : {},
-    };
-  });
   const result = [...normalizedSaved, ...appended];
-  // Announcement is pinned to the top of the page — enforce its position on read. Its layout variant is
-  // preserved when it's a known one (bar/split/hairline); an unknown/legacy id (e.g. "inline") collapses to
-  // the base "bar", mirroring the hero/marquee normalization. (Previously this forced "bar" unconditionally,
-  // silently erasing any chosen layout.)
+  // Announcement is pinned to the top of the page — enforce its position on read. Map only the
+  // one known legacy key. An otherwise unknown key may belong to a newer dashboard and must
+  // survive this older client until the owner explicitly chooses a different style.
   const ai = result.findIndex((s) => s.type === "announcement");
   if (ai !== -1) {
     const [a] = result.splice(ai, 1);
-    const variant = SECTION_META.announcement.variants.some((vr) => vr.id === a.variant) ? a.variant : "bar";
+    const variant = a.variant === "inline" ? "bar" : a.variant;
     result.unshift({ ...a, variant });
   }
   // Hero is pinned second (right after the announcement) and not reorderable — enforce its position on
   // read. The hero is now single-variant; a legacy "split" save carries its layout intent into the new
-  // config.coverLayout ("plate"), and any other variant collapses to the single "default".
+  // config.coverLayout ("plate"). Other unknown keys are forward-compatible data and remain
+  // untouched even though this build renders its safe default preview for them.
   const hi = result.findIndex((s) => s.type === "hero");
   if (hi !== -1) {
     const [h] = result.splice(hi, 1);
@@ -312,7 +340,11 @@ export function buildInitialLayout(saved?: SectionEntry[] | null): SectionEntry[
         ? { ...h.config, coverLayout: "plate" }
         : h.config;
     const heroIndex = result[0]?.type === "announcement" ? 1 : 0;
-    result.splice(heroIndex, 0, { ...h, variant: SECTION_META.hero.variants[0].id, config });
+    result.splice(heroIndex, 0, {
+      ...h,
+      variant: h.variant === "split" ? SECTION_META.hero.variants[0].id : h.variant,
+      config,
+    });
   }
   // Nav is pinned right after the announcement (above the hero) and not reorderable — enforce its slot on read.
   const ni = result.findIndex((s) => s.type === "nav");
@@ -327,31 +359,30 @@ export function buildInitialLayout(saved?: SectionEntry[] | null): SectionEntry[
     const [footer] = result.splice(fi, 1);
     result.push(footer);
   }
-  // Marquee gained a motion choice (scroll-driven default vs auto-loop); a legacy single-variant save
-  // ("default") opens on the new default so its pill reads as selected.
+  // Marquee gained a motion choice (scroll-driven default vs auto-loop). Migrate only its
+  // former explicit key; do not collapse a key introduced by a newer client.
   const mi = result.findIndex((s) => s.type === "marquee");
-  if (mi !== -1 && !SECTION_META.marquee.variants.some((variant) => variant.id === result[mi].variant)) {
+  if (mi !== -1 && result[mi].variant === "default") {
     result[mi] = { ...result[mi], variant: SECTION_META.marquee.variants[0].id };
   }
-  // Locations collapsed from cards/list to the single "switcher" layout — a legacy variant opens on it.
+  // Locations previously exposed a `list` key. `cards` is a current implemented style; all
+  // other unknown keys are retained as possible newer-client data.
   const li = result.findIndex((s) => s.type === "locations");
-  if (li !== -1 && !SECTION_META.locations.variants.some((variant) => variant.id === result[li].variant)) {
+  if (li !== -1 && result[li].variant === "list") {
     result[li] = { ...result[li], variant: SECTION_META.locations.variants[0].id };
   }
   // Team renamed its layout choice (grid/list → portraits/roster); gallery expanded to four named layouts
-  // (legacy "grid" was the editorial essay). Map legacy ids, then collapse anything still unrecognised to
-  // the section's default variant so its pill reads as selected.
+  // (legacy "grid" was the editorial essay). Map only documented legacy ids. Unknown keys
+  // round-trip unchanged so this client cannot erase a future catalogue selection.
   const LEGACY_VARIANTS: Partial<Record<SectionType, Record<string, string>>> = {
     team: { grid: "portraits", list: "roster" },
     gallery: { grid: "editorial" },
-    testimonials: {}, // cards/quote collapsed to the single "default" layout
+    testimonials: { cards: "default", quote: "default" },
   };
   for (const [type, remap] of Object.entries(LEGACY_VARIANTS)) {
     const idx = result.findIndex((s) => s.type === type);
     if (idx === -1) continue;
-    const meta = SECTION_META[type as SectionType];
-    let variant = remap[result[idx].variant] ?? result[idx].variant;
-    if (!meta.variants.some((vr) => vr.id === variant)) variant = meta.variants[0].id;
+    const variant = remap[result[idx].variant] ?? result[idx].variant;
     if (variant !== result[idx].variant) result[idx] = { ...result[idx], variant };
   }
   return result;

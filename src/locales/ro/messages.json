@@ -158,7 +158,8 @@
     "E14": "Prețurile regionale se suprapun pentru o țară",
     "E15": "Nu am găsit această plată",
     "E16": "Prețurile regionale ale acestui stil sunt invalide",
-    "E17": "Acest stil nu este încă suportat de constructor"
+    "E17": "Acest stil nu este încă suportat de constructor",
+    "E18": "Prețul s-a schimbat de când ai deschis constructorul. Verifică totalul actualizat și încearcă din nou"
   },
   "WEBSITE_SECTIONS": {
     "E01": "Această secțiune premium nu mai este disponibilă",

@@ -22,9 +22,7 @@ export function Deck({ quotes, t }: ReviewsVariantProps) {
     return () => clearInterval(id);
   }, [paused, inView, n, reduced]);
 
-  useEffect(() => {
-    if (active >= n) setActive(0);
-  }, [n, active]);
+  const activeIndex = active >= 0 && active < n ? active : 0;
 
   const num = (i: number) => String(i + 1).padStart(2, "0");
 
@@ -32,7 +30,7 @@ export function Deck({ quotes, t }: ReviewsVariantProps) {
     <div className="mc-rvk" ref={rootRef} onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
       <div className="mc-rvk-deck">
         {quotes.map((r, i) => {
-          const d = (i - active + n) % n;
+          const d = (i - activeIndex + n) % n;
           const vis = d < 3;
           return (
             <figure
@@ -45,7 +43,7 @@ export function Deck({ quotes, t }: ReviewsVariantProps) {
                 pointerEvents: d === 0 ? "auto" : "none",
                 transform: d === 0 ? "none" : `translateY(${d * 18}px) scale(${(1 - d * 0.05).toFixed(3)})`,
               } as CSSProperties}
-              onClick={() => setActive((active + 1) % n)}
+              onClick={() => setActive((activeIndex + 1) % n)}
             >
               <Stars value={r.rating} size={14} />
               <blockquote className="mc-rvk-q">“{r.comment}”</blockquote>
@@ -67,14 +65,14 @@ export function Deck({ quotes, t }: ReviewsVariantProps) {
       </div>
       <div className="mc-rvk-ctrl">
         <span className="mc-rvk-hint">
-          {num(active)} / {num(n - 1)} — {t("businessPage.builder.preview.reviewsDeckHint")}
+          {num(activeIndex)} / {num(n - 1)} — {t("businessPage.builder.preview.reviewsDeckHint")}
         </span>
         <div className="mc-rvk-arrows">
           <button
             type="button"
             className="mc-rv-arr"
             aria-label={t("businessPage.builder.preview.reviewsPrev")}
-            onClick={() => setActive((active - 1 + n) % n)}
+            onClick={() => setActive((activeIndex - 1 + n) % n)}
           >
             <ArrowRight className="h-[18px] w-[18px]" strokeWidth={1.6} style={{ transform: "rotate(180deg)" }} />
           </button>
@@ -82,7 +80,7 @@ export function Deck({ quotes, t }: ReviewsVariantProps) {
             type="button"
             className="mc-rv-arr"
             aria-label={t("businessPage.builder.preview.reviewsNext")}
-            onClick={() => setActive((active + 1) % n)}
+            onClick={() => setActive((activeIndex + 1) % n)}
           >
             <ArrowRight className="h-[18px] w-[18px]" strokeWidth={1.6} />
           </button>

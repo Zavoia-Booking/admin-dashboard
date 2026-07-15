@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { Plus } from "lucide-react";
 import { cn } from "../../../../../../../../shared/lib/utils";
 import { DISPLAY, MONO } from "../../../shared/constants";
@@ -23,29 +23,25 @@ export function FaqAccordion({
   const [open, setOpen] = useState(0);
   const answerRefs = useRef<Array<HTMLDivElement | null>>([]);
 
-  // Items are live owner data; if the open question is deleted (or the list shrinks past it), snap the open
-  // index back in range so a stale index never points past the end (mirrors the Gallery lightbox clamp).
-  useEffect(() => {
-    if (!list && open >= 0 && open >= items.length) setOpen(items.length ? 0 : -1);
-  }, [items.length, open, list]);
+  const openIndex = open >= 0 && open < items.length ? open : items.length ? 0 : -1;
 
   // Drive each panel's max-height to its content height when open, 0 when closed. useLayoutEffect so the
   // default-open item paints already expanded (no open-on-mount flash); subsequent toggles tween via CSS.
   useLayoutEffect(() => {
     answerRefs.current.forEach((el, i) => {
-      if (el) el.style.maxHeight = list || open === i ? `${el.scrollHeight}px` : "0px";
+      if (el) el.style.maxHeight = list || openIndex === i ? `${el.scrollHeight}px` : "0px";
     });
-  }, [open, list, items, locale]);
+  }, [openIndex, list, items, locale]);
 
   return (
     <div className="border-t" style={{ borderColor: "var(--mc-line)" }}>
       {items.map((f, i) => {
-        const isOpen = list || open === i;
+        const isOpen = list || openIndex === i;
         return (
           <div key={i} className="border-b" style={{ borderColor: "var(--mc-line)" }}>
             <button
               type="button"
-              onClick={() => !list && setOpen(open === i ? -1 : i)}
+              onClick={() => !list && setOpen(openIndex === i ? -1 : i)}
               aria-expanded={isOpen}
               className={cn(
                 "flex w-full items-center justify-between gap-4 py-[clamp(14px,2.4cqw,24px)] text-left",

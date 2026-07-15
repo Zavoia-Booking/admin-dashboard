@@ -73,13 +73,13 @@ export const unpublishWebsiteApi = async (): Promise<{ message: string; publish:
 // Store: catalog + one-time Stripe checkout + return reconciliation.
 // ---------------------------------------------------------------------------
 
-/** Section + variant catalog with per-business `owned`/`available` flags (owner-guarded, readable on any plan). */
+/** Section, variant, and theme-asset catalog with per-business ownership/availability. */
 export const getWebsiteVariantCatalogApi = async (): Promise<WebsiteCatalogResponse> => {
   const { data } = await apiClient().get<{ data: WebsiteCatalogResponse }>('/website-variants/catalog');
   return data.data;
 };
 
-/** Creates a one-time Stripe checkout session for paid variants/section unlocks; returns the session URL to redirect to. */
+/** Creates one Stripe session for any combination of variants, sections, and theme assets. */
 export const createWebsiteVariantCheckoutApi = async (
   payload: WebsiteVariantCheckoutPayload,
 ): Promise<{ url: string }> => {

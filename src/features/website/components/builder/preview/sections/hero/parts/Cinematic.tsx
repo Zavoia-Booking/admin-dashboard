@@ -5,12 +5,19 @@ import { WordRise } from "./WordRise";
 import type { HeroModeProps } from "../types";
 
 /** Cinematic full-bleed cover — the photo-forward hero (default when a cover image exists). */
-export function Cinematic({ data, t, name, eyebrow, eyebrowDot, rating, count, showRating, ctaLabel, headerRef, parallaxRef }: HeroModeProps) {
+export function Cinematic({ data, t, parallax, name, eyebrow, eyebrowDot, rating, count, showRating, ctaLabel, headerRef, parallaxRef }: HeroModeProps) {
   return (
     <header ref={headerRef} className="mc-hero-cine relative isolate flex flex-col justify-end overflow-hidden">
       <div className="absolute inset-0 -z-10 overflow-hidden">
         <div ref={parallaxRef} className="absolute left-0 right-0" style={{ top: "-14%", height: "128%", willChange: "transform" }}>
-          <img src={data.heroImageUrl ?? undefined} alt="" className="h-full w-full object-cover" />
+          <img
+            src={data.heroImageUrl ?? undefined}
+            alt=""
+            loading={parallax ? "eager" : "lazy"}
+            decoding="async"
+            fetchPriority={parallax ? "high" : "auto"}
+            className="h-full w-full object-cover"
+          />
         </div>
       </div>
       <div

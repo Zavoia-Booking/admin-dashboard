@@ -1,16 +1,23 @@
 import { createAction, createAsyncAction } from "typesafe-actions";
 import type {
   WebsiteBuilderResponse,
-  UpdateWebsiteDraftPayload,
   WebsiteDraft,
   WebsiteDraftConflict,
   WebsiteCatalogResponse,
   WebsiteVariantCheckoutPayload,
   WebsitePublishState,
+  WebsiteSaveFailureKind,
+  WebsiteUnownedPublishItems,
+  UpdateWebsiteDraftBody,
 } from "./types";
 
 export interface WebsiteScope {
   scopeBusinessId: string | null;
+  scopeRevision: number;
+}
+
+export interface WebsiteMutationScope extends WebsiteScope {
+  mutationGeneration: number;
 }
 
 export type ScopedWebsiteResult<T> = T & WebsiteScope;
@@ -18,7 +25,13 @@ export type ScopedWebsiteError = WebsiteScope & { message: string };
 
 export interface SaveWebsiteDraftRequest {
   requestId: string;
-  payload: UpdateWebsiteDraftPayload;
+  /** Exact local working-state signature represented by this immutable payload. */
+  workingSignature: string;
+  /** Canonical signature of the normalized versionless API body. */
+  bodySignature: string;
+  body: UpdateWebsiteDraftBody;
+  /** Recovery after an ambiguous failure must prove state with GET before another PUT. */
+  reconcileFirst?: boolean;
 }
 
 /** Primary editing data: identity + draft + locations + access (review highlights load separately). */
@@ -36,7 +49,13 @@ export const saveWebsiteDraftAction = createAsyncAction(
 )<
   SaveWebsiteDraftRequest,
   ScopedWebsiteResult<{ draft: WebsiteDraft; requestId: string }>,
-  ScopedWebsiteError & { conflict?: WebsiteDraftConflict }
+  ScopedWebsiteError & {
+    requestId: string;
+    workingSignature: string;
+    failureKind: WebsiteSaveFailureKind | 'conflict';
+    conflict?: WebsiteDraftConflict;
+    lockedItems?: WebsiteUnownedPublishItems;
+  }
 >();
 
 /**
@@ -52,11 +71,6 @@ export interface SetWebsiteHeroPayload {
 
 export interface UploadWebsiteHeroRequest {
   file: File;
-  expectedVersion: number;
-}
-
-export interface DeleteWebsiteHeroRequest {
-  expectedVersion: number;
 }
 
 export const uploadWebsiteHeroAction = createAsyncAction(
@@ -69,20 +83,29 @@ export const deleteWebsiteHeroAction = createAsyncAction(
   'website/DELETE_HERO_REQUEST',
   'website/DELETE_HERO_SUCCESS',
   'website/DELETE_HERO_FAILURE',
-)<DeleteWebsiteHeroRequest, ScopedWebsiteResult<SetWebsiteHeroPayload>, ScopedWebsiteError & { conflict?: WebsiteDraftConflict }>();
+)<void, ScopedWebsiteResult<SetWebsiteHeroPayload>, ScopedWebsiteError & { conflict?: WebsiteDraftConflict }>();
 
 /** Clear the 409 conflict state after the user resolved it (reloaded or discarded). */
 export const clearWebsiteConflictAction = createAction('website/CLEAR_CONFLICT')();
 
 /**
+ * Invalidates every active or queued Website write captured for the current scope. The mutation
+ * coordinator suppresses any late response, settles queued request state, then reloads the
+ * authoritative builder after the active HTTP call has finished. This is the state-layer API used
+ * by navigation/logout flows that intentionally abandon pending Website work.
+ */
+export const cancelWebsiteMutationIntentsAction = createAction(
+  'website/CANCEL_MUTATION_INTENTS',
+)();
+
+/**
  * Save-then-publish: when the form is dirty, `save` carries the draft payload and the saga
  * saves it first (dispatching saveWebsiteDraftAction.success so the form baseline reconciles),
- * then publishes the just-saved version. When clean, `save` is null and `expectedVersion`
- * is the current baseline version.
+ * then publishes the just-saved version. Version selection happens inside the serialized
+ * mutation coordinator, immediately before the network call.
  */
 export interface PublishWebsiteRequest {
   save: SaveWebsiteDraftRequest | null;
-  expectedVersion: number;
 }
 
 export const publishWebsiteAction = createAsyncAction(
@@ -92,9 +115,9 @@ export const publishWebsiteAction = createAsyncAction(
 )<
   PublishWebsiteRequest,
   ScopedWebsiteResult<{ publish: WebsitePublishState }>,
-  // lockedItems: names of unowned premium sections/styles (E07), kept in state so the
-  // publish-blocker panel outlives the toast.
-  ScopedWebsiteError & { conflict?: WebsiteDraftConflict; lockedItems?: string[] }
+  // Structured E07 details are kept so an inactive or otherwise unavailable item that disappeared from the
+  // catalog still has an actionable recovery path in the publish review.
+  ScopedWebsiteError & { conflict?: WebsiteDraftConflict; lockedItems?: WebsiteUnownedPublishItems }
 >();
 
 /** Takes the site offline; the snapshot is kept so re-publishing is instant. */
@@ -104,7 +127,7 @@ export const unpublishWebsiteAction = createAsyncAction(
   'website/UNPUBLISH_FAILURE',
 )<void, ScopedWebsiteResult<{ publish: WebsitePublishState }>, ScopedWebsiteError>();
 
-// Store offering (sections + variants): catalog with per-business ownership.
+// Store offering (sections + variants + theme assets): catalog with per-business ownership.
 // Fetched on builder load (and again after checkout reconciliation) so locked/owned
 // states always reflect current ownership.
 export const fetchWebsiteVariantCatalogAction = createAsyncAction(
@@ -113,7 +136,7 @@ export const fetchWebsiteVariantCatalogAction = createAsyncAction(
   'website/FETCH_VARIANT_CATALOG_FAILURE',
 )<void, ScopedWebsiteResult<WebsiteCatalogResponse>, ScopedWebsiteError>();
 
-// One-time Stripe checkout for one or more paid variants; the saga redirects to the session URL.
+// One-time Stripe checkout for paid variants, sections, and/or theme assets; the saga redirects.
 export const createWebsiteVariantCheckoutAction = createAsyncAction(
   'website/CREATE_VARIANT_CHECKOUT_REQUEST',
   'website/CREATE_VARIANT_CHECKOUT_SUCCESS',
@@ -124,20 +147,29 @@ export const createWebsiteVariantCheckoutAction = createAsyncAction(
   ScopedWebsiteError
 >();
 
+/** Browser Back can restore the pre-Stripe page from BFCache with its redirect latch intact. */
+export const releaseWebsiteCheckoutBusyAction = createAction(
+  'website/RELEASE_CHECKOUT_BUSY',
+)();
+
 // Shopping cart (client-side; persisted to localStorage per business).
-// Variants and section unlocks queue separately but check out in ONE Stripe session;
-// clearVariantCartAction empties both.
+// Variants, section unlocks, and theme assets queue separately but check out in ONE Stripe
+// session; clearVariantCartAction remains the compatibility name for clearing the full cart.
 export const addVariantToCartAction = createAction('website/VARIANT_CART_ADD')<number>();
 export const removeVariantFromCartAction = createAction('website/VARIANT_CART_REMOVE')<number>();
 export const clearVariantCartAction = createAction('website/VARIANT_CART_CLEAR')();
 export const addSectionToCartAction = createAction('website/SECTION_CART_ADD')<number>();
 export const removeSectionFromCartAction = createAction('website/SECTION_CART_REMOVE')<number>();
+export const addThemeAssetToCartAction = createAction('website/THEME_ASSET_CART_ADD')<number>();
+export const removeThemeAssetFromCartAction = createAction('website/THEME_ASSET_CART_REMOVE')<number>();
 
 /** Hydration is atomic so persistence can prove which business owns the in-memory cart. */
 export interface HydrateWebsiteCartPayload {
   businessId: string;
   variantIds: number[];
   sectionIds: number[];
+  /** Optional until every mounted builder surface supplies the new persisted cart. */
+  themeAssetIds?: number[];
 }
 
 export const hydrateWebsiteCartAction = createAction(

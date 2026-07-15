@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { ArrowRight } from "lucide-react";
 import { BookButton } from "../../../shared/primitives";
 import { FootDetail } from "../parts/FootDetail";
@@ -16,19 +16,17 @@ export function Default({ data, t }: FooterBodyProps) {
   const multi = locs.length > 1;
 
   const [sel, setSel] = useState(0);
-  useEffect(() => {
-    if (sel >= locs.length) setSel(0);
-  }, [locs.length, sel]);
-  const here = locs[sel] ?? locs[0] ?? null;
+  const selectedIndex = sel >= 0 && sel < locs.length ? sel : 0;
+  const here = locs[selectedIndex] ?? null;
 
   // Sliding accent indicator glides to the active location row.
   const listRef = useRef<HTMLDivElement>(null);
   const [ind, setInd] = useState<{ y: number; h: number } | null>(null);
   useLayoutEffect(() => {
-    const row = listRef.current?.querySelectorAll(".mc-foot-loc")[sel] as HTMLElement | undefined;
+    const row = listRef.current?.querySelectorAll(".mc-foot-loc")[selectedIndex] as HTMLElement | undefined;
     if (row) setInd({ y: row.offsetTop + 7, h: Math.max(0, row.offsetHeight - 14) });
     else setInd(null);
-  }, [sel, locs.length, name]);
+  }, [selectedIndex, locs.length, name]);
 
   // Cap the footer list so it never collides with the giant wordmark; the rest roll into a "+N more" line.
   const LOC_CAP = 4;
@@ -59,7 +57,7 @@ export function Default({ data, t }: FooterBodyProps) {
         {/* Brand — logo when provided, else wordmark lockup; tagline; socials */}
         <div className="mc-foot-col mc-foot-brand">
           {data.logo ? (
-            <img className="mc-foot-logo" src={data.logo} alt={name} />
+            <img className="mc-foot-logo" src={data.logo} alt={name} loading="lazy" decoding="async" />
           ) : (
             <div className="mc-foot-lockup">
               <span className="mc-foot-mark" aria-hidden>
@@ -85,8 +83,8 @@ export function Default({ data, t }: FooterBodyProps) {
                   key={l.id}
                   type="button"
                   className="mc-foot-loc"
-                  data-on={i === sel ? "1" : "0"}
-                  aria-pressed={i === sel}
+                  data-on={i === selectedIndex ? "1" : "0"}
+                  aria-pressed={i === selectedIndex}
                   onClick={() => setSel(i)}
                 >
                   <span className="mc-foot-loc-no">{String(i + 1).padStart(2, "0")}</span>

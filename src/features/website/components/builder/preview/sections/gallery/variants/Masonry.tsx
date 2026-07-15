@@ -48,7 +48,7 @@ export function Masonry({ images, onOpen }: GalleryVariantProps) {
                 onClick={() => onOpen(i)}
                 style={{ aspectRatio: ar, animationDelay: `${(ci % 3) * 70}ms` }}
               >
-                <img src={g.src} alt={g.alt} />
+                <img src={g.src} alt={g.alt} loading="lazy" decoding="async" />
                 <ZoomBadge />
               </button>
             </figure>

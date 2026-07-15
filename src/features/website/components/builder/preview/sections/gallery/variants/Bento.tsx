@@ -11,7 +11,7 @@ export function Bento({ images, onOpen }: GalleryVariantProps) {
       {images.map((g, i) => (
         <div key={i} className={cn("mc-bento-tile mc-mask-in", BENTO_CELLS[i % 6])} style={{ animationDelay: `${(i % 3) * 80}ms` }}>
           <button type="button" className="mc-zoomable block h-full w-full" data-gimg={i} onClick={() => onOpen(i)}>
-            <img src={g.src} alt={g.alt} />
+            <img src={g.src} alt={g.alt} loading="lazy" decoding="async" />
             <ZoomBadge />
           </button>
         </div>

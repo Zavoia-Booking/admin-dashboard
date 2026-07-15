@@ -7,18 +7,21 @@ import type { FaqVariantProps } from "../types";
  *  on a `data-shown` flag toggled a tick after the selection changes. */
 export function Chips({ items, locale }: FaqVariantProps) {
   const [sel, setSel] = useState(0);
-  // Live owner data: if the selected question is deleted, snap back into range (mirrors the accordion clamp).
-  useEffect(() => {
-    if (sel >= items.length) setSel(0);
-  }, [items.length, sel]);
-  const f = items[sel] ?? items[0];
+  const selectedIndex = sel >= 0 && sel < items.length ? sel : 0;
+  const f = items[selectedIndex];
 
   const [shown, setShown] = useState(true);
   useEffect(() => {
-    setShown(false);
+    if (shown) return;
     const id = setTimeout(() => setShown(true), 20);
     return () => clearTimeout(id);
-  }, [sel]);
+  }, [selectedIndex, shown]);
+
+  const select = (index: number) => {
+    if (sel === index) return;
+    setShown(false);
+    setSel(index);
+  };
 
   return (
     <>
@@ -28,9 +31,9 @@ export function Chips({ items, locale }: FaqVariantProps) {
             key={i}
             type="button"
             className="mc-fqc-chip"
-            data-on={sel === i ? "1" : "0"}
-            aria-pressed={sel === i}
-            onClick={() => setSel(i)}
+            data-on={selectedIndex === i ? "1" : "0"}
+            aria-pressed={selectedIndex === i}
+            onClick={() => select(i)}
           >
             <span className="mc-fqc-chip-no">{String(i + 1).padStart(2, "0")}</span>
             {localized(q.q, locale)}

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Switch } from "../../../../shared/components/ui/switch";
 import { Textarea } from "../../../../shared/components/ui/textarea";
 import { Collapsible, CollapsibleContent } from "../../../../shared/components/ui/collapsible";
@@ -36,17 +36,13 @@ export function CopyOverride({
   locale: "en" | "ro";
 }) {
   const labelId = `${idBase}-label`;
-  const [open, setOpen] = useState(value.trim() !== "");
-
-  // `value` is per-locale; if the app language flips mid-edit, re-seed the switch from the new locale's
-  // override so it doesn't claim "customized" over an empty field (or hide an override the other locale has).
-  useEffect(() => {
-    setOpen(value.trim() !== "");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [locale]);
+  const [openState, setOpenState] = useState(() => ({ locale, open: value.trim() !== "" }));
+  // A locale switch derives directly from that locale's value. Keeping the locale beside the user's
+  // explicit toggle avoids an effect-driven state reset and preserves the switch while typing.
+  const open = openState.locale === locale ? openState.open : value.trim() !== "";
 
   const handleToggle = (next: boolean) => {
-    setOpen(next);
+    setOpenState({ locale, open: next });
     if (!next && value.trim() !== "") onChange("");
   };
 
@@ -72,7 +68,7 @@ export function CopyOverride({
               placeholder={defaultText}
               rows={rows}
               maxLength={maxLength}
-              className="min-h-0 resize-none text-sm leading-relaxed transition-all border-border dark:border-border-subtle hover:border-border-strong focus:border-focus focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-focus focus-visible:ring-offset-0"
+              className="min-h-0 resize-none border-border text-sm leading-relaxed transition-[border-color,box-shadow] duration-150 hover:border-border-strong focus:border-focus focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-focus focus-visible:ring-offset-0 dark:border-border-subtle"
             />
             <div className="mt-2 text-right text-[11px] tabular-nums text-foreground-3">
               {value.length}/{maxLength}

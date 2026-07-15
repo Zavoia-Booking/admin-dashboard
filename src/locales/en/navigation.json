@@ -19,6 +19,11 @@
     "detail": "Detail"
   },
   "sidebar": {
+    "navigation": "Main navigation",
+    "notifications": "Notifications",
+    "notificationsUnread_one": "{{count}} unread notification",
+    "notificationsUnread_other": "{{count}} unread notifications",
+    "openSection": "Open {{name}}",
     "dashboard": "Dashboard",
     "calendar": "Calendar",
     "assignments": "Assignments",
@@ -70,6 +75,7 @@
     }
   },
   "mobileNav": {
+    "navigation": "Mobile navigation",
     "more": "More",
     "assignments": "Assign",
     "marketplace": "Marketplace"

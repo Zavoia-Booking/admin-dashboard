@@ -19,7 +19,7 @@ export function Portrait({ data, t, no }: AboutVariantProps) {
     <div className="mc-abp">
       <div className="mc-abp-fig mc-mask-in">
         {photo ? (
-          <img src={photo} alt={data.businessName} className="mc-abp-img" />
+          <img src={photo} alt={data.businessName} loading="lazy" decoding="async" className="mc-abp-img" />
         ) : (
           <div className="mc-abp-img" style={{ background: "var(--mc-accent-field)" }} />
         )}

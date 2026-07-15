@@ -86,7 +86,7 @@ function MarketplaceRoute() {
 
   if (params.get('tab') === 'website') {
     const websiteParams = new URLSearchParams()
-    for (const key of ['session_id', 'variantPurchase']) {
+    for (const key of ['session_id', 'variantPurchase', 'website_business_id']) {
       const value = params.get(key)
       if (value) websiteParams.set(key, value)
     }

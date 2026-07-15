@@ -22,12 +22,8 @@ export function Spotlight({ quotes, italic, t }: ReviewsVariantProps) {
     return () => clearInterval(id);
   }, [paused, inView, n, reduced]);
 
-  // Quotes are live data; keep the active index in range if the set shrinks.
-  useEffect(() => {
-    if (active >= n) setActive(0);
-  }, [n, active]);
-
-  const cur = quotes[active] ?? quotes[0];
+  const activeIndex = active >= 0 && active < n ? active : 0;
+  const cur = quotes[activeIndex];
   const num = (i: number) => String(i + 1).padStart(2, "0");
 
   return (
@@ -35,25 +31,25 @@ export function Spotlight({ quotes, italic, t }: ReviewsVariantProps) {
       <div className="mc-rvsp-stars">
         <Stars value={cur.rating} size={18} />
       </div>
-      <RvSlide key={active} item={cur} animateIn={inView && !reduced} italic={italic} t={t} />
+      <RvSlide key={activeIndex} item={cur} animateIn={inView && !reduced} italic={italic} t={t} />
       {n > 1 && (
         <div className="mc-rvsp-ctrl">
           <button
             type="button"
             className="mc-rv-arr"
             aria-label={t("businessPage.builder.preview.reviewsPrev")}
-            onClick={() => setActive((active - 1 + n) % n)}
+            onClick={() => setActive((activeIndex - 1 + n) % n)}
           >
             <ArrowRight className="h-[18px] w-[18px]" strokeWidth={1.6} style={{ transform: "rotate(180deg)" }} />
           </button>
           <span className="mc-rvsp-count">
-            {num(active)} / {num(n - 1)}
+            {num(activeIndex)} / {num(n - 1)}
           </span>
           <button
             type="button"
             className="mc-rv-arr"
             aria-label={t("businessPage.builder.preview.reviewsNext")}
-            onClick={() => setActive((active + 1) % n)}
+            onClick={() => setActive((activeIndex + 1) % n)}
           >
             <ArrowRight className="h-[18px] w-[18px]" strokeWidth={1.6} />
           </button>

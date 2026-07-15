@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { ImageOff } from "lucide-react";
 import type { SectionEntry, GalleryConfig } from "../../../../../types";
 import { Section, SectionHead, Placeholder } from "../../shared/primitives";
@@ -37,11 +37,7 @@ export function Gallery({ entry, data, t, no }: { entry: SectionEntry; data: Pre
   const [lbIndex, setLbIndex] = useState(-1);
   const onOpen = (i: number) => setLbIndex(i);
 
-  // Photos are live owner data; if they shrink out from under an open lightbox, snap it shut so the
-  // child never renders an out-of-range index.
-  useEffect(() => {
-    if (lbIndex >= 0 && lbIndex >= images.length) setLbIndex(-1);
-  }, [images.length, lbIndex]);
+  const openLightboxIndex = lbIndex >= 0 && lbIndex < images.length ? lbIndex : -1;
 
   return (
     <Section>
@@ -53,10 +49,10 @@ export function Gallery({ entry, data, t, no }: { entry: SectionEntry; data: Pre
       ) : (
         <div ref={rootRef}>
           <View images={images} onOpen={onOpen} t={t} />
-          {lbIndex >= 0 && (
+          {openLightboxIndex >= 0 && (
             <GalleryLightbox
               images={images}
-              index={lbIndex}
+              index={openLightboxIndex}
               setIndex={setLbIndex}
               rootRef={rootRef}
               brandColor={data.brandColor}

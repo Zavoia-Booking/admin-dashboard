@@ -54,7 +54,7 @@ export function WebsiteBuilderLockedView({
   // lookbook defaults here — every business still gets its own name/logo/hero/locations rendered.
   const teaserData = useMemo<PreviewData>(
     () => ({
-      businessName: business?.name ?? "",
+      businessName: business?.name?.trim() || t("page.identity.fallbackName"),
       logo: business?.logo ?? null,
       heroImageUrl,
       tagline: tagline ?? "",
@@ -79,7 +79,7 @@ export function WebsiteBuilderLockedView({
       fontKey: DEFAULT_FONT_KEY,
       locale,
     }),
-    [business, heroImageUrl, tagline, locations, brandColorHex, locale],
+    [business, heroImageUrl, tagline, locations, brandColorHex, locale, t],
   );
 
   const copy = (
@@ -90,7 +90,7 @@ export function WebsiteBuilderLockedView({
         </div>
       )}
 
-      <h2 className={cn("text-balance text-2xl font-semibold leading-tight text-foreground-1 md:text-[28px]", !isNative && "mt-2")}>
+      <h2 className={cn("text-balance text-2xl font-semibold leading-tight text-foreground-1 min-[920px]:text-[28px]", !isNative && "mt-2")}>
         {t("businessPage.locked.title")}
       </h2>
 
@@ -139,8 +139,8 @@ export function WebsiteBuilderLockedView({
 
   return (
     <div className="max-w-5xl">
-      <div className="grid gap-8 md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
-        <div className="border-b border-border pb-6 md:border-b-0 md:border-r md:pb-0 md:pr-8">{copy}</div>
+      <div className="grid gap-8 min-[920px]:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+        <div className="border-b border-border pb-6 min-[920px]:border-b-0 min-[920px]:border-r min-[920px]:pb-0 min-[920px]:pr-8">{copy}</div>
 
         <div className="relative">
           <ScaledPreview
@@ -148,7 +148,7 @@ export function WebsiteBuilderLockedView({
             data={teaserData}
             chrome
             startNumber={1}
-            className="h-[420px] rounded-xl border border-border md:h-[500px]"
+            className="h-[420px] rounded-xl border border-border min-[920px]:h-[500px]"
           />
           <div
             className="pointer-events-none absolute inset-x-0 bottom-0 h-24 rounded-b-xl bg-gradient-to-t from-surface to-transparent"

@@ -18,7 +18,7 @@ export function Portraits({ members, ratings, nameOf, initialsOf, roleOf, t }: T
           >
             <div className="mc-pfig">
               {m.profileImage ? (
-                <img src={m.profileImage} alt={nameOf(m)} />
+                <img src={m.profileImage} alt={nameOf(m)} loading="lazy" decoding="async" />
               ) : (
                 <div
                   className="flex h-full w-full items-center justify-center"

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { ArrowRight } from "lucide-react";
 import { telHref } from "../../../shared/contact";
 import { ContactLabel } from "../parts/ContactLabel";
@@ -13,10 +13,8 @@ export function Mega({ data, t }: FooterBodyProps) {
   const multi = locs.length > 1;
 
   const [sel, setSel] = useState(0);
-  useEffect(() => {
-    if (sel >= locs.length) setSel(0);
-  }, [locs.length, sel]);
-  const here = locs[sel] ?? locs[0] ?? null;
+  const selectedIndex = sel >= 0 && sel < locs.length ? sel : 0;
+  const here = locs[selectedIndex] ?? null;
   const phone = here?.phone?.trim();
   const hasSocials = socialLinks(data.social).length > 0;
 
@@ -55,7 +53,7 @@ export function Mega({ data, t }: FooterBodyProps) {
             <ContactLabel>{t("businessPage.builder.preview.kicker.locations")}</ContactLabel>
             <div className="mc-fmg-cities">
               {locs.map((l, i) => (
-                <button key={l.id} type="button" className="mc-fmg-city" data-on={i === sel ? "1" : "0"} onClick={() => setSel(i)}>
+                <button key={l.id} type="button" className="mc-fmg-city" data-on={i === selectedIndex ? "1" : "0"} onClick={() => setSel(i)}>
                   {l.name}
                 </button>
               ))}

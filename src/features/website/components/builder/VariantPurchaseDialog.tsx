@@ -23,21 +23,9 @@ import {
 import { Button } from "../../../../shared/components/ui/button";
 import { useFormatPrice } from "../../../../shared/hooks/useFormatPrice";
 import { usePlatform } from "../../../../shared/hooks/usePlatform";
-import { useIsMobile } from "../../../../shared/hooks/use-mobile";
-import type { PriceFormatOptions } from "../../../../shared/utils/currency";
 import type { WebsiteVariantCatalogEntry } from "../../types";
-
-/**
- * One display string for a catalog price, always in full canonical form ("9.00 €") — the
- * house currency rule. Shared by the locked layout pills, the unlock tray, and this dialog
- * so the price always reads the same.
- */
-export function variantPriceLabel(
-  formatPrice: (amountMinor: number, currency: string, opts?: PriceFormatOptions) => string,
-  variant: Pick<WebsiteVariantCatalogEntry, "priceMinor" | "currency">,
-): string {
-  return formatPrice(variant.priceMinor, variant.currency);
-}
+import { useAtelierCompactLayout } from "../atelier/useAtelierCompactLayout";
+import { variantPriceLabel } from "./pricing";
 
 /** The fields the dialog needs — satisfied by both variant and section catalog entries. */
 export type PurchasableCatalogItem = Pick<
@@ -53,9 +41,14 @@ interface VariantPurchaseDialogProps<T extends PurchasableCatalogItem> {
   onOpenChange: (open: boolean) => void;
   /** Plan includes the website builder — buying paid items requires it (Plus/trial). */
   hasWebsiteBuilder: boolean;
+  /** Independent server entitlement. False keeps the item inspectable but removes
+   *  every cart/checkout action instead of rendering a button with no operation. */
+  canPurchase?: boolean;
   /** Checkout session being created (ends with a redirect to Stripe). */
   isLoading: boolean;
-  onBuy: (variant: T) => void;
+  /** Catalog/ownership reconciliation makes purchase mutations temporarily read-only. */
+  isBlocked?: boolean;
+  onBuy?: (variant: T) => void;
   /** The item is already queued in the pending unlocks (toggles the queue button). */
   inCart?: boolean;
   /** Add to / remove from the pending unlocks (combined payment via the tray). */
@@ -67,16 +60,17 @@ interface VariantPurchaseDialogProps<T extends PurchasableCatalogItem> {
 /**
  * Purchase confirmation for a locked (paid, unowned) section layout or section unlock:
  * name, description, one-time price, "yours forever" note — then a Stripe checkout
- * redirect. When the plan lacks the website builder, a hint points at Account → Billing
- * (purchasing needs Plus); the buy attempt stays enabled and the server-side E05 toast
- * is the authority.
+ * redirect. When purchase access is unavailable, a hint points at Account → Billing and
+ * checkout/cart actions are omitted; the locked option remains inspectable.
  */
 export function VariantPurchaseDialog<T extends PurchasableCatalogItem>({
   variant,
   kind = "variant",
   onOpenChange,
   hasWebsiteBuilder,
+  canPurchase = true,
   isLoading,
+  isBlocked = false,
   onBuy,
   inCart = false,
   onToggleCart,
@@ -85,7 +79,7 @@ export function VariantPurchaseDialog<T extends PurchasableCatalogItem>({
   const { t } = useTranslation("website");
   const { formatPrice } = useFormatPrice();
   const { isNative } = usePlatform();
-  const isMobile = useIsMobile();
+  const isAtelierCompact = useAtelierCompactLayout();
 
   const price = variant ? variantPriceLabel(formatPrice, variant) : "";
 
@@ -106,30 +100,34 @@ export function VariantPurchaseDialog<T extends PurchasableCatalogItem>({
     ) : (
       <>
         {/* price plate: the amount + the one-time / yours-forever promise */}
-        <div className="mt-5 rounded-xl border border-border bg-surface-hover/60 px-4 py-3.5">
+        <div className="atelier-purchase-price mt-5 rounded-xl border border-[var(--atelier-border)] bg-[var(--atelier-field)] px-4 py-3.5">
           <div className="flex items-baseline gap-2">
-            <span className="text-[22px] font-semibold tracking-[-0.015em] text-foreground-1">
+            <span className="text-[22px] font-semibold tabular-nums text-[var(--atelier-ink)]">
               {price}
             </span>
-            <span className="text-[12px] font-medium uppercase tracking-[0.1em] text-foreground-3">
+            <span className="font-mono text-[10px] font-medium uppercase text-[var(--atelier-muted)]">
               {t("businessPage.paidVariants.oneTime")}
             </span>
           </div>
-          <p className="mt-1.5 flex items-start gap-1.5 text-[13px] leading-snug text-foreground-2">
-            <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" strokeWidth={1.8} aria-hidden />
+          <p className="mt-1.5 flex items-start gap-1.5 text-pretty text-[13px] leading-snug text-[var(--atelier-ink-soft)]">
+            <Sparkles className="mt-0.5 size-3.5 shrink-0 text-[var(--atelier-accent)]" strokeWidth={1.8} aria-hidden />
             {t("businessPage.paidVariants.foreverNote")}
           </p>
         </div>
 
-        {!hasWebsiteBuilder && (
+        {(!hasWebsiteBuilder || !canPurchase) && (
           <p className="mt-3 rounded-xl border border-primary/25 bg-primary/[0.05] px-4 py-2.5 text-[13px] leading-snug text-foreground-2 dark:bg-primary/[0.08]">
-            {t("businessPage.paidVariants.plusHint")}
+            {t(
+              hasWebsiteBuilder
+                ? "businessPage.paidVariants.purchaseUnavailable"
+                : "businessPage.paidVariants.plusHint",
+            )}
           </p>
         )}
 
         {/* "Unlock now" pays for this item alone — say so when others are already queued,
             so nobody ends up with two separate charges by surprise. */}
-        {pendingCount > 0 && !inCart && (
+        {canPurchase && pendingCount > 0 && !inCart && (
           <p className="mt-3 text-[12px] leading-5 text-foreground-3">
             {t("businessPage.paidVariants.separateNote", { count: pendingCount })}
           </p>
@@ -140,7 +138,13 @@ export function VariantPurchaseDialog<T extends PurchasableCatalogItem>({
 
   const footer = variant && (
     isNative ? (
-      <Button type="button" variant="outline" disabled={isLoading} onClick={() => onOpenChange(false)}>
+      <Button
+        type="button"
+        variant="outline"
+        disabled={isLoading}
+        onClick={() => onOpenChange(false)}
+        className="min-h-11"
+      >
         {t("businessPage.paidVariants.cancel")}
       </Button>
     ) : (
@@ -150,19 +154,21 @@ export function VariantPurchaseDialog<T extends PurchasableCatalogItem>({
           variant="outline"
           disabled={isLoading}
           onClick={() => onOpenChange(false)}
+          className="min-h-11"
         >
           {t("businessPage.paidVariants.cancel")}
         </Button>
-        {onToggleCart && (
+        {canPurchase && onToggleCart && (
           <Button
             type="button"
             variant="outline"
-            disabled={isLoading}
+            disabled={isLoading || isBlocked}
             onClick={() => {
               onToggleCart(variant);
               // Adding closes the dialog so the unlock tray takes over; removing stays put.
               if (!inCart) onOpenChange(false);
             }}
+            className="min-h-11"
           >
             <LockOpen className="h-4 w-4" strokeWidth={1.8} aria-hidden />
             {inCart
@@ -170,20 +176,30 @@ export function VariantPurchaseDialog<T extends PurchasableCatalogItem>({
               : t("businessPage.paidVariants.addToCart")}
           </Button>
         )}
-        <Button type="button" disabled={isLoading} onClick={() => onBuy(variant)}>
-          {isLoading && <Loader2 className="h-4 w-4 animate-spin" aria-hidden />}
-          {isLoading
-            ? t("businessPage.paidVariants.processing")
-            : t("businessPage.paidVariants.buy", { price })}
-        </Button>
+        {canPurchase && onBuy ? (
+          <Button
+            type="button"
+            disabled={isLoading || isBlocked}
+            onClick={() => onBuy(variant)}
+            className="min-h-11"
+          >
+            {isLoading && <Loader2 className="h-4 w-4 animate-spin" aria-hidden />}
+            {isLoading
+              ? t("businessPage.paidVariants.processing")
+              : t("businessPage.paidVariants.buy", { price })}
+          </Button>
+        ) : null}
       </>
     )
   );
 
-  if (isMobile) {
+  if (isAtelierCompact) {
     return (
       <Drawer open={!!variant} onOpenChange={(open) => !isLoading && onOpenChange(open)}>
-        <DrawerContent className="max-h-[85vh] px-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+        <DrawerContent
+          overlayClassName="z-[79]"
+          className="website-atelier atelier-purchase-dialog z-50 max-h-[85dvh] px-4 pb-[calc(1rem+env(safe-area-inset-bottom))]"
+        >
           {variant && (
             <>
               <DialogHeader className="gap-0 pt-1 text-left">
@@ -197,7 +213,7 @@ export function VariantPurchaseDialog<T extends PurchasableCatalogItem>({
                 </DrawerDescription>
               </DialogHeader>
               {content}
-              <DialogFooter className="mt-6">{footer}</DialogFooter>
+              <DialogFooter className="atelier-purchase-footer mt-6 flex-col-reverse sm:flex-col-reverse">{footer}</DialogFooter>
             </>
           )}
         </DrawerContent>
@@ -207,7 +223,10 @@ export function VariantPurchaseDialog<T extends PurchasableCatalogItem>({
 
   return (
     <Dialog open={!!variant} onOpenChange={(open) => !isLoading && onOpenChange(open)}>
-      <DialogContent className="max-w-[calc(100%-2rem)] gap-0 p-6 sm:max-w-[420px]">
+      <DialogContent
+        overlayClassName="z-[79]"
+        className="website-atelier atelier-purchase-dialog z-50 max-w-[calc(100%-2rem)] gap-0 p-6 sm:max-w-[420px]"
+      >
         {variant && (
           <>
             <DialogHeader className="gap-0">
@@ -221,7 +240,7 @@ export function VariantPurchaseDialog<T extends PurchasableCatalogItem>({
               </DialogDescription>
             </DialogHeader>
             {content}
-            <DialogFooter className="mt-6">{footer}</DialogFooter>
+            <DialogFooter className="atelier-purchase-footer mt-6 flex-wrap">{footer}</DialogFooter>
           </>
         )}
       </DialogContent>
