@@ -12,11 +12,17 @@ interface MarketplacePublishStatusStripProps {
   hasValidationErrors: boolean;
   industryTagOk: boolean;
   businessDetailsOk: boolean;
+  /** Every publicly visible location has at least one portfolio image */
+  locationImagesOk: boolean;
+  /** At least one location has a portfolio image (publishing requires it) */
+  hasLocationPhoto: boolean;
   /** Plan entitlement — without it the builder is locked, so its checklist item is irrelevant */
   hasWebsiteBuilder: boolean;
   websiteBuilderOk: boolean;
   locations: LocationWithAssignments[];
   onPublish: () => void;
+  /** Invoked instead of onPublish when photos are the blocker — jumps to the upload area */
+  onPhotosNeeded: () => void;
 }
 
 function ChecklistItem({ ok, label }: { ok: boolean; label: string }) {
@@ -52,10 +58,13 @@ export function MarketplacePublishStatusStrip({
   hasValidationErrors,
   industryTagOk,
   businessDetailsOk,
+  locationImagesOk,
+  hasLocationPhoto,
   hasWebsiteBuilder,
   websiteBuilderOk,
   locations,
   onPublish,
+  onPhotosNeeded,
 }: MarketplacePublishStatusStripProps) {
   const { t } = useTranslation("marketplace");
 
@@ -69,6 +78,10 @@ export function MarketplacePublishStatusStrip({
     : isListed
       ? t("configuration.buttons.saveChanges")
       : t("configuration.buttons.publish");
+
+  // Missing photos don't disable the button — clicking routes to the upload
+  // area (scroll + pulse) instead of publishing, so the user lands on the fix.
+  const photosBlocked = !hasLocationPhoto || !locationImagesOk;
 
   // Dirtiness only gates re-saves of an already-listed page — the first publish
   // IS the action (unlisted → live), so a clean-but-valid form must stay clickable.
@@ -98,6 +111,11 @@ export function MarketplacePublishStatusStrip({
                   {t("statusStrip.noLocationLive")}
                 </span>
               )}
+              {photosBlocked && (
+                <span className="text-xs font-medium text-amber-600 dark:text-amber-500">
+                  {t("statusStrip.locationNeedsImage")}
+                </span>
+              )}
             </div>
           ) : (
             <div className="space-y-2">
@@ -109,6 +127,14 @@ export function MarketplacePublishStatusStrip({
                 <ChecklistItem ok={businessDetailsOk} label={t("statusStrip.checklist.detailsValid")} />
                 {hasWebsiteBuilder && (
                   <ChecklistItem ok={websiteBuilderOk} label={t("statusStrip.checklist.websiteBuilder")} />
+                )}
+                <ChecklistItem
+                  ok={hasLocationPhoto}
+                  label={t("statusStrip.checklist.locationPhoto")}
+                />
+                {/* Only meaningful once a location is set public — vacuously true otherwise */}
+                {publicCount > 0 && (
+                  <ChecklistItem ok={locationImagesOk} label={t("statusStrip.checklist.locationImages")} />
                 )}
               </div>
             </div>
@@ -131,7 +157,7 @@ export function MarketplacePublishStatusStrip({
 
         {canWrite && (
           <Button
-            onClick={onPublish}
+            onClick={() => (photosBlocked ? onPhotosNeeded() : onPublish())}
             disabled={publishDisabled}
             rounded="full"
             className={cn(

@@ -136,7 +136,10 @@
     "E16": "Nu am putut actualiza setările de programare. Încearcă din nou",
     "E17": "Ai nevoie de un abonament activ pentru a publica listarea în marketplace",
     "E18": "Pagina ta folosește aspecte premium pe care nu le-ai cumpărat încă",
-    "E19": "Pagina ta include secțiuni premium pe care nu le-ai deblocat încă"
+    "E19": "Pagina ta include secțiuni premium pe care nu le-ai deblocat încă",
+    "E20": "O locație vizibilă are nevoie de cel puțin o fotografie. Adaugă o fotografie sau ascunde locația",
+    "E21": "Nu poți șterge ultima fotografie a unei locații vizibile. Adaugă mai întâi altă fotografie sau ascunde locația",
+    "E22": "Adaugă cel puțin o fotografie unei locații înainte de a publica"
   },
   "WEBSITE_VARIANTS": {
     "E01": "Acest aspect premium nu mai este disponibil",

@@ -13,6 +13,7 @@ import type {
   BusinessInvoicesResponse,
   PlansListResponse,
   ChangePlanResponse,
+  PlanChangePreviewResponse,
   CancelPlanChangeResponse,
 } from './types';
 
@@ -67,6 +68,14 @@ export const getSeatChangePreview = async (
 // Self-serve plans (STANDARD + PLUS) with pricing for the business's country
 export const getPlansList = async (): Promise<PlansListResponse> => {
   const response = await apiClient().get<PlansListResponse>('/plans/list');
+  return response.data;
+};
+
+/** Exact "due today" proration for an immediate plan upgrade, computed by Stripe. */
+export const getPlanChangePreview = async (planId: number): Promise<PlanChangePreviewResponse> => {
+  const response = await apiClient().get<PlanChangePreviewResponse>('/billing/plan-change-preview', {
+    params: { planId },
+  });
   return response.data;
 };
 

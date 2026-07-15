@@ -1,6 +1,10 @@
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, useCallback } from "react";
 import { useDispatch } from "react-redux";
 import { setLocationPortfolioAction } from "../actions";
+import {
+  consumePortfolioAttention,
+  PORTFOLIO_ATTENTION_EVENT,
+} from "../utils/portfolioAttention";
 import { Card, CardContent } from "../../../shared/components/ui/card";
 import { Button } from "../../../shared/components/ui/button";
 import { Badge } from "../../../shared/components/ui/badge";
@@ -9,6 +13,7 @@ import { X, Star, AlertCircle, Info, UploadCloud } from "lucide-react";
 import { toast } from "sonner";
 import { Spinner } from "../../../shared/components/ui/spinner";
 import { cn } from "../../../shared/lib/utils";
+import { getErrorMessage } from "../../../shared/utils/error";
 import { FullScreenImageCarousel } from "./FullScreenImageCarousel";
 import {
   uploadMarketplaceImageApi,
@@ -124,6 +129,50 @@ export function MarketplaceImagesSection({
   const [dragActive, setDragActive] = useState(false);
   const [carouselOpen, setCarouselOpen] = useState(false);
   const [carouselIndex, setCarouselIndex] = useState(0);
+
+  // "Needs photos" attention: a blocked publish or visibility toggle scrolls
+  // the upload card into view, shakes it twice, and holds a soft ring briefly
+  // (see utils/portfolioAttention).
+  const uploadCardRef = useRef<HTMLDivElement | null>(null);
+  const attentionTimerRef = useRef<number | null>(null);
+  const [attentionActive, setAttentionActive] = useState(false);
+
+  const triggerAttention = useCallback(() => {
+    // Next frame, so a just-mounted/just-shown panel has laid out before scrolling.
+    requestAnimationFrame(() => {
+      uploadCardRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+    if (attentionTimerRef.current) window.clearTimeout(attentionTimerRef.current);
+    // Let the smooth scroll land first so the shake is actually seen; it runs
+    // 0.7s, then the soft ring lingers a beat and fades via the card's own
+    // transition-all.
+    attentionTimerRef.current = window.setTimeout(() => {
+      setAttentionActive(true);
+      attentionTimerRef.current = window.setTimeout(
+        () => setAttentionActive(false),
+        1600,
+      );
+    }, 400);
+  }, []);
+
+  useEffect(() => {
+    if (!locationId) return;
+    const onAttentionEvent = (event: Event) => {
+      if (
+        (event as CustomEvent<number>).detail === locationId &&
+        consumePortfolioAttention(locationId)
+      ) {
+        triggerAttention();
+      }
+    };
+    window.addEventListener(PORTFOLIO_ATTENTION_EVENT, onAttentionEvent);
+    // Drill-in case: the request fired before this gallery mounted.
+    if (consumePortfolioAttention(locationId)) triggerAttention();
+    return () => {
+      window.removeEventListener(PORTFOLIO_ATTENTION_EVENT, onAttentionEvent);
+      if (attentionTimerRef.current) window.clearTimeout(attentionTimerRef.current);
+    };
+  }, [locationId, triggerAttention]);
 
   // Keep ref in sync with images
   imagesRef.current = images;
@@ -399,7 +448,9 @@ export function MarketplaceImagesSection({
             img.tempId === tempId ? { ...img, isDeleting: false } : img,
           ),
         );
-        toast.error(t("portfolio.errors.deleteFailed"));
+        // Backend rejections carry a translated code (e.g. E21: can't delete the
+        // last image of a public location) — surface it over the generic fallback.
+        toast.error(getErrorMessage(error) || t("portfolio.errors.deleteFailed"));
       }
     } else {
       // Image not yet uploaded (still uploading or failed) - just remove from local state
@@ -759,11 +810,14 @@ export function MarketplaceImagesSection({
                   {/* Upload Card */}
                   {images.length < MAX_PORTFOLIO_IMAGES && (
                     <div
+                      ref={uploadCardRef}
                       className={cn(
                         "group relative cursor-pointer mt-1.5 transition-all duration-300",
                         images.length === 0
                           ? "col-span-2 md:col-span-5 aspect-video md:aspect-auto"
                           : getBentoGridClass(images.length),
+                        attentionActive &&
+                          "rounded-2xl ring-2 ring-primary/40 ring-offset-2 ring-offset-background animate-attention-shake",
                       )}
                       onClick={() => portfolioInputRef.current?.click()}
                       onDrop={handlePortfolioDrop}

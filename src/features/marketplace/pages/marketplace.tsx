@@ -23,6 +23,7 @@ import { NotListedYetView } from "../components/NotListedYetView";
 import { ListingConfigurationView } from "../components/ListingConfigurationView";
 import { ListingConfigurationSkeleton } from "../components/ListingConfigurationSkeleton";
 import BusinessSetupGate from "../../../shared/components/guards/BusinessSetupGate";
+import { selectCurrentUser } from "../../auth/selectors";
 import { Button } from "../../../shared/components/ui/button";
 import { AlertTriangle, RotateCcw } from "lucide-react";
 
@@ -41,13 +42,20 @@ export default function MarketplacePage() {
   const selectedIndustryTags = useSelector(
     selectMarketplaceSelectedIndustryTags,
   );
+  const currentUser = useSelector(selectCurrentUser);
+  // BusinessSetupGate's condition. Other gated pages fetch inside components rendered as
+  // the gate's children, so no request fires while the setup prompt is up; this page
+  // fetches at page level, so it has to skip explicitly or the guaranteed 403
+  // ("You need a business account…") toasts over the gate's screen.
+  const hasBusiness = Boolean(currentUser?.businessId);
 
   const [showConfiguration, setShowConfiguration] = useState(false);
 
   // Fetch marketplace data on mount and when navigating back to this page
   useEffect(() => {
+    if (!hasBusiness) return;
     dispatch(fetchMarketplaceListingAction.request());
-  }, [dispatch, location.pathname]); // Refetch when pathname changes
+  }, [dispatch, location.pathname, hasBusiness]); // Refetch when pathname changes
 
   const handleStartListing = () => {
     setShowConfiguration(true);

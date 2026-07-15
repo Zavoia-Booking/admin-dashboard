@@ -53,6 +53,21 @@ export type ChangePlanResponse = {
   effectiveDate?: string | null;
 };
 
+// GET /billing/plan-change-preview — exact Stripe proration for an immediate
+// upgrade: prorated target-plan cost for the remaining period (chargedNow)
+// minus the unused-time credit of the current plan (creditedNow, ≤ 0).
+// amountDue = chargedNow + creditedNow is what the card is charged today;
+// the billing anchor (periodEnd) does not move.
+export type PlanChangePreviewResponse = {
+  action: 'upgrade' | 'downgrade_scheduled';
+  amountDue: number;
+  chargedNow: number;
+  creditedNow: number;
+  currency: string;
+  periodEnd: string | null;
+  effectiveDate: string | null;
+};
+
 // POST /billing/cancel-plan-change — releases the shared Stripe schedule,
 // which also clears any scheduled seat change.
 export type CancelPlanChangeResponse = {

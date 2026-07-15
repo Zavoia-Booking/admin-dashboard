@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { ArrowLeft } from "lucide-react";
@@ -40,6 +40,18 @@ export function LocationsTab({ locations }: LocationsTabProps) {
   };
 
   const [activeLocationId, setActiveLocationId] = useState<number | null>(resolveInitial);
+
+  // Drill in when the URL gains/changes a locationId after mount (e.g. the
+  // publish strip deep-links to a location that still needs photos).
+  useEffect(() => {
+    const raw = searchParams.get("locationId");
+    if (!raw) return;
+    const id = parseInt(raw, 10);
+    if (!Number.isNaN(id) && id !== activeLocationId && locations.some((l) => l.id === id)) {
+      setActiveLocationId(id);
+      localStorage.setItem(STORAGE_KEY, String(id));
+    }
+  }, [searchParams, activeLocationId, locations]);
 
   const selectLocation = useCallback(
     (id: number | null) => {

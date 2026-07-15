@@ -9,6 +9,7 @@ import { cn } from "../../../../shared/lib/utils";
 import type { LocationWithAssignments } from "../../types";
 import { useTranslation, Trans } from "react-i18next";
 import { updateLocationMarketplaceFlagsAction } from "../../actions";
+import { requestPortfolioAttention } from "../../utils/portfolioAttention";
 import { selectUpdatingLocationFlags } from "../../selectors";
 import { EditLocationMarketplaceDetailsSlider } from "../EditLocationMarketplaceDetailsSlider";
 
@@ -40,8 +41,19 @@ export const LocationVisibilitySection: React.FC<LocationVisibilitySectionProps>
     navigate(`/assignments?locationId=${locationId}`);
   };
 
-  const handleTogglePublic = (locationId: number, isPublic: boolean) => {
-    dispatch(updateLocationMarketplaceFlagsAction.request({ locationId, isPublic }));
+  const handleTogglePublic = (location: LocationWithAssignments, isPublic: boolean) => {
+    // Mirrors the backend guard (MARKETPLACE_LISTING.E20): a location can't go
+    // public without at least one portfolio image. Instead of a toast, walk the
+    // user to the upload card and pulse it — drilling into the location panel
+    // first when we're on the master list (where the gallery isn't rendered).
+    if (isPublic && (location.portfolioImages?.length ?? 0) === 0) {
+      onManageLocation?.(location.id);
+      requestPortfolioAttention(location.id);
+      return;
+    }
+    dispatch(
+      updateLocationMarketplaceFlagsAction.request({ locationId: location.id, isPublic }),
+    );
   };
 
   const handleToggleBooking = (locationId: number, allowOnlineBooking: boolean) => {
@@ -203,7 +215,7 @@ export const LocationVisibilitySection: React.FC<LocationVisibilitySectionProps>
                   </div>
                   <Switch
                     checked={location.isPublic}
-                    onCheckedChange={(checked) => handleTogglePublic(location.id, checked)}
+                    onCheckedChange={(checked) => handleTogglePublic(location, checked)}
                     disabled={isUpdating}
                   />
                 </div>

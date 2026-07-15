@@ -136,7 +136,10 @@
     "E16": "Couldn’t update booking settings. Try again",
     "E17": "An active subscription is required to publish your marketplace listing",
     "E18": "Your page uses premium layouts you haven’t purchased yet",
-    "E19": "Your page includes premium sections you haven’t unlocked yet"
+    "E19": "Your page includes premium sections you haven’t unlocked yet",
+    "E20": "A visible location needs at least one photo. Add a photo or hide the location",
+    "E21": "You can’t remove the last photo of a visible location. Add another photo first, or hide the location",
+    "E22": "Add at least one photo to a location before publishing"
   },
   "WEBSITE_VARIANTS": {
     "E01": "This premium layout isn’t available anymore",

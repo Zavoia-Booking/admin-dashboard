@@ -19,6 +19,7 @@ import type {
   PublishMarketplaceListingPayload,
 } from "../types";
 import { useMarketplaceForm } from "../hooks/useMarketplaceForm";
+import { requestPortfolioAttention } from "../utils/portfolioAttention";
 import ConfirmDialog from "../../../shared/components/common/ConfirmDialog";
 import { useTranslation } from "react-i18next";
 
@@ -321,6 +322,30 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
     form.announcementError ||
     form.aboutError
   );
+  // Photo gates, mirroring the backend publish checks: publishing needs at least
+  // one photo somewhere (MARKETPLACE_LISTING.E22), and no publicly visible
+  // location may have zero photos (E20).
+  const locationImagesOk = !locationsWithAssignments.some(
+    (l) => l.isPublic && (l.portfolioImages?.length ?? 0) === 0,
+  );
+  const hasLocationPhoto =
+    locationsWithAssignments.length === 0 ||
+    locationsWithAssignments.some((l) => (l.portfolioImages?.length ?? 0) > 0);
+
+  // Publish clicked while photos are missing: deep-link into the offending
+  // location's panel and pulse its upload card (works from any tab, any viewport).
+  const handlePhotosNeeded = () => {
+    const target =
+      locationsWithAssignments.find(
+        (l) => l.isPublic && (l.portfolioImages?.length ?? 0) === 0,
+      ) ??
+      locationsWithAssignments.find((l) => (l.portfolioImages?.length ?? 0) === 0) ??
+      locationsWithAssignments[0];
+    if (!target) return;
+    setActiveTab("locations");
+    navigate(`/marketplace?tab=locations&locationId=${target.id}`, { replace: true });
+    requestPortfolioAttention(target.id);
+  };
 
   // Persistent business-level go-live status strip. Rendered at the top of every
   // tab panel (ResponsiveTabs keeps panels mounted but only shows the active one,
@@ -335,6 +360,9 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
         hasValidationErrors={form.hasValidationErrors}
         industryTagOk={industryTagOk}
         businessDetailsOk={businessDetailsOk}
+        locationImagesOk={locationImagesOk}
+        hasLocationPhoto={hasLocationPhoto}
+        onPhotosNeeded={handlePhotosNeeded}
         hasWebsiteBuilder={hasWebsiteBuilder}
         websiteBuilderOk={websiteBuilderOk}
         locations={locationsWithAssignments}
@@ -395,9 +423,7 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
     {
       id: "locations",
       label: t("configuration.tabs.locations"),
-      showBadge: locationsWithAssignments.some(
-        (l) => l.isPublic && (l.portfolioImages?.length ?? 0) === 0,
-      ),
+      showBadge: !locationImagesOk,
       content: (
         <>
           {statusStrip}

@@ -562,10 +562,13 @@
     "checklist": {
       "industryTag": "Cel puțin o etichetă de industrie",
       "detailsValid": "Detaliile afacerii sunt valide",
-      "websiteBuilder": "Constructorul site-ului este valid"
+      "websiteBuilder": "Constructorul site-ului este valid",
+      "locationPhoto": "Cel puțin o fotografie a locației",
+      "locationImages": "Fiecare locație vizibilă are o fotografie"
     },
     "locationsVisible": "{{visible}} din {{total}} locații vizibile",
     "noLocationLive": "Nicio locație nu este activă încă",
+    "locationNeedsImage": "O locație nu are fotografii — adaugă cel puțin una",
     "locationsWaitingPublish": "Locațiile publice vor apărea după ce publici pagina afacerii."
   },
   "locations": {

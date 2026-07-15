@@ -66,7 +66,9 @@ import {
   changePlan as changePlanApi,
   cancelPlanChange as cancelPlanChangeApi,
   getSeatChangePreview,
+  getPlanChangePreview,
 } from '../api';
+import type { PlanChangePreviewResponse } from '../types';
 import { useConfirmRadix } from '../../../shared/hooks/useConfirm';
 import {
   selectSubscriptionSummary,
@@ -376,7 +378,11 @@ const BillingAndSubscriptionV2Inner = () => {
         ? t('billing.v2.plans.lockedCancellation')
         : scheduledPlanChange
           ? t('billing.v2.plans.lockedScheduled')
-          : null;
+          : // Seat changes share the Stripe schedule with plan changes — switching
+            // plans now would silently drop the scheduled seat change.
+            hasScheduledChange
+            ? t('billing.v2.plans.lockedScheduledSeats')
+            : null;
 
   // ────────── Handlers (kept aligned with v1 semantics) ──────────
 
@@ -752,6 +758,13 @@ const BillingAndSubscriptionV2Inner = () => {
     const targetOrder = SELF_SERVE_TIER_ORDER[plan.tier] ?? 0;
     const isUpgradeChange = targetOrder > currentOrder;
 
+    // Two selectable plans sharing a tier is a data problem (the backend rejects
+    // the change too) — never present a lateral move as a downgrade.
+    if (targetOrder === currentOrder) {
+      toast.error(t('billing.toast.planChangeFailed'));
+      return;
+    }
+
     const paid = subscriptionSummary?.paidSeats || 0;
     const newMonthly = plan.pricing
       ? plan.pricing.basePlanPrice + plan.pricing.pricePerTeamMember * paid
@@ -759,17 +772,68 @@ const BillingAndSubscriptionV2Inner = () => {
 
     if (isUpgradeChange) {
       if (!ensureConfigured()) return;
+      // Exact proration from Stripe: prorated target-plan cost for the remaining
+      // period minus the unused-time credit of the current plan (same preview
+      // mechanism as seat changes). Best-effort — on failure the popup falls
+      // back to the generic copy and Stripe still charges the correct amount.
+      let preview: PlanChangePreviewResponse | null = null;
+      setChangingPlan(true);
+      try {
+        preview = await getPlanChangePreview(plan.id);
+      } catch {
+        preview = null;
+      } finally {
+        setChangingPlan(false);
+      }
       const confirmed = await confirm({
         eyebrow: t('billing.confirm.planChangeEyebrow'),
         title: t('billing.confirm.upgradePlanTitle', { plan: plan.name }),
         content:
-          newMonthly != null
-            ? t('billing.confirm.upgradePlanContent', {
-                plan: plan.name,
-                amount: fmtBilling(newMonthly),
-                currency: currencySymbol,
-              })
-            : t('billing.confirm.upgradePlanContentNoPrice', { plan: plan.name }),
+          preview?.action === 'upgrade' ? (
+            <div className="space-y-2 text-sm leading-relaxed">
+              <p>{t('billing.confirm.upgradeProrationIntro', { plan: plan.name })}</p>
+              <ul className="list-disc space-y-1.5 pl-4">
+                <li>
+                  {t('billing.confirm.upgradeProrationCharge', {
+                    plan: plan.name,
+                    date: formatDate(preview.periodEnd),
+                    amount: fmtBilling(preview.chargedNow),
+                    currency: currencySymbol,
+                  })}
+                </li>
+                <li>
+                  {t('billing.confirm.upgradeProrationCredit', {
+                    plan: planName,
+                    amount: fmtBilling(Math.abs(preview.creditedNow)),
+                    currency: currencySymbol,
+                  })}
+                </li>
+              </ul>
+              <p className="font-medium">
+                {t('billing.confirm.upgradeProrationDueNow', {
+                  amount: fmtBilling(preview.amountDue),
+                  currency: currencySymbol,
+                })}
+              </p>
+              {newMonthly != null && (
+                <p>
+                  {t('billing.confirm.upgradeProrationRenewal', {
+                    date: formatDate(preview.periodEnd),
+                    amount: fmtBilling(newMonthly),
+                    currency: currencySymbol,
+                  })}
+                </p>
+              )}
+            </div>
+          ) : newMonthly != null ? (
+            t('billing.confirm.upgradePlanContent', {
+              plan: plan.name,
+              amount: fmtBilling(newMonthly),
+              currency: currencySymbol,
+            })
+          ) : (
+            t('billing.confirm.upgradePlanContentNoPrice', { plan: plan.name })
+          ),
         confirmationText: t('billing.confirm.upgradeNow'),
         cancellationText: t('billing.confirm.cancel'),
       });
@@ -787,7 +851,6 @@ const BillingAndSubscriptionV2Inner = () => {
               })}
             </li>
             <li>{t('billing.confirm.downgradeWarnWebsiteBuilder')}</li>
-            <li>{t('billing.confirm.downgradeWarnReplacesSeatChange')}</li>
           </ul>
         ),
         confirmationText: t('billing.confirm.scheduleDowngrade'),
