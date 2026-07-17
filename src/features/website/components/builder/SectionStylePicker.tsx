@@ -205,6 +205,7 @@ export function SectionStylePicker({
             sectionType={entry.type}
             option={option}
             active={selectedVariantId === option.variant.id}
+            current={entry.variant === option.variant.id}
             previewOnly={selectedVariantId === option.variant.id && entry.variant !== option.variant.id && option.locked}
             tabStop={i === tabStopIndex}
             disabled={disabled || !!isOptionDisabled?.(option)}
@@ -219,7 +220,10 @@ export function SectionStylePicker({
         ))}
       </div>
       {isAtelier ? (
-        <p className="atelier-style-description mt-2 px-1 text-[11px] leading-[1.5] text-foreground-3">
+        <p
+          key={selectedVariantId}
+          className="atelier-style-description mt-2 px-1 text-[11px] leading-[1.5] text-foreground-3"
+        >
           {selectedVariant ? `${t(selectedVariant.labelKey)} — ` : ""}
           {t(selectedDescriptionKey)}
         </p>
@@ -261,6 +265,7 @@ function VariantOptionCard({
   sectionType,
   option,
   active,
+  current,
   previewOnly,
   tabStop,
   disabled,
@@ -275,6 +280,7 @@ function VariantOptionCard({
   sectionType: string;
   option: SectionStyleOption;
   active: boolean;
+  current: boolean;
   previewOnly: boolean;
   tabStop: boolean;
   disabled: boolean;
@@ -292,15 +298,25 @@ function VariantOptionCard({
     () => [{ type: sectionType, variant: variant.id, visible: true }],
     [sectionType, variant.id],
   );
-  const badge = !isNative && option.inCart
-    ? t("businessPage.paidVariants.inCartBadge")
-    : option.locked
-      ? previewOnly
+  const badge = isAtelier
+    ? current
+      ? t("businessPage.paidVariants.currentBadge")
+      : previewOnly
         ? t("businessPage.paidVariants.previewBadge")
-        : (isNative ? null : option.priceLabel) ?? t("businessPage.paidVariants.lockedBadge")
-      : option.owned
-        ? t("businessPage.paidVariants.ownedBadge")
-        : t("businessPage.paidVariants.includedBadge");
+        : option.locked
+          ? (isNative ? null : option.priceLabel) ?? t("businessPage.paidVariants.lockedBadge")
+          : option.owned
+            ? t("businessPage.paidVariants.ownedBadge")
+            : t("businessPage.paidVariants.includedBadge")
+    : !isNative && option.inCart
+      ? t("businessPage.paidVariants.inCartBadge")
+      : option.locked
+        ? previewOnly
+          ? t("businessPage.paidVariants.previewBadge")
+          : (isNative ? null : option.priceLabel) ?? t("businessPage.paidVariants.lockedBadge")
+        : option.owned
+          ? t("businessPage.paidVariants.ownedBadge")
+          : t("businessPage.paidVariants.includedBadge");
 
   return (
     <button
@@ -311,7 +327,11 @@ function VariantOptionCard({
       disabled={disabled}
       onClick={() => onSelect(option)}
       aria-label={
-        option.locked
+        isAtelier
+          ? badge
+            ? `${t(variant.labelKey)}, ${badge}`
+            : t(variant.labelKey)
+          : option.locked
           ? isNative
             ? t("businessPage.paidVariants.lockedAriaNative", { name: t(variant.labelKey) })
             : option.priceLabel
@@ -324,7 +344,7 @@ function VariantOptionCard({
           ? isNative
             ? t("businessPage.paidVariants.nativeHint")
             : option.priceLabel
-              ? option.inCart
+              ? !isAtelier && option.inCart
                 ? t("businessPage.paidVariants.inCartTitle", { price: option.priceLabel })
                 : t("businessPage.paidVariants.lockedTitle", { price: option.priceLabel })
               : undefined
@@ -337,6 +357,8 @@ function VariantOptionCard({
         "group w-[calc(100%-0.75rem)] shrink-0 snap-start rounded-lg border p-1.5 text-left outline-none",
         isAtelier ? "atelier-variant-option w-auto shrink rounded-[12px] border-border-subtle bg-surface p-[7px]" : "@md/picker:w-auto @md/picker:shrink",
         "transition-[transform,border-color,background-color,box-shadow] duration-200 active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50",
+        isAtelier && current && active && "atelier-variant-option--current",
+        isAtelier && previewOnly && "atelier-variant-option--previewing",
         !isAtelier && "motion-safe:fill-mode-backwards motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200",
         EASE,
         !isAtelier && (
@@ -386,8 +408,10 @@ function VariantOptionCard({
             className={cn(
               "inline-flex max-w-[92px] items-center truncate rounded-full border px-2 py-0.5 text-[11px] font-semibold",
               isAtelier && "atelier-variant-tag",
-              isAtelier && option.owned && "atelier-variant-tag-owned",
-              isAtelier && (option.locked || option.inCart) && "atelier-variant-tag-price",
+              isAtelier && current && "atelier-variant-tag-current",
+              isAtelier && previewOnly && "atelier-variant-tag-previewing",
+              isAtelier && option.owned && !current && "atelier-variant-tag-owned",
+              isAtelier && option.locked && !current && !previewOnly && "atelier-variant-tag-price",
               option.locked || option.inCart
                 ? "border-border bg-surface-hover/70 text-foreground-2"
                 : option.owned
@@ -395,7 +419,7 @@ function VariantOptionCard({
                   : "border-border-subtle bg-transparent text-foreground-3",
             )}
           >
-            <span className="truncate">{badge}</span>
+            <span key={badge ?? "none"} className="atelier-variant-tag-text truncate">{badge}</span>
           </span>
         </span>
       </span>
@@ -427,9 +451,19 @@ type AtelierWireBlock = readonly [
 
 const wire = (...blocks: AtelierWireBlock[]) => blocks;
 
-/** Production-owned copy of the 64×44 compositions for variants that actually exist today.
- * Missing phase-two variants are deliberately not introduced here. */
+/** Production-owned copy of the 64×44 compositions for implemented variants. */
 const ATELIER_WIREFRAMES: Readonly<Record<string, readonly AtelierWireBlock[]>> = {
+  "nav:default": wire([3, 3, 10, 3, "t"], [26, 4, 14, 1.5, "l"], [52, 2, 9, 4, "a", 2], [4, 13, 56, 24, "s", 2]),
+  "nav:editorial": wire([3, 3, 10, 3, "t"], [26, 4, 14, 1.5, "l"], [52, 2, 9, 4, "a", 2], [4, 13, 56, 24, "s", 2]),
+  "nav:capsule": wire([14, 2, 36, 6, "s", 3], [17, 4, 6, 2, "t"], [40, 3, 8, 4, "a", 3], [4, 14, 56, 23, "s", 2]),
+  "nav:split": wire([4, 3, 12, 2, "l"], [27, 2, 10, 3, "t"], [48, 3, 12, 2, "l"], [4, 13, 56, 24, "s", 2]),
+  "nav:underlay": wire([3, 3, 9, 3, "t"], [54, 2, 7, 5, "i", 1], [4, 13, 42, 24, "s", 2], [50, 13, 10, 24, "a", 2]),
+  "hero:default": wire([0, 0, 64, 44, "a"], [6, 23, 31, 16, "s", 2], [10, 27, 19, 3, "t"], [10, 33, 13, 2, "l"], [10, 36, 8, 2.5, "a", 3]),
+  "hero:cinematic": wire([0, 0, 64, 44, "s"], [4, 29, 27, 4, "t"], [4, 36, 18, 2, "l"], [25, 35, 8, 3, "a", 3]),
+  "hero:poster": wire([0, 0, 64, 44, "i"], [18, 30, 28, 14, "g"], [12, 12, 40, 7, "t"], [16, 21, 32, 7, "t"], [26, 33, 12, 3, "a", 2]),
+  "hero:portal": wire([0, 0, 64, 44, "i"], [18, 8, 28, 28, "g"], [22, 5, 20, 29, "s", 10], [24, 37, 16, 3, "t"]),
+  "hero:drift": wire([0, 0, 64, 44, "i"], [8, 9, 48, 26, "g"], [10, 17, 44, 5, "t"], [16, 25, 32, 5, "t"], [26, 34, 12, 3, "a", 2]),
+  "hero:tumble": wire([6, 14, 6, 8, "t", 1, -8], [15, 12, 6, 9, "t", 1, 6], [24, 15, 6, 8, "t", 1, -4], [33, 13, 6, 9, "t", 1, 9], [42, 15, 6, 8, "t", 1, -7], [51, 14, 6, 8, "t", 1, 5], [6, 34, 20, 2, "l"], [30, 33, 10, 3, "a", 3]),
   "announcement:bar": wire([0, 2, 64, 6, "a"], [6, 4, 26, 2, "t"], [48, 4, 10, 2, "t"], [4, 14, 56, 24, "s", 2]),
   "announcement:split": wire([0, 2, 64, 6, "a"], [4, 4, 22, 2, "t"], [40, 4, 8, 2, "t"], [52, 4, 8, 2, "t"], [4, 14, 56, 24, "s", 2]),
   "announcement:hairline": wire([12, 3, 40, 2, "t"], [0, 8, 64, 0.8, "a"], [4, 14, 56, 24, "s", 2]),
@@ -442,10 +476,11 @@ const ATELIER_WIREFRAMES: Readonly<Record<string, readonly AtelierWireBlock[]>> 
   "locations:switcher": wire([4, 6, 36, 32, "s", 2], [46, 8, 14, 3, "l"], [46, 15, 14, 3, "l"], [46, 22, 14, 3, "a"], [46, 29, 14, 3, "l"]),
   "locations:cards": wire([4, 8, 28, 28, "s", 2], [35, 8, 25, 28, "s", 2], [7, 29, 12, 2, "t"], [38, 29, 12, 2, "t"]),
   "locations:atlas": wire([4, 6, 34, 32, "s", 2], [14, 14, 3, 3, "a", 3], [24, 24, 3, 3, "a", 3], [44, 10, 16, 3, "l"], [44, 18, 16, 3, "l"], [44, 26, 16, 3, "l"]),
-  "gallery:editorial": wire([4, 6, 30, 32, "s", 2], [38, 6, 22, 14, "s", 2], [38, 24, 22, 14, "s", 2]),
   "gallery:carousel": wire([2, 10, 25, 24, "s", 2], [30, 10, 25, 24, "s", 2], [58, 10, 6, 24, "s", 2], [28, 38, 3, 2, "a", 2]),
   "gallery:masonry": wire([4, 6, 17, 20, "s", 2], [4, 28, 17, 10, "s", 2], [23, 6, 17, 12, "s", 2], [23, 20, 17, 18, "s", 2], [42, 6, 18, 24, "s", 2], [42, 32, 18, 6, "s", 2]),
   "gallery:bento": wire([4, 6, 20, 18, "s", 2], [26, 6, 16, 8, "s", 2], [26, 16, 16, 8, "s", 2], [44, 6, 16, 18, "s", 2], [4, 26, 38, 12, "s", 2], [44, 26, 16, 12, "s", 2]),
+  "gallery:index": wire([1, 5, 13, 34, "s", 2], [16, 5, 23, 20, "s", 2], [16, 27, 23, 12, "s", 2], [41, 5, 10, 15, "s", 2], [53, 5, 10, 15, "s", 2], [41, 22, 22, 17, "s", 2]),
+  "gallery:fan": wire([12, 10, 20, 26, "s", 2, -14], [22, 8, 20, 27, "s", 2, -2], [32, 10, 20, 26, "s", 2, 10]),
   "team:portraits": wire([4, 8, 17, 28, "s", 2], [23, 8, 17, 28, "s", 2], [42, 8, 17, 28, "s", 2]),
   "team:roster": wire([4, 7, 6, 6, "s", 3], [13, 8, 26, 3, "l"], [4, 18, 6, 6, "s", 3], [13, 19, 22, 3, "l"], [4, 29, 6, 6, "s", 3], [13, 30, 24, 3, "l"]),
   "testimonials:default": wire([10, 10, 44, 5, "t"], [14, 19, 36, 3, "l"], [24, 30, 3, 3, "a", 3], [30, 30, 3, 3, "a", 3], [36, 30, 3, 3, "a", 3]),
@@ -459,11 +494,11 @@ const ATELIER_WIREFRAMES: Readonly<Record<string, readonly AtelierWireBlock[]>> 
   "faq:chips": wire([4, 8, 16, 5, "s", 3], [22, 8, 20, 5, "s", 3], [44, 8, 14, 5, "s", 3], [4, 16, 22, 5, "s", 3], [28, 16, 16, 5, "a", 3], [4, 26, 52, 2, "l"], [4, 31, 44, 2, "l"]),
   "faq:grid": wire([4, 6, 27, 15, "s", 2], [33, 6, 27, 15, "s", 2], [4, 23, 27, 15, "s", 2], [33, 23, 27, 15, "s", 2]),
   "faq:index": wire([4, 7, 3, 3, "a"], [10, 7, 44, 3, "l"], [4, 15, 3, 3, "t"], [10, 15, 40, 3, "l"], [4, 23, 3, 3, "t"], [10, 23, 46, 3, "l"], [4, 31, 3, 3, "t"], [10, 31, 38, 3, "l"]),
-  "footer:default": wire([4, 6, 14, 2, "l"], [24, 6, 14, 2, "l"], [44, 6, 14, 2, "l"], [4, 26, 44, 10, "t"]),
-  "footer:minimal": wire([4, 20, 20, 3, "t"], [40, 20, 20, 2, "l"]),
-  "footer:index": wire([4, 6, 56, 3, "l"], [4, 13, 56, 3, "l"], [4, 20, 56, 3, "l"], [4, 27, 56, 3, "l"], [4, 34, 26, 3, "t"]),
-  "footer:mega": wire([4, 6, 12, 2, "t"], [4, 11, 10, 1.5, "l"], [4, 15, 10, 1.5, "l"], [20, 6, 12, 2, "t"], [20, 11, 10, 1.5, "l"], [36, 6, 12, 2, "t"], [36, 11, 10, 1.5, "l"], [52, 6, 8, 2, "t"], [4, 30, 56, 6, "s", 1]),
-  "footer:poster": wire([0, 4, 64, 36, "a", 2], [8, 16, 36, 7, "t"], [8, 28, 16, 2.5, "l"]),
+  "footer:editorial": wire([4, 6, 14, 2, "l"], [24, 6, 14, 2, "l"], [44, 6, 14, 2, "l"], [4, 26, 44, 10, "t"]),
+  "footer:directory": wire([4, 6, 16, 3, "t"], [46, 6, 16, 2, "l"], [4, 13, 58, 1, "a"], [4, 20, 12, 2, "t"], [4, 25, 10, 1.5, "l"], [4, 29, 10, 1.5, "l"], [22, 20, 12, 2, "t"], [22, 25, 10, 1.5, "l"], [40, 20, 12, 2, "t"], [40, 25, 10, 1.5, "l"], [48, 32, 14, 4, "a", 3]),
+  "footer:signature": wire([6, 7, 52, 12, "t"], [6, 22, 52, 1, "l"], [6, 28, 15, 2.5, "t"], [6, 33, 20, 2, "l"], [6, 38, 9, 3.5, "a"], [32, 28, 12, 2, "t"], [32, 33, 15, 1.5, "l"], [48, 28, 12, 2, "t"], [48, 33, 14, 1.5, "l"]),
+  "footer:masthead": wire([4, 4, 0.5, 24, "l"], [18, 4, 0.5, 24, "l"], [32, 4, 0.5, 24, "l"], [46, 4, 0.5, 24, "l"], [6, 8, 7, 1.5, "a"], [20, 8, 7, 1.5, "a"], [34, 8, 7, 1.5, "a"], [48, 8, 7, 1.5, "a"], [6, 13, 9, 1, "l"], [6, 16, 7, 1, "l"], [20, 13, 8, 1, "l"], [20, 16, 6, 1, "l"], [34, 13, 9, 1, "l"], [34, 16, 7, 1, "l"], [34, 19, 8, 1, "l"], [48, 13, 11, 1, "l"], [48, 17, 11, 3, "a", 1], [2, 33, 62, 9, "t"]),
+  "footer:marque": wire([2, 4, 60, 1, "l"], [4, 11, 12, 2, "t"], [4, 15, 10, 2, "t"], [4, 19, 11, 2, "t"], [24, 11, 12, 2, "t"], [24, 15, 10, 2, "t"], [44, 11, 3, 2, "l"], [49, 11, 11, 2, "t"], [44, 15, 3, 2, "l"], [49, 15, 9, 2, "t"], [2, 29, 40, 13, "i"]),
 };
 
 const wireBlockStyle = (

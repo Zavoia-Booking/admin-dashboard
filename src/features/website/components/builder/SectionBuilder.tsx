@@ -10,8 +10,10 @@ import {
   type MouseEvent as ReactMouseEvent,
   type ReactNode,
   type RefObject,
+  type TransitionEvent as ReactTransitionEvent,
 } from "react";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import {
   DndContext,
@@ -38,8 +40,8 @@ import {
   ChevronRight,
   Eye,
   Lock,
-  LockOpen,
   PanelLeft,
+  PanelRight,
 } from "lucide-react";
 import { cn } from "../../../../shared/lib/utils";
 import { useFormatPrice } from "../../../../shared/hooks/useFormatPrice";
@@ -76,6 +78,15 @@ import { VariantPurchaseDialog } from "./VariantPurchaseDialog";
 import { variantPriceLabel } from "./pricing";
 import { SectionStylePicker, VariantPickerSkeleton, EASE, type WebsiteT, type SectionStyleOption } from "./SectionStylePicker";
 import { SettingsPanel } from "./SettingsPanel";
+import { SectionReadinessPanel } from "./SectionReadinessPanel";
+import {
+  findIncompleteFaqTarget,
+  getWebsiteReadinessIssues,
+  isFaqItemComplete,
+  type WebsiteReadinessIssue,
+  type WebsiteReadinessSectionType,
+} from "./sectionReadiness";
+import type { WebsiteSectionFocusRequest } from "../../hooks/useWebsiteWorkspaceController";
 import { LivePreview, marqueeItems, MARQUEE_MIN_ITEMS, type PreviewReview, type RatingBars } from "./LivePreview";
 import { ScaledPreview } from "./preview/ScaledPreview";
 import type { PreviewData } from "./preview/shared/types";
@@ -93,7 +104,13 @@ import {
   isCatalogPending,
   isPaidCatalogEntryLocked,
   isSectionOffered as sectionIsOffered,
+  isTeamLocked,
+  isTestimonialsLocked,
+  MIN_TEAM_MEMBERS,
+  MIN_TESTIMONIAL_REVIEWS,
   overlayPreviewVariants,
+  reviewCount,
+  teamMemberCount,
 } from "./sectionBuilderModel";
 
 const PREVIEW_DEVICE_PREF_KEY = "zavoia:website-builder-preview-device";
@@ -104,7 +121,6 @@ type PreviewDevice = "desktop" | "tablet" | "mobile";
 interface AtelierPreviewViewport {
   virtualWidth: number;
   scale: number;
-  showBrowserChrome: boolean;
   frameStyle: CSSProperties;
   clipStyle: CSSProperties;
   pageStyle: CSSProperties;
@@ -115,6 +131,18 @@ interface UndoToastOptions {
   description?: string;
   undoLabel: string;
   onUndo: () => void;
+}
+
+interface SectionDataLock {
+  current: number;
+  required: number;
+  reason: string;
+  eyebrow: string;
+  title: string;
+  description: string;
+  progressLabel: string;
+  actionLabel?: string;
+  actionPath?: string;
 }
 
 const showUndoToast = ({ title, description, undoLabel, onUndo }: UndoToastOptions) => {
@@ -144,12 +172,11 @@ const showUndoToast = ({ title, description, undoLabel, onUndo }: UndoToastOptio
   );
 };
 
-/** Full previews keep local UI (accordions, selectors and carousels) live, while owner-facing
- * preview safety prevents the embedded draft from navigating the dashboard document. Gallery
- * zoom is held back too because its current lightbox intentionally portals to document.body. */
+/** Full previews keep local UI (accordions, selectors, galleries and carousels) live, while
+ * owner-facing preview safety prevents the embedded draft from navigating the dashboard document. */
 const blockUnsafePreviewActivation = (event: ReactMouseEvent<HTMLElement>) => {
   const target = event.target instanceof Element ? event.target : null;
-  if (!target?.closest('a[href], form button[type="submit"], [data-gimg]')) return;
+  if (!target?.closest('a[href], form button[type="submit"]')) return;
   event.preventDefault();
   event.stopPropagation();
 };
@@ -161,7 +188,7 @@ const blockPreviewSubmit = (event: FormEvent<HTMLElement>) => {
 
 interface SectionBuilderProps {
   /** Workspace request (publish-blocker chips) to open/scroll to a section; nonce re-fires it. */
-  focusSection?: { type: string; nonce: number } | null;
+  focusSection?: WebsiteSectionFocusRequest | null;
   /** Workspace/header entry point into the same production full-page preview dialog. */
   shellPreviewOpen?: boolean;
   onShellPreviewOpenChange?: (open: boolean) => void;
@@ -233,6 +260,8 @@ interface SectionBuilderProps {
   isVariantCheckoutLoading?: boolean;
   /** Fresh catalog ownership/pricing is available and no prior checkout return owns reconciliation. */
   purchaseActionsReady?: boolean;
+  /** Stripe checkout redirects away, so it waits until the explicit draft save is clean. */
+  checkoutBlocked?: boolean;
   /** Confirmed purchase → create the Stripe checkout session and redirect. */
   onBuyVariant?: (variant: WebsiteVariantCatalogEntry) => void;
   /** Confirmed section unlock → create the Stripe checkout session and redirect. */
@@ -245,6 +274,8 @@ interface SectionBuilderProps {
   onToggleCartVariant?: (variant: WebsiteVariantCatalogEntry) => void;
   /** Add a section unlock to / remove it from the shopping cart. */
   onToggleCartSection?: (section: WebsiteSectionCatalogEntry) => void;
+  /** Preview-only locked styles are controlled by the shell so Discard and Publish review can reset them. */
+  previewOnlyVariantSelections?: PreviewOnlyVariantSelections;
   /** Reports the exact locked style currently rendered preview-only, for checkout-return recovery. */
   onPreviewOnlyVariantsChange?: (selections: PreviewOnlyVariantSelections) => void;
   /** Native (Capacitor) app — store policy: no purchase surfaces (prices/Buy/cart) render; preview-before-buy stays fully functional. */
@@ -258,8 +289,10 @@ interface SectionBuilderProps {
  */
 export function SectionBuilder(props: SectionBuilderProps) {
   const { t, i18n } = useTranslation("website");
+  const navigate = useNavigate();
   const isAtelierCompact = useAtelierCompactLayout();
   const [openType, setOpenType] = useState<string | null>(null);
+  const [renderedInspectorType, setRenderedInspectorType] = useState<string | null>(null);
   const [sectionDragging, setSectionDragging] = useState(false);
   const [observedPreviewType, setObservedPreviewType] = useState<string | null>(null);
   const activePreviewType = isAtelierCompact ? openType : observedPreviewType;
@@ -324,9 +357,14 @@ export function SectionBuilder(props: SectionBuilderProps) {
   const { formatPrice } = useFormatPrice();
   const [purchaseTarget, setPurchaseTarget] = useState<WebsiteVariantCatalogEntry | null>(null);
   const onPreviewOnlyVariantsChange = props.onPreviewOnlyVariantsChange;
+  const controlledPreviewOnlyVariants = props.previewOnlyVariantSelections;
   const [previewOnlyVariantByType, setPreviewVariantByType] =
-    useState<PreviewOnlyVariantSelections>({});
-  const previewOnlyVariantsRef = useRef<PreviewOnlyVariantSelections>({});
+    useState<PreviewOnlyVariantSelections>(() => ({
+      ...(controlledPreviewOnlyVariants ?? {}),
+    }));
+  const previewOnlyVariantsRef = useRef<PreviewOnlyVariantSelections>({
+    ...(controlledPreviewOnlyVariants ?? {}),
+  });
   const updatePreviewOnlyVariants = useCallback(
     (
       update: (
@@ -340,6 +378,19 @@ export function SectionBuilder(props: SectionBuilderProps) {
     },
     [onPreviewOnlyVariantsChange],
   );
+  useEffect(() => {
+    if (!controlledPreviewOnlyVariants) return;
+    const current = previewOnlyVariantsRef.current;
+    const currentKeys = Object.keys(current);
+    const nextKeys = Object.keys(controlledPreviewOnlyVariants);
+    if (
+      currentKeys.length === nextKeys.length &&
+      nextKeys.every((key) => current[key] === controlledPreviewOnlyVariants[key])
+    ) return;
+    const next = { ...controlledPreviewOnlyVariants };
+    previewOnlyVariantsRef.current = next;
+    setPreviewVariantByType(next);
+  }, [controlledPreviewOnlyVariants]);
   const variantCatalog = props.variantCatalog;
   const sectionCatalog = props.sectionCatalog;
   const {
@@ -355,7 +406,12 @@ export function SectionBuilder(props: SectionBuilderProps) {
   // State only records a selection while it is still preview-only. Deriving the valid subset means
   // ownership or a successful save naturally resolves it without an extra state-reset render.
   const previewVariantByType = useMemo(
-    () => derivePreviewOnlyVariants(previewOnlyVariantByType, props.layout, catalogByKey),
+    () =>
+      derivePreviewOnlyVariants(
+        previewOnlyVariantByType,
+        props.layout,
+        catalogByKey,
+      ),
     [catalogByKey, previewOnlyVariantByType, props.layout],
   );
 
@@ -404,6 +460,7 @@ export function SectionBuilder(props: SectionBuilderProps) {
   const openInspector = useCallback(
     (type: string) => {
       if (!isAtelierCompact) {
+        setRenderedInspectorType(type);
         restoreInspectorFocusTypeRef.current = type;
         shouldFocusInspectorRef.current = true;
       }
@@ -415,16 +472,9 @@ export function SectionBuilder(props: SectionBuilderProps) {
     [isAtelierCompact],
   );
   const returnToSectionList = useCallback(() => {
-    const restoreType = restoreInspectorFocusTypeRef.current;
     setOpenType(null);
     shouldFocusInspectorRef.current = false;
-    if (isAtelierCompact || !restoreType) return;
-    window.requestAnimationFrame(() => {
-      listRef.current
-        ?.querySelector<HTMLButtonElement>(`[data-builder-section="${restoreType}"] button[aria-expanded]`)
-        ?.focus();
-    });
-  }, [isAtelierCompact]);
+  }, []);
   const restrictToList: Modifier = ({ transform, draggingNodeRect }) => {
     const bounds = listRef.current?.getBoundingClientRect();
     if (!bounds || !draggingNodeRect) return transform;
@@ -535,9 +585,7 @@ export function SectionBuilder(props: SectionBuilderProps) {
       tagDictionaries,
     ],
   );
-  // The Business profile may contain an external website URL, but it is not the Website Builder's
-  // public domain. Do not surface it in the browser chrome until the builder API exposes an
-  // authoritative generated URL.
+  // The Business profile URL is not the generated Website Builder domain.
   const previewDomain = null;
   const previewViewport = useMemo<AtelierPreviewViewport | null>(() => {
     if (previewStage.width <= 0 || previewStage.height <= 0) return null;
@@ -545,28 +593,34 @@ export function SectionBuilder(props: SectionBuilderProps) {
     if (device === "desktop") {
       const cardWidth = Math.max(1, Math.min(previewStage.width - 40, 1560));
       const cardHeight = Math.max(152, previewStage.height - 20);
-      const clipHeight = Math.max(120, cardHeight - 32);
+      const clipHeight = cardHeight;
       const scale = cardWidth / 1280;
 
       return {
         virtualWidth: 1280,
         scale,
-        showBrowserChrome: true,
         frameStyle: {
           width: cardWidth,
           height: cardHeight,
           borderRadius: 12,
+          clipPath: "inset(0 round 12px)",
           border: "1px solid rgb(28 28 26 / 10%)",
           background: "var(--atelier-surface-strong)",
           boxShadow: "0 6px 16px rgb(28 28 26 / 7%), 0 18px 40px rgb(28 28 26 / 10%)",
         },
-        clipStyle: { width: cardWidth, height: clipHeight },
+        clipStyle: {
+          width: cardWidth,
+          height: clipHeight,
+          clipPath: "inset(0)",
+        },
         pageStyle: {
           width: 1280,
           height: clipHeight / scale,
           transform: `scale(${scale})`,
           transformOrigin: "top left",
-        },
+          // Logical viewport height the heroes read as their full-bleed min-height (mirrors the site's 100svh).
+          "--mc-vph": `${clipHeight / scale}px`,
+        } as CSSProperties,
       };
     }
 
@@ -577,21 +631,26 @@ export function SectionBuilder(props: SectionBuilderProps) {
       (previewStage.width - 80) / (virtualWidth + 20),
       1,
     );
-    const cardWidth = Math.max(1, Math.round((virtualWidth + 20) * scale));
-    const cardHeight = Math.max(1, Math.round((virtualHeight + 20) * scale));
     const padding = Math.max(1, Math.round(10 * scale));
-    const clipWidth = Math.max(1, Math.round(virtualWidth * scale));
-    const clipHeight = Math.max(1, Math.round(virtualHeight * scale));
+    // The transformed page can land on a fractional physical pixel while the device clip must use whole
+    // pixels. Keep the clip one pixel inside the rendered page on the far edges so its light background
+    // cannot show as a right/bottom seam over dark sections; derive the frame from that clip so the bezel
+    // remains perfectly symmetrical. The page itself retains the truthful logical device dimensions.
+    const clipWidth = Math.max(1, Math.floor(virtualWidth * scale) - 1);
+    const clipHeight = Math.max(1, Math.floor(virtualHeight * scale) - 1);
+    const cardWidth = clipWidth + padding * 2;
+    const cardHeight = clipHeight + padding * 2;
     const radius = Math.max(4, Math.round(30 * scale));
+    const clipRadius = Math.max(4, Math.round(21 * scale));
 
     return {
       virtualWidth,
       scale,
-      showBrowserChrome: false,
       frameStyle: {
         width: cardWidth,
         height: cardHeight,
         borderRadius: radius,
+        clipPath: `inset(0 round ${radius}px)`,
         background: "#1c1c1a",
         padding,
         boxShadow: "0 6px 16px rgb(28 28 26 / 12%), 0 18px 40px rgb(28 28 26 / 16%)",
@@ -599,30 +658,169 @@ export function SectionBuilder(props: SectionBuilderProps) {
       clipStyle: {
         width: clipWidth,
         height: clipHeight,
-        borderRadius: Math.max(4, Math.round(21 * scale)),
+        borderRadius: clipRadius,
+        clipPath: `inset(0 round ${clipRadius}px)`,
         background: "var(--atelier-surface-strong)",
       },
       pageStyle: {
         width: virtualWidth,
-        height: clipHeight / scale,
+        height: virtualHeight,
         transform: `scale(${scale})`,
         transformOrigin: "top left",
-      },
+        "--mc-vph": `${virtualHeight}px`,
+      } as CSSProperties,
     };
   }, [device, previewStage]);
 
-  // The marquee only reads as an intentional band with enough services to scroll; below the threshold it's
-  // pointless, so drop the section from the builder entirely (it also self-hides on render). Both gate on the
-  // same helper so the card and the rendered band never disagree. Indices into props.layout are preserved so
-  // visibility/variant handlers stay correct; the displayed ordinal counts the shown cards.
+  // Data-driven sections stay discoverable even before they have enough source content. Their rows remain
+  // inspectable, while visibility, style and settings controls are gated until each established minimum is met.
   const marqueeItemCount = marqueeItems(props.locations).length;
   const marqueeReady = marqueeItemCount >= MARQUEE_MIN_ITEMS;
+  const servicesLocked = !marqueeReady;
+
+  const teamCount = teamMemberCount(props.locations);
+  const teamLocked = isTeamLocked(props.locations);
+  const teamRemaining = Math.max(0, MIN_TEAM_MEMBERS - teamCount);
+
+  // Reviews needs a critical mass before it's worth showing. Below the threshold the section can't be turned
+  // on (its toggle is disabled with a reason) and any existing enabled state is forced off, so it never
+  // renders or publishes with too few reviews. The count comes from the reviews the builder already loads.
+  const reviewsCount = reviewCount(props.locations, props.reviews);
+  const reviewsLocked = isTestimonialsLocked(props.locations, props.reviews);
+  const reviewsRemaining = Math.max(0, MIN_TESTIMONIAL_REVIEWS - reviewsCount);
+  const reviewsLockReason = t("businessPage.builder.card.reviewsLocked", { count: MIN_TESTIMONIAL_REVIEWS });
+  const dataLockByType = useMemo(() => {
+    const locks = new Map<string, SectionDataLock>();
+
+    if (servicesLocked) {
+      const remaining = Math.max(0, MARQUEE_MIN_ITEMS - marqueeItemCount);
+      locks.set("marquee", {
+        current: marqueeItemCount,
+        required: MARQUEE_MIN_ITEMS,
+        reason: t("businessPage.builder.card.servicesLocked", { count: MARQUEE_MIN_ITEMS }),
+        eyebrow: t("businessPage.builder.settings.servicesLockedEyebrow"),
+        title:
+          marqueeItemCount === 0
+            ? t("businessPage.builder.settings.servicesLockedTitleEmpty", {
+                count: MARQUEE_MIN_ITEMS,
+              })
+            : t("businessPage.builder.settings.servicesLockedTitle", { count: remaining }),
+        description: t("businessPage.builder.settings.servicesLockedBody", {
+          count: MARQUEE_MIN_ITEMS,
+        }),
+        progressLabel: t("businessPage.builder.summary.servicesProgress", {
+          count: marqueeItemCount,
+          required: MARQUEE_MIN_ITEMS,
+        }),
+        actionLabel: t("businessPage.builder.settings.servicesLockedAction"),
+        actionPath: "/services",
+      });
+    }
+
+    if (teamLocked) {
+      locks.set("team", {
+        current: teamCount,
+        required: MIN_TEAM_MEMBERS,
+        reason: t("businessPage.builder.card.teamLocked", { count: MIN_TEAM_MEMBERS }),
+        eyebrow: t("businessPage.builder.settings.teamLockedEyebrow"),
+        title:
+          teamCount === 0
+            ? t("businessPage.builder.settings.teamLockedTitleEmpty", {
+                count: MIN_TEAM_MEMBERS,
+              })
+            : t("businessPage.builder.settings.teamLockedTitle", { count: teamRemaining }),
+        description: t("businessPage.builder.settings.teamLockedBody", {
+          count: MIN_TEAM_MEMBERS,
+        }),
+        progressLabel: t("businessPage.builder.summary.membersProgress", {
+          count: teamCount,
+          required: MIN_TEAM_MEMBERS,
+        }),
+        actionLabel: t("businessPage.builder.settings.teamLockedAction"),
+        actionPath: "/team-members",
+      });
+    }
+
+    if (reviewsLocked) {
+      locks.set("testimonials", {
+        current: reviewsCount,
+        required: MIN_TESTIMONIAL_REVIEWS,
+        reason: reviewsLockReason,
+        eyebrow: t("businessPage.builder.settings.reviewsLockedEyebrow"),
+        title:
+          reviewsCount === 0
+            ? t("businessPage.builder.settings.reviewsLockedTitleEmpty", {
+                count: MIN_TESTIMONIAL_REVIEWS,
+              })
+            : t("businessPage.builder.settings.reviewsLockedTitle", {
+                count: reviewsRemaining,
+              }),
+        description: t("businessPage.builder.settings.reviewsLockedBody", {
+          count: MIN_TESTIMONIAL_REVIEWS,
+        }),
+        progressLabel: t("businessPage.builder.summary.reviewsProgress", {
+          count: reviewsCount,
+          required: MIN_TESTIMONIAL_REVIEWS,
+        }),
+      });
+    }
+
+    return locks;
+  }, [
+    marqueeItemCount,
+    reviewsCount,
+    reviewsLockReason,
+    reviewsLocked,
+    reviewsRemaining,
+    servicesLocked,
+    t,
+    teamCount,
+    teamLocked,
+    teamRemaining,
+  ]);
+  const readinessIssues = useMemo(
+    () =>
+      getWebsiteReadinessIssues({
+        layout: props.layout,
+        aboutContent: props.aboutContent,
+        announcementContent: props.announcementContent,
+        faqItems: props.faqItems,
+        locations: props.locations,
+        reviews: props.reviews,
+        locale,
+      }),
+    [
+      props.aboutContent,
+      props.announcementContent,
+      props.faqItems,
+      props.layout,
+      props.locations,
+      props.reviews,
+      locale,
+    ],
+  );
+  const readinessIssueByType = useMemo(
+    () => new Map(readinessIssues.map((issue) => [issue.type, issue])),
+    [readinessIssues],
+  );
+  const readinessIssueTypes = useMemo(
+    () => new Set(readinessIssues.map((issue) => issue.type)),
+    [readinessIssues],
+  );
+  const { canWrite, layout: currentLayout, setSectionVisibleByType } = props;
+  useEffect(() => {
+    if (!canWrite) return;
+    for (const type of ["marquee", "team", "testimonials"] as const) {
+      if (!dataLockByType.has(type)) continue;
+      const section = currentLayout.find((entry) => entry.type === type);
+      if (section?.visible) setSectionVisibleByType(type, false);
+    }
+  }, [canWrite, currentLayout, dataLockByType, setSectionVisibleByType]);
   // The section list is server-driven via isSectionOffered: required chrome always shows, and once the
   // catalog is authoritative only its content types survive (a card never renders for a type the server
-  // doesn't offer — so future paid-only or unseeded sections stay hidden rather than blank). The marquee
-  // additionally self-gates on having enough services. A catalog type with no implemented component is
-  // ignored via the layout match (the layout only carries implemented or saved types).
-  const displaySections = getDisplaySections(props.layout, marqueeReady, isSectionOffered);
+  // doesn't offer — so future paid-only or unseeded sections stay hidden rather than blank). A catalog type
+  // with no implemented component is ignored via the layout match.
+  const displaySections = getDisplaySections(props.layout, isSectionOffered);
 
   const items = displaySections.map(({ entry }) => entry.type);
   const shown = displaySections.filter(({ entry }) => entry.visible).length;
@@ -650,8 +848,103 @@ export function SectionBuilder(props: SectionBuilderProps) {
       variantCatalogByKey: catalogByKey,
     });
 
-  const selectedSectionPosition = openType
-    ? displaySections.findIndex(({ entry }) => entry.type === openType)
+  const focusReadinessTarget = useCallback((selector: string, fallbackSelector?: string) => {
+    const focus = () => {
+      const target = document.querySelector<HTMLElement>(selector) ??
+        (fallbackSelector ? document.querySelector<HTMLElement>(fallbackSelector) : null);
+      if (!target) return;
+      const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+      target.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "center" });
+      window.requestAnimationFrame(() => target.focus({ preventScroll: true }));
+    };
+    window.requestAnimationFrame(focus);
+  }, []);
+
+  const revealFaqField = useCallback((index: number, field: "question" | "answer") => {
+    const selector = `#faq-${field}-${index}`;
+    const reveal = () => {
+      if (!document.querySelector(selector)) {
+        document.getElementById(`faq-item-trigger-${index}`)?.click();
+      }
+      window.requestAnimationFrame(() => focusReadinessTarget(selector));
+    };
+    window.requestAnimationFrame(reveal);
+  }, [focusReadinessTarget]);
+
+  const focusReadinessIssue = useCallback(
+    (issue: WebsiteReadinessIssue) => {
+      if (!props.canWrite) return;
+
+      if (issue.type === "about") {
+        focusReadinessTarget("#business-page-about-title");
+        return;
+      }
+      if (issue.type === "announcement") {
+        focusReadinessTarget(
+          issue.field === "cta-url" ? "#announcement-cta-url" : "#announcement-message",
+        );
+        return;
+      }
+      if (issue.type === "gallery") {
+        focusReadinessTarget(
+          '#gallery-photo-library [data-gallery-image-option][aria-pressed="false"]:not(:disabled)',
+          "#gallery-manage-photos",
+        );
+        return;
+      }
+      if (issue.type !== "faq") return;
+
+      const incompleteTarget = findIncompleteFaqTarget(props.faqItems, locale);
+      if (incompleteTarget?.itemIndex != null && incompleteTarget.field) {
+        const targetLocale = incompleteTarget.locale ?? locale;
+        const targetField = incompleteTarget.field;
+        if (targetLocale !== locale) {
+          void i18n.changeLanguage(targetLocale).then(() => {
+            revealFaqField(incompleteTarget.itemIndex!, targetField);
+          });
+        } else {
+          revealFaqField(incompleteTarget.itemIndex, targetField);
+        }
+        return;
+      }
+
+      const blankIndex = props.faqItems.findIndex((item) => !isFaqItemComplete(item));
+      if (blankIndex >= 0) {
+        revealFaqField(blankIndex, "question");
+        return;
+      }
+
+      const nextIndex = props.faqItems.length;
+      props.setFaqItems([
+        ...props.faqItems,
+        { q: { en: "", ro: "" }, a: { en: "", ro: "" } },
+      ]);
+      window.requestAnimationFrame(() => {
+        focusReadinessTarget(`#faq-question-${nextIndex}`);
+      });
+    },
+    [
+      focusReadinessTarget,
+      i18n,
+      locale,
+      props.canWrite,
+      props.faqItems,
+      props.setFaqItems,
+      revealFaqField,
+    ],
+  );
+
+  useEffect(() => {
+    if (isAtelierCompact) {
+      setRenderedInspectorType(null);
+    } else if (openType) {
+      setRenderedInspectorType(openType);
+    }
+  }, [isAtelierCompact, openType]);
+
+  const inspectorType = openType ?? (!isAtelierCompact ? renderedInspectorType : null);
+  const selectedSectionPosition = inspectorType
+    ? displaySections.findIndex(({ entry }) => entry.type === inspectorType)
     : -1;
   const selectedSectionCandidate =
     selectedSectionPosition >= 0 ? displaySections[selectedSectionPosition] : null;
@@ -666,17 +959,42 @@ export function SectionBuilder(props: SectionBuilderProps) {
       : null;
   const selectedSectionInfo = selectedSection ? rowInfoFor(selectedSection.entry) : null;
   const selectedSectionType = selectedSection?.entry.type;
+  const desktopInspectorOpen =
+    !isAtelierCompact && !!openType && selectedSectionType === openType && !!selectedSectionInfo;
   const previewPeekViewingLabel = openType && isKnownSectionType(openType)
     ? t(SECTION_META[openType].labelKey)
     : t(SECTION_META.hero.labelKey);
   useEffect(() => {
-    if (isAtelierCompact || !selectedSectionType || !shouldFocusInspectorRef.current) return;
-    const frame = window.requestAnimationFrame(() => {
-      inspectorHeadingRef.current?.focus();
-      shouldFocusInspectorRef.current = false;
-    });
-    return () => window.cancelAnimationFrame(frame);
-  }, [isAtelierCompact, selectedSectionType]);
+    if (isAtelierCompact || !openType) shouldFocusInspectorRef.current = false;
+  }, [isAtelierCompact, openType]);
+
+  const handleInspectorTransitionEnd = useCallback(
+    (event: ReactTransitionEvent<HTMLDivElement>) => {
+      if (
+        isAtelierCompact ||
+        event.target !== event.currentTarget ||
+        event.propertyName !== "opacity"
+      ) {
+        return;
+      }
+
+      if (openType) {
+        if (shouldFocusInspectorRef.current) {
+          inspectorHeadingRef.current?.focus();
+          shouldFocusInspectorRef.current = false;
+        }
+        return;
+      }
+
+      setRenderedInspectorType(null);
+      const restoreType = restoreInspectorFocusTypeRef.current;
+      if (!restoreType) return;
+      listRef.current
+        ?.querySelector<HTMLButtonElement>(`[data-builder-section="${restoreType}"] button[aria-expanded]`)
+        ?.focus();
+    },
+    [isAtelierCompact, openType],
+  );
 
   const inspectorSectionPositions = displaySections.flatMap((candidate, position) =>
     isKnownSectionType(candidate.entry.type) && !lockedSectionEntry(candidate.entry.type)
@@ -694,6 +1012,7 @@ export function SectionBuilder(props: SectionBuilderProps) {
     const candidate = nextDisplayPosition == null ? null : displaySections[nextDisplayPosition];
     if (candidate) {
       restoreInspectorFocusTypeRef.current = candidate.entry.type;
+      setRenderedInspectorType(candidate.entry.type);
       setOpenType(candidate.entry.type);
       setPreviewFocusType(candidate.entry.type);
     }
@@ -784,7 +1103,7 @@ export function SectionBuilder(props: SectionBuilderProps) {
   const focusSection = props.focusSection;
   useEffect(() => {
     if (!focusSection) return;
-    const { type } = focusSection;
+    const { type, readinessIssue } = focusSection;
     const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
     const frame = window.requestAnimationFrame(() => {
       const locked = lockedSectionEntry(type);
@@ -792,12 +1111,15 @@ export function SectionBuilder(props: SectionBuilderProps) {
         if (!props.isNative) setSectionPurchaseTarget(locked);
       } else {
         openInspector(type);
+        if (readinessIssue) {
+          window.requestAnimationFrame(() => focusReadinessIssue(readinessIssue));
+        }
       }
       const row = listRef.current?.querySelector<HTMLElement>(`[data-builder-section="${type}"]`);
       row?.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "center" });
     });
     return () => window.cancelAnimationFrame(frame);
-  }, [focusSection, lockedSectionEntry, openInspector, props.isNative]);
+  }, [focusReadinessIssue, focusSection, lockedSectionEntry, openInspector, props.isNative]);
 
   // Keep the section being edited in view inside the embedded preview. Calculate against the actual
   // preview scroller instead of `scrollIntoView`, which can otherwise move an ancestor dashboard pane.
@@ -883,6 +1205,11 @@ export function SectionBuilder(props: SectionBuilderProps) {
 
   const renderSettings = (entry: SectionEntry, index: number) => {
     const meta = isKnownSectionType(entry.type) ? SECTION_META[entry.type] : null;
+    // Data-gated sections remain inspectable, but style and settings controls stay unavailable until the
+    // source data reaches the section's established minimum.
+    const dataLock = dataLockByType.get(entry.type);
+    const dataLocked = !!dataLock;
+    const dataLockActionPath = dataLock?.actionPath;
     // Server-driven pills, matched against the components implemented in code (SECTION_META): a
     // catalog key with no matching component is simply ignored, so a backend typo can't break the
     // builder. The server-designated base always renders; when the server names none — or an
@@ -924,116 +1251,186 @@ export function SectionBuilder(props: SectionBuilderProps) {
       : activeVariantLocked
         ? activeCatalogEntry
         : null;
+    const stylePickerPending = catalogPending && (meta?.variants.length ?? 0) > 1;
+    const showStyleGroup = stylePickerPending || hasVariants || !!lockedCatalogEntryForAction;
     // The section's real "0N —" ordinal in the full page, so the scoped preview stays in sync with the rest.
     const previewNumber = previewNumberFor(index);
+    const readinessIssue = readinessIssueByType.get(
+      entry.type as WebsiteReadinessSectionType,
+    );
+    const readinessCopyKey = readinessIssue
+      ? `businessPage.builder.settings.readiness.${readinessIssue.type}`
+      : null;
+    // About and Announcement place the cue beside their field; data-backed gates use `dataLock` above.
+    // The generic top requirement panel is therefore reserved for Gallery and FAQ.
+    const showReadinessPanel =
+      readinessIssue?.type === "gallery" || readinessIssue?.type === "faq";
     return (
       <div className="atelier-inspector-settings-stack">
-        <fieldset
-          disabled={!entry.visible}
-          className={cn(
-            "atelier-inspector-style-fieldset m-0 min-w-0 space-y-4 border-0 p-0",
-            !entry.visible && "pointer-events-none opacity-60 transition-opacity duration-200",
-          )}
-        >
-          {/* Skeleton only where a picker can plausibly appear. The static meta count is a pre-fetch
-              heuristic: single-variant sections never get a picker, so they skip the skeleton entirely;
-              a multi-variant section can still resolve to nothing if the server's ACTIVE catalog narrows
-              the set below 2 — accepted, since the alternative (no skeleton) pops the picker in late for
-              the common full-catalog case. */}
-          {catalogPending && (meta?.variants.length ?? 0) > 1 ? (
-            <VariantPickerSkeleton />
-          ) : hasVariants ? (
-            <SectionStylePicker
-              entry={entry}
-              variants={variantOptions}
-              selectedVariantId={previewVariantId}
-              disabled={!entry.visible}
-              isOptionDisabled={(option) => !props.canWrite && !option.locked}
-              onSelect={(option) => {
-                if (option.locked && option.catalogEntry) {
-                  updatePreviewOnlyVariants((current) => ({
-                    ...current,
-                    [entry.type]: option.variant.id,
-                  }));
-                  return;
-                }
-                if (!props.canWrite) return;
-                updatePreviewOnlyVariants((current) => {
-                  if (!current[entry.type]) return current;
-                  const next = { ...current };
-                  delete next[entry.type];
-                  return next;
-                });
-                props.setSectionVariant(index, option.variant.id);
-              }}
-              t={t}
-              isNative={props.isNative}
-              previewData={previewData}
-              previewNumber={previewNumber}
-              presentation="atelier"
-            />
-          ) : null}
-        </fieldset>
+        {dataLock ? (
+          <SectionReadinessPanel
+            ariaLabel={dataLock.reason}
+            eyebrow={dataLock.eyebrow}
+            title={dataLock.title}
+            description={dataLock.description}
+            current={dataLock.current}
+            required={dataLock.required}
+            progressLabel={dataLock.progressLabel}
+            actionLabel={dataLock.actionLabel}
+            onAction={
+              dataLockActionPath
+                ? () => navigate(dataLockActionPath)
+                : undefined
+            }
+          />
+        ) : showReadinessPanel && readinessIssue && readinessCopyKey ? (
+          <SectionReadinessPanel
+            ariaLabel={t(`${readinessCopyKey}.title`, {
+              count: readinessIssue.required,
+            })}
+            eyebrow={t("businessPage.builder.settings.readiness.eyebrow")}
+            title={t(`${readinessCopyKey}.title`, {
+              count: readinessIssue.required,
+            })}
+            description={t(`${readinessCopyKey}.body`)}
+            current={readinessIssue.current}
+            required={readinessIssue.required}
+            progressLabel={
+              readinessIssue.current != null && readinessIssue.required != null
+                ? t("businessPage.builder.settings.readiness.progress", {
+                    current: readinessIssue.current,
+                    required: readinessIssue.required,
+                  })
+                : undefined
+            }
+            actionLabel={props.canWrite ? t(`${readinessCopyKey}.action`) : undefined}
+            onAction={props.canWrite ? () => focusReadinessIssue(readinessIssue) : undefined}
+          />
+        ) : null}
 
-        {lockedCatalogEntryForAction ? (
-          <div className="atelier-premium-warning flex flex-col gap-3 rounded-xl border border-warning-border bg-warning-bg px-3 py-2.5 text-[12px] leading-5 text-warning">
-              <div className="atelier-premium-warning-copy flex min-w-0 items-start gap-2.5">
-                <Lock className="atelier-premium-warning-icon mt-0.5 size-3.5 shrink-0" strokeWidth={1.8} aria-hidden />
-                <p className="min-w-0">
-                {/* Two different truths: a browsed locked style is NOT in the draft; a locked
-                    style the draft already carries IS saved — and blocks publish. */}
-                <span className="font-semibold">
-                  {previewingLockedVariant
-                    ? t("businessPage.paidVariants.previewingLockedTitle")
-                    : t("businessPage.paidVariants.appliedLockedTitle")}
-                </span>{" "}
-                {props.isNative
-                  ? t("businessPage.paidVariants.nativeHint")
-                  : !props.canPurchase
-                    ? t("businessPage.paidVariants.purchaseUnavailable")
-                  : previewingLockedVariant
-                    ? t("businessPage.paidVariants.previewingLockedHelper")
-                    : t("businessPage.paidVariants.appliedLockedHelper")}
-                </p>
-              </div>
-              {!props.isNative && props.canPurchase && (
-                <div className="atelier-premium-warning-actions flex shrink-0 flex-wrap items-center gap-2">
-                  {props.onToggleCartVariant ? (
+        {showStyleGroup ? (
+          <section className="atelier-inspector-group atelier-inspector-style-group">
+            <fieldset
+              disabled={!entry.visible || dataLocked}
+              className={cn(
+                "atelier-inspector-style-fieldset m-0 min-w-0 space-y-4 border-0 p-0",
+                (!entry.visible || dataLocked) && "pointer-events-none opacity-60 transition-opacity duration-200",
+              )}
+            >
+              {/* Skeleton only where a picker can plausibly appear. The static meta count is a pre-fetch
+                  heuristic: single-variant sections never get a picker, so they skip the skeleton entirely;
+                  a multi-variant section can still resolve to nothing if the server's ACTIVE catalog narrows
+                  the set below 2 — accepted, since the alternative (no skeleton) pops the picker in late for
+                  the common full-catalog case. */}
+              {stylePickerPending ? (
+                <VariantPickerSkeleton />
+              ) : hasVariants ? (
+                <SectionStylePicker
+                  entry={entry}
+                  variants={variantOptions}
+                  selectedVariantId={previewVariantId}
+                  disabled={!entry.visible || dataLocked}
+                  isOptionDisabled={(option) => (!props.canWrite || dataLocked) && !option.locked}
+                  onSelect={(option) => {
+                    const revealCoverRecommendation =
+                      entry.type === "hero" &&
+                      !props.heroImageUrl &&
+                      (option.variant.id === "cinematic" || option.variant.id === "portal");
+                    if (option.locked && option.catalogEntry) {
+                      updatePreviewOnlyVariants((current) => ({
+                        ...current,
+                        [entry.type]: option.variant.id,
+                      }));
+                      if (revealCoverRecommendation) {
+                        focusReadinessTarget("#hero-cover-recommendation");
+                      }
+                      return;
+                    }
+                    if (!props.canWrite) return;
+                    updatePreviewOnlyVariants((current) => {
+                      if (!current[entry.type]) return current;
+                      const next = { ...current };
+                      delete next[entry.type];
+                      return next;
+                    });
+                    props.setSectionVariant(index, option.variant.id);
+                    if (revealCoverRecommendation) {
+                      focusReadinessTarget("#hero-cover-recommendation");
+                    }
+                  }}
+                  t={t}
+                  isNative={props.isNative}
+                  previewData={previewData}
+                  previewNumber={previewNumber}
+                  presentation="atelier"
+                />
+              ) : null}
+            </fieldset>
+
+            {lockedCatalogEntryForAction && !dataLocked ? (
+              <div className="atelier-premium-warning flex flex-col gap-3 rounded-xl border border-warning-border bg-warning-bg px-3 py-2.5 text-[12px] leading-5 text-warning">
+                <div className="atelier-premium-warning-copy flex min-w-0 items-start gap-2.5">
+                  <span className="atelier-premium-warning-icon-shell" aria-hidden>
+                    <Lock className="atelier-premium-warning-icon size-3.5" strokeWidth={1.8} />
+                  </span>
+                  <div className="min-w-0">
+                    {/* Two different truths: a browsed locked style is NOT in the draft; a locked
+                        style the draft already carries IS saved — and blocks publish. */}
+                    <p className="atelier-premium-warning-title">
+                      {previewingLockedVariant
+                        ? t("businessPage.paidVariants.previewingLockedTitle")
+                        : t("businessPage.paidVariants.appliedLockedTitle")}
+                    </p>
+                    <p className="atelier-premium-warning-helper">
+                      {props.isNative
+                        ? t("businessPage.paidVariants.nativeHint")
+                        : !props.canPurchase
+                          ? t("businessPage.paidVariants.purchaseUnavailable")
+                          : previewingLockedVariant
+                            ? t("businessPage.paidVariants.previewingLockedHelper")
+                            : t("businessPage.paidVariants.appliedLockedHelper")}
+                    </p>
+                  </div>
+                </div>
+                {!props.isNative && props.canPurchase && (
+                  <div className="atelier-premium-warning-actions flex shrink-0 flex-wrap items-center gap-2">
+                    {props.onToggleCartVariant ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        rounded="default"
+                        onClick={() => props.onToggleCartVariant?.(lockedCatalogEntryForAction)}
+                        className="atelier-premium-warning-secondary min-h-11 px-3 text-[12px] font-semibold xl:h-8 xl:min-h-0"
+                      >
+                        {(props.cartVariantIds ?? []).includes(lockedCatalogEntryForAction.id)
+                          ? t("businessPage.paidVariants.previewRemoveFromCart")
+                          : t("businessPage.paidVariants.previewAddToCart")}
+                      </Button>
+                    ) : null}
                     <Button
                       type="button"
-                      variant="outline"
                       size="sm"
                       rounded="default"
-                      onClick={() => props.onToggleCartVariant?.(lockedCatalogEntryForAction)}
-                      className="min-h-11 border-warning-border bg-surface px-3 text-[12px] font-semibold text-foreground-1 hover:bg-surface-hover xl:h-8 xl:min-h-0"
+                      onClick={() => setPurchaseTarget(lockedCatalogEntryForAction)}
+                      className="atelier-premium-warning-primary min-h-11 px-3 text-[12px] font-semibold xl:h-8 xl:min-h-0"
                     >
-                      <LockOpen className="size-3.5" strokeWidth={1.8} aria-hidden />
-                      {(props.cartVariantIds ?? []).includes(lockedCatalogEntryForAction.id)
-                        ? t("businessPage.paidVariants.removeFromCart")
-                        : t("businessPage.paidVariants.addToCart")}
+                      {t("businessPage.paidVariants.previewBuy", {
+                        price: variantPriceLabel(formatPrice, lockedCatalogEntryForAction),
+                      })}
                     </Button>
-                  ) : null}
-                  <Button
-                    type="button"
-                    size="sm"
-                    rounded="default"
-                    onClick={() => setPurchaseTarget(lockedCatalogEntryForAction)}
-                    className="min-h-11 px-3 text-[12px] font-semibold xl:h-8 xl:min-h-0"
-                  >
-                    {t("businessPage.paidVariants.buy", {
-                      price: variantPriceLabel(formatPrice, lockedCatalogEntryForAction),
-                    })}
-                  </Button>
-                </div>
-              )}
-          </div>
+                  </div>
+                )}
+              </div>
+            ) : null}
+          </section>
         ) : null}
 
         <fieldset
-          disabled={!entry.visible || !props.canWrite}
+          disabled={!entry.visible || !props.canWrite || dataLocked}
           className={cn(
-            "m-0 min-w-0 border-0 p-0",
-            (!entry.visible || !props.canWrite) && "pointer-events-none opacity-60 transition-opacity duration-200",
+            "atelier-inspector-content-fieldset m-0 min-w-0 border-0 p-0",
+            (!entry.visible || !props.canWrite || dataLocked) && "pointer-events-none opacity-60 transition-opacity duration-200",
           )}
         >
           <SettingsPanel
@@ -1057,6 +1454,7 @@ export function SectionBuilder(props: SectionBuilderProps) {
             onAnnouncementChange={props.setAnnouncementContent}
             onAboutChange={props.setAboutContent}
             onTaglineChange={props.setTagline}
+            previewVariant={previewVariantId}
             variant="atelier"
           />
         </fieldset>
@@ -1103,7 +1501,7 @@ export function SectionBuilder(props: SectionBuilderProps) {
                 rounded="default"
                 onClick={() => openPreview("page", openType)}
                 className={cn(
-                  "min-h-11 shrink-0 px-3.5 text-[13px] font-semibold md:h-9 md:min-h-0 md:max-xl:hidden",
+                  "min-h-11 shrink-0 px-3.5 text-[13px] font-semibold min-[920px]:hidden",
                   "transition-[transform,border-color,background-color] duration-150 active:scale-[0.98]",
                   EASE,
                 )}
@@ -1117,12 +1515,16 @@ export function SectionBuilder(props: SectionBuilderProps) {
 
         {/* brand band + section list, stacked full-width — the brand controls moved above the list so the
             list and each section's scoped preview get the whole module width */}
-        <div className="atelier-editor-content border-t border-border-subtle">
+        <div
+          className={cn(
+            "atelier-editor-content border-t border-border-subtle",
+            desktopInspectorOpen && "atelier-editor-content--inspecting",
+          )}
+        >
           <div
-            className={cn(
-              "atelier-editor-list-view website-atelier-scrollbar",
-              !isAtelierCompact && selectedSection && "hidden",
-            )}
+            className="atelier-editor-list-view website-atelier-scrollbar"
+            aria-hidden={desktopInspectorOpen}
+            inert={desktopInspectorOpen}
           >
           {/* brand band — above the list */}
           <div className="atelier-brand-slot bg-surface px-4 py-3.5 sm:px-5 lg:px-6">{props.brandPanel}</div>
@@ -1185,12 +1587,14 @@ export function SectionBuilder(props: SectionBuilderProps) {
               >
                 <SortableContext items={items} strategy={verticalListSortingStrategy}>
                   <div ref={listRef} className="relative">
-                    {displaySections.map(({ entry, index }, pos) => {
+                    {displaySections.map(({ entry, index }) => {
                       const readOnly = !isKnownSectionType(entry.type);
                       const editingDisabled = !props.canWrite;
                       // A paid, not-yet-unlocked section: the card renders locked and every
                       // interaction (expand, toggle) opens the unlock purchase dialog instead.
                       const paidLocked = lockedSectionEntry(entry.type);
+                      const entryDataLock = dataLockByType.get(entry.type);
+                      const entryDataLocked = !!entryDataLock;
                       const open = openType === entry.type && !paidLocked && !readOnly;
                       const previewEntry = layoutWithPreviewVariants[index] ?? entry;
                       const rowInfo = rowInfoFor(previewEntry);
@@ -1223,7 +1627,6 @@ export function SectionBuilder(props: SectionBuilderProps) {
                           <SectionCard
                             entry={entry}
                             meta={isKnownSectionType(entry.type) ? SECTION_META[entry.type] : null}
-                            index={pos + 1}
                             summary={rowSummary}
                             status={rowInfo.status}
                             expanded={open}
@@ -1234,6 +1637,7 @@ export function SectionBuilder(props: SectionBuilderProps) {
                             editingDisabled={editingDisabled}
                             required={REQUIRED_TYPES.has(entry.type)}
                             needsAttention={
+                              readinessIssueTypes.has(entry.type as WebsiteReadinessSectionType) ||
                               (entry.type === "about" && !!props.aboutError) ||
                               (entry.type === "announcement" && !!props.announcementError)
                             }
@@ -1243,6 +1647,8 @@ export function SectionBuilder(props: SectionBuilderProps) {
                             hidePrice={props.isNative}
                             inCart={!!paidLocked && (props.cartSectionIds ?? []).includes(paidLocked.id)}
                             pending={catalogPending && !REQUIRED_TYPES.has(entry.type)}
+                            dataLocked={entryDataLocked}
+                            dataLockedReason={entryDataLock?.reason}
                             onSelect={() => {
                               if (paidLocked) {
                                 if (!props.isNative) setSectionPurchaseTarget(paidLocked);
@@ -1261,7 +1667,7 @@ export function SectionBuilder(props: SectionBuilderProps) {
                                 if (!props.isNative) setSectionPurchaseTarget(paidLocked);
                                 return;
                               }
-                              if (readOnly || editingDisabled) return;
+                              if (readOnly || editingDisabled || entryDataLocked) return;
                               const turningOn = !entry.visible;
                               // Re-enabling a locations section that has everything hidden restores all
                               // locations, so it can never be on with nothing to show. Undo puts the
@@ -1300,13 +1706,15 @@ export function SectionBuilder(props: SectionBuilderProps) {
                                   </span>
                                 ) : (
                                   <Switch
-                                    checked={entry.visible}
-                                    disabled={!props.canWrite}
+                                    checked={entry.visible && !entryDataLocked}
+                                    disabled={!props.canWrite || entryDataLocked}
                                     onCheckedChange={() => toggleVisibleWithFeedback(entry)}
                                     aria-label={
-                                      entry.visible
-                                        ? t("businessPage.builder.card.hide")
-                                        : t("businessPage.builder.card.show")
+                                      entryDataLocked
+                                        ? entryDataLock?.reason
+                                        : entry.visible
+                                          ? t("businessPage.builder.card.hide")
+                                          : t("businessPage.builder.card.show")
                                     }
                                   />
                                 )
@@ -1327,84 +1735,103 @@ export function SectionBuilder(props: SectionBuilderProps) {
           </div>
           </div>
 
-          {!isAtelierCompact && selectedSection && selectedSectionInfo ? (
-            <div className="atelier-editor-inspector website-atelier-scrollbar">
-              <div className="atelier-inspector-navigation">
-                <button
-                  type="button"
-                  onClick={returnToSectionList}
-                  className="atelier-inspector-back website-atelier-focus website-atelier-press"
-                >
-                  <ChevronLeft className="size-3" strokeWidth={2} aria-hidden />
-                  {t("businessPage.builder.allSections")}
-                </button>
-                <span className="flex-1" />
-                <button
-                  type="button"
-                  onClick={() => selectAdjacentInspectorSection(-1)}
-                  disabled={!canStepInspector}
-                  className="atelier-inspector-step website-atelier-focus website-atelier-press"
-                  aria-label={t("businessPage.builder.previousSection")}
-                >
-                  <ChevronLeft className="size-3.5" strokeWidth={1.9} aria-hidden />
-                </button>
-                <span className="atelier-inspector-position" aria-live="polite">
-                  <span aria-hidden>
-                    {selectedSectionPosition + 1} / {displaySections.length}
-                  </span>
-                  <span className="sr-only">
-                    {t("businessPage.builder.inspectorPosition", {
-                      section: isKnownSectionType(selectedSection.entry.type)
-                        ? t(SECTION_META[selectedSection.entry.type].labelKey)
-                        : selectedSection.entry.type,
-                      current: selectedSectionPosition + 1,
-                      total: displaySections.length,
-                    })}
-                  </span>
-                </span>
-                <button
-                  type="button"
-                  onClick={() => selectAdjacentInspectorSection(1)}
-                  disabled={!canStepInspector}
-                  className="atelier-inspector-step website-atelier-focus website-atelier-press"
-                  aria-label={t("businessPage.builder.nextSection")}
-                >
-                  <ChevronRight className="size-3.5" strokeWidth={1.9} aria-hidden />
-                </button>
-              </div>
-              <div className="atelier-inspector-heading">
-                <div className="min-w-0 flex-1">
-                  <h2 ref={inspectorHeadingRef} tabIndex={-1}>
-                    {isKnownSectionType(selectedSection.entry.type)
-                      ? t(SECTION_META[selectedSection.entry.type].labelKey)
-                      : selectedSection.entry.type}
-                  </h2>
-                  <p>
-                    {selectedSectionInfo.status
-                      ? `${selectedSectionInfo.status.label} · ${selectedSectionInfo.summary}`
-                      : selectedSectionInfo.summary}
-                  </p>
-                </div>
-                {REQUIRED_TYPES.has(selectedSection.entry.type) ? (
-                  <span className="atelier-inspector-fixed">
-                    {t("businessPage.builder.inspectorAlwaysOn")}
-                  </span>
-                ) : (
-                  <Switch
-                    checked={selectedSection.entry.visible}
-                    disabled={!props.canWrite}
-                    onCheckedChange={() => toggleVisibleWithFeedback(selectedSection.entry)}
-                    aria-label={
-                      selectedSection.entry.visible
-                        ? t("businessPage.builder.card.hide")
-                        : t("businessPage.builder.card.show")
-                    }
-                  />
-                )}
-              </div>
-              <div className="atelier-inspector-settings">
-                {renderSettings(selectedSection.entry, selectedSection.index)}
-              </div>
+          {!isAtelierCompact ? (
+            <div
+              className="atelier-editor-inspector website-atelier-scrollbar"
+              aria-hidden={!desktopInspectorOpen}
+              inert={!desktopInspectorOpen}
+              onTransitionEnd={handleInspectorTransitionEnd}
+            >
+              {selectedSection && selectedSectionInfo ? (
+                <>
+                  <div className="atelier-inspector-sticky-header">
+                    <div className="atelier-inspector-navigation">
+                      <button
+                        type="button"
+                        onClick={returnToSectionList}
+                        className="atelier-inspector-back website-atelier-focus website-atelier-press"
+                      >
+                        <ChevronLeft className="size-3" strokeWidth={2} aria-hidden />
+                        {t("businessPage.builder.allSections")}
+                      </button>
+                      <span className="flex-1" />
+                      <button
+                        type="button"
+                        onClick={() => selectAdjacentInspectorSection(-1)}
+                        disabled={!canStepInspector}
+                        className="atelier-inspector-step website-atelier-focus website-atelier-press"
+                        aria-label={t("businessPage.builder.previousSection")}
+                      >
+                        <ChevronLeft className="size-3.5" strokeWidth={1.9} aria-hidden />
+                      </button>
+                      <span className="atelier-inspector-position" aria-live="polite">
+                        <span aria-hidden>
+                          {selectedSectionPosition + 1} / {displaySections.length}
+                        </span>
+                        <span className="sr-only">
+                          {t("businessPage.builder.inspectorPosition", {
+                            section: isKnownSectionType(selectedSection.entry.type)
+                              ? t(SECTION_META[selectedSection.entry.type].labelKey)
+                              : selectedSection.entry.type,
+                            current: selectedSectionPosition + 1,
+                            total: displaySections.length,
+                          })}
+                        </span>
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => selectAdjacentInspectorSection(1)}
+                        disabled={!canStepInspector}
+                        className="atelier-inspector-step website-atelier-focus website-atelier-press"
+                        aria-label={t("businessPage.builder.nextSection")}
+                      >
+                        <ChevronRight className="size-3.5" strokeWidth={1.9} aria-hidden />
+                      </button>
+                    </div>
+                    <div className="atelier-inspector-heading">
+                      <div className="min-w-0 flex-1">
+                        <h2 ref={inspectorHeadingRef} tabIndex={-1}>
+                          {isKnownSectionType(selectedSection.entry.type)
+                            ? t(SECTION_META[selectedSection.entry.type].labelKey)
+                            : selectedSection.entry.type}
+                        </h2>
+                        <p>
+                          {selectedSectionInfo.status
+                            ? `${selectedSectionInfo.status.label} · ${selectedSectionInfo.summary}`
+                            : selectedSectionInfo.summary}
+                        </p>
+                      </div>
+                      {REQUIRED_TYPES.has(selectedSection.entry.type) ? (
+                        <span className="atelier-inspector-fixed">
+                          {t("businessPage.builder.inspectorAlwaysOn")}
+                        </span>
+                      ) : (
+                        (() => {
+                          const inspectorDataLock = dataLockByType.get(selectedSection.entry.type);
+                          const inspectorDataLocked = !!inspectorDataLock;
+                          return (
+                            <Switch
+                              checked={selectedSection.entry.visible && !inspectorDataLocked}
+                              disabled={!props.canWrite || inspectorDataLocked}
+                              onCheckedChange={() => toggleVisibleWithFeedback(selectedSection.entry)}
+                              aria-label={
+                                inspectorDataLocked
+                                  ? inspectorDataLock?.reason
+                                  : selectedSection.entry.visible
+                                    ? t("businessPage.builder.card.hide")
+                                    : t("businessPage.builder.card.show")
+                              }
+                            />
+                          );
+                        })()
+                      )}
+                    </div>
+                  </div>
+                  <div className="atelier-inspector-settings">
+                    {renderSettings(selectedSection.entry, selectedSection.index)}
+                  </div>
+                </>
+              ) : null}
             </div>
           ) : null}
         </div>
@@ -1438,7 +1865,11 @@ export function SectionBuilder(props: SectionBuilderProps) {
                   }
                   className="atelier-preview-panel-toggle website-atelier-focus website-atelier-press"
                 >
-                  <PanelLeft className="size-[17px]" strokeWidth={1.7} aria-hidden />
+                  {editorPanelCollapsed ? (
+                    <PanelRight className="size-[17px]" strokeWidth={1.7} aria-hidden />
+                  ) : (
+                    <PanelLeft className="size-[17px]" strokeWidth={1.7} aria-hidden />
+                  )}
                 </button>
                 {previewStage.width >= 1020 ? (
                   <span className="atelier-preview-toolbar-label">{t("businessPage.builder.draftPreview")}</span>
@@ -1453,28 +1884,7 @@ export function SectionBuilder(props: SectionBuilderProps) {
               </div>
               <div ref={workspacePreviewStageRef} className="atelier-preview-canvas">
                 {previewViewport ? (
-                  <div
-                    className={cn(
-                      "atelier-preview-device-frame",
-                      previewViewport.showBrowserChrome && "atelier-preview-browser",
-                    )}
-                    style={previewViewport.frameStyle}
-                  >
-                    {previewViewport.showBrowserChrome ? (
-                      <div className="atelier-preview-browser-chrome" aria-hidden>
-                        <span className="atelier-preview-browser-dots"><i /><i /><i /></span>
-                        {previewDomain ? (
-                          <span className="atelier-preview-browser-status">
-                            {previewDomain}
-                            <span className="text-[var(--atelier-muted-soft)]"> · </span>
-                            {t("businessPage.builder.draft")}
-                          </span>
-                        ) : (
-                          <span className="atelier-preview-browser-fill" />
-                        )}
-                        <span className="atelier-preview-browser-spacer" />
-                      </div>
-                    ) : null}
+                  <div className="atelier-preview-device-frame" style={previewViewport.frameStyle}>
                     <div
                       className="atelier-preview-device-clip"
                       style={previewViewport.clipStyle}
@@ -1646,6 +2056,7 @@ export function SectionBuilder(props: SectionBuilderProps) {
         hasWebsiteBuilder={props.hasWebsiteBuilder ?? true}
         isLoading={props.isVariantCheckoutLoading ?? false}
         isBlocked={props.purchaseActionsReady === false}
+        checkoutBlocked={props.checkoutBlocked}
         onBuy={props.onBuyVariant}
         inCart={!!purchaseTarget && (props.cartVariantIds ?? []).includes(purchaseTarget.id)}
         onToggleCart={props.onToggleCartVariant}
@@ -1663,6 +2074,7 @@ export function SectionBuilder(props: SectionBuilderProps) {
         hasWebsiteBuilder={props.hasWebsiteBuilder ?? true}
         isLoading={props.isVariantCheckoutLoading ?? false}
         isBlocked={props.purchaseActionsReady === false}
+        checkoutBlocked={props.checkoutBlocked}
         onBuy={props.onBuySection}
         inCart={!!sectionPurchaseTarget && (props.cartSectionIds ?? []).includes(sectionPurchaseTarget.id)}
         onToggleCart={props.onToggleCartSection}
@@ -1739,6 +2151,7 @@ function LogicalFullPreviewCanvas({
           style={{
             width: frameWidth,
             height: frameHeight,
+            clipPath: device === "desktop" ? "inset(0)" : "inset(0 round 10px)",
           }}
         >
           <div
@@ -1748,7 +2161,8 @@ function LogicalFullPreviewCanvas({
               width: virtualWidth,
               height: logicalViewportHeight,
               transform: `scale(${scale})`,
-            }}
+              "--mc-vph": `${logicalViewportHeight}px`,
+            } as CSSProperties}
           >
             <div
               ref={pageRef}
@@ -1901,7 +2315,8 @@ function CompactFullPreview({
                 width: virtualWidth,
                 height: virtualViewportHeight,
                 transform: `scale(${scale})`,
-              }}
+                "--mc-vph": `${virtualViewportHeight}px`,
+              } as CSSProperties}
             >
               <div
                 ref={pageRef}

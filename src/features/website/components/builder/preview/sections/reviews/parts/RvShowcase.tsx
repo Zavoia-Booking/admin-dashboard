@@ -1,7 +1,27 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { prefersReducedMotion } from "../../../shared/util";
 import type { PreviewReview, T } from "../../../shared/types";
 import { RvSlide } from "./RvSlide";
+
+/** Reviewer name as two stacked char layers — on row hover the top glyphs roll up as their duplicates rise
+ *  from below (source MCWord). The `a` layer carries the accessible text; the `b` layer is decorative. */
+function HoverName({ text }: { text: string }) {
+  return (
+    <>
+      {Array.from(text).map((ch, i) => {
+        const glyph = ch === " " ? " " : ch;
+        return (
+          <span key={i} className="mc-rv-ch" style={{ "--d": i } as CSSProperties}>
+            <span className="mc-rv-ch-a">{glyph}</span>
+            <span className="mc-rv-ch-b" aria-hidden>
+              {glyph}
+            </span>
+          </span>
+        );
+      })}
+    </>
+  );
+}
 
 export function RvShowcase({ items, italic, t }: { items: PreviewReview[]; italic: boolean; t: T }) {
   const n = items.length;
@@ -75,7 +95,9 @@ export function RvShowcase({ items, italic, t }: { items: PreviewReview[]; itali
             onClick={() => select(i)}
           >
             <span className="mc-rv-li-no">{num(i)}</span>
-            <span className="mc-rv-li-nm">{r.customerName}</span>
+            <span className="mc-rv-li-nm">
+              <HoverName text={r.customerName} />
+            </span>
             {r.locationName && <span className="mc-rv-li-loc">{r.locationName}</span>}
           </button>
         ))}

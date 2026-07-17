@@ -1,4 +1,4 @@
-import type { SectionEntry } from "../../../../../types";
+import type { FaqConfig, SectionEntry } from "../../../../../types";
 import { localized } from "../../shared/util";
 import { Section, SectionHead, Placeholder } from "../../shared/primitives";
 import type { PreviewData, T } from "../../shared/types";
@@ -32,9 +32,10 @@ const OWN_HEAD = new Set(["split"]);
 
 export function Faq({ entry, data, t, no }: { entry: SectionEntry; data: PreviewData; t: T; no: string }) {
   const items = data.faq.filter((f) => localized(f.q, data.locale).trim());
+  const config = (entry.config ?? {}) as FaqConfig;
   const list = entry.variant === "list";
   const kicker = t("businessPage.builder.preview.kicker.faq");
-  const heading = t("businessPage.builder.preview.subhead.faq");
+  const heading = config.heading?.[data.locale]?.trim() || t("businessPage.builder.preview.subhead.faq");
 
   // Variant resolver — renderer seam for future paid variants: a not-entitled variant falls back to the free default here.
   const View = Object.hasOwn(VARIANTS, entry.variant) ? VARIANTS[entry.variant] : Default;

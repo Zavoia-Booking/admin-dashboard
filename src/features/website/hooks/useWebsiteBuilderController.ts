@@ -51,6 +51,8 @@ import type { PreviewReview, RatingBars } from "../components/builder/LivePrevie
 import {
   clearWebsiteCheckoutIntent,
   persistWebsiteCheckoutIntent,
+  WEBSITE_CHECKOUT_CONTEXT_PARAM,
+  type WebsiteCheckoutReturnContext,
   type PreviewOnlyVariantSelections,
 } from "../checkoutIntent";
 
@@ -59,6 +61,8 @@ interface UseWebsiteBuilderControllerProps {
   businessId: number | string | null;
   /** An existing Stripe return still owns checkout reconciliation for this business. */
   checkoutReconciliationBlocked?: boolean;
+  /** Stripe leaves the page, so unrelated local draft edits must be saved first. */
+  checkoutBlocked?: boolean;
   committedTheme: {
     brandColorHex: string;
     fontKey: string;
@@ -86,6 +90,7 @@ export function useWebsiteBuilderController({
   identity,
   businessId,
   checkoutReconciliationBlocked = false,
+  checkoutBlocked = false,
   committedTheme,
   onCommitThemeAsset,
 }: UseWebsiteBuilderControllerProps) {
@@ -130,9 +135,17 @@ export function useWebsiteBuilderController({
     access.canEdit || access.canPurchase || access.canPublish
   );
   const previewOnlyVariantsRef = useRef<PreviewOnlyVariantSelections>({});
+  const [previewOnlyVariantSelections, setPreviewOnlyVariantSelections] =
+    useState<PreviewOnlyVariantSelections>({});
   const [previewOnlyThemeSelections, setPreviewOnlyThemeSelections] =
     useState<PreviewOnlyThemeSelections>({});
   const previewOnlyThemeSelectionsRef = useRef<PreviewOnlyThemeSelections>({});
+  // Discard clears what is rendered without removing anything the owner still intends to buy.
+  // Keep cart-backed theme previews dormant for this mount until an explicit selection applies one
+  // again; otherwise the cart-recovery effect would immediately restore the discarded preview.
+  const [cartPreviewRehydrationSuppressed, setCartPreviewRehydrationSuppressed] =
+    useState(false);
+  const cartPreviewRehydrationSuppressedRef = useRef(false);
 
   const updatePreviewOnlyThemeSelections = useCallback(
     (next: PreviewOnlyThemeSelections) => {
@@ -141,6 +154,22 @@ export function useWebsiteBuilderController({
     },
     [],
   );
+
+  const resetPreviewOnlySelections = useCallback(() => {
+    previewOnlyVariantsRef.current = {};
+    setPreviewOnlyVariantSelections({});
+    cartPreviewRehydrationSuppressedRef.current = true;
+    setCartPreviewRehydrationSuppressed(true);
+    updatePreviewOnlyThemeSelections({});
+  }, [updatePreviewOnlyThemeSelections]);
+
+  const clearPreviewOnlyVariant = useCallback((sectionType: string) => {
+    if (!previewOnlyVariantsRef.current[sectionType]) return;
+    const next = { ...previewOnlyVariantsRef.current };
+    delete next[sectionType];
+    previewOnlyVariantsRef.current = next;
+    setPreviewOnlyVariantSelections(next);
+  }, []);
 
   // The preview renderer consumes a Business-shaped identity; the canonical fields it reads
   // (name, logo, contact, socials) are exactly what GET /website-builder returns.
@@ -167,7 +196,10 @@ export function useWebsiteBuilderController({
     const cartScope = String(businessId);
     if (hydratedCartScopeRef.current === cartScope) return;
     hydratedCartScopeRef.current = cartScope;
+    cartPreviewRehydrationSuppressedRef.current = false;
+    setCartPreviewRehydrationSuppressed(false);
     previewOnlyVariantsRef.current = {};
+    setPreviewOnlyVariantSelections({});
     updatePreviewOnlyThemeSelections({});
     const readIds = (key: string): number[] => {
       try {
@@ -357,13 +389,15 @@ export function useWebsiteBuilderController({
         delete next[kind];
       }
     });
-    themeAssetCartEntries.forEach((entry) => {
-      if (themeAssetMatchesCommitted(entry, committedTheme)) {
-        delete next[entry.kind];
-      } else {
-        next[entry.kind] = entry.value;
-      }
-    });
+    if (!cartPreviewRehydrationSuppressedRef.current) {
+      themeAssetCartEntries.forEach((entry) => {
+        if (themeAssetMatchesCommitted(entry, committedTheme)) {
+          delete next[entry.kind];
+        } else {
+          next[entry.kind] = entry.value;
+        }
+      });
+    }
     if (JSON.stringify(next) !== JSON.stringify(previewOnlyThemeSelectionsRef.current)) {
       updatePreviewOnlyThemeSelections(next);
     }
@@ -371,6 +405,7 @@ export function useWebsiteBuilderController({
     access?.canEdit,
     access?.canPurchase,
     catalogLoaded,
+    cartPreviewRehydrationSuppressed,
     committedTheme,
     isNative,
     themeAssetCart,
@@ -466,14 +501,22 @@ export function useWebsiteBuilderController({
   const checkoutBusinessMarker = businessId == null
     ? ""
     : encodeURIComponent(String(businessId));
-  const checkoutUrls = {
-    successUrl: `${window.location.origin}/website?website_business_id=${checkoutBusinessMarker}&session_id={CHECKOUT_SESSION_ID}`,
-    cancelUrl: `${window.location.origin}/website?website_business_id=${checkoutBusinessMarker}&variantPurchase=cancelled`,
+  const checkoutUrlsFor = (returnContext?: WebsiteCheckoutReturnContext) => {
+    const contextMarker = returnContext
+      ? `&${WEBSITE_CHECKOUT_CONTEXT_PARAM}=${encodeURIComponent(returnContext)}`
+      : "";
+    return {
+      successUrl: `${window.location.origin}/website?website_business_id=${checkoutBusinessMarker}&session_id={CHECKOUT_SESSION_ID}${contextMarker}`,
+      cancelUrl: `${window.location.origin}/website?website_business_id=${checkoutBusinessMarker}&variantPurchase=cancelled${contextMarker}`,
+    };
   };
+  const checkoutUrls = checkoutUrlsFor();
 
   const handlePreviewOnlyVariantsChange = useCallback(
     (selections: PreviewOnlyVariantSelections) => {
-      previewOnlyVariantsRef.current = { ...selections };
+      const next = { ...selections };
+      previewOnlyVariantsRef.current = next;
+      setPreviewOnlyVariantSelections(next);
     },
     [],
   );
@@ -553,6 +596,10 @@ export function useWebsiteBuilderController({
   const effectiveFontKey = previewOnlyThemeSelections.font ?? committedTheme.fontKey;
 
   const startCheckout = (payload: WebsiteVariantCheckoutPayload) => {
+    if (checkoutBlocked) {
+      toast.info(t("businessPage.paidVariants.saveBeforeCheckout"));
+      return;
+    }
     if (
       businessId == null ||
       isNative ||
@@ -735,27 +782,32 @@ export function useWebsiteBuilderController({
     updatePreviewOnlyThemeSelections({});
   };
 
-  const handleCheckoutCart = () => {
-    if (
-      isNative ||
-      !access?.canPurchase ||
-      isVariantCheckoutLoading ||
-      checkoutReconciliationBlocked ||
-      !catalogPurchasesReady
-    ) return;
-    if (cartEntries.length === 0 && sectionCartEntries.length === 0 && themeAssetCartEntries.length === 0) return;
+  const handleCheckoutItems = (
+    items: UnlockLineItem[],
+    options?: { returnContext?: WebsiteCheckoutReturnContext },
+  ) => {
+    if (items.length === 0) return;
+    const variantIds = [...new Set(
+      items.filter((item) => item.kind === "variant").map((item) => item.id),
+    )];
+    const sectionIds = [...new Set(
+      items.filter((item) => item.kind === "section").map((item) => item.id),
+    )];
+    const themeAssetIds = [...new Set(
+      items
+        .filter((item) => item.kind === "color" || item.kind === "font")
+        .map((item) => item.id),
+    )];
     startCheckout({
-      ...(cartEntries.length > 0
-        ? { variantIds: cartEntries.map((entry) => entry.id) }
-        : {}),
-      ...(sectionCartEntries.length > 0
-        ? { sectionIds: sectionCartEntries.map((entry) => entry.id) }
-        : {}),
-      ...(themeAssetCartEntries.length > 0
-        ? { themeAssetIds: themeAssetCartEntries.map((entry) => entry.id) }
-        : {}),
-      ...checkoutUrls,
+      ...(variantIds.length > 0 ? { variantIds } : {}),
+      ...(sectionIds.length > 0 ? { sectionIds } : {}),
+      ...(themeAssetIds.length > 0 ? { themeAssetIds } : {}),
+      ...checkoutUrlsFor(options?.returnContext),
     });
+  };
+
+  const handleCheckoutCart = () => {
+    handleCheckoutItems(cartItems);
   };
 
   // A successful checkout action intentionally stays busy until Stripe owns the tab. If
@@ -837,10 +889,12 @@ export function useWebsiteBuilderController({
     retryCatalog,
     catalogPurchasesReady,
     checkoutReconciliationBlocked,
+    checkoutBlocked,
     isVariantCheckoutLoading,
     variantCart,
     sectionCart,
     themeAssetCart,
+    previewOnlyVariantSelections,
     previewOnlyThemeSelections,
     effectiveBrandColorHex,
     effectiveFontKey,
@@ -849,6 +903,8 @@ export function useWebsiteBuilderController({
     teamRatings,
     ratingDistribution,
     previewReviews,
+    resetPreviewOnlySelections,
+    clearPreviewOnlyVariant,
     handlePreviewOnlyVariantsChange,
     handleBuyVariant,
     handleBuySection,
@@ -858,6 +914,7 @@ export function useWebsiteBuilderController({
     handleSelectThemeAsset,
     handleRemoveCartItem,
     handleClearCart,
+    handleCheckoutItems,
     handleCheckoutCart,
   };
 }

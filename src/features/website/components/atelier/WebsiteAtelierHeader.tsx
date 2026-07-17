@@ -1,6 +1,11 @@
-import { useEffect, useId, useRef, useState, type ReactNode } from "react";
-import { ArrowLeft, Check, CircleAlert, Eye, LoaderCircle } from "lucide-react";
+import { useEffect, useId, useRef, useState, type ReactElement, type ReactNode } from "react";
+import { ArrowLeft, Check, CircleAlert, Eye, LoaderCircle, Save as SaveIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "../../../../shared/components/ui/tooltip";
 
 export type AtelierPublishStatus = "draft" | "live" | "stale";
 export type AtelierSaveStatus =
@@ -25,7 +30,16 @@ interface WebsiteAtelierHeaderProps {
   moreControl?: ReactNode;
   onBack?: () => void;
   onPreview?: () => void;
+  onSave?: () => void;
+  saveLabel?: string;
+  saveDisabled?: boolean;
+  saveDisabledReason?: string | null;
+  saveBusy?: boolean;
   onPublish?: () => void;
+  publishLabel?: string;
+  publishHint?: string | null;
+  /** Dirty drafts are saved atomically before the returned version is published. */
+  publishSavesChanges?: boolean;
   publishDisabled?: boolean;
   publishDisabledReason?: string | null;
   publishBusy?: boolean;
@@ -41,10 +55,10 @@ const saveStatusKey: Record<AtelierSaveStatus, string> = {
   unsaved: "page.status.unsaved",
   saving: "page.status.saving",
   queued: "page.status.queued",
-  invalid: "page.autosave.invalid",
-  offline: "page.autosave.offline",
-  failed: "page.autosave.failed",
-  conflict: "page.autosave.conflict",
+  invalid: "page.save.invalid",
+  offline: "page.save.offline",
+  failed: "page.save.failed",
+  conflict: "page.save.conflict",
 };
 
 function SaveStatus({ status }: { status: AtelierSaveStatus }) {
@@ -112,8 +126,32 @@ function PublishPill({ status }: { status: AtelierPublishStatus }) {
     <div className="flex h-7 min-w-0 items-center gap-2 rounded-full border border-[var(--atelier-border)] bg-[var(--atelier-surface-strong)] px-3">
       <span className="size-1.5 shrink-0 rounded-full" style={{ backgroundColor: dot }} aria-hidden />
       <span className="truncate text-[12px] font-medium text-[var(--atelier-ink)]">{label}</span>
+      <span
+        className="hidden shrink-0 text-[12px] text-[var(--atelier-muted-soft)] min-[1120px]:inline"
+        aria-hidden
+      >
+        ·
+      </span>
       <span className="hidden truncate text-[12px] text-[var(--atelier-muted)] min-[1120px]:inline">{detail}</span>
     </div>
+  );
+}
+
+function ActionReasonTooltip({
+  reason,
+  children,
+}: {
+  reason?: string | null;
+  children: ReactElement;
+}) {
+  if (!reason) return children;
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>{children}</TooltipTrigger>
+      <TooltipContent side="bottom" sideOffset={8} className="max-w-[260px] text-center">
+        {reason}
+      </TooltipContent>
+    </Tooltip>
   );
 }
 
@@ -129,12 +167,21 @@ export function WebsiteAtelierHeader({
   moreControl,
   onBack,
   onPreview,
+  onSave,
+  saveLabel,
+  saveDisabled = false,
+  saveDisabledReason,
+  saveBusy = false,
   onPublish,
+  publishLabel,
+  publishHint,
+  publishSavesChanges = false,
   publishDisabled = false,
   publishDisabledReason,
   publishBusy = false,
 }: WebsiteAtelierHeaderProps) {
   const { t } = useTranslation("website");
+  const saveReasonId = useId();
   const publishReasonId = useId();
   const title = businessName?.trim() || t("page.identity.fallbackName");
   const isSaveWarning =
@@ -152,27 +199,36 @@ export function WebsiteAtelierHeader({
     saveStatus === "saving" || saveStatus === "queued" || isSaveWarning
       ? t(saveStatusKey[saveStatus])
       : mobilePublicationSummary;
-  const desktopPublishLabel =
-    publishStatus === "live"
+  const saveActionLabel = saveLabel ?? t("page.actions.saveChanges");
+  const desktopPublishLabel = publishLabel ?? (publishSavesChanges
+    ? t("page.actions.savePublish")
+    : publishStatus === "live"
       ? t("page.actions.published")
       : publishStatus === "stale"
         ? t("page.actions.publishChanges")
-        : t("page.actions.publish");
-  const mobilePublishLabel =
-    publishStatus === "live"
+        : t("page.actions.publish"));
+  const mobilePublishLabel = publishLabel ?? (publishSavesChanges
+    ? t("page.actions.savePublish")
+    : publishStatus === "live"
       ? t("page.actions.published")
-      : t("page.actions.publish");
+      : t("page.actions.publish"));
+  const publishActionReason = publishDisabledReason ?? publishHint;
   const isCurrentLive = publishStatus === "live" && publishDisabled;
   const publishAriaLabel = (label: string) =>
     publishBusy
       ? t("page.status.publishing")
-      : publishDisabledReason
-        ? `${label}: ${publishDisabledReason}`
+      : publishActionReason
+        ? `${label}: ${publishActionReason}`
         : label;
 
   const handlePublish = () => {
     if (publishDisabled || publishBusy) return;
     onPublish?.();
+  };
+
+  const handleSave = () => {
+    if (saveDisabled || saveBusy) return;
+    onSave?.();
   };
 
   if (variant === "mobile") {
@@ -210,36 +266,68 @@ export function WebsiteAtelierHeader({
           <button
             type="button"
             onClick={onPreview}
-            className="website-atelier-focus website-atelier-press relative grid h-8 w-[34px] shrink-0 place-items-center rounded-[9px] border border-[var(--atelier-border)] bg-[var(--atelier-surface-strong)] text-[var(--atelier-ink-soft)] after:absolute after:-inset-[5px] after:content-[''] hover:border-[color-mix(in_srgb,var(--atelier-ink)_28%,transparent)]"
+            className="website-atelier-focus website-atelier-press relative grid h-8 w-[34px] shrink-0 place-items-center rounded-[9px] border border-[var(--atelier-border)] bg-[var(--atelier-surface-strong)] text-[var(--atelier-ink-soft)] after:absolute after:-inset-[5px] after:content-[''] hover:border-[color-mix(in_srgb,var(--atelier-ink)_28%,transparent)] max-[400px]:hidden"
             aria-label={t("businessPage.builder.openPreview")}
           >
             <Eye className="size-3.5" strokeWidth={1.7} aria-hidden />
           </button>
         ) : null}
+        {onSave ? (
+          <>
+            <ActionReasonTooltip reason={saveDisabledReason}>
+              <button
+                type="button"
+                onClick={handleSave}
+                aria-disabled={saveDisabled || saveBusy}
+                aria-busy={saveBusy}
+                aria-describedby={saveDisabledReason ? saveReasonId : undefined}
+                aria-label={
+                  saveDisabledReason
+                    ? `${saveActionLabel}: ${saveDisabledReason}`
+                    : saveActionLabel
+                }
+                className="website-atelier-focus website-atelier-press relative grid size-[34px] shrink-0 place-items-center rounded-[9px] border border-[var(--atelier-border)] bg-[var(--atelier-surface-strong)] text-[var(--atelier-ink)] after:absolute after:-inset-[5px] after:content-[''] hover:border-[color-mix(in_srgb,var(--atelier-ink)_28%,transparent)] aria-disabled:cursor-not-allowed aria-disabled:opacity-45"
+              >
+                {saveBusy ? (
+                  <LoaderCircle className="size-3.5 animate-spin motion-reduce:animate-none" aria-hidden />
+                ) : (
+                  <SaveIcon className="size-3.5" strokeWidth={1.8} aria-hidden />
+                )}
+              </button>
+            </ActionReasonTooltip>
+            {saveDisabledReason ? (
+              <span id={saveReasonId} className="sr-only">
+                {saveDisabledReason}
+              </span>
+            ) : null}
+          </>
+        ) : null}
         {onPublish ? (
           <>
-            <button
-              type="button"
-              onClick={handlePublish}
-              aria-disabled={publishDisabled || publishBusy}
-              aria-busy={publishBusy}
-              aria-describedby={publishDisabledReason ? publishReasonId : undefined}
-              aria-label={publishAriaLabel(mobilePublishLabel)}
-              className={`website-atelier-focus website-atelier-press relative flex h-8 min-w-[72px] shrink-0 items-center justify-center whitespace-nowrap rounded-[9px] px-3 text-[12px] font-semibold after:absolute after:-inset-y-1.5 after:inset-x-0 after:content-[''] aria-disabled:cursor-not-allowed aria-disabled:opacity-45 ${
-                isCurrentLive
-                  ? "cursor-default bg-[var(--atelier-field)] text-[var(--atelier-muted)] hover:opacity-100"
-                  : "bg-[var(--atelier-ink)] text-[var(--atelier-canvas)] hover:opacity-90"
-              }`}
-            >
-              {publishBusy ? (
-                <LoaderCircle className="size-3.5 animate-spin motion-reduce:animate-none" aria-hidden />
-              ) : (
-                mobilePublishLabel
-              )}
-            </button>
-            {publishDisabledReason ? (
+            <ActionReasonTooltip reason={publishActionReason}>
+              <button
+                type="button"
+                onClick={handlePublish}
+                aria-disabled={publishDisabled || publishBusy}
+                aria-busy={publishBusy}
+                aria-describedby={publishActionReason ? publishReasonId : undefined}
+                aria-label={publishAriaLabel(mobilePublishLabel)}
+                className={`website-atelier-focus website-atelier-press relative flex h-8 min-w-[72px] shrink-0 items-center justify-center whitespace-nowrap rounded-[9px] px-3 text-[12px] font-semibold after:absolute after:-inset-y-1.5 after:inset-x-0 after:content-[''] aria-disabled:cursor-not-allowed aria-disabled:opacity-45 ${
+                  isCurrentLive
+                    ? "cursor-default bg-[var(--atelier-field)] text-[var(--atelier-muted)] hover:opacity-100"
+                    : "bg-[var(--atelier-ink)] text-[var(--atelier-canvas)] hover:opacity-90"
+                }`}
+              >
+                {publishBusy ? (
+                  <LoaderCircle className="size-3.5 animate-spin motion-reduce:animate-none" aria-hidden />
+                ) : (
+                  mobilePublishLabel
+                )}
+              </button>
+            </ActionReasonTooltip>
+            {publishActionReason ? (
               <span id={publishReasonId} className="sr-only">
-                {publishDisabledReason}
+                {publishActionReason}
               </span>
             ) : null}
           </>
@@ -270,44 +358,66 @@ export function WebsiteAtelierHeader({
       <SaveStatus status={saveStatus} />
       <div className="min-w-0 flex-1" />
       {pendingControl}
-      {onPreview ? (
-        <button
-          type="button"
-          onClick={onPreview}
-          aria-label={t("businessPage.builder.openPreview")}
-          className="website-atelier-focus website-atelier-press flex h-8 shrink-0 items-center gap-1.5 rounded-[9px] border border-[var(--atelier-border)] bg-[var(--atelier-surface-strong)] px-3 text-[12.5px] font-medium text-[var(--atelier-ink-soft)] hover:border-[color-mix(in_srgb,var(--atelier-ink)_28%,transparent)] max-[1119px]:size-[34px] max-[1119px]:justify-center max-[1119px]:px-0"
-        >
-          <Eye className="size-3.5" strokeWidth={1.7} aria-hidden />
-          <span className="hidden min-[1120px]:inline">{t("businessPage.builder.openPreview")}</span>
-        </button>
+      {onSave ? (
+        <>
+          <ActionReasonTooltip reason={saveDisabledReason}>
+            <button
+              type="button"
+              onClick={handleSave}
+              aria-disabled={saveDisabled || saveBusy}
+              aria-busy={saveBusy}
+              aria-describedby={saveDisabledReason ? saveReasonId : undefined}
+              aria-label={
+                saveDisabledReason
+                  ? `${saveActionLabel}: ${saveDisabledReason}`
+                  : saveActionLabel
+              }
+              className="website-atelier-focus website-atelier-press flex h-8 min-w-[104px] shrink-0 items-center justify-center gap-1.5 rounded-[9px] border border-[var(--atelier-border)] bg-[var(--atelier-surface-strong)] px-3 text-[12.5px] font-semibold text-[var(--atelier-ink)] hover:border-[color-mix(in_srgb,var(--atelier-ink)_28%,transparent)] aria-disabled:cursor-not-allowed aria-disabled:opacity-45 max-[1119px]:min-w-0 max-[1119px]:size-[34px] max-[1119px]:px-0"
+            >
+              {saveBusy ? (
+                <LoaderCircle className="size-3.5 animate-spin motion-reduce:animate-none" aria-hidden />
+              ) : (
+                <SaveIcon className="size-3.5" strokeWidth={1.8} aria-hidden />
+              )}
+              <span className="max-[1119px]:hidden">{saveActionLabel}</span>
+            </button>
+          </ActionReasonTooltip>
+          {saveDisabledReason ? (
+            <span id={saveReasonId} className="sr-only">
+              {saveDisabledReason}
+            </span>
+          ) : null}
+        </>
       ) : null}
       {onPublish ? (
         <>
-          <button
-            type="button"
-            onClick={handlePublish}
-            aria-disabled={publishDisabled || publishBusy}
-            aria-busy={publishBusy}
-            aria-describedby={publishDisabledReason ? publishReasonId : undefined}
-            aria-label={publishAriaLabel(desktopPublishLabel)}
-            className={`website-atelier-focus website-atelier-press flex h-8 min-w-[78px] shrink-0 items-center justify-center rounded-[9px] px-4 text-[12.5px] font-semibold aria-disabled:cursor-not-allowed aria-disabled:opacity-45 ${
-              isCurrentLive
-                ? "cursor-default bg-[var(--atelier-field)] text-[var(--atelier-muted)] hover:opacity-100"
-                : "bg-[var(--atelier-ink)] text-[var(--atelier-canvas)] hover:opacity-90"
-            }`}
-          >
-            {publishBusy ? (
-              <span className="inline-flex items-center gap-1.5">
-                <LoaderCircle className="size-3.5 animate-spin motion-reduce:animate-none" aria-hidden />
-                <span className="hidden min-[1120px]:inline">{t("page.status.publishing")}</span>
-              </span>
-            ) : (
-              desktopPublishLabel
-            )}
-          </button>
-          {publishDisabledReason ? (
+          <ActionReasonTooltip reason={publishActionReason}>
+            <button
+              type="button"
+              onClick={handlePublish}
+              aria-disabled={publishDisabled || publishBusy}
+              aria-busy={publishBusy}
+              aria-describedby={publishActionReason ? publishReasonId : undefined}
+              aria-label={publishAriaLabel(desktopPublishLabel)}
+              className={`website-atelier-focus website-atelier-press flex h-8 min-w-[78px] shrink-0 items-center justify-center rounded-[9px] px-4 text-[12.5px] font-semibold aria-disabled:cursor-not-allowed aria-disabled:opacity-45 ${
+                isCurrentLive
+                  ? "cursor-default bg-[var(--atelier-field)] text-[var(--atelier-muted)] hover:opacity-100"
+                  : "bg-[var(--atelier-ink)] text-[var(--atelier-canvas)] hover:opacity-90"
+              }`}
+            >
+              {publishBusy ? (
+                <span className="inline-flex items-center gap-1.5">
+                  <LoaderCircle className="size-3.5 animate-spin motion-reduce:animate-none" aria-hidden />
+                  <span className="hidden min-[1120px]:inline">{t("page.status.publishing")}</span>
+                </span>
+              ) : (
+                desktopPublishLabel
+              )}
+            </button>
+          </ActionReasonTooltip>
+          {publishActionReason ? (
             <span id={publishReasonId} className="sr-only">
-              {publishDisabledReason}
+              {publishActionReason}
             </span>
           ) : null}
         </>

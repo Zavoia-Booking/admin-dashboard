@@ -125,7 +125,7 @@ export function BookButton({ label, tone, size = "md", styleOverride }: { label:
           : "px-5 py-2.5 text-[13.5px]";
   return (
     <span
-      className={cn("pointer-events-none inline-flex items-center gap-2 rounded-full font-semibold", size !== "nav" && "shadow-sm", sizing)}
+      className={cn("pointer-events-none inline-flex items-center gap-2 whitespace-nowrap rounded-full font-semibold", size !== "nav" && "shadow-sm", sizing)}
       style={style}
     >
       {label}

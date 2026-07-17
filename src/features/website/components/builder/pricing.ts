@@ -12,3 +12,17 @@ export function variantPriceLabel(
 ): string {
   return formatPrice(variant.priceMinor, variant.currency);
 }
+
+export function unlockTotalsByCurrency(
+  entries: ReadonlyArray<{ priceMinor: number; currency: string }>,
+) {
+  return Array.from(
+    entries.reduce((groups, entry) => {
+      const key = entry.currency.toUpperCase();
+      const current = groups.get(key) ?? { currency: entry.currency, priceMinor: 0 };
+      current.priceMinor += entry.priceMinor;
+      groups.set(key, current);
+      return groups;
+    }, new Map<string, { currency: string; priceMinor: number }>()).values(),
+  );
+}

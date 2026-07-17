@@ -122,6 +122,39 @@ export const minLengthError = (
     : null;
 };
 
+export interface WebsiteCopyValidationOptions {
+  fieldLabel: string;
+  maxLength: number;
+  minLength?: number;
+}
+
+export const hasUnsafeWebsiteCopyCharacters = (value: string): boolean =>
+  /[<>\u0000-\u0009\u000B\u000C\u000E-\u001F\u007F]/.test(value ?? "");
+
+/**
+ * Validates optional, visitor-facing Website Builder copy. Empty values are valid because they mean
+ * "use the built-in default"; a custom value must be meaningful and must not contain markup delimiters
+ * or unsupported control characters. Normal punctuation and diacritics remain valid, unlike the stricter
+ * business-name pattern.
+ */
+export const validateWebsiteCopy = (
+  value: string,
+  t: TFunction,
+  { fieldLabel, maxLength, minLength = 2 }: WebsiteCopyValidationOptions,
+): string | null => {
+  const normalized = (value ?? "").trim();
+  if (!normalized) return null;
+  if (hasUnsafeWebsiteCopyCharacters(normalized)) {
+    return t("common:validation.websiteCopyUnsafeChars");
+  }
+  const tooShort = minLengthError(fieldLabel, normalized, t, minLength);
+  if (tooShort) return tooShort;
+  if (normalized.length > maxLength) {
+    return t("common:validation.maxLengthGeneric", { max: maxLength });
+  }
+  return null;
+};
+
 // Required + min length combined helper (for mandatory fields)
 export const requiredMinError = (
   fieldKey: keyof typeof FIELD_KEYS,

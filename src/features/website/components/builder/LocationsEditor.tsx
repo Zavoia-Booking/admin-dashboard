@@ -15,7 +15,7 @@ interface LocationsEditorProps {
 
 /**
  * Locations section settings: the editorial heading + sub-lede (each defaults to the built-in copy and is
- * only overridden once the owner flips its switch), then the picker for which locations appear. Copy is
+ * directly editable while retaining its built-in default), then the picker for which locations appear. Copy is
  * stored per locale so the public page reads the right language; a blank override falls back to the default.
  */
 export function LocationsEditor({
@@ -31,7 +31,9 @@ export function LocationsEditor({
 
   const setCopy = (field: "heading" | "sublede", value: string) => {
     const current = config[field] ?? { en: "", ro: "" };
-    onConfigChange({ [field]: { ...current, [locale]: value } });
+    const next = { ...current, [locale]: value };
+    const hasOverride = next.en.trim() !== "" || next.ro.trim() !== "";
+    onConfigChange({ [field]: hasOverride ? next : undefined });
   };
 
   const toggleLocation = (id: number, show: boolean) => {
@@ -84,9 +86,6 @@ export function LocationsEditor({
             onChange={(v) => setCopy("heading", v)}
             maxLength={80}
             rows={2}
-            customizeAria={t("businessPage.builder.settings.locationsCustomize", {
-              field: t("businessPage.builder.settings.locationsHeadingLabel"),
-            })}
           />
           <div className="mt-5 border-t border-border-subtle pt-5">
             <CopyOverride
@@ -98,9 +97,6 @@ export function LocationsEditor({
               onChange={(v) => setCopy("sublede", v)}
               maxLength={220}
               rows={3}
-              customizeAria={t("businessPage.builder.settings.locationsCustomize", {
-                field: t("businessPage.builder.settings.locationsSubledeLabel"),
-              })}
             />
           </div>
         </div>

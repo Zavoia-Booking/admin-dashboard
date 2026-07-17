@@ -38,11 +38,11 @@
       "notPublishedDetail": "nepublicat",
       "notPublishedYet": "Încă nepublicat",
       "upToDate": "actualizat",
-      "changesToPublish": "modificări de publicat",
+      "changesToPublish": "schița diferă de site-ul publicat",
       "draftAheadOfLive": "Schiță înaintea versiunii publicate"
     },
-    "autosave": {
-      "invalid": "Necesită atenție",
+    "save": {
+      "invalid": "Corectează câmpurile evidențiate",
       "offline": "Offline · modificările rămân aici",
       "failed": "Salvarea a eșuat · reîncearcă",
       "conflict": "Este disponibilă o versiune nouă"
@@ -64,11 +64,15 @@
       "backToDashboard": "Înapoi la panou",
       "skipToBuilder": "Sari la editorul site-ului",
       "save": "Salvează",
+      "saveChanges": "Salvează modificările",
+      "discardChanges": "Renunță la modificări",
       "retrySave": "Reîncearcă salvarea",
       "reload": "Încarcă versiunea nouă",
       "publish": "Publică",
       "publishChanges": "Publică modificările",
       "published": "Publicat",
+      "retryPublish": "Reîncearcă publicarea",
+      "preparePublish": "Pregătește publicarea",
       "unpublish": "Anulează publicarea",
       "savePublish": "Salvează și publică",
       "more": "Mai multe acțiuni"
@@ -86,8 +90,20 @@
     "unsaved": {
       "title": "Modificări nesalvate",
       "description": "Site-ul are modificări nesalvate. Dacă pleci acum, acestea se vor pierde.",
+      "explicitDescription": "Salvează modificările înainte să pleci, renunță la ele sau continuă editarea.",
+      "saveAndLeave": "Salvează și pleacă",
+      "retrySaveAndLeave": "Reîncearcă salvarea și pleacă",
+      "discardAndLeave": "Renunță și pleacă",
+      "keepEditing": "Continuă editarea",
+      "updateInProgress": "Așteaptă finalizarea actualizării site-ului înainte să pleci.",
       "stay": "Rămâi",
       "discard": "Renunță la modificări"
+    },
+    "discardConfirm": {
+      "title": "Renunți la modificările schiței?",
+      "description": "Aceasta restaurează ultima schiță salvată. Conținutul, structura, culorile și stilurile nesalvate se vor pierde. Opțiunile din lista de deblocări rămân selectate, iar modificările imaginii de copertă nu vor fi anulate.",
+      "confirm": "Renunță la modificări",
+      "cancel": "Continuă editarea"
     },
     "identity": {
       "title": "Profilul afacerii",
@@ -109,22 +125,44 @@
       "fallback_other": "{{count}} de opțiuni premium"
     },
     "publishReview": {
-      "eyebrow": "Verifică și publică",
-      "blockedTitle": "Rezolvă opțiunile premium înainte de publicare.",
-      "blockedDescription": "Opțiunile premium trebuie deblocate, schimbate cu un stil inclus sau ascunse. Nimic nu va fi publicat până nu le rezolvi.",
-      "readyTitle": "Gata de publicare.",
-      "readyDescription": "Verifică schița curentă. Publicarea salvează cea mai recentă versiune drept instantaneu publicat și nu include nicio opțiune doar previzualizată.",
+      "eyebrow": "Publică această versiune",
+      "blockedTitle": "Câteva alegeri înainte de publicare",
+      "blockedDescription": "Completează conținutul de mai jos, apoi deblochează sau elimină opțiunile premium înainte de publicare.",
+      "readyTitle": "Site-ul este gata de publicare",
+      "readyDescription": "Verifică rezumatul de mai jos. Modificările nesalvate vor fi salvate înainte ca această versiune să devină publică.",
       "catalogCheckingTitle": "Verificăm accesul premium",
-      "catalogCheckingDescription": "Încărcăm cele mai recente drepturi și prețuri înainte de publicare.",
-      "catalogErrorTitle": "Opțiunile premium nu au putut fi verificate",
-      "catalogErrorDescription": "Reîncarcă lista înainte de publicare, pentru ca drepturile și prețurile să fie actuale.",
+      "catalogCheckingDescription": "Confirmăm opțiunile deblocate înainte ca această versiune să poată fi publicată.",
+      "catalogErrorTitle": "Nu am putut verifica opțiunile premium",
+      "catalogErrorDescription": "Încearcă din nou înainte de publicare. Schița și selecțiile tale sunt în siguranță.",
       "retryCatalog": "Reîncearcă",
       "premiumStyle": "Stil premium",
       "premiumSection": "Secțiune premium",
-      "useIncluded": "Folosește stilul inclus",
+      "contentRequirements": "Conținut necesar",
+      "contentRequirementsDescription": "Aceste secțiuni vizibile au nevoie de conținut înainte de publicare.",
+      "premiumRequirements": "Opțiuni premium",
+      "premiumRequirementsDescription": "Aceste opțiuni premium au fost selectate în timpul editării versiunii curente. Deblochează-le o singură dată pentru a le păstra permanent sau elimină-le pe cele pe care nu le mai dorești.",
+      "contentRequired": "Conținut necesar",
+      "contentProgress": "{{current}} din {{required}} pregătite",
+      "readinessSections": {
+        "announcement": "Anunț",
+        "about": "Despre",
+        "gallery": "Galerie",
+        "faq": "Întrebări frecvente"
+      },
       "hideSection": "Ascunde secțiunea",
+      "openSection": "Deschide secțiunea",
+      "removePremiumAria": "Elimină {{name}} din selecțiile premium",
+      "previewOnly": "Doar în previzualizare",
+      "unlockRequired": "Necesită deblocare",
+      "unlockItem": "Deblochează",
+      "saveAndUnlockAll_one": "Salvează și deblochează {{count}} opțiune · {{total}}",
+      "saveAndUnlockAll_few": "Salvează și deblochează {{count}} opțiuni · {{total}}",
+      "saveAndUnlockAll_other": "Salvează și deblochează {{count}} de opțiuni · {{total}}",
+      "saveAndUnlockHint": "Îți salvăm ultimele modificări, apoi deschidem plata securizată.",
+      "mixedCurrency": "Aceste opțiuni folosesc monede diferite. Deblochează-le pe rând.",
       "addToUnlocks": "Adaugă la deblocări",
       "queued": "Adăugat",
+      "inUnlocks": "În lista de deblocări",
       "review": "Verifică",
       "serverFallback_one": "Serverul a raportat {{count}} opțiune premium. Verifică secțiunea afectată înainte de publicare.",
       "serverFallback_few": "Serverul a raportat {{count}} opțiuni premium. Verifică secțiunile afectate înainte de publicare.",
@@ -139,19 +177,30 @@
       "saveFirst": "Va fi salvată înainte de publicare",
       "saved": "Toate modificările sunt salvate",
       "keepEditing": "Continuă editarea",
+      "backToEditor": "Înapoi la editor",
       "cancel": "Anulează",
-      "publish": "Publică versiunea"
+      "publish": "Publică versiunea",
+      "publishWebsite": "Publică site-ul"
     },
     "publishReason": {
-      "readOnly": "Accesul tău actual nu permite editarea",
+      "readOnly": "Accesul tău actual nu permite publicarea",
       "locked": "Unele secțiuni vizibile folosesc opțiuni premium care nu sunt deblocate",
       "errors": "Corectează mai întâi câmpurile marcate",
       "offline": "Reconectează-te înainte de publicare",
       "saveFailed": "Reîncearcă salvarea schiței înainte de publicare",
       "catalogChecking": "Așteaptă verificarea accesului premium",
       "catalogUnavailable": "Reîncarcă opțiunile premium înainte de publicare",
+      "contentIncomplete": "Completează secțiunile marcate înainte de publicare",
       "busy": "Așteaptă finalizarea actualizării curente",
       "current": "Cele mai recente modificări salvate sunt deja publicate"
+    },
+    "saveReason": {
+      "readOnly": "Accesul tău actual nu permite editarea",
+      "clean": "Nu există modificări nesalvate",
+      "errors": "Corectează câmpurile marcate înainte de salvare",
+      "offline": "Reconectează-te înainte de salvare",
+      "conflict": "Rezolvă versiunea mai nouă de pe server înainte de salvare",
+      "busy": "Așteaptă finalizarea actualizării site-ului"
     }
   },
   "businessPage": {
@@ -177,10 +226,11 @@
     "paidVariants": {
       "eyebrow": "Stil premium",
       "defaultDescription": "Un stil premium pentru această secțiune a site-ului.",
-      "oneTime": "plată unică",
-      "foreverNote": "Plătești o singură dată și deblochezi permanent această opțiune, chiar dacă schimbi planul.",
+      "oneTime": "deblocare unică",
+      "foreverNote": "Păstrezi permanent această opțiune, chiar dacă schimbi planul.",
       "plusHint": "Stilurile premium necesită planul Plus. Poți face upgrade din Cont > Facturare.",
       "purchaseUnavailable": "Accesul tău actual nu permite achiziții. Verifică planul și opțiunile de facturare în Cont > Facturare.",
+      "saveBeforeCheckout": "Salvează modificările site-ului înainte de a continua către plata securizată.",
       "buy": "Deblochează acum · {{price}}",
       "processing": "Pregătim plata…",
       "cancel": "Renunță",
@@ -190,13 +240,20 @@
       "lockedTitle": "Stil premium · {{price}}, plată unică",
       "ownedTitle": "Stil premium · deblocat",
       "styleHelper": "Stilurile incluse sunt gata de folosit. Deblochezi o singură dată un stil premium și îl păstrezi permanent.",
+      "currentBadge": "Actual",
       "includedBadge": "Inclus",
       "lockedBadge": "Premium",
       "ownedBadge": "Deblocat",
       "inCartBadge": "Selectat",
       "previewBadge": "Previzualizare",
-      "previewingLockedTitle": "Previzualizezi un stil premium.",
-      "previewingLockedHelper": "Îl poți verifica aici, dar nu va fi salvat până nu îl deblochezi.",
+      "previewingLockedTitle": "Previzualizare stil premium",
+      "previewingLockedHelper": "Deblochează acest stil pentru a-l salva în ciornă și a-l publica.",
+      "previewAddToCart": "Adaugă la deblocări",
+      "previewRemoveFromCart": "Elimină",
+      "previewBuy": "Deblochează · {{price}}",
+      "unlockTitle": "Deblochează {{name}}",
+      "addToUnlocks": "Adaugă la deblocări",
+      "removeFromUnlocks": "Elimină din deblocări",
       "inCartTitle": "Selectat · {{price}}, plată unică",
       "addToCart": "Adaugă în selecție",
       "removeFromCart": "Elimină din selecție",
@@ -204,19 +261,28 @@
       "previewOnlyHint": "Stilurile premium doar previzualizate nu sunt salvate și nu vor fi publicate.",
       "unlocks": {
         "title": "Opțiuni premium selectate",
+        "dialogTitle_one": "Deblochează {{count}} opțiune premium",
+        "dialogTitle_few": "Deblochează {{count}} opțiuni premium",
+        "dialogTitle_other": "Deblochează {{count}} de opțiuni premium",
         "triggerLabel": "Selecție premium",
         "mobileSummary_one": "{{count}} opțiune premium în previzualizare · {{total}}",
         "mobileSummary_few": "{{count}} opțiuni premium în previzualizare · {{total}}",
         "mobileSummary_other": "{{count}} de opțiuni premium în previzualizare · {{total}}",
         "review": "Verifică",
         "compactLabel": "deblocări",
-        "popoverHint": "Opțiunile premium rămân active în previzualizare. Deblocarea este o plată unică și rămâne a ta.",
+        "popoverHint": "Plată unică. Aceste opțiuni rămân permanent ale tale.",
+        "sectionStyles": "Stiluri de secțiune",
+        "brandKit": "Kit de brand",
         "clear": "Elimină tot",
         "removeAria": "Elimină {{name}} din selecție",
         "totalLabel": "Total, plată unică",
         "subtotalsLabel": "Subtotaluri, plată unică",
         "mixedCurrency": "Opțiunile selectate trebuie să folosească aceeași monedă. Elimină opțiunile în altă monedă pentru a continua.",
         "complete": "Deblochează selecția",
+        "completeWithTotal_one": "Deblochează {{count}} opțiune · {{total}}",
+        "completeWithTotal_few": "Deblochează {{count}} opțiuni · {{total}}",
+        "completeWithTotal_other": "Deblochează {{count}} de opțiuni · {{total}}",
+        "secureNote": "Plată unică · Checkout securizat",
         "alreadyOwnedRemoved": "{{name}} este deja deblocat și a fost eliminat din selecție."
       },
       "sectionEyebrow": "Secțiune premium",
@@ -226,23 +292,27 @@
       "sectionLockedTitle": "Secțiune premium · {{price}}, plată unică",
       "appliedLockedTitle": "Această secțiune folosește un stil premium care nu este deblocat.",
       "appliedLockedHelper": "Deblochează-l, alege un stil inclus sau ascunde secțiunea înainte de publicare.",
-      "separateNote": "Această plată deblochează doar această opțiune. Celelalte opțiuni selectate rămân în selecție."
+      "separateNote": "Deblocarea acestei opțiuni nu afectează celelalte selecții premium."
     },
     "branding": {
       "kitLabel": "Brand",
       "tagline": {
         "label": "Subtitlu",
-        "placeholder": "ex. Tunsori și vopsit moderne în centrul orașului"
+        "placeholder": "Un rând scurt care surprinde ce oferă afacerea ta"
       },
       "hero": {
         "label": "Imagine de copertă",
-        "description": "O imagine lată în partea de sus a site-ului.",
+        "description": "Alege o imagine panoramică reprezentativă pentru afacerea ta.",
         "alt": "Imaginea de copertă a site-ului",
         "uploadCta": "Adaugă o imagine de copertă",
-        "uploading": "Se încarcă…",
+        "uploadDescription": "JPG, PNG, WEBP sau AVIF · până la 10 MB",
+        "chooseImage": "Alege imaginea",
+        "dropCta": "Eliberează pentru încărcare",
+        "uploading": "Încărcăm imaginea de copertă",
+        "uploadingHint": "De obicei durează doar câteva momente.",
         "hint": "JPG, PNG, WEBP sau AVIF · până la 10 MB",
-        "replace": "Înlocuiește",
-        "remove": "Elimină imaginea de copertă"
+        "replace": "Schimbă imaginea",
+        "remove": "Elimină"
       },
       "brandColor": {
         "label": "Culoare de accent",
@@ -284,10 +354,10 @@
     },
     "about": {
       "titleLabel": "Titlu",
-      "titlePlaceholder": "Un rând scurt și expresiv care rezumă cine ești.",
+      "titlePlaceholder": "Rezumă ce face afacerea ta o alegere potrivită.",
       "titleHelp": "Apare mare, sus — se așază pe rânduri singur, fără să adaugi tu întreruperi.",
       "bodyLabel": "Poveste",
-      "bodyPlaceholder": "Restul poveștii — abordarea ta, specializările și la ce se pot aștepta clienții când te vizitează.",
+      "bodyPlaceholder": "Prezintă cum lucrezi, ce oferi și la ce se pot aștepta oamenii.",
       "headlineRequired": "Titlul este obligatoriu cât timp secțiunea Despre este afișată — adaugă unul sau ascunde secțiunea."
     },
     "sections": {
@@ -300,7 +370,7 @@
         "description": "Ajută vizitatorii să exploreze site-ul și să facă o programare."
       },
       "hero": {
-        "label": "Copertă",
+        "label": "Hero",
         "description": "Prezintă afacerea prin imaginea de copertă, nume, subtitlu și butonul de programare."
       },
       "marquee": {
@@ -322,10 +392,6 @@
       "team": {
         "label": "Echipă",
         "description": "Prezintă echipa și locația în care lucrează fiecare."
-      },
-      "interlude": {
-        "label": "Pauză foto",
-        "description": "Creează o pauză foto pe toată lățimea între secțiuni."
       },
       "testimonials": {
         "label": "Recenzii",
@@ -359,10 +425,18 @@
         "portraits": "Portrete",
         "roster": "Listă",
         "editorial": "Editorial",
+        "directory": "Director",
+        "signature": "Semnătură",
+        "masthead": "Masthead",
+        "marque": "Marcaj",
+        "capsule": "Capsulă",
+        "underlay": "Sub pagină",
         "bento": "Bento",
-        "masonry": "Mozaic",
+        "masonry": "Masonry",
         "chips": "Etichete",
         "index": "Index",
+        "mosaic": "Mozaic",
+        "fan": "Evantai",
         "manifesto": "Manifest",
         "ledger": "Registru",
         "poster": "Afiș",
@@ -372,7 +446,12 @@
         "mega": "Mega",
         "marquee": "Bandă",
         "spotlight": "Reflector",
-        "deck": "Teanc"
+        "deck": "Teanc",
+        "textPanel": "Panou text",
+        "cinematic": "Cinematic",
+        "portal": "Portal",
+        "drift": "Drift",
+        "tumble": "Tumble"
       },
       "variantDescriptions": {
         "announcement": {
@@ -381,10 +460,19 @@
           "hairline": "Un anunț discret pe un singur rând."
         },
         "nav": {
-          "default": "Logo, linkuri către secțiuni și buton de programare."
+          "default": "O bară editorială clasică, cu brandul, linkurile centrate și butonul de programare.",
+          "editorial": "O bară editorială clasică, cu brandul, linkurile centrate și butonul de programare.",
+          "capsule": "O navigare pe toată lățimea care se restrânge într-o capsulă din sticlă întunecată la derulare.",
+          "split": "Linkurile secțiunilor încadrează numele brandului, cu o compoziție divizată pe ecrane mici.",
+          "underlay": "O bară minimală care glisează pagina pentru a dezvălui meniul de dedesubt."
         },
         "hero": {
-          "default": "Numele afacerii și butonul de programare peste imaginea de copertă."
+          "default": "Câmp de accent fără copertă; un panou text peste coperta ta după ce o adaugi.",
+          "cinematic": "Fotografie de copertă pe tot ecranul, cu numele afacerii jos-stânga.",
+          "poster": "Nume supradimensionat, stivuit, peste o cortină de lumină întunecată.",
+          "portal": "Un portret arcuit care se deschide pe tot ecranul la derulare.",
+          "drift": "O plasă auroră lentă în spatele unei declarații cu majuscule.",
+          "tumble": "Numele afacerii cade ca niște litere de cerneală pe hârtie caldă."
         },
         "marquee": {
           "scroll": "Serviciile se mișcă pe măsură ce vizitatorii derulează.",
@@ -402,17 +490,15 @@
           "atlas": "File pentru locații, cu fotografie panoramică și detalii."
         },
         "gallery": {
-          "editorial": "Fotografii aranjate într-un format editorial variat.",
-          "bento": "Un mozaic compact cu fotografii din portofoliu.",
-          "masonry": "O grilă fluidă care păstrează înălțimea naturală a imaginilor.",
-          "carousel": "O galerie orizontală pe care vizitatorii o pot parcurge."
+          "bento": "Dale de dimensiuni mixte, aranjate compact.",
+          "carousel": "Un carusel orizontal lent.",
+          "masonry": "Coloane de fotografii dispuse la înălțimi diferite.",
+          "index": "Un perete foto fluid care mărește imaginea selectată pe loc.",
+          "fan": "Un perete curbat de fotografii pe care vizitatorii îl pot parcurge prin glisare."
         },
         "team": {
           "portraits": "Portrete mari ale echipei, cu detalii despre locație.",
           "roster": "O listă compactă a membrilor echipei și evaluărilor."
-        },
-        "interlude": {
-          "default": "O fotografie pe toată lățimea între două secțiuni."
         },
         "testimonials": {
           "default": "O recenzie principală și un rezumat al evaluărilor.",
@@ -430,11 +516,11 @@
           "index": "O listă editorială numerotată de întrebări."
         },
         "footer": {
-          "default": "Brand, locații, date de contact și programare.",
-          "poster": "Un panou final îndrăzneț, centrat pe numele afacerii.",
-          "minimal": "Un subsol compact cu brandul și linkurile sociale.",
-          "mega": "Un îndemn mare la programare, cu datele de contact esențiale.",
-          "index": "O listă structurată cu programare, locații și date de contact."
+          "directory": "Coloane întunecate de sitemap, cu un indicator de stare live.",
+          "editorial": "Coloane deasupra unui nume de brand supradimensionat.",
+          "signature": "Un nume de brand uriaș deasupra unui newsletter și a coloanelor de linkuri.",
+          "masthead": "Coloane întunecate de sitemap sub un nume de brand colosal.",
+          "marque": "Liste-index monospace grej deasupra unui semn tipografic colosal."
         }
       }
     },
@@ -444,6 +530,7 @@
       "unknownStyle": "Stil"
     },
     "theme": {
+      "accentColor": "Culoare de accent",
       "fontLabel": "Stil font",
       "fonts": {
         "modern": "Modern",
@@ -528,7 +615,10 @@
         "drag": "Reordonează",
         "alwaysOn": "Mereu afișat",
         "hide": "Ascunde secțiunea",
-        "show": "Afișează secțiunea"
+        "show": "Afișează secțiunea",
+        "servicesLocked": "Adaugă suficiente servicii pentru a crea cel puțin {{count}} elemente în bandă înainte de a activa această secțiune.",
+        "teamLocked": "Adaugă cel puțin {{count}} membri ai echipei înainte de a activa această secțiune.",
+        "reviewsLocked": "Strânge cel puțin {{count}} recenzii de la clienți înainte de a activa această secțiune."
       },
       "summary": {
         "fixed": "Fixă",
@@ -543,30 +633,35 @@
         "coverSet": "Imagine de copertă adăugată",
         "subtitleSet": "Subtitlu adăugat",
         "addSubtitle": "Adaugă un subtitlu",
+        "addCover": "Adaugă o fotografie de copertă",
         "noHeadline": "Niciun titlu încă",
         "locationsShown": "{{shown}} din {{total}} locații afișate",
         "locationsEmpty": "Nicio locație încă",
         "photos_one": "{{count}} fotografie",
         "photos_few": "{{count}} fotografii",
         "photos_other": "{{count}} de fotografii",
+        "photosProgress": "{{count}} din {{required}} fotografii selectate",
         "photosEmpty": "Nicio fotografie încă",
         "members_one": "{{count}} membru",
         "members_few": "{{count}} membri",
         "members_other": "{{count}} de membri",
+        "membersProgress": "{{count}} din {{required}} membri ai echipei adăugați",
         "membersEmpty": "Niciun membru în echipă încă",
-        "usesPortfolioPhoto": "Folosește fotografii din portofoliu",
-        "noPortfolioPhoto": "Adaugă mai întâi fotografii în portofoliu",
         "reviews_one": "{{count}} recenzie",
         "reviews_few": "{{count}} recenzii",
         "reviews_other": "{{count}} de recenzii",
         "reviewsEmpty": "Nicio recenzie încă",
+        "reviewsNeedMore": "Necesită {{count}}+ recenzii",
+        "reviewsProgress": "{{count}} din {{required}} recenzii strânse",
         "questions_one": "{{count}} întrebare",
         "questions_few": "{{count}} întrebări",
         "questions_other": "{{count}} de întrebări",
+        "questionsProgress": "Răspunsuri complete: {{count}} din {{required}}",
         "questionsEmpty": "Nicio întrebare încă",
         "services_one": "{{count}} serviciu",
         "services_few": "{{count}} servicii",
         "services_other": "{{count}} de servicii",
+        "servicesProgress": "{{count}} din {{required}} elemente de servicii disponibile",
         "servicesEmpty": "Adaugă servicii"
       },
       "toast": {
@@ -576,6 +671,35 @@
         "sectionHidden": "{{section}} a fost ascunsă."
       },
       "settings": {
+        "contentLabel": "Conținut",
+        "contentSourceLabel": "Sursa conținutului",
+        "readiness": {
+          "eyebrow": "Cerință de conținut",
+          "progress": "{{current}} din {{required}} complete",
+          "about": {
+            "title": "Adaugă un titlu pentru Despre noi",
+            "body": "Oferă-le vizitatorilor o introducere clară sau ascunde secțiunea înainte de publicare.",
+            "action": "Adaugă titlul"
+          },
+          "announcement": {
+            "title": "Adaugă un mesaj în anunț",
+            "body": "Scrie noutatea pe care trebuie să o vadă vizitatorii sau ascunde secțiunea înainte de publicare.",
+            "action": "Adaugă mesajul",
+            "urlTitle": "Adaugă linkul butonului din anunț",
+            "urlBody": "Butonul are text, dar nu are o destinație. Adaugă linkul înainte de publicare.",
+            "urlAction": "Adaugă linkul"
+          },
+          "faq": {
+            "title": "Completează secțiunea de întrebări",
+            "body": "Finalizează sau elimină fiecare întrebare începută. Este necesar cel puțin un răspuns complet înainte de publicare.",
+            "action": "Verifică întrebările"
+          },
+          "gallery": {
+            "title": "Alege cel puțin {{count}} fotografii",
+            "body": "Selectează suficiente fotografii pentru fiecare stil de Galerie sau ascunde secțiunea înainte de publicare.",
+            "action": "Alege fotografii"
+          }
+        },
         "locationsHint": "Alege ce locații apar pe site.",
         "locationsNone": "Nu ai încă nicio locație.",
         "locationVisibility": "Afișează {{name}}",
@@ -585,30 +709,97 @@
         "headingLabel": "Titlu",
         "subledeLabel": "Subtitlu",
         "customize": "Personalizează {{field}}",
+        "copyDefaultBadge": "Implicit",
+        "copyCustomBadge": "Personalizat",
+        "copyUseDefault": "Folosește implicit",
+        "copyUseDefaultAria": "Folosește textul implicit pentru {{field}}",
         "teamHint": "Personalizează titlul. Echipa este preluată din locațiile tale.",
         "galleryHint": "Personalizează titlul. Fotografiile provin din portofoliile locațiilor tale.",
+        "gallery": {
+          "locationsTitle": "Locații sursă",
+          "locationsHint": "Alege portofoliile locațiilor din care poate prelua fotografii această Galerie.",
+          "locationPhotos_one": "{{count}} fotografie de portofoliu",
+          "locationPhotos_few": "{{count}} fotografii de portofoliu",
+          "locationPhotos_other": "{{count}} de fotografii de portofoliu",
+          "includeLocation": "Include fotografii din {{name}}",
+          "selectedTitle": "Fotografii selectate",
+          "selectedCount": "{{count}} din {{max}} selectate",
+          "autoFill": "Alege {{count}} pentru mine",
+          "minimumHint_one": "Mai adaugă {{count}} fotografie pentru a ajunge la minimum {{minimum}}.",
+          "minimumHint_few": "Mai adaugă {{count}} fotografii pentru a ajunge la minimum {{minimum}}.",
+          "minimumHint_other": "Mai adaugă {{count}} de fotografii pentru a ajunge la minimum {{minimum}}.",
+          "selectedEmpty": "Alege cel puțin patru fotografii pentru această Galerie.",
+          "libraryTitle": "Bibliotecă foto",
+          "libraryHint": "Selectează până la 16 fotografii. Ordinea de mai sus este folosită de toate stilurile Galeriei.",
+          "libraryEmpty": "Locațiile incluse nu au încă fotografii de portofoliu.",
+          "managePhotos": "Gestionează fotografiile de portofoliu",
+          "featured": "Principală",
+          "untitledImage": "Fotografie de portofoliu",
+          "reorderImage": "Reordonează fotografia {{number}}",
+          "imageActions": "Acțiuni pentru fotografia {{number}}",
+          "moveEarlier": "Mută mai devreme",
+          "moveLater": "Mută mai târziu",
+          "removeImage": "Elimină din Galerie",
+          "selectImage": "Adaugă {{name}} în Galerie",
+          "deselectImage": "Elimină {{name}} din Galerie"
+        },
         "reviewsHint": "Personalizează titlul. Recenziile provin de la clienții tăi.",
+        "faqHint": "Personalizează titlul, apoi adaugă întrebările și răspunsurile de care au nevoie vizitatorii.",
+        "servicesLockedEyebrow": "Cerință pentru servicii",
+        "servicesLockedTitleEmpty": "Adaugă primele {{count}} servicii",
+        "servicesLockedTitle_one": "Mai adaugă {{count}} serviciu",
+        "servicesLockedTitle_few": "Mai adaugă {{count}} servicii",
+        "servicesLockedTitle_other": "Mai adaugă {{count}} de servicii",
+        "servicesLockedBody": "Numele serviciilor — și categoriile, când este necesar — completează automat această bandă. După ce ajunge la {{count}} elemente distincte, poți alege un stil de mișcare și activa secțiunea.",
+        "servicesLockedAction": "Gestionează serviciile",
+        "teamLockedEyebrow": "Cerință pentru echipă",
+        "teamLockedTitleEmpty": "Adaugă primii {{count}} membri ai echipei",
+        "teamLockedTitle_one": "Mai adaugă {{count}} membru al echipei",
+        "teamLockedTitle_few": "Mai adaugă {{count}} membri ai echipei",
+        "teamLockedTitle_other": "Mai adaugă {{count}} de membri ai echipei",
+        "teamLockedBody": "Fiecare profil unic este numărat, inclusiv proprietarul. După ce ai {{count}} persoane, poți alege un stil și activa secțiunea.",
+        "teamLockedAction": "Gestionează membrii echipei",
+        "reviewsLockedEyebrow": "Cerință pentru recenzii",
+        "reviewsLockedTitleEmpty": "Strânge primele {{count}} recenzii de la clienți",
+        "reviewsLockedTitle_one": "Mai ai nevoie de {{count}} recenzie de la clienți",
+        "reviewsLockedTitle_few": "Mai ai nevoie de {{count}} recenzii de la clienți",
+        "reviewsLockedTitle_other": "Mai ai nevoie de {{count}} de recenzii de la clienți",
+        "reviewsLockedBody": "Recenziile clienților apar aici automat. După ce ajungi la {{count}}, poți alege un stil și activa această secțiune.",
         "reviewsDistributionLabel": "Arată distribuția evaluărilor",
+        "footerLogoTitle": "Logo-ul afacerii",
+        "footerLogoToggle": "Afișează logo-ul afacerii",
+        "footerLogoHint": "Folosește logo-ul din profilul afacerii. Când este ascuns, apare în schimb numele afacerii.",
         "noSettings": "Această secțiune nu are setări suplimentare.",
         "viewOnlyHint": "Se generează automat din informațiile afacerii.",
         "profileSync": "Detaliile se sincronizează din profilul afacerii.",
         "profileLink": "Profilul afacerii ↗"
       },
       "faq": {
-        "add": "Adaugă întrebare",
+        "add": "Adaugă altă întrebare",
+        "limitReached": "Ai ajuns la limita de {{count}} întrebări.",
         "remove": "Șterge întrebarea {{number}}",
         "empty": "Nicio întrebare încă. Adaugă-o pe prima.",
+        "recommendationEyebrow": "Recomandat",
+        "recommendationTitle": "Recomandăm {{count}} întrebări utile în această limbă",
+        "recommendationBody": "Trei răspunsuri complete le oferă vizitatorilor un punct de plecare mai util.",
+        "recommendationProgress": "{{current}} din {{recommended}} întrebări recomandate sunt complete în această limbă",
+        "questionTitle": "Întrebare",
         "questionLabel": "Întrebarea {{number}}",
+        "questionEmpty": "Întrebarea nu a fost adăugată încă",
         "answerLabel": "Răspuns",
-        "questionPlaceholder": "ex. Cu cât timp înainte trebuie să fac programarea?",
-        "answerPlaceholder": "Adaugă răspunsul pe care îl vor vedea vizitatorii."
+        "questionPlaceholder": "ex. Ce ar trebui să știe clienții înainte de a începe?",
+        "answerPlaceholder": "Scrie un răspuns clar pentru vizitatori.",
+        "questionRequiredBeforeAdd": "Scrie această întrebare înainte de a adăuga alta.",
+        "answerRequiredBeforeAdd": "Adaugă răspunsul înainte de a adăuga altă întrebare.",
+        "questionRequired": "Adaugă o întrebare pentru acest răspuns.",
+        "answerRequired": "Adaugă un răspuns pentru această întrebare."
       },
       "announcement": {
         "messageLabel": "Mesaj",
-        "messagePlaceholder": "ex. 20% reducere la prima vizită",
+        "messagePlaceholder": "ex. Program nou, o ofertă specială sau o noutate importantă",
         "messageRequiredHint": "Mesajul este obligatoriu cât timp anunțul este afișat; adaugă unul sau ascunde secțiunea.",
-        "sampleMessage": "20% reducere la prima vizită",
-        "sampleCta": "Programează",
+        "sampleMessage": "O noutate importantă din partea echipei noastre",
+        "sampleCta": "Află mai multe",
         "endsIn": "Se încheie în {{time}}",
         "tone": {
           "title": "Evidențiere",
@@ -622,7 +813,7 @@
           "enableLabel": "Afișează un buton",
           "enableHint": "Trimite către programare, o ofertă sau altă pagină.",
           "labelLabel": "Textul butonului",
-          "labelPlaceholder": "ex. Programează, Vezi ofertele",
+          "labelPlaceholder": "ex. Află mai multe, Vezi oferta",
           "labelHint": "Butonul apare după ce adaugi text.",
           "urlLabel": "Link",
           "newTab": "Deschide într-o filă nouă",
@@ -644,13 +835,12 @@
         "eyebrowTitle": "Rezumat locații",
         "eyebrowToggle": "Afișează rezumatul locațiilor",
         "eyebrowHint": "Arată numărul locațiilor deasupra numelui afacerii.",
+        "eyebrowCopyLabel": "Text introductiv",
+        "coverRecommendationEyebrow": "Recomandat pentru acest stil",
+        "coverRecommendation": "Adaugă o imagine de copertă pentru compoziția dorită.",
         "ratingTitle": "Rating și recenzii",
         "ratingToggle": "Arată ratingul și recenziile",
-        "ratingHint": "Apare după ce afacerea ta are recenzii.",
-        "coverLayoutTitle": "Stil copertă",
-        "coverLayoutHint": "Alege cum împart imaginea și textul spațiul copertei.",
-        "coverLayout_full": "Imagine completă",
-        "coverLayout_plate": "Panou de text"
+        "ratingHint": "Apare după ce afacerea ta are recenzii."
       },
       "preview": {
         "allHidden": "Toate secțiunile sunt ascunse. Afișează cel puțin una pentru previzualizare.",
@@ -663,24 +853,31 @@
           "announcement": "Anunț",
           "closeGallery": "Închide galeria",
           "previousImage": "Imaginea anterioară",
-          "nextImage": "Imaginea următoare"
+          "nextImage": "Imaginea următoare",
+          "openGalleryImage": "Deschide imaginea {{number}} din galerie",
+          "goToGalleryImage": "Mergi la imaginea {{number}} din galerie",
+          "focusGalleryImage": "Focalizează imaginea {{number}} din galerie",
+          "expandGalleryImage": "Mărește imaginea {{number}} din galerie",
+          "collapseGalleryImage": "Restrânge imaginea {{number}} din galerie",
+          "previousGalleryPage": "Pagina anterioară a galeriei",
+          "nextGalleryPage": "Pagina următoare a galeriei"
         },
         "businessNamePlaceholder": "Afacerea ta",
         "aboutTitle": "Despre noi",
-        "aboutGhostLede": "Un rând scurt și expresiv despre ce te face diferit.",
-        "aboutGhostBody": "O frază sau două despre abordarea ta, specializările și la ce se pot aștepta clienții când te vizitează.",
+        "aboutGhostLede": "Ce facem și de ce contează.",
+        "aboutGhostBody": "Descoperă cum lucrăm, ce oferim și la ce te poți aștepta când ne alegi.",
         "locationsTitle": "Locații",
-        "locationsEmpty": "Locațiile tale vor apărea aici.",
-        "noAddress": "Adresă nesetată",
+        "locationsEmpty": "Detaliile locațiilor vor apărea aici după ce sunt adăugate.",
+        "noAddress": "Adresa va fi disponibilă în curând",
         "galleryTitle": "Galerie",
-        "galleryEmpty": "Adaugă poze de portofoliu în locații pentru a umple galeria.",
+        "galleryEmpty": "Fotografiile vor apărea aici după ce sunt adăugate.",
         "teamTitle": "Echipa noastră",
-        "teamEmpty": "Membrii echipei vor apărea aici.",
+        "teamEmpty": "Membrii echipei vor apărea aici după ce sunt adăugați.",
         "teamMember": "Membru echipă",
         "teamRoleOwner": "Proprietar",
         "teamFind": "Lucrează la {{location}}",
         "testimonialsTitle": "Ce spun clienții",
-        "testimonialsEmpty": "Recenziile tale vor apărea aici după ce primești câteva.",
+        "testimonialsEmpty": "Recenziile clienților vor apărea aici pe măsură ce sunt colectate.",
         "reviewsCount_one": "{{count}} recenzie",
         "reviewsCount_few": "{{count}} recenzii",
         "reviewsCount_other": "{{count}} de recenzii",
@@ -692,20 +889,20 @@
         "tagsShowAll": "Arată tot",
         "tagsShowLess": "Arată mai puțin",
         "faqTitle": "Întrebări frecvente",
-        "faqEmpty": "Adaugă întrebări din setările secțiunii Întrebări frecvente.",
-        "faqStillCurious": "Mai ai întrebări?",
+        "faqEmpty": "Întrebările tale vor apărea aici după ce sunt adăugate.",
+        "faqStillCurious": "Mai ai o întrebare?",
         "faqBookVisit": "Programează acum",
-        "faqWriteUs": "Scrie-ne",
-        "faqCantFind": "Nu găsești răspunsul?",
-        "faqCantFindBody": "Scrie-ne sau programează acum.",
+        "faqWriteUs": "Contactează-ne",
+        "faqCantFind": "Ai nevoie de mai multe informații?",
+        "faqCantFindBody": "Contactează-ne și te ajutăm cu plăcere.",
         "statLocations": "Locații",
         "statTeam": "Echipă",
         "statRating": "Evaluare",
         "contactTitle": "Contactează-ne",
-        "galleryHeading": "O privire în interior.",
+        "galleryHeading": "O privire mai atentă.",
         "galleryViewFull": "Vezi complet",
-        "reviewsHeading": "Apreciați de clienții noștri.",
-        "reviewsSublede": "Recenzii din programări verificate.",
+        "reviewsHeading": "În cuvintele lor.",
+        "reviewsSublede": "Păreri verificate de la clienți reali.",
         "reviewsVerifiedCount_one": "{{count}} recenzie verificată",
         "reviewsVerifiedCount_few": "{{count}} recenzii verificate",
         "reviewsVerifiedCount_other": "{{count}} de recenzii verificate",
@@ -714,10 +911,14 @@
         "reviewsPrev": "Recenzia anterioară",
         "reviewsNext": "Următoarea recenzie",
         "reviewsDeckHint": "Selectează un card pentru altă recenzie",
-        "contactHeadingLoc": "Vino la {{name}}.",
+        "reviewsVerifiedReviews": "recenzii verificate",
+        "reviewsFiveStarShare": "{{pct}}% cu cinci stele",
+        "reviewsAverageWord": "în medie",
+        "reviewsVoice": "Recenzia {{n}}",
+        "contactHeadingLoc": "Vizitează {{name}}.",
         "contactReach": "Contact",
-        "footerComeFind": "Treci pe la noi.",
-        "footerWhere": "Unde",
+        "footerComeFind": "Ne găsești aici.",
+        "footerWhere": "Locație",
         "footerMore": "mai multe locații",
         "footerReady": "Când ești gata",
         "footerBookVisit": "Programează acum",
@@ -726,11 +927,13 @@
         "footerWriteToUs": "Scrie-ne",
         "footerCall": "Sună-ne",
         "footerCallLoc": "Sună {{name}}",
-        "footerFollow": "Urmărește",
+        "footerFollow": "Urmărește-ne",
+        "footerExplore": "Explorează",
+        "footerStayConnected": "Urmărește-ne",
         "contactHours": "Program",
         "contactClosed": "Închis",
         "contactOpen247": "Non-stop",
-        "statusOpenUntil": "Deschis acum · până la {{time}}",
+        "statusOpenUntil": "Deschis până la {{time}}",
         "statusOpensAt": "Se deschide la {{time}}",
         "locBook": "Programează acum",
         "locVisit": "Ne găsești la",
@@ -760,21 +963,20 @@
           "rights": "© {{year}} {{name}}"
         },
         "hero": {
-          "scrollCue": "Derulează",
           "locationsAcross": "{{num}} locații în {{place}}"
         },
         "subhead": {
-          "locations_one": "Unde ne găsești.",
-          "locations_few": "{{count}} locații, o singură echipă.",
-          "locations_other": "{{count}} de locații, o singură echipă.",
+          "locations_one": "Ne găsești aici.",
+          "locations_few": "Ne găsești în {{count}} locații.",
+          "locations_other": "Ne găsești în {{count}} de locații.",
           "team": "Cunoaște echipa.",
-          "faq": "Întrebări, cu răspunsuri."
+          "faq": "Răspunsuri la întrebări frecvente."
         },
         "sublede": {
-          "locations_one": "Vino să ne cunoști, te așteptăm cu drag.",
-          "locations_few": "Fiecare locație are echipa și programul ei. Alege unde vrei să mergi; totul de mai jos se actualizează.",
-          "locations_other": "Fiecare locație are echipa și programul ei. Alege unde vrei să mergi; totul de mai jos se actualizează.",
-          "team": "Oamenii care vor avea grijă de tine."
+          "locations_one": "Găsești mai jos adresa, programul și datele noastre de contact.",
+          "locations_few": "Alege o locație pentru a vedea adresa, programul și datele de contact.",
+          "locations_other": "Alege o locație pentru a vedea adresa, programul și datele de contact.",
+          "team": "Cunoaște oamenii din spatele afacerii."
         },
         "kicker": {
           "about": "Despre",

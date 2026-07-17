@@ -9,4 +9,4 @@ export const DISPLAY: CSSProperties = {
 export const MONO: CSSProperties = { fontFamily: "var(--mc-mono)" };
 
 /** Section types that don't get a numbered "0N —" kicker (full-bleed hero/announcement + decorative bands). */
-export const UNNUMBERED = new Set<string>(["hero", "announcement", "marquee", "interlude", "nav", "footer"]);
+export const UNNUMBERED = new Set<string>(["hero", "announcement", "marquee", "nav", "footer"]);

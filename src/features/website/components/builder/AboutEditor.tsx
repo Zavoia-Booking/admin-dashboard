@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Collapsible,
@@ -7,6 +8,10 @@ import TextareaField from "../../../../shared/components/forms/fields/TextareaFi
 import { AutoHeight } from "./AutoHeight";
 import { InfoHint } from "./InfoHint";
 import { splitAboutContent, joinAboutContent } from "./aboutContent";
+import {
+  hasUnsafeWebsiteCopyCharacters,
+  validateWebsiteCopy,
+} from "../../../../shared/utils/validation";
 
 const TITLE_MAX = 200;
 const BODY_MAX = 1800;
@@ -28,12 +33,27 @@ interface AboutEditorProps {
  * then reveals with the section accordion's animation.
  */
 export function AboutEditor({ value, onChange, required }: AboutEditorProps) {
-  const { t } = useTranslation("website");
+  const { t } = useTranslation(["website", "common"]);
+  const [blurred, setBlurred] = useState({ title: false, body: false });
 
   const { title, body } = splitAboutContent(value);
   const headlineMissing = !!required && title.trim() === "";
   // Reveal the Story once there's a headline — or already-saved body, so existing content is never hidden.
   const showStory = title.trim() !== "" || body.trim() !== "";
+  const titleValidation = validateWebsiteCopy(title, t, {
+    fieldLabel: t("businessPage.about.titleLabel"),
+    maxLength: TITLE_MAX,
+  });
+  const bodyValidation = validateWebsiteCopy(body, t, {
+    fieldLabel: t("businessPage.about.bodyLabel"),
+    maxLength: BODY_MAX,
+  });
+  const titleError = blurred.title || hasUnsafeWebsiteCopyCharacters(title)
+    ? titleValidation ?? undefined
+    : undefined;
+  const bodyError = blurred.body || hasUnsafeWebsiteCopyCharacters(body)
+    ? bodyValidation ?? undefined
+    : undefined;
 
   // Headline is one wrapping line — collapse newlines so the blank-line split stays unambiguous.
   const setTitle = (raw: string) => onChange(joinAboutContent(raw.replace(/\s*\n\s*/g, " "), body));
@@ -47,11 +67,16 @@ export function AboutEditor({ value, onChange, required }: AboutEditorProps) {
         placeholder={t("businessPage.about.titlePlaceholder")}
         value={title}
         onChange={setTitle}
+        onBlur={() => {
+          if (title.trim() !== title) setTitle(title.trim());
+          setBlurred((current) => ({ ...current, title: true }));
+        }}
         maxLength={TITLE_MAX}
         rows={2}
         className="!pt-0"
         helperText={headlineMissing ? undefined : t("businessPage.about.titleHelp")}
         hint={headlineMissing ? <InfoHint>{t("businessPage.about.headlineRequired")}</InfoHint> : undefined}
+        error={titleError}
       />
 
       <Collapsible open={showStory}>
@@ -63,9 +88,14 @@ export function AboutEditor({ value, onChange, required }: AboutEditorProps) {
               placeholder={t("businessPage.about.bodyPlaceholder")}
               value={body}
               onChange={setBody}
+              onBlur={() => {
+                if (body.trim() !== body) setBody(body.trim());
+                setBlurred((current) => ({ ...current, body: true }));
+              }}
               maxLength={BODY_MAX}
               rows={6}
               className="!pt-0"
+              error={bodyError}
             />
           </AutoHeight>
         </CollapsibleContent>

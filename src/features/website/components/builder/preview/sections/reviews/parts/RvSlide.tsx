@@ -4,7 +4,20 @@ import { Stars } from "../../../shared/primitives";
 import { formatReviewDate } from "../../../shared/util";
 import type { PreviewReview, T } from "../../../shared/types";
 
-export function RvSlide({ item, animateIn, italic, t }: { item: PreviewReview; animateIn: boolean; italic: boolean; t: T }) {
+export function RvSlide({
+  item,
+  animateIn,
+  italic,
+  t,
+  starEmpty,
+}: {
+  item: PreviewReview;
+  animateIn: boolean;
+  italic: boolean;
+  t: T;
+  /** Empty-star colour override for the dark spotlight panel; defaults to the paper (light) empty. */
+  starEmpty?: string;
+}) {
   // Resting state is visible; only hide-then-rise when actually animating in, so a frozen first paint
   // never traps the words off-screen.
   const [entered, setEntered] = useState(false);
@@ -38,7 +51,7 @@ export function RvSlide({ item, animateIn, italic, t }: { item: PreviewReview; a
           {sub && <span className="mc-rv-meta-sub">{sub}</span>}
         </span>
         <span className="mc-rv-meta-end">
-          <Stars value={item.rating} size={14} />
+          <Stars value={item.rating} size={14} empty={starEmpty} />
           <span className="mc-rv-vrow">
             <ShieldCheck className="h-[11px] w-[11px]" strokeWidth={2} /> {t("businessPage.builder.preview.reviewsVerified")}
           </span>

@@ -8,6 +8,15 @@ import type {
 const LEGACY_CHECKOUT_INTENT_VERSION = 1;
 const CHECKOUT_INTENT_VERSION = 2;
 
+export const WEBSITE_CHECKOUT_CONTEXT_PARAM = "website_checkout_context";
+export type WebsiteCheckoutReturnContext = "publish-review";
+
+export function parseWebsiteCheckoutReturnContext(
+  value: string | null,
+): WebsiteCheckoutReturnContext | null {
+  return value === "publish-review" ? value : null;
+}
+
 export type PreviewOnlyVariantSelections = Record<string, string>;
 export interface PreviewOnlyThemeSelections {
   /** Current preview accent hex. */

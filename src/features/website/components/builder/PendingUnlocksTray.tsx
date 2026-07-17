@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ChevronRight, Loader2, Lock, LockOpen, X } from "lucide-react";
+import { ChevronRight, Lock, LockOpen, X } from "lucide-react";
 import { cn } from "../../../../shared/lib/utils";
 import { Button } from "../../../../shared/components/ui/button";
+import { Spinner } from "../../../../shared/components/ui/spinner";
 import {
   Dialog,
   DialogContent,
@@ -12,7 +13,7 @@ import {
   DialogTrigger,
 } from "../../../../shared/components/ui/dialog";
 import { useFormatPrice } from "../../../../shared/hooks/useFormatPrice";
-import { variantPriceLabel } from "./pricing";
+import { unlockTotalsByCurrency, variantPriceLabel } from "./pricing";
 import { displayFontFor } from "./theme";
 
 /** One queued unlock — a paid style or a section unlock, resolved against the catalog. */
@@ -36,6 +37,8 @@ interface PendingUnlocksProps {
   isLoading: boolean;
   /** Authoritative ownership/catalog reconciliation currently makes the tray read-only. */
   isBlocked?: boolean;
+  /** Checkout redirects away; keep queue management available but require a clean draft first. */
+  checkoutBlocked?: boolean;
   onRemove: (item: UnlockLineItem) => void;
   onClear: () => void;
   onCheckout: () => void;
@@ -48,6 +51,7 @@ interface PendingUnlocksTriggerProps extends PendingUnlocksProps {
 
 interface UnlockListProps extends PendingUnlocksProps {
   showHeading?: boolean;
+  grouped?: boolean;
   className?: string;
 }
 
@@ -93,6 +97,34 @@ export function PendingUnlocksTrigger({ variant = "default", ...props }: Pending
   const { t } = useTranslation("website");
   const { formatPrice } = useFormatPrice();
   const [trayOpen, setTrayOpen] = useState(false);
+  const previousEntryCountRef = useRef(props.entries.length);
+  const [changeAnimating, setChangeAnimating] = useState(false);
+
+  useEffect(() => {
+    const previousCount = previousEntryCountRef.current;
+    const nextCount = props.entries.length;
+    previousEntryCountRef.current = nextCount;
+
+    if (nextCount === previousCount) {
+      return;
+    }
+
+    setChangeAnimating(false);
+    let playFrame = 0;
+    let settleTimer = 0;
+    const restartFrame = window.requestAnimationFrame(() => {
+      playFrame = window.requestAnimationFrame(() => {
+        setChangeAnimating(true);
+        settleTimer = window.setTimeout(() => setChangeAnimating(false), 860);
+      });
+    });
+
+    return () => {
+      window.cancelAnimationFrame(restartFrame);
+      window.cancelAnimationFrame(playFrame);
+      window.clearTimeout(settleTimer);
+    };
+  }, [props.entries.length]);
 
   if (props.entries.length === 0) return null;
 
@@ -105,11 +137,19 @@ export function PendingUnlocksTrigger({ variant = "default", ...props }: Pending
     <button
       type="button"
       disabled={interactionBlocked}
-      className="website-atelier-focus website-atelier-press relative flex h-8 shrink-0 items-center gap-[9px] whitespace-nowrap rounded-full border border-[var(--atelier-border)] bg-[var(--atelier-surface-strong)] py-0 pl-[7px] pr-[9px] text-[12px] font-semibold text-[var(--atelier-ink)] after:absolute after:-inset-y-1.5 after:inset-x-0 after:content-[''] hover:border-[color-mix(in_srgb,var(--atelier-ink)_28%,transparent)] disabled:cursor-not-allowed disabled:opacity-60"
+      className={cn(
+        "atelier-unlocks-trigger website-atelier-focus website-atelier-press relative flex h-8 shrink-0 items-center gap-[9px] whitespace-nowrap rounded-full border border-[var(--atelier-border)] bg-[var(--atelier-surface-strong)] py-0 pl-[7px] pr-[9px] text-[12px] font-semibold text-[var(--atelier-ink)] after:absolute after:-inset-y-1.5 after:inset-x-0 after:content-[''] hover:border-[color-mix(in_srgb,var(--atelier-ink)_28%,transparent)] disabled:cursor-not-allowed disabled:opacity-60",
+        changeAnimating && "atelier-unlocks-trigger--changed",
+      )}
       aria-label={`${t("businessPage.paidVariants.unlocks.title")}: ${props.entries.length}, ${total}`}
     >
-      <span className="grid size-[19px] shrink-0 place-items-center rounded-full bg-[color-mix(in_srgb,var(--atelier-warning)_18%,var(--atelier-surface-strong))] text-[#9a7a2a] dark:text-[#d6b966]">
-        <Lock className="size-2.5" strokeWidth={2.4} aria-hidden />
+      <span className="relative grid size-[21px] shrink-0 place-items-center rounded-full bg-[color-mix(in_srgb,var(--atelier-accent)_14%,var(--atelier-surface-strong))] text-[var(--atelier-accent)]">
+        <span
+          className="absolute inset-0 animate-ping rounded-full bg-[var(--atelier-accent)] opacity-20"
+          style={{ animationDuration: "3s" }}
+          aria-hidden
+        />
+        <Lock className="relative size-2.5" strokeWidth={2.4} aria-hidden />
       </span>
       <span className="inline-flex items-baseline gap-1 tabular-nums">
         <span>{props.entries.length}</span>
@@ -128,7 +168,10 @@ export function PendingUnlocksTrigger({ variant = "default", ...props }: Pending
     <button
       type="button"
       disabled={interactionBlocked}
-      className="atelier-mobile-unlocks website-atelier-focus website-atelier-press disabled:cursor-not-allowed disabled:opacity-60"
+      className={cn(
+        "atelier-unlocks-trigger atelier-mobile-unlocks website-atelier-focus website-atelier-press disabled:cursor-not-allowed disabled:opacity-60",
+        changeAnimating && "atelier-unlocks-trigger--changed",
+      )}
       aria-label={`${t("businessPage.paidVariants.unlocks.title")}: ${props.entries.length}, ${total}`}
     >
       <span className="atelier-mobile-unlocks-summary">
@@ -151,7 +194,10 @@ export function PendingUnlocksTrigger({ variant = "default", ...props }: Pending
       size="sm"
       rounded="default"
       disabled={interactionBlocked}
-      className="relative min-h-11 gap-1.5 px-3 text-[12px] font-semibold"
+      className={cn(
+        "atelier-unlocks-trigger relative min-h-11 gap-1.5 px-3 text-[12px] font-semibold",
+        changeAnimating && "atelier-unlocks-trigger--changed",
+      )}
       aria-label={t("businessPage.paidVariants.unlocks.title")}
     >
       <LockOpen className="size-4" strokeWidth={1.8} aria-hidden />
@@ -170,21 +216,16 @@ export function PendingUnlocksTrigger({ variant = "default", ...props }: Pending
       }}
     >
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent className="website-atelier atelier-unlock-tray-dialog gap-0 p-4">
+      <DialogContent className="website-atelier atelier-unlock-tray-dialog gap-0 p-0">
         <DialogHeader className="atelier-unlock-tray-header gap-0 pr-12 text-left">
           <div className="atelier-unlock-popover-heading">
-            <DialogTitle>{t("businessPage.paidVariants.unlocks.title")}</DialogTitle>
-            <span className="atelier-unlock-header-actions">
-              <span className="tabular-nums">{props.entries.length}</span>
-              <button
-                type="button"
-                onClick={props.onClear}
-                disabled={interactionBlocked}
-                className="atelier-unlock-clear website-atelier-focus"
-              >
-                {t("businessPage.paidVariants.unlocks.clear")}
-              </button>
-            </span>
+            <DialogTitle>
+              <span key={props.entries.length} className="atelier-unlock-value-update">
+                {t("businessPage.paidVariants.unlocks.dialogTitle", {
+                  count: props.entries.length,
+                })}
+              </span>
+            </DialogTitle>
           </div>
           <DialogDescription className="atelier-unlock-popover-hint text-pretty">
             {t("businessPage.paidVariants.unlocks.popoverHint")}
@@ -193,6 +234,7 @@ export function PendingUnlocksTrigger({ variant = "default", ...props }: Pending
         <UnlockList
           {...props}
           showHeading={false}
+          grouped
           className="atelier-unlock-popover-list"
         />
       </DialogContent>
@@ -200,32 +242,29 @@ export function PendingUnlocksTrigger({ variant = "default", ...props }: Pending
   );
 }
 
-function unlockTotalsByCurrency(entries: UnlockLineItem[]) {
-  return Array.from(
-    entries.reduce((groups, entry) => {
-      const key = entry.currency.toUpperCase();
-      const current = groups.get(key) ?? { currency: entry.currency, priceMinor: 0 };
-      current.priceMinor += entry.priceMinor;
-      groups.set(key, current);
-      return groups;
-    }, new Map<string, { currency: string; priceMinor: number }>()).values(),
-  );
-}
-
 function UnlockList({
   entries,
   isLoading,
   isBlocked = false,
+  checkoutBlocked = false,
   onRemove,
   onClear,
   onCheckout,
   showHeading = true,
+  grouped = false,
   bare = false,
   className,
 }: UnlockListProps & { bare?: boolean }) {
   const { t } = useTranslation("website");
+  const checkoutNoteId = useId();
   const { formatPrice } = useFormatPrice();
   const interactionBlocked = isLoading || isBlocked;
+  const mountedRef = useRef(true);
+  const [removingKeys, setRemovingKeys] = useState<ReadonlySet<string>>(() => new Set());
+
+  useEffect(() => () => {
+    mountedRef.current = false;
+  }, []);
 
   // A Stripe session accepts one currency. Keep subtotals separate rather than displaying
   // invalid arithmetic when regional catalog pricing differs.
@@ -237,6 +276,36 @@ function UnlockList({
   const totalLabel = hasMixedCurrencies
     ? t("businessPage.paidVariants.unlocks.subtotalsLabel")
     : t("businessPage.paidVariants.unlocks.totalLabel");
+  const entryGroups = grouped
+    ? [
+        {
+          key: "styles",
+          label: t("businessPage.paidVariants.unlocks.sectionStyles"),
+          entries: entries.filter((entry) => entry.kind === "section" || entry.kind === "variant"),
+        },
+        {
+          key: "brand",
+          label: t("businessPage.paidVariants.unlocks.brandKit"),
+          entries: entries.filter((entry) => entry.kind === "color" || entry.kind === "font"),
+        },
+      ].filter((group) => group.entries.length > 0)
+    : [{ key: "all", label: null, entries }];
+  const removalInProgress = removingKeys.size > 0;
+
+  const removeWithAnimation = (entry: UnlockLineItem) => {
+    if (interactionBlocked || removingKeys.has(entry.key)) return;
+    setRemovingKeys((current) => new Set(current).add(entry.key));
+    const removalDelay = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 220;
+    window.setTimeout(() => {
+      onRemove(entry);
+      if (!mountedRef.current) return;
+      setRemovingKeys((current) => {
+        const next = new Set(current);
+        next.delete(entry.key);
+        return next;
+      });
+    }, removalDelay);
+  };
 
   return (
     <div
@@ -264,48 +333,68 @@ function UnlockList({
         </div>
       ) : null}
 
-      <ul
-        className={cn("atelier-unlock-lines mb-3 space-y-1 overflow-y-auto", bare ? "max-h-40" : "max-h-52")}
-        aria-live="polite"
-      >
-        {entries.map((entry) => {
-          const kindLabel = t(
-            entry.kind === "section"
-              ? "businessPage.paidVariants.sectionEyebrow"
-              : entry.kind === "variant"
-                ? "businessPage.paidVariants.eyebrow"
-                : entry.kind === "color"
-                  ? "businessPage.theme.accentColor"
-                  : "businessPage.theme.fontLabel",
-          );
+      <div className="atelier-unlock-scroll website-atelier-scrollbar" aria-live="polite">
+        {entryGroups.map((group) => (
+          <section
+            key={group.key}
+            className="atelier-unlock-group"
+            aria-label={group.label ?? t("businessPage.paidVariants.unlocks.title")}
+          >
+            {group.label ? (
+              <div className="atelier-unlock-group-heading">
+                <span>{group.label}</span>
+                <span className="tabular-nums">{group.entries.length}</span>
+              </div>
+            ) : null}
+            <ul className={cn("atelier-unlock-lines", bare ? "max-h-40" : "max-h-52")}>
+              {group.entries.map((entry) => {
+                const kindLabel = t(
+                  entry.kind === "section"
+                    ? "businessPage.paidVariants.sectionEyebrow"
+                    : entry.kind === "variant"
+                      ? "businessPage.paidVariants.eyebrow"
+                      : entry.kind === "color"
+                        ? "businessPage.theme.accentColor"
+                        : "businessPage.theme.fontLabel",
+                );
+                const removing = removingKeys.has(entry.key);
 
-          return (
-            <li key={entry.key} className="atelier-unlock-line">
-              <UnlockSpecimen entry={entry} />
-              <span className="min-w-0 flex-1">
-                <span className="atelier-unlock-line-title block truncate text-[12.5px] font-medium text-[var(--atelier-ink)]" title={entry.name}>
-                  {entry.name}
-                </span>
-                <span className="atelier-unlock-line-kind mt-0.5 block truncate text-[10.5px] text-[var(--atelier-muted)]">
-                  {kindLabel}
-                </span>
-              </span>
-              <span className="atelier-unlock-line-price shrink-0 font-mono text-[11.5px] tabular-nums text-[var(--atelier-ink-soft)]">
-                {variantPriceLabel(formatPrice, entry)}
-              </span>
-              <button
-                type="button"
-                onClick={() => onRemove(entry)}
-                disabled={interactionBlocked}
-                aria-label={t("businessPage.paidVariants.unlocks.removeAria", { name: entry.name })}
-                className="website-atelier-focus atelier-unlock-remove relative grid size-6 shrink-0 place-items-center rounded-[7px] text-[var(--atelier-muted-soft)] outline-none before:absolute before:-inset-[10px] before:content-[''] transition-colors hover:bg-[var(--atelier-field)] hover:text-[var(--atelier-ink)] disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <X className="size-3" strokeWidth={1.9} aria-hidden />
-              </button>
-            </li>
-          );
-        })}
-      </ul>
+                return (
+                  <li
+                    key={entry.key}
+                    className={cn(
+                      "atelier-unlock-line",
+                      removing && "atelier-unlock-line--removing",
+                    )}
+                  >
+                    <UnlockSpecimen entry={entry} />
+                    <span className="min-w-0 flex-1">
+                      <span className="atelier-unlock-line-title block truncate text-[12.5px] font-medium text-[var(--atelier-ink)]" title={entry.name}>
+                        {entry.name}
+                      </span>
+                      <span className="atelier-unlock-line-kind mt-0.5 block truncate text-[10.5px] text-[var(--atelier-muted)]">
+                        {kindLabel}
+                      </span>
+                    </span>
+                    <span className="atelier-unlock-line-price shrink-0 font-mono text-[11.5px] tabular-nums text-[var(--atelier-ink-soft)]">
+                      {variantPriceLabel(formatPrice, entry)}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => removeWithAnimation(entry)}
+                      disabled={interactionBlocked || removing}
+                      aria-label={t("businessPage.paidVariants.unlocks.removeAria", { name: entry.name })}
+                      className="website-atelier-focus atelier-unlock-remove relative grid size-7 shrink-0 place-items-center rounded-full text-[var(--atelier-muted-soft)] outline-none transition-colors hover:bg-[var(--atelier-field)] hover:text-[var(--atelier-ink)] disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <X className="size-3" strokeWidth={1.9} aria-hidden />
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        ))}
+      </div>
 
       <div className="atelier-unlock-summary border-t border-[var(--atelier-border-soft)] pt-3">
         {hasMixedCurrencies ? (
@@ -313,22 +402,39 @@ function UnlockList({
             {t("businessPage.paidVariants.unlocks.mixedCurrency")}
           </p>
         ) : null}
+        {checkoutBlocked ? (
+          <p id={checkoutNoteId} className="mb-2 text-xs leading-5 text-warning" role="status">
+            {t("businessPage.paidVariants.saveBeforeCheckout")}
+          </p>
+        ) : null}
         <div className="atelier-unlock-total flex items-baseline justify-between gap-3 px-0.5">
           <p>{totalLabel}</p>
-          <p className="text-[16px] font-semibold tabular-nums text-[var(--atelier-ink)]">{total}</p>
+          <p className="text-[16px] font-semibold tabular-nums text-[var(--atelier-ink)]">
+            <span key={total} className="atelier-unlock-value-update">{total}</span>
+          </p>
         </div>
         <Button
           type="button"
-          disabled={interactionBlocked || hasMixedCurrencies}
-          aria-describedby={hasMixedCurrencies ? "website-unlocks-currency-note" : undefined}
+          disabled={interactionBlocked || removalInProgress || checkoutBlocked || hasMixedCurrencies}
+          aria-describedby={checkoutBlocked ? checkoutNoteId : hasMixedCurrencies ? "website-unlocks-currency-note" : undefined}
+          aria-busy={isLoading}
           onClick={onCheckout}
-          className="atelier-unlock-checkout relative mt-3 h-[38px] min-h-0 w-full before:absolute before:-inset-y-[3px] before:inset-x-0 before:content-['']"
+          className="atelier-unlock-checkout relative mt-3 w-full before:absolute before:-inset-y-[3px] before:inset-x-0 before:content-['']"
         >
-          {isLoading ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
-          {isLoading
-            ? t("businessPage.paidVariants.processing")
-            : t("businessPage.paidVariants.unlocks.complete")}
+          {isLoading ? (
+            <Spinner size="sm" color="white" />
+          ) : (
+            <span key={`${entries.length}-${total}`} className="atelier-unlock-value-update">
+              {t("businessPage.paidVariants.unlocks.completeWithTotal", {
+                count: entries.length,
+                total,
+              })}
+            </span>
+          )}
         </Button>
+        <p className="atelier-unlock-secure-note">
+          {t("businessPage.paidVariants.unlocks.secureNote")}
+        </p>
       </div>
     </div>
   );
@@ -337,7 +443,7 @@ function UnlockList({
 /** Compact composition specimen matching the artifact's preview language. Catalog line items do
  * not include thumbnail geometry, so the two real unlock kinds use distinct, deterministic
  * schematics instead of unrelated generic icons. */
-function UnlockSpecimen({ entry }: { entry: UnlockLineItem }) {
+export function UnlockSpecimen({ entry }: { entry: UnlockLineItem }) {
   if (entry.kind === "color") {
     return (
       <span

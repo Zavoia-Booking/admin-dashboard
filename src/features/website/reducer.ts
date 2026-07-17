@@ -29,6 +29,7 @@ const initialState: WebsiteState = {
   publish: null,
   isPublishing: false,
   isUnpublishing: false,
+  publishFailure: null,
   isSaving: false,
   isHeroMutating: false,
   lastSavedRequestId: null,
@@ -125,12 +126,13 @@ export const WebsiteReducer: Reducer<WebsiteState, any> = (state: WebsiteState =
         isHeroMutating: false,
         isPublishing: false,
         isUnpublishing: false,
+        publishFailure: null,
         saveFailure: null,
         conflict: null,
       };
 
     case getType(actions.fetchWebsiteBuilderAction.request):
-      return { ...state, isLoading: true, error: null };
+      return { ...state, isLoading: true, error: null, publishFailure: null };
 
     case getType(actions.fetchWebsiteBuilderAction.success): {
       if (!isCurrentScope(state, action.payload)) return state;
@@ -143,6 +145,7 @@ export const WebsiteReducer: Reducer<WebsiteState, any> = (state: WebsiteState =
         locations: action.payload.locations || [],
         access: action.payload.access,
         publish: action.payload.publish ?? null,
+        publishFailure: null,
         error: null,
       };
     }
@@ -227,27 +230,43 @@ export const WebsiteReducer: Reducer<WebsiteState, any> = (state: WebsiteState =
     // Publish lifecycle. A save that the saga performs as part of save-then-publish flows
     // through the normal saveWebsiteDraftAction cases above.
     case getType(actions.publishWebsiteAction.request):
-      return { ...state, isPublishing: true };
+      return { ...state, isPublishing: true, publishFailure: null };
 
     case getType(actions.publishWebsiteAction.success):
       if (!isCurrentScope(state, action.payload)) return state;
-      return { ...state, isPublishing: false, publish: action.payload.publish, conflict: null, publishLockedItems: null };
+      return {
+        ...state,
+        isPublishing: false,
+        publish: action.payload.publish,
+        publishFailure: null,
+        conflict: null,
+        publishLockedItems: null,
+      };
 
     case getType(actions.publishWebsiteAction.failure):
       if (!isCurrentScope(state, action.payload)) return state;
       return {
         ...state,
         isPublishing: false,
+        publishFailure:
+          action.payload.failureKind === 'publish'
+            ? { message: action.payload.message }
+            : null,
         conflict: action.payload.conflict ?? state.conflict,
         publishLockedItems: action.payload.lockedItems ?? state.publishLockedItems,
       };
 
     case getType(actions.unpublishWebsiteAction.request):
-      return { ...state, isUnpublishing: true };
+      return { ...state, isUnpublishing: true, publishFailure: null };
 
     case getType(actions.unpublishWebsiteAction.success):
       if (!isCurrentScope(state, action.payload)) return state;
-      return { ...state, isUnpublishing: false, publish: action.payload.publish };
+      return {
+        ...state,
+        isUnpublishing: false,
+        publish: action.payload.publish,
+        publishFailure: null,
+      };
 
     case getType(actions.unpublishWebsiteAction.failure):
       if (!isCurrentScope(state, action.payload)) return state;

@@ -1,4 +1,3 @@
-import { useState } from "react";
 import type { SectionEntry, LocationsConfig } from "../../../../../types";
 import { Section, SectionHead, Placeholder } from "../../shared/primitives";
 import type { PreviewData, T } from "../../shared/types";
@@ -21,15 +20,33 @@ const VARIANTS: Record<string, React.FC<LocationsVariantProps>> = {
   atlas: Atlas,
 };
 
-export function Locations({ entry, data, t, no }: { entry: SectionEntry; data: PreviewData; t: T; no: string }) {
+export function Locations({
+  entry,
+  data,
+  t,
+  no,
+  selectedLocationId,
+  onSelectLocation,
+}: {
+  entry: SectionEntry;
+  data: PreviewData;
+  t: T;
+  no: string;
+  selectedLocationId: number | null;
+  onSelectLocation: (locationId: number) => void;
+}) {
   const hidden = new Set((entry.config?.hiddenLocationIds as number[] | undefined) ?? []);
   const shown = data.locations.filter((l) => !hidden.has(l.id));
   // Tag dictionaries (label/slug per id) arrive via PreviewData so this section stays a pure render; the
   // host (dashboard) supplies the authenticated fetch's result. Absent → the tag band doesn't render.
   const dictionaries = data.tagDictionaries ?? null;
-  const [active, setActive] = useState(0);
-  const idx = Math.min(active, Math.max(0, shown.length - 1));
+  const selectedIndex = shown.findIndex((location) => location.id === selectedLocationId);
+  const idx = selectedIndex >= 0 ? selectedIndex : 0;
   const loc = shown[idx];
+  const selectIndex = (index: number) => {
+    const location = shown[index];
+    if (location) onSelectLocation(location.id);
+  };
 
   // Heading + sub-lede are editable per locale; a blank override falls back to the default editorial copy.
   const cfg = entry.config as LocationsConfig | undefined;
@@ -55,7 +72,7 @@ export function Locations({ entry, data, t, no }: { entry: SectionEntry; data: P
       {shown.length === 0 ? (
         <Placeholder>{t("businessPage.builder.preview.locationsEmpty")}</Placeholder>
       ) : (
-        <View shown={shown} idx={idx} loc={loc} onSelect={setActive} dict={dictionaries} t={t} />
+        <View shown={shown} idx={idx} loc={loc} onSelect={selectIndex} dict={dictionaries} t={t} />
       )}
     </Section>
   );

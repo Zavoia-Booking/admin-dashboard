@@ -2,12 +2,14 @@ import { useEffect, useRef, useState } from "react";
 import { Stars } from "../../../shared/primitives";
 import { prefersReducedMotion } from "../../../shared/util";
 import { useInView } from "../../../shared/hooks";
+import { RvHead } from "../parts/RvHead";
 import type { PreviewReview } from "../../../shared/types";
-import type { ReviewsVariantProps } from "../types";
+import type { ReviewsViewProps } from "../types";
+import "./marquee.css";
 
 /** One drifting lane — a doubled row of quote cards translated by a time-based tween (setInterval +
  *  performance.now, like the showcase progress) so the preview's idled rAF clock can't freeze it; pauses on
- *  hover / out of view. The doubled sequence + wrapping the offset by half the track width makes it seamless. */
+ *  hover / out of view. Doubling + wrapping the offset by half the track width makes it seamless. */
 function RvLane({ items, dir, speed }: { items: PreviewReview[]; dir: 1 | -1; speed: number }) {
   const rootRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
@@ -39,7 +41,14 @@ function RvLane({ items, dir, speed }: { items: PreviewReview[]; dir: 1 | -1; sp
 
   const seq = items.concat(items);
   return (
-    <div className="mc-rvm-row" ref={rootRef} onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
+    <div
+      className="mc-rvm-row"
+      ref={rootRef}
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+      onTouchStart={() => setPaused(true)}
+      onTouchEnd={() => setPaused(false)}
+    >
       <div className="mc-rvm-track" ref={trackRef}>
         {seq.map((r, i) => (
           <figure key={i} className="mc-rvm-card">
@@ -56,15 +65,34 @@ function RvLane({ items, dir, speed }: { items: PreviewReview[]; dir: 1 | -1; sp
   );
 }
 
-/** Marquee — two counter-drifting lanes of quote cards. Mirrors the source `RvMarquee`. */
-export function Marquee({ quotes }: ReviewsVariantProps) {
+/** Marquee — a centred one-line aggregate over two counter-drifting lanes; the motion carries the section.
+ *  Mirrors the source `RvMarquee`. */
+export function Marquee({ quotes, rating, count, heading, kicker, no, t }: ReviewsViewProps) {
   const cut = Math.ceil(quotes.length / 2);
   const a = quotes.slice(0, cut);
   const b = quotes.slice(cut);
   return (
-    <div className="mc-rvm">
-      <RvLane items={a} dir={-1} speed={24} />
-      <RvLane items={b.length > 1 ? b : a} dir={1} speed={19} />
-    </div>
+    <>
+      <RvHead no={no} kicker={kicker} heading={heading} center>
+        {count > 0 && (
+          <div className="mc-rv-line">
+            <Stars value={rating} size={14} />
+            <span>
+              <b>{rating.toFixed(1)}</b> {t("businessPage.builder.preview.reviewsAverageWord")}
+            </span>
+            <span className="mc-rv-line-dot" aria-hidden>
+              ·
+            </span>
+            <span>
+              <b>{count.toLocaleString()}</b> {t("businessPage.builder.preview.reviewsVerifiedReviews")}
+            </span>
+          </div>
+        )}
+      </RvHead>
+      <div className="mc-rvm">
+        <RvLane items={a} dir={-1} speed={24} />
+        <RvLane items={b.length > 1 ? b : a} dir={1} speed={19} />
+      </div>
+    </>
   );
 }

@@ -108,6 +108,15 @@ export interface PublishWebsiteRequest {
   save: SaveWebsiteDraftRequest | null;
 }
 
+/** Why a publish intent terminated. Only `publish` represents a retryable failure from
+ * POST /publish; every other kind is handled by a more specific recovery flow. */
+export type PublishWebsiteFailureKind =
+  | 'publish'
+  | 'save'
+  | 'conflict'
+  | 'locked'
+  | 'cancelled';
+
 export const publishWebsiteAction = createAsyncAction(
   'website/PUBLISH_REQUEST',
   'website/PUBLISH_SUCCESS',
@@ -117,7 +126,11 @@ export const publishWebsiteAction = createAsyncAction(
   ScopedWebsiteResult<{ publish: WebsitePublishState }>,
   // Structured E07 details are kept so an inactive or otherwise unavailable item that disappeared from the
   // catalog still has an actionable recovery path in the publish review.
-  ScopedWebsiteError & { conflict?: WebsiteDraftConflict; lockedItems?: WebsiteUnownedPublishItems }
+  ScopedWebsiteError & {
+    failureKind: PublishWebsiteFailureKind;
+    conflict?: WebsiteDraftConflict;
+    lockedItems?: WebsiteUnownedPublishItems;
+  }
 >();
 
 /** Takes the site offline; the snapshot is kept so re-publishing is instant. */

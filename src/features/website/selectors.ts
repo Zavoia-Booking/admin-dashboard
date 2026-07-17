@@ -9,6 +9,7 @@ export const selectWebsiteAccess = (state: RootState) => state.website.access;
 export const selectWebsitePublish = (state: RootState) => state.website.publish;
 export const selectWebsitePublishing = (state: RootState) => state.website.isPublishing;
 export const selectWebsiteUnpublishing = (state: RootState) => state.website.isUnpublishing;
+export const selectWebsitePublishFailure = (state: RootState) => state.website.publishFailure;
 export const selectWebsiteSaving = (state: RootState) => state.website.isSaving;
 export const selectWebsiteHeroMutating = (state: RootState) => state.website.isHeroMutating;
 export const selectWebsiteLastSavedRequestId = (state: RootState) => state.website.lastSavedRequestId;

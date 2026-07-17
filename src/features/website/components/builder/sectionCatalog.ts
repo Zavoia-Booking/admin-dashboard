@@ -8,7 +8,6 @@ import {
   Quote,
   HelpCircle,
   Type,
-  Film,
   PanelTop,
   PanelBottom,
   type LucideIcon,
@@ -79,11 +78,17 @@ export const SECTION_META: Record<SectionType, SectionMeta> = {
   },
   nav: {
     type: "nav",
-    // Sticky brand + section links + CTA, pinned right below the announcement — not reorderable (PINNED_TYPES).
+    // Sticky brand + section links + CTA, pinned right below the announcement — not reorderable
+    // (PINNED_TYPES). `default` is the persisted catalog key for the included Editorial design.
     icon: PanelTop,
     labelKey: "businessPage.sections.nav.label",
     descriptionKey: "businessPage.sections.nav.description",
-    variants: [v("default")],
+    variants: [
+      { id: "default", labelKey: "businessPage.sections.variants.editorial" },
+      v("capsule"),
+      v("split"),
+      v("underlay"),
+    ],
     netNew: false,
     defaultConfig: {},
   },
@@ -92,10 +97,18 @@ export const SECTION_META: Record<SectionType, SectionMeta> = {
     icon: LayoutTemplate,
     labelKey: "businessPage.sections.hero.label",
     descriptionKey: "businessPage.sections.hero.description",
-    // Single section, no layout pills: with a cover photo the hero shows it (full-bleed, or the "cover
-    // plate" toggle in the editor); with no cover it floods with the brand accent (the drenched field).
-    // The cover/plate choice rides in config.coverLayout — only surfaced once a cover exists.
-    variants: [v("default")],
+    // Free base `default` adapts to the cover photo: none ⇒ the drenched accent field; a cover ⇒ the
+    // text panel over it. The five premium designs are photo-forward (cinematic), typographic (poster),
+    // scroll-jacked (portal), an aurora field (drift), and falling ink glyphs (tumble). `default`'s label
+    // is overridden to "Text panel"; the rest map one-to-one to their variant components + catalog rows.
+    variants: [
+      { id: "default", labelKey: "businessPage.sections.variants.textPanel" },
+      v("cinematic"),
+      v("poster"),
+      v("portal"),
+      v("drift"),
+      v("tumble"),
+    ],
     netNew: false,
     defaultConfig: {},
   },
@@ -141,9 +154,15 @@ export const SECTION_META: Record<SectionType, SectionMeta> = {
     icon: Images,
     labelKey: "businessPage.sections.gallery.label",
     descriptionKey: "businessPage.sections.gallery.description",
-    // Four layouts from the source: editorial essay (default), bento, masonry, and a centre-weighted
-    // drag carousel. Legacy "grid" saves migrate to "editorial" on read.
-    variants: [v("editorial"), v("bento"), v("masonry"), v("carousel")],
+    // Five executable layouts from the design source. Bento is the safe local fallback and the sole
+    // included catalog style; `index` is the persisted design key for the customer-facing Mosaic style.
+    variants: [
+      v("bento"),
+      v("carousel"),
+      v("masonry"),
+      { id: "index", labelKey: "businessPage.sections.variants.mosaic" },
+      v("fan"),
+    ],
     netNew: false,
     defaultConfig: {},
   },
@@ -158,26 +177,15 @@ export const SECTION_META: Record<SectionType, SectionMeta> = {
     netNew: false,
     defaultConfig: {},
   },
-  interlude: {
-    type: "interlude",
-    icon: Film,
-    labelKey: "businessPage.sections.interlude.label",
-    descriptionKey: "businessPage.sections.interlude.description",
-    variants: [v("default")],
-    netNew: false,
-    defaultConfig: {},
-    // Cinematic photo break — opt-in.
-    defaultHidden: true,
-  },
   testimonials: {
     type: "testimonials",
     icon: Quote,
-    // Rating summary + per-star distribution (constant), then the chosen voices: the auto-playing showcase
-    // (default), a pinboard wall, two drifting marquee lanes, a centred spotlight, or a tap-through deck.
-    // Legacy cards/quote saves collapse to default on read.
+    // Each voice owns its head + rating-summary form: the pinboard wall (included base), the auto-playing
+    // showcase (catalog key `default`), two drifting marquee lanes, a dark spotlight panel, or a draggable
+    // deck. Wall leads — it's the free fallback base; legacy cards/quote saves collapse to it on read.
     labelKey: "businessPage.sections.testimonials.label",
     descriptionKey: "businessPage.sections.testimonials.description",
-    variants: [v("default"), v("wall"), v("marquee"), v("spotlight"), v("deck")],
+    variants: [v("wall"), v("default"), v("marquee"), v("spotlight"), v("deck")],
     netNew: false,
     defaultConfig: {},
   },
@@ -192,11 +200,12 @@ export const SECTION_META: Record<SectionType, SectionMeta> = {
   },
   footer: {
     type: "footer",
-    // Editorial closing panel — brand, locations, contact, wordmark. Pinned last, not reorderable (PINNED_TYPES).
+    // Directory is the included/base footer. The remaining four live design-file treatments are paid catalog
+    // variants. Footer stays pinned last and required regardless of which treatment is selected.
     icon: PanelBottom,
     labelKey: "businessPage.sections.footer.label",
     descriptionKey: "businessPage.sections.footer.description",
-    variants: [v("default"), v("poster"), v("minimal"), v("mega"), v("index")],
+    variants: [v("directory"), v("editorial"), v("signature"), v("masthead"), v("marque")],
     netNew: false,
     defaultConfig: {},
   },
@@ -221,7 +230,6 @@ export const SECTION_TYPES: SectionType[] = [
   "locations",
   "gallery",
   "team",
-  "interlude",
   "testimonials",
   "faq",
   "footer",
@@ -265,9 +273,10 @@ export function buildInitialLayout(saved?: SectionEntry[] | null): SectionEntry[
       isPlainRecord(s) &&
       typeof s.type === "string" &&
       s.type.trim().length > 0 &&
-      // The standalone Contact ("Visit") section was removed — its content now lives in the footer. Drop any
-      // saved contact entries (a deliberate deprecation, unlike the forward-compat preservation of unknown types).
-      s.type !== "contact",
+      // Contact and Photo break were deliberately removed. Unlike unknown forward-compatible entries,
+      // deprecated section records must not survive into the working layout or a later save.
+      s.type !== "contact" &&
+      s.type !== "interlude",
   );
   if (valid.length === 0) {
     return DEFAULT_LAYOUT.map((s) => ({ ...s, config: { ...s.config } }));
@@ -329,21 +338,16 @@ export function buildInitialLayout(saved?: SectionEntry[] | null): SectionEntry[
     result.unshift({ ...a, variant });
   }
   // Hero is pinned second (right after the announcement) and not reorderable — enforce its position on
-  // read. The hero is now single-variant; a legacy "split" save carries its layout intent into the new
-  // config.coverLayout ("plate"). Other unknown keys are forward-compatible data and remain
-  // untouched even though this build renders its safe default preview for them.
+  // read. A legacy "split" save (the retired cover-plate toggle) maps to the free base, which now adapts
+  // to the cover photo on its own (drenched field with no cover, text panel with one). Unknown keys are
+  // forward-compatible data and remain untouched even though this build renders its safe default for them.
   const hi = result.findIndex((s) => s.type === "hero");
   if (hi !== -1) {
     const [h] = result.splice(hi, 1);
-    const config =
-      h.variant === "split" && !(h.config as { coverLayout?: string } | undefined)?.coverLayout
-        ? { ...h.config, coverLayout: "plate" }
-        : h.config;
     const heroIndex = result[0]?.type === "announcement" ? 1 : 0;
     result.splice(heroIndex, 0, {
       ...h,
       variant: h.variant === "split" ? SECTION_META.hero.variants[0].id : h.variant,
-      config,
     });
   }
   // Nav is pinned right after the announcement (above the hero) and not reorderable — enforce its slot on read.
@@ -371,13 +375,17 @@ export function buildInitialLayout(saved?: SectionEntry[] | null): SectionEntry[
   if (li !== -1 && result[li].variant === "list") {
     result[li] = { ...result[li], variant: SECTION_META.locations.variants[0].id };
   }
-  // Team renamed its layout choice (grid/list → portraits/roster); gallery expanded to four named layouts
-  // (legacy "grid" was the editorial essay). Map only documented legacy ids. Unknown keys
+  // Team renamed its layout choice (grid/list → portraits/roster); Gallery retired Editorial and its
+  // design-source `grid` key now means Bento. Map only documented legacy ids. Unknown keys
   // round-trip unchanged so this client cannot erase a future catalogue selection.
   const LEGACY_VARIANTS: Partial<Record<SectionType, Record<string, string>>> = {
     team: { grid: "portraits", list: "roster" },
-    gallery: { grid: "editorial" },
-    testimonials: { cards: "default", quote: "default" },
+    gallery: { editorial: "bento", grid: "bento" },
+    // Ancient cards/quote saves land on the new free base (wall); `default` stays a valid paid Showcase key.
+    testimonials: { cards: "wall", quote: "wall" },
+    // The former footer designs are intentionally retired. Existing drafts land on the new included
+    // Directory treatment so an old paid/unknown id can never bypass the new catalog entitlement model.
+    footer: { default: "directory", poster: "directory", minimal: "directory", mega: "directory", index: "directory" },
   };
   for (const [type, remap] of Object.entries(LEGACY_VARIANTS)) {
     const idx = result.findIndex((s) => s.type === type);

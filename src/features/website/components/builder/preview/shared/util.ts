@@ -1,4 +1,4 @@
-import type { LocationWithAssignments, HeroConfig } from "../../../../types";
+import type { LocationWithAssignments } from "../../../../types";
 
 /** Localized string accessor with EN→RO fallback; empty string when the value is absent. */
 export const localized = (v: { en: string; ro: string } | undefined, locale: "en" | "ro") =>
@@ -25,14 +25,11 @@ export function formatReviewDate(iso: string): string {
   }
 }
 
-export type HeroMode = "cinematic" | "coverPlate" | "drenched";
-/** Resolve the hero's render mode from its cover photo + the cover-layout toggle. No cover ⇒ the hero
- *  floods with the brand accent (the drenched field). With a cover, the owner's `coverLayout` picks the
- *  full-bleed cinematic cover or the "cover plate" (tall photo bleed + paper card). Shared with the nav:
- *  every cover/accent hero floats the frosted bar; only an announcement ribbon forces the solid paper nav. */
-export function heroMode(cfg: HeroConfig, hasImage: boolean): HeroMode {
-  if (!hasImage) return "drenched";
-  return cfg.coverLayout === "plate" ? "coverPlate" : "cinematic";
+export type HeroMode = "coverPlate" | "drenched";
+/** Free base hero resolution from the cover photo alone: no cover ⇒ the drenched accent field; a cover ⇒
+ *  the text-panel cover plate. Full-bleed cinematic is now a separate paid variant, not a free mode. */
+export function heroMode(hasImage: boolean): HeroMode {
+  return hasImage ? "coverPlate" : "drenched";
 }
 
 export const prefersReducedMotion = () =>

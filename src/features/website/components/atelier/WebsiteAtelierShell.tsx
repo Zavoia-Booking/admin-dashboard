@@ -33,6 +33,7 @@ export function WebsiteAtelierShell({
 
   return (
     <SidebarProvider
+      collapseOnMount
       className={`website-atelier website-atelier-shell${className ? ` ${className}` : ""}`}
     >
       <AppSidebar />

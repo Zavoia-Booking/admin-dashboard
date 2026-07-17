@@ -1,12 +1,15 @@
 import type { T } from "../../shared/types";
 
-/** A single gallery photo: source URL + alt text (the design carries no visible captions). */
-export type GalleryImage = { src: string; alt: string };
+/** Stable source identity plus presentation data (the design carries no visible captions). */
+export type GalleryImage = { id: string; src: string; alt: string };
 
-/** Props every gallery layout variant receives from the orchestrator. Variants destructure only what they
- *  use (the grid layouts ignore `t`); `onOpen(i)` raises the shared lightbox at image `i`. */
+/** Props every gallery layout receives from the orchestrator; `onOpen(i)` raises the shared lightbox. */
 export type GalleryVariantProps = {
   images: GalleryImage[];
   onOpen: (i: number) => void;
+  /** Fan pauses its idle wave/auto-advance while the shared lightbox is open. */
+  lightboxOpen: boolean;
+  /** Current fullscreen image, used by stateful layouts to keep the return target mounted. */
+  lightboxIndex: number;
   t: T;
 };

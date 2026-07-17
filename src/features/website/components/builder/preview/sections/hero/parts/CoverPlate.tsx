@@ -81,16 +81,6 @@ export function CoverPlate({ data, t, parallax, name, eyebrow, eyebrowDot, monog
           </div>
         </div>
       </div>
-      {/* Scroll cue — the full-page preview scrolls, so this reads truthfully (omitted in the scoped card). */}
-      {parallax && (
-        <div
-          className="mc-plate-cue pointer-events-none absolute inset-x-0 bottom-[26px] z-[4] flex flex-col items-center gap-2 text-[10px] uppercase"
-          style={{ ...MONO, letterSpacing: "0.2em", color: "rgba(255,255,255,0.82)" }}
-        >
-          {t("businessPage.builder.preview.hero.scrollCue")}
-          <span className="mc-cue-line h-8 w-px" style={{ background: "rgba(255,255,255,0.5)" }} />
-        </div>
-      )}
     </header>
   );
 }

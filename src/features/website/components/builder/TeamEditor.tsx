@@ -11,7 +11,7 @@ interface TeamEditorProps {
 
 /**
  * Team section settings: the team itself is pulled from the business's locations, so the only owner
- * control is the editorial heading + sub-lede (each defaults to the built-in copy until customized).
+ * control is the editorial heading + sub-lede (each remains linked to the built-in copy until edited).
  * Layout (portraits vs roster) is the variant pill rendered by the SectionBuilder.
  */
 export function TeamEditor({ config, locale, onConfigChange }: TeamEditorProps) {
@@ -19,7 +19,9 @@ export function TeamEditor({ config, locale, onConfigChange }: TeamEditorProps) 
 
   const setCopy = (field: "heading" | "sublede", value: string) => {
     const current = config[field] ?? { en: "", ro: "" };
-    onConfigChange({ [field]: { ...current, [locale]: value } });
+    const next = { ...current, [locale]: value };
+    const hasOverride = next.en.trim() !== "" || next.ro.trim() !== "";
+    onConfigChange({ [field]: hasOverride ? next : undefined });
   };
 
   return (
@@ -34,9 +36,6 @@ export function TeamEditor({ config, locale, onConfigChange }: TeamEditorProps) 
         onChange={(v) => setCopy("heading", v)}
         maxLength={80}
         rows={2}
-        customizeAria={t("businessPage.builder.settings.customize", {
-          field: t("businessPage.builder.settings.headingLabel"),
-        })}
       />
       <div className="border-t border-border-subtle pt-5">
         <CopyOverride
@@ -48,9 +47,6 @@ export function TeamEditor({ config, locale, onConfigChange }: TeamEditorProps) 
           onChange={(v) => setCopy("sublede", v)}
           maxLength={220}
           rows={3}
-          customizeAria={t("businessPage.builder.settings.customize", {
-            field: t("businessPage.builder.settings.subledeLabel"),
-          })}
         />
       </div>
     </div>

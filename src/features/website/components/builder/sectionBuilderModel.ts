@@ -3,15 +3,36 @@ import type {
   AnnouncementContent,
   Business,
   FaqItem,
+  GalleryConfig,
   LocationWithAssignments,
   SectionEntry,
   WebsiteSectionCatalogEntry,
   WebsiteVariantCatalogEntry,
 } from "../../types";
 import { aboutHeadline } from "./aboutContent";
+import { MIN_GALLERY_IMAGES, resolveGalleryImages } from "./gallerySelection";
+import { completeFaqCount } from "./sectionReadiness";
+import {
+  isTeamLocked,
+  isTestimonialsLocked,
+  MIN_TEAM_MEMBERS,
+  MIN_TESTIMONIAL_REVIEWS,
+  reviewCount,
+  teamMemberCount,
+} from "./sectionDataRequirements";
 import { isKnownSectionType, PINNED_TYPES, REQUIRED_TYPES } from "./sectionCatalog";
 import { UNNUMBERED } from "./preview/shared/constants";
+import { MARQUEE_MIN_ITEMS } from "./preview/sections/marquee/model";
 import type { PreviewData, PreviewReview, RatingBars } from "./preview/shared/types";
+
+export {
+  isTeamLocked,
+  isTestimonialsLocked,
+  MIN_TEAM_MEMBERS,
+  MIN_TESTIMONIAL_REVIEWS,
+  reviewCount,
+  teamMemberCount,
+} from "./sectionDataRequirements";
 
 export type VariantCatalogByKey = ReadonlyMap<string, WebsiteVariantCatalogEntry>;
 export type BaseVariantKeyByType = ReadonlyMap<string, string>;
@@ -186,12 +207,10 @@ export function overlayPreviewVariants(
 
 export function getDisplaySections(
   layout: readonly SectionEntry[],
-  marqueeReady: boolean,
   sectionOffered: (type: string) => boolean,
 ): IndexedSectionEntry[] {
   return layout
     .map((entry, index) => ({ entry, index }))
-    .filter(({ entry }) => entry.type !== "marquee" || marqueeReady)
     .filter(({ entry }) => sectionOffered(entry.type));
 }
 
@@ -280,24 +299,6 @@ export function buildPreviewData({
 const firstLocaleText = (value: { en?: string; ro?: string } | undefined, locale: "en" | "ro") =>
   value?.[locale]?.trim() || value?.en?.trim() || value?.ro?.trim() || "";
 
-const portfolioPhotoCount = (locations: LocationWithAssignments[]) =>
-  locations.reduce((count, location) => count + (location.portfolioImages?.length ?? 0), 0);
-
-const teamMemberCount = (locations: LocationWithAssignments[]) => {
-  const ids = new Set<number | string>();
-  locations.forEach((location) => {
-    location.teamMembers?.forEach((member) => {
-      ids.add(member.id ?? `${member.firstName ?? ""}-${member.lastName ?? ""}`);
-    });
-  });
-  return ids.size;
-};
-
-const reviewCount = (locations: LocationWithAssignments[], reviews?: PreviewReview[]) => {
-  const aggregate = locations.reduce((count, location) => count + (location.totalReviews ?? 0), 0);
-  return Math.max(aggregate, reviews?.length ?? 0);
-};
-
 export function buildSectionRowInfo(entry: SectionEntry, context: SectionRowInfoContext): SectionRowInfo {
   const {
     t,
@@ -373,23 +374,32 @@ export function buildSectionRowInfo(entry: SectionEntry, context: SectionRowInfo
     case "hero": {
       const hasCover = !!heroImageUrl;
       const hasSubtitle = tagline.trim().length > 0;
+      // Cinematic + Portal are photo-forward — nudge for a cover when one of them is selected without a photo.
+      const wantsCover = entry.variant === "cinematic" || entry.variant === "portal";
+      const coverHint: SectionRowStatus | undefined =
+        wantsCover && !hasCover
+          ? { label: t("businessPage.builder.summary.addCover"), tone: "warning" }
+          : undefined;
       return withStatus(
         hasCover
           ? t("businessPage.builder.summary.coverSet")
           : hasSubtitle
             ? t("businessPage.builder.summary.subtitleSet")
             : t("businessPage.builder.summary.addSubtitle"),
-        taglineError ? needsContentStatus : undefined,
+        taglineError ? needsContentStatus : coverHint,
       );
     }
     case "marquee":
-      return withStatus(
-        marqueeItemCount > 0
-          ? t("businessPage.builder.summary.services", { count: marqueeItemCount })
-          : t("businessPage.builder.summary.servicesEmpty"),
-        marqueeItemCount === 0 ? noDataStatus : undefined,
-        marqueeItemCount === 0,
-      );
+      if (marqueeItemCount < MARQUEE_MIN_ITEMS) {
+        return {
+          summary: t("businessPage.builder.summary.servicesProgress", {
+            count: marqueeItemCount,
+            required: MARQUEE_MIN_ITEMS,
+          }),
+          noData: marqueeItemCount === 0,
+        };
+      }
+      return withStatus(t("businessPage.builder.summary.services", { count: marqueeItemCount }));
     case "about": {
       const headline = aboutHeadline(aboutContent);
       const needsContent = entry.visible && !!aboutError;
@@ -412,59 +422,63 @@ export function buildSectionRowInfo(entry: SectionEntry, context: SectionRowInfo
       );
     }
     case "gallery": {
-      const count = portfolioPhotoCount(locations);
+      const count = resolveGalleryImages((entry.config ?? {}) as GalleryConfig, locations).length;
+      const needsContent = entry.visible && count < MIN_GALLERY_IMAGES;
       return withStatus(
-        count > 0
-          ? t("businessPage.builder.summary.photos", { count })
-          : t("businessPage.builder.summary.photosEmpty"),
-        count === 0 ? noDataStatus : undefined,
+        needsContent
+          ? t("businessPage.builder.summary.photosProgress", {
+              count,
+              required: MIN_GALLERY_IMAGES,
+            })
+          : count > 0
+            ? t("businessPage.builder.summary.photos", { count })
+            : t("businessPage.builder.summary.photosEmpty"),
+        needsContent ? needsContentStatus : count === 0 ? noDataStatus : undefined,
         count === 0,
       );
     }
     case "team": {
       const count = teamMemberCount(locations);
+      if (count < MIN_TEAM_MEMBERS) {
+        return {
+          summary: t("businessPage.builder.summary.membersProgress", {
+            count,
+            required: MIN_TEAM_MEMBERS,
+          }),
+          noData: count === 0,
+        };
+      }
       return withStatus(
-        count > 0
-          ? t("businessPage.builder.summary.members", { count })
-          : t("businessPage.builder.summary.membersEmpty"),
-        count === 0 ? noDataStatus : undefined,
-        count === 0,
-      );
-    }
-    case "interlude": {
-      const count = portfolioPhotoCount(locations);
-      return withStatus(
-        count > 0
-          ? t("businessPage.builder.summary.usesPortfolioPhoto")
-          : t("businessPage.builder.summary.noPortfolioPhoto"),
-        count === 0 ? noDataStatus : undefined,
-        count === 0,
+        t("businessPage.builder.summary.members", { count }),
       );
     }
     case "testimonials": {
       const count = reviewCount(locations, reviews);
-      return withStatus(
-        count > 0
-          ? t("businessPage.builder.summary.reviews", { count })
-          : t("businessPage.builder.summary.reviewsEmpty"),
-        count === 0 ? noDataStatus : undefined,
-        count === 0,
-      );
+      // Gated shut below the review threshold. Keep the row copy focused on measurable progress;
+      // the inspector provides the fuller explanation beside the disabled controls.
+      if (count < MIN_TESTIMONIAL_REVIEWS) {
+        return {
+          summary: t("businessPage.builder.summary.reviewsProgress", {
+            count,
+            required: MIN_TESTIMONIAL_REVIEWS,
+          }),
+          noData: true,
+        };
+      }
+      return withStatus(t("businessPage.builder.summary.reviews", { count }));
     }
     case "faq": {
-      // A just-added blank row isn't a question yet — readiness counts real content only.
-      const count = faqItems.filter(
-        (item) =>
-          (item.q.en?.trim() ?? "") !== "" ||
-          (item.q.ro?.trim() ?? "") !== "" ||
-          (item.a.en?.trim() ?? "") !== "" ||
-          (item.a.ro?.trim() ?? "") !== "",
-      ).length;
+      // A publish-ready FAQ needs a question and answer in the same locale.
+      // Blank or half-written draft rows do not count as completed answers.
+      const count = completeFaqCount(faqItems);
+      const needsContent = entry.visible && count < 1;
       return withStatus(
-        count > 0
+        needsContent
+          ? t("businessPage.builder.summary.questionsProgress", { count, required: 1 })
+          : count > 0
           ? t("businessPage.builder.summary.questions", { count })
           : t("businessPage.builder.summary.questionsEmpty"),
-        count === 0 ? noDataStatus : undefined,
+        needsContent ? needsContentStatus : count === 0 ? noDataStatus : undefined,
         count === 0,
       );
     }

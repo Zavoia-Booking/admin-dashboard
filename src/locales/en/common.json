@@ -212,6 +212,8 @@
       "locations": "locations",
       "teamMember": "team member",
       "teamMembers": "team members",
+      "websiteGalleryPhoto": "photo used by the published Website Gallery",
+      "websiteGalleryPhotos": "photos used by the published Website Gallery",
       "cancelInvitationHint": "Cancel the invitation{{plural}} before removing this {{resourceType}}"
     },
     "resourceTypes": {
@@ -265,6 +267,7 @@
     "personNameSpecialChars": "Please remove digits and special characters (only - ' allowed)",
     "addressFieldSpecialChars": "Please remove special characters",
     "descriptionUnsafeChars": "Special characters < > aren't allowed",
+    "websiteCopyUnsafeChars": "Remove <, >, or unsupported control characters",
     "url": "Please enter a valid URL (like https://example.com)",
     "phoneRequired": "Phone number is required",
     "phoneInvalid": "Enter a valid phone number",

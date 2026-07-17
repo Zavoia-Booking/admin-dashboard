@@ -1,0 +1,141 @@
+/* Shared footer primitives. Variant composition, surfaces, spacing, responsive layout and motion live in
+   the corresponding variant CSS file. */
+.mc-footer {
+  width: 100%;
+  flex: none;
+  color: var(--mc-fg);
+  font-family: inherit;
+}
+
+.mc-footer a,
+.mc-footer button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mc-footer a:focus-visible,
+.mc-footer button:focus-visible {
+  outline: 2px solid var(--mc-accent);
+  outline-offset: 4px;
+}
+
+.mc-foot-pad {
+  padding-inline: clamp(18px, 4cqw, 56px);
+}
+
+.mc-foot-col {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.mc-foot-label {
+  margin-bottom: 12px;
+  color: var(--mc-muted);
+  font-family: var(--mc-mono);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.mc-foot-row {
+  color: var(--mc-fg);
+  font-size: 14px;
+  line-height: 1.45;
+  text-decoration: none;
+}
+
+.mc-foot-link {
+  transition: color 180ms var(--ease-out-strong);
+}
+
+.mc-foot-link:hover {
+  color: var(--mc-accent);
+}
+
+.mc-foot-social {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.mc-foot-soc {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border: 1px solid var(--mc-line);
+  border-radius: 50%;
+  color: var(--mc-fg);
+  text-decoration: none;
+  transition:
+    color 180ms var(--ease-out-strong),
+    border-color 180ms var(--ease-out-strong),
+    background-color 180ms var(--ease-out-strong),
+    transform 180ms var(--ease-out-strong);
+}
+
+.mc-foot-soc:hover {
+  border-color: var(--mc-accent);
+  background: var(--mc-accent);
+  color: var(--mc-on-accent);
+  transform: translateY(-2px);
+}
+
+.mc-foot-zav {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--mc-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+
+.mc-foot-brand-lockup {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 12px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.mc-foot-brand-mark {
+  display: inline-grid;
+  width: 38px;
+  height: 38px;
+  flex: none;
+  place-items: center;
+  border: 1px solid color-mix(in oklch, var(--mc-accent) 52%, var(--mc-line));
+  border-radius: 50%;
+  color: var(--mc-accent);
+  font-family: var(--mc-display);
+  font-size: 18px;
+}
+
+.mc-foot-brand-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: inherit;
+  font-family: var(--mc-display);
+  font-size: 24px;
+  font-weight: var(--mc-display-weight);
+  letter-spacing: var(--mc-display-tracking);
+  line-height: 1.05;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mc-footer *,
+  .mc-footer *::before,
+  .mc-footer *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@media (hover: none) {
+  .mc-footer a:active,
+  .mc-footer button:active {
+    opacity: 0.82;
+  }
+}

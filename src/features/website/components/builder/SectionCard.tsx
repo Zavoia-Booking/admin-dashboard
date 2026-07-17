@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { ArrowDown, ArrowUp, Lock, LockOpen, MoreHorizontal } from "lucide-react";
+import { ArrowDown, ArrowUp, GripVertical, Lock, LockOpen, MoreHorizontal } from "lucide-react";
 import { cn } from "../../../../shared/lib/utils";
 import { Switch } from "../../../../shared/components/ui/switch";
 import {
@@ -23,8 +23,6 @@ export interface SectionCardStatus {
 interface SectionCardProps {
   entry: SectionEntry;
   meta: SectionMeta | null;
-  /** 1-based position, set as the editorial index (01, 02, …) in the left margin. */
-  index: number;
   /** Short operational summary, e.g. “3 of 4 locations shown” or “12 photos”. */
   summary?: string;
   /** Calm row-level state: Hidden, Fixed, Needs content, No data. */
@@ -43,7 +41,7 @@ interface SectionCardProps {
   editingDisabled?: boolean;
   /** Always shown (nav / hero / footer): visibility can't be toggled — the switch becomes a static label. */
   required?: boolean;
-  /** A pulsing Info cue beside the name — set when this section has a mandatory field still empty. */
+  /** A pulsing status cue below the name — set when this section has a mandatory field still empty. */
   needsAttention?: boolean;
   /** Paid section not yet unlocked: the switch becomes a lock/price button and every tap routes to the purchase dialog. */
   paidLocked?: boolean;
@@ -59,6 +57,10 @@ interface SectionCardProps {
   /** The section catalog is still loading — this row's real lock state isn't known yet, so the
    *  trailing control renders a neutral skeleton instead of a switch that might flip a moment later. */
   pending?: boolean;
+  /** Section can't be enabled because required data is missing (Reviews below the minimum review count):
+   *  the switch renders disabled + off, with `dataLockedReason` as its tooltip/aria. */
+  dataLocked?: boolean;
+  dataLockedReason?: string;
   /** Explicit touch fallback used by the legacy builder; Atelier hides it in favor of its grip. */
   canMoveUp?: boolean;
   canMoveDown?: boolean;
@@ -69,14 +71,13 @@ interface SectionCardProps {
 }
 
 /**
- * One row of the page contents, following the Atelier editorial index: grip, mono index, title/meta,
- * plain state marker, and visibility control. The title/context region is the explicit expand target,
+ * One row of the page contents: drag handle, title/meta, plain state marker, and visibility control.
+ * The title/context region is the explicit expand target,
  * leaving each trailing control independently reachable without an invisible button beneath it.
  */
 export function SectionCard({
   entry,
   meta,
-  index,
   summary,
   status,
   expanded,
@@ -93,6 +94,8 @@ export function SectionCard({
   hidePrice,
   inCart,
   pending,
+  dataLocked,
+  dataLockedReason,
   canMoveUp,
   canMoveDown,
   onSelect,
@@ -141,11 +144,11 @@ export function SectionCard({
     >
       <div
         className={cn(
-          "atelier-section-card-row relative z-[1] grid min-h-[50px] grid-cols-[26px_34px_minmax(0,1fr)_auto] items-center",
+          "atelier-section-card-row relative z-[1] grid min-h-[50px] grid-cols-[34px_minmax(0,1fr)_auto] items-center",
           "origin-center transition-[background-color,transform] duration-150 ease-out hover:bg-surface-hover/50 focus-within:bg-surface-hover/50",
         )}
       >
-        {/* reorder grip — far left, ahead of the index. Locked rows keep the same quiet gutter. */}
+        {/* Reorder handle. Locked rows keep the same quiet gutter so titles remain aligned. */}
         {locked || readOnly || editingDisabled || paidLocked || pending ? (
           <span
             className="atelier-section-card-grip-placeholder col-start-1 h-11 w-[30px] justify-self-center"
@@ -167,24 +170,11 @@ export function SectionCard({
             {...attributes}
             {...listeners}
           >
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-              aria-hidden
-            >
-              <circle cx="9" cy="6" r="1.4" />
-              <circle cx="15" cy="6" r="1.4" />
-              <circle cx="9" cy="12" r="1.4" />
-              <circle cx="15" cy="12" r="1.4" />
-              <circle cx="9" cy="18" r="1.4" />
-              <circle cx="15" cy="18" r="1.4" />
-            </svg>
+            <GripVertical strokeWidth={2.2} aria-hidden />
           </button>
         )}
 
-        {/* Explicit expand target: only index/title/context toggles the editor. */}
+        {/* Explicit expand target: only the title/context region toggles the editor. */}
         <button
           type="button"
           onClick={onSelect}
@@ -192,22 +182,8 @@ export function SectionCard({
           aria-expanded={!!expanded}
           aria-current={active ? "location" : undefined}
           aria-label={selectAriaLabel}
-          className="atelier-section-card-select col-start-2 col-span-2 flex min-w-0 self-stretch items-center text-left outline-none transition-transform duration-150 ease-out active:scale-[0.99] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/60 disabled:cursor-default"
+          className="atelier-section-card-select col-start-2 flex min-w-0 self-stretch items-center text-left outline-none transition-transform duration-150 ease-out active:scale-[0.99] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/60 disabled:cursor-default"
         >
-          <span
-            className={cn(
-              "atelier-section-card-ordinal w-[17px] shrink-0 pr-0 text-right font-mono text-[10px] tabular-nums transition-colors duration-200",
-              active || expanded
-                ? "text-primary-700 dark:text-primary-400"
-                : live
-                  ? "text-foreground-3"
-                  : "text-foreground-disabled",
-            )}
-            aria-hidden
-          >
-            {String(index).padStart(2, "0")}
-          </span>
-
           <span className="atelier-section-card-copy flex min-w-0 flex-1 flex-col justify-center gap-0.5 py-2 pl-0">
             <span className="atelier-section-card-title-line flex min-w-0 items-center">
               <span
@@ -218,17 +194,11 @@ export function SectionCard({
               >
                 {label}
               </span>
-              {needsAttention ? (
-                <span
-                  className="ml-2 inline-flex size-1.5 shrink-0 rounded-full bg-error shadow-[0_0_0_3px_var(--color-error-bg)]"
-                  aria-label={t("businessPage.builder.summary.needsContent")}
-                />
-              ) : null}
               {previewOnlyPremium ? (
                 <span className="atelier-section-card-premium ml-2 shrink-0">
                   {t("businessPage.paidVariants.lockedBadge")}
                 </span>
-              ) : status && !required ? (
+              ) : status && !required && !needsAttention ? (
                 <span
                   className={cn(
                     "atelier-section-card-inline-status ml-2 shrink-0",
@@ -242,7 +212,27 @@ export function SectionCard({
                 </span>
               ) : null}
             </span>
-            {summary && (
+            {needsAttention ? (
+              <span className="atelier-section-card-attention flex min-w-0 items-center">
+                <span className="relative flex size-3 shrink-0 items-center justify-center" aria-hidden>
+                  <span
+                    className="absolute inline-flex size-full animate-ping rounded-full bg-primary opacity-20 motion-reduce:animate-none"
+                    style={{ animationDuration: "3s" }}
+                  />
+                  <span className="relative inline-flex size-2 rounded-full bg-primary" />
+                </span>
+                {summary ? (
+                  <span
+                    className={cn(
+                      "atelier-section-card-summary min-w-0 truncate transition-colors duration-200",
+                      live ? "text-foreground-3" : "text-foreground-disabled",
+                    )}
+                  >
+                    {summary}
+                  </span>
+                ) : null}
+              </span>
+            ) : summary ? (
               <span
                 className={cn(
                   "min-w-0 truncate text-[12px] leading-none transition-colors duration-200",
@@ -252,13 +242,13 @@ export function SectionCard({
               >
                 {summary}
               </span>
-            )}
+            ) : null}
           </span>
 
         </button>
 
         {/* trailing cluster: state, legacy touch reorder fallback, and visibility */}
-        <div className="atelier-section-card-trailing col-start-4 flex items-center gap-2 pr-4">
+        <div className="atelier-section-card-trailing col-start-3 flex items-center gap-2 pr-4">
           {!locked && !readOnly && !editingDisabled && !paidLocked && !pending && (canMoveUp || canMoveDown) ? (
             <span className="atelier-section-card-reorder-menu">
               <DropdownMenu>
@@ -340,6 +330,17 @@ export function SectionCard({
                 title={t("businessPage.builder.card.alwaysOn")}
               >
                 {t("businessPage.builder.summary.fixed")}
+              </span>
+            ) : dataLocked ? (
+              /* Enable is gated on missing data (e.g. Reviews under the minimum count): a disabled, off
+                 switch with the reason as its tooltip/aria — it can be reordered/inspected but never turned on. */
+              <span className="atelier-section-card-datalock inline-flex" title={dataLockedReason}>
+                <Switch
+                  checked={false}
+                  disabled
+                  className="atelier-section-card-switch"
+                  aria-label={dataLockedReason ?? t("businessPage.builder.card.show")}
+                />
               </span>
             ) : (
               <Switch

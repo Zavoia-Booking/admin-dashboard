@@ -35,7 +35,6 @@ export type SectionType =
   | 'locations'
   | 'gallery'
   | 'team'
-  | 'interlude'
   | 'testimonials'
   | 'faq'
   | 'footer';
@@ -60,9 +59,14 @@ export type PageLayout = SectionEntry[];
 export interface HeroConfig {
   showRating?: boolean; // rating + reviews block (still needs real reviews); default on
   showEyebrow?: boolean; // intro line above the name (auto-built from locations); default on
-  // How a cover photo fills the hero (only meaningful once a cover exists; no cover ⇒ drenched field).
-  // "full" = full-bleed cinematic cover (default); "plate" = tall photo bleed with a paper card over it.
-  coverLayout?: "full" | "plate";
+  /** Optional bilingual override for the location-derived intro line. */
+  eyebrow?: LocaleText;
+}
+
+/** Footer display toggles. Directory is currently the only design-file variant that renders an uploaded
+ * business logo; absent/true preserves the existing logo-first treatment. */
+export interface FooterConfig {
+  showLogo?: boolean;
 }
 
 /** Announcement tone — an independent axis layered under the layout variant; colours the whole ribbon. */
@@ -99,7 +103,23 @@ export interface SectionCopyConfig {
 }
 
 export type TeamConfig = SectionCopyConfig;
-export type GalleryConfig = SectionCopyConfig;
+
+/** FAQ questions remain in the dedicated FAQ payload; only its section heading lives in layout config. */
+export type FaqConfig = Pick<SectionCopyConfig, "heading">;
+
+/** Stable reference to an existing per-location portfolio image. URLs are resolved at render time. */
+export interface GalleryImageRef {
+  locationId: number;
+  imageKey: string;
+}
+
+/** Curated Gallery selection. Missing `imageRefs` is the legacy auto-fill state; an empty array is explicit. */
+export interface GalleryConfig extends SectionCopyConfig {
+  /** Locations available to the Gallery. Missing = every owned location; empty = none. */
+  includedLocationIds?: number[];
+  /** Ordered images shown by every Gallery variant and its fullscreen viewer. */
+  imageRefs?: GalleryImageRef[];
+}
 
 /** Reviews section config: copy overrides + a toggle for the synthetic rating-distribution block. */
 export interface ReviewsConfig extends SectionCopyConfig {
@@ -274,7 +294,13 @@ export interface WebsiteSaveFailure {
   kind: WebsiteSaveFailureKind;
 }
 
-export type WebsiteAutosaveStatus =
+/** A retryable failure from the publish command itself. Pre-publish save failures,
+ * conflicts, ownership blockers, and cancellations have their own recovery paths. */
+export interface WebsitePublishFailure {
+  message: string;
+}
+
+export type WebsiteDraftSaveStatus =
   | 'clean'
   | 'dirty'
   | 'invalid'
@@ -430,6 +456,8 @@ export interface WebsiteState {
   publish: WebsitePublishState | null;
   isPublishing: boolean;
   isUnpublishing: boolean;
+  /** Kept after a failed publish command so the next explicit intent can be presented as a retry. */
+  publishFailure: WebsitePublishFailure | null;
   // Draft save lifecycle
   isSaving: boolean;
   /** True while the immediate, versioned hero upload/delete mutation is in flight. */

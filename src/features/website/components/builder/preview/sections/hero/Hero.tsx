@@ -1,19 +1,26 @@
-import { Default } from "./variants/Default";
+import "./base.css";
 import type { HeroVariantProps } from "./types";
-import "./hero.css";
+import { Default } from "./variants/Default";
+import { Cinematic } from "./variants/Cinematic";
+import { Poster } from "./variants/Poster";
+import { Portal } from "./variants/Portal";
+import { Drift } from "./variants/Drift";
+import { Tumble } from "./variants/Tumble";
 
-// Hero — photo-forward cinematic cover, cover-plate, or drenched accent field (auto-selected by heroMode
-// from the cover photo + cover-layout toggle), over a shared WordRise headline + cover parallax. Each mode
-// is its own component under parts/; the section's single catalog layout dispatches through the registry.
+// Hero — a free adaptive base (drenched accent field / text-panel cover) plus five premium designs. Each
+// variant owns its logic + its own CSS file (nav pattern); the section's single catalog layout dispatches
+// through the registry. A not-entitled/unknown variant falls back to the free base here.
 
-// Layout registry — add a variant by adding its component file + a catalog entry (sectionCatalog). The
-// resolver below maps the saved variant to its component, falling back to the default layout.
 const VARIANTS: Record<string, React.FC<HeroVariantProps>> = {
   default: Default,
+  cinematic: Cinematic,
+  poster: Poster,
+  portal: Portal,
+  drift: Drift,
+  tumble: Tumble,
 };
 
 export function Hero(props: HeroVariantProps) {
-  // Variant resolver — renderer seam for future paid variants: a not-entitled variant falls back to the free default here.
   const View = Object.hasOwn(VARIANTS, props.entry.variant) ? VARIANTS[props.entry.variant] : Default;
   return <View {...props} />;
 }

@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { Info } from "lucide-react";
+import type { ReactNode } from "react";
 import { cn } from "../../../../shared/lib/utils";
 import { modalBody, modalHelperSmall } from "../../../../shared/components/ui/modal-tokens";
 import type {
@@ -14,6 +15,8 @@ import type {
   TeamConfig,
   GalleryConfig,
   ReviewsConfig,
+  FooterConfig,
+  FaqConfig,
 } from "../../types";
 import { isKnownSectionType, SECTION_META } from "./sectionCatalog";
 import { FaqEditor } from "./FaqEditor";
@@ -24,6 +27,7 @@ import { LocationsEditor } from "./LocationsEditor";
 import { TeamEditor } from "./TeamEditor";
 import { GalleryEditor } from "./GalleryEditor";
 import { ReviewsEditor } from "./ReviewsEditor";
+import { FooterEditor } from "./FooterEditor";
 
 interface SettingsPanelProps {
   entry: SectionEntry;
@@ -44,28 +48,51 @@ interface SettingsPanelProps {
   onAnnouncementChange: (value: AnnouncementContent) => void;
   onAboutChange: (value: string) => void;
   onTaglineChange: (value: string) => void;
+  /** Variant currently rendered in preview; may differ from the saved one while browsing a locked style. */
+  previewVariant?: string;
   /** Presentation only; product behavior and data ownership remain identical. */
   variant?: "default" | "atelier";
 }
 
-function AtelierProfileSyncNote() {
+function AtelierContentGroup({ children }: { children: ReactNode }) {
   const { t } = useTranslation("website");
 
   return (
-    <div className="atelier-settings-sync flex items-start gap-2.5">
-      <Info className="mt-0.5 size-3.5 shrink-0 text-foreground-3" strokeWidth={1.7} aria-hidden />
-      <div className="min-w-0">
-        <p className={cn(modalHelperSmall, "mt-0 text-foreground-3")}>
-          {t("businessPage.builder.settings.profileSync")} {" "}
-          <Link
-            to="/account?tab=profile"
-            className="font-semibold text-foreground-2 underline decoration-border-strong underline-offset-2 hover:text-foreground-1"
-          >
-            {t("businessPage.builder.settings.profileLink")}
-          </Link>
-        </p>
+    <section className="atelier-inspector-group atelier-inspector-content-group">
+      <h3 className="atelier-inspector-group-label">
+        {t("businessPage.builder.settings.contentLabel")}
+      </h3>
+      <div className="atelier-inspector-group-body">{children}</div>
+    </section>
+  );
+}
+
+function AtelierProfileSyncNote({ description }: { description?: string }) {
+  const { t } = useTranslation("website");
+
+  return (
+    <section className="atelier-inspector-group atelier-inspector-source-group">
+      <h3 className="atelier-inspector-group-label">
+        {t("businessPage.builder.settings.contentSourceLabel")}
+      </h3>
+      <div className="atelier-settings-sync flex items-start gap-2.5">
+        <Info className="mt-0.5 size-3.5 shrink-0 text-foreground-3" strokeWidth={1.7} aria-hidden />
+        <div className="min-w-0">
+          {description ? (
+            <p className={cn(modalBody, "mt-0 text-foreground-2")}>{description}</p>
+          ) : null}
+          <p className={cn(modalHelperSmall, description ? "mt-1.5 text-foreground-3" : "mt-0 text-foreground-3")}>
+            {t("businessPage.builder.settings.profileSync")} {" "}
+            <Link
+              to="/account?tab=profile"
+              className="font-semibold text-foreground-2 underline decoration-border-strong underline-offset-2 hover:text-foreground-1"
+            >
+              {t("businessPage.builder.settings.profileLink")}
+            </Link>
+          </p>
+        </div>
       </div>
-    </div>
+    </section>
   );
 }
 
@@ -90,52 +117,75 @@ export function SettingsPanel({
   onAnnouncementChange,
   onAboutChange,
   onTaglineChange,
+  previewVariant,
   variant = "default",
 }: SettingsPanelProps) {
   const { t } = useTranslation("website");
+  const renderEditorGroups = (
+    content: ReactNode,
+    { includeSource = false, wrapDefault = true }: { includeSource?: boolean; wrapDefault?: boolean } = {},
+  ) => {
+    if (variant === "atelier") {
+      return (
+        <>
+          <AtelierContentGroup>{content}</AtelierContentGroup>
+          {includeSource ? <AtelierProfileSyncNote /> : null}
+        </>
+      );
+    }
+    return wrapDefault ? <div className="space-y-4">{content}</div> : content;
+  };
 
   if (entry.type === "hero") {
     // Mirrors the hero rating gate in LivePreview (aggregateReviews → count > 0).
     const hasReviews = locations.some((l) => (l.totalReviews ?? 0) > 0);
-    return (
-      <div className="space-y-4">
-        <HeroEditor
-          tagline={tagline}
-          setTagline={onTaglineChange}
-          taglineError={taglineError}
-          heroImageUrl={heroImageUrl}
-          canWrite={canWrite}
-          config={(entry.config ?? {}) as HeroConfig}
-          onConfigChange={(patch) => onConfigChange(index, patch as Record<string, unknown>)}
-          hasReviews={hasReviews}
-          variant={variant}
-        />
-        {variant === "atelier" ? <AtelierProfileSyncNote /> : null}
-      </div>
+    return renderEditorGroups(
+      <HeroEditor
+        tagline={tagline}
+        setTagline={onTaglineChange}
+        taglineError={taglineError}
+        heroImageUrl={heroImageUrl}
+        canWrite={canWrite}
+        config={(entry.config ?? {}) as HeroConfig}
+        onConfigChange={(patch) => onConfigChange(index, patch as Record<string, unknown>)}
+        locations={locations}
+        locale={locale}
+        hasReviews={hasReviews}
+        variant={variant}
+        previewVariant={previewVariant ?? entry.variant}
+      />,
+      { includeSource: true },
     );
   }
 
   if (entry.type === "about") {
     // A shown About surfaces a readiness hint here; incomplete drafts still save.
-    return (
-      <div className="space-y-4">
-        <AboutEditor
-          value={aboutContent}
-          onChange={onAboutChange}
-          required={entry.visible}
-        />
-        {variant === "atelier" ? <AtelierProfileSyncNote /> : null}
-      </div>
+    return renderEditorGroups(
+      <AboutEditor
+        value={aboutContent}
+        onChange={onAboutChange}
+        required={entry.visible}
+      />,
+      { includeSource: true },
     );
   }
 
   if (entry.type === "faq") {
-    return <FaqEditor items={faqItems} onChange={onFaqChange} locale={locale} />;
+    return renderEditorGroups(
+      <FaqEditor
+        items={faqItems}
+        onChange={onFaqChange}
+        locale={locale}
+        config={(entry.config ?? {}) as FaqConfig}
+        onConfigChange={(patch) => onConfigChange(index, patch as Record<string, unknown>)}
+      />,
+      { wrapDefault: false },
+    );
   }
 
   if (entry.type === "announcement") {
     // A shown announcement surfaces a readiness hint here; incomplete drafts still save.
-    return (
+    return renderEditorGroups(
       <AnnouncementEditor
         value={announcementContent}
         onChange={onAnnouncementChange}
@@ -145,87 +195,85 @@ export function SettingsPanel({
         required={entry.visible}
         canWrite={canWrite}
         variant={variant}
-      />
+      />,
+      { wrapDefault: false },
     );
   }
 
   if (entry.type === "locations") {
-    return (
-      <div className="space-y-4">
-        <LocationsEditor
-          config={(entry.config ?? {}) as LocationsConfig}
-          locations={locations}
-          locale={locale}
-          onConfigChange={(patch) => onConfigChange(index, patch as Record<string, unknown>)}
-          onTurnOffSection={onTurnOffSection}
-        />
-        {variant === "atelier" ? <AtelierProfileSyncNote /> : null}
-      </div>
+    return renderEditorGroups(
+      <LocationsEditor
+        config={(entry.config ?? {}) as LocationsConfig}
+        locations={locations}
+        locale={locale}
+        onConfigChange={(patch) => onConfigChange(index, patch as Record<string, unknown>)}
+        onTurnOffSection={onTurnOffSection}
+      />,
+      { includeSource: true },
     );
   }
 
   if (entry.type === "team") {
-    return (
-      <div className="space-y-4">
-        <TeamEditor
-          config={(entry.config ?? {}) as TeamConfig}
-          locale={locale}
-          onConfigChange={(patch) => onConfigChange(index, patch as Record<string, unknown>)}
-        />
-        {variant === "atelier" ? <AtelierProfileSyncNote /> : null}
-      </div>
+    return renderEditorGroups(
+      <TeamEditor
+        config={(entry.config ?? {}) as TeamConfig}
+        locale={locale}
+        onConfigChange={(patch) => onConfigChange(index, patch as Record<string, unknown>)}
+      />,
+      { includeSource: true },
     );
   }
 
   if (entry.type === "gallery") {
-    return (
-      <div className="space-y-4">
-        <GalleryEditor
-          config={(entry.config ?? {}) as GalleryConfig}
-          locale={locale}
-          onConfigChange={(patch) => onConfigChange(index, patch as Record<string, unknown>)}
-        />
-        {variant === "atelier" ? <AtelierProfileSyncNote /> : null}
-      </div>
+    return renderEditorGroups(
+      <GalleryEditor
+        config={(entry.config ?? {}) as GalleryConfig}
+        locations={locations}
+        locale={locale}
+        onConfigChange={(patch) => onConfigChange(index, patch as Record<string, unknown>)}
+      />,
+      { includeSource: false },
     );
   }
 
   if (entry.type === "testimonials") {
-    return (
-      <div className="space-y-4">
-        <ReviewsEditor
-          config={(entry.config ?? {}) as ReviewsConfig}
-          locale={locale}
-          onConfigChange={(patch) => onConfigChange(index, patch as Record<string, unknown>)}
-        />
-        {variant === "atelier" ? <AtelierProfileSyncNote /> : null}
-      </div>
+    return renderEditorGroups(
+      <ReviewsEditor
+        config={(entry.config ?? {}) as ReviewsConfig}
+        locale={locale}
+        onConfigChange={(patch) => onConfigChange(index, patch as Record<string, unknown>)}
+      />,
+      { includeSource: true },
+    );
+  }
+
+  if (entry.type === "footer" && (previewVariant ?? entry.variant) === "directory") {
+    return renderEditorGroups(
+      <FooterEditor
+        config={(entry.config ?? {}) as FooterConfig}
+        onConfigChange={(patch) => onConfigChange(index, patch as Record<string, unknown>)}
+      />,
+      { includeSource: true },
     );
   }
 
   // Sections that are pure views over existing data: a quiet note explaining what they show.
   const meta = isKnownSectionType(entry.type) ? SECTION_META[entry.type] : null;
+  if (variant === "atelier") {
+    return (
+      <AtelierProfileSyncNote
+        description={meta ? t(meta.descriptionKey) : t("businessPage.builder.settings.noSettings")}
+      />
+    );
+  }
   return (
-    <div className={cn(
-      "rounded-xl border border-border-subtle bg-surface-hover/45 px-3.5 py-3",
-      variant === "atelier" && "atelier-settings-sync",
-    )}>
+    <div className="rounded-xl border border-border-subtle bg-surface-hover/45 px-3.5 py-3">
       <p className={cn(modalBody, "mt-0 text-foreground-1")}>
         {meta ? t(meta.descriptionKey) : t("businessPage.builder.settings.noSettings")}
       </p>
       <p className={cn(modalHelperSmall, "mt-1.5 text-foreground-3")}>
-        {variant === "atelier"
-          ? t("businessPage.builder.settings.profileSync")
-          : t("businessPage.builder.settings.viewOnlyHint")}
+        {t("businessPage.builder.settings.viewOnlyHint")}
       </p>
-      {variant === "atelier" ? (
-        <Link
-          to="/account?tab=profile"
-          className="mt-2 inline-flex text-[11px] font-semibold text-foreground-2 underline decoration-border-strong underline-offset-2 hover:text-foreground-1"
-        >
-          {t("businessPage.builder.settings.profileLink")}
-        </Link>
-      ) : null}
     </div>
   );
 }

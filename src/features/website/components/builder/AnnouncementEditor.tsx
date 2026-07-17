@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSelector } from "react-redux";
 import { Megaphone, MousePointerClick, Link2 } from "lucide-react";
@@ -16,7 +16,11 @@ import {
   minSelectableCalendarDateForTimezone,
   laterCalendarWallDate,
 } from "../../../calendar/timezone";
-import { validateUrlField } from "../../../../shared/utils/validation";
+import {
+  hasUnsafeWebsiteCopyCharacters,
+  validateUrlField,
+  validateWebsiteCopy,
+} from "../../../../shared/utils/validation";
 import { cn } from "../../../../shared/lib/utils";
 import { AutoHeight } from "./AutoHeight";
 import { InfoHint } from "./InfoHint";
@@ -63,7 +67,8 @@ export function AnnouncementEditor({
   canWrite = true,
   variant = "default",
 }: AnnouncementEditorProps) {
-  const { t } = useTranslation("website");
+  const { t } = useTranslation(["website", "common"]);
+  const [blurred, setBlurred] = useState({ message: false, ctaLabel: false });
   const tone: AnnouncementTone = config.tone ?? "neutral";
 
   // A shown announcement needs a message in either language (mirrors the bar self-hiding when blank).
@@ -84,10 +89,25 @@ export function AnnouncementEditor({
   // check, however, follows the save rule: any non-empty URL must be valid http(s) even while
   // the button is disabled or label-less (the collapsed blocks below force themselves open so
   // a stale invalid URL is always visible and fixable).
-  const hasButtonText = cta.label[locale].trim() !== "";
+  const hasAnyButtonText = cta.label.en.trim() !== "" || cta.label.ro.trim() !== "";
   const urlError = cta.url.trim() !== "" ? validateUrlField(cta.url, t) ?? undefined : undefined;
-  // A button with text but no link is structurally invalid — flag the empty URL as required.
-  const urlMissing = hasButtonText && cta.url.trim() === "";
+  // A visible, enabled button with text still needs a destination before publishing. This is
+  // guidance rather than a save-blocking field error, so an unfinished draft remains saveable.
+  const urlMissing = !!required && cta.enabled && hasAnyButtonText && cta.url.trim() === "";
+  const messageValidation = validateWebsiteCopy(value.message[locale], t, {
+    fieldLabel: t("businessPage.builder.announcement.messageLabel"),
+    maxLength: MAX_MESSAGE,
+  });
+  const ctaLabelValidation = validateWebsiteCopy(cta.label[locale], t, {
+    fieldLabel: t("businessPage.builder.announcement.cta.labelLabel"),
+    maxLength: MAX_CTA_LABEL,
+  });
+  const messageError = blurred.message || hasUnsafeWebsiteCopyCharacters(value.message[locale])
+    ? messageValidation ?? undefined
+    : undefined;
+  const ctaLabelError = blurred.ctaLabel || hasUnsafeWebsiteCopyCharacters(cta.label[locale])
+    ? ctaLabelValidation ?? undefined
+    : undefined;
 
   const startKey = value.schedule?.start ?? null;
   const endKey = value.schedule?.end ?? null;
@@ -122,6 +142,14 @@ export function AnnouncementEditor({
         placeholder={t("businessPage.builder.announcement.messagePlaceholder")}
         value={value.message[locale]}
         onChange={(v) => onChange({ ...value, message: { ...value.message, [locale]: v } })}
+        onBlur={() => {
+          const normalized = value.message[locale].trim();
+          if (normalized !== value.message[locale]) {
+            onChange({ ...value, message: { ...value.message, [locale]: normalized } });
+          }
+          setBlurred((current) => ({ ...current, message: true }));
+        }}
+        error={messageError}
         icon={Megaphone}
         maxLength={MAX_MESSAGE}
         className="!pt-0"
@@ -194,6 +222,14 @@ export function AnnouncementEditor({
                   placeholder={t("businessPage.builder.announcement.cta.labelPlaceholder")}
                   value={cta.label[locale]}
                   onChange={(v) => patchCta({ label: { ...cta.label, [locale]: v } })}
+                  onBlur={() => {
+                    const normalized = cta.label[locale].trim();
+                    if (normalized !== cta.label[locale]) {
+                      patchCta({ label: { ...cta.label, [locale]: normalized } });
+                    }
+                    setBlurred((current) => ({ ...current, ctaLabel: true }));
+                  }}
+                  error={ctaLabelError}
                   icon={MousePointerClick}
                   maxLength={MAX_CTA_LABEL}
                   className="!pt-0"
@@ -205,7 +241,7 @@ export function AnnouncementEditor({
 
               {/* Link + button options reveal once the button has text — same accordion animation.
                   An invalid stored URL keeps the block open so it can't hide a save blocker. */}
-              <Collapsible open={hasButtonText || !!urlError}>
+              <Collapsible open={hasAnyButtonText || !!urlError}>
                 <CollapsibleContent>
                   <AutoHeight className="space-y-3">
                     <TextField
@@ -218,7 +254,7 @@ export function AnnouncementEditor({
                       icon={Link2}
                       maxLength={MAX_URL}
                       className="!pt-0"
-                      // Required: a button with text but no link would create a dead draft CTA.
+                      // Publish-readiness guidance: incomplete work can still be saved as a draft.
                       hint={
                         urlMissing ? (
                           <InfoHint>{t("businessPage.builder.announcement.cta.urlRequiredHint")}</InfoHint>

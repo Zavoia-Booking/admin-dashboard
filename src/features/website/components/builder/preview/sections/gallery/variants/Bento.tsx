@@ -1,18 +1,37 @@
 import { cn } from "../../../../../../../../shared/lib/utils";
-import { ZoomBadge } from "../parts/ZoomBadge";
+import { GalleryImage } from "../parts/GalleryImage";
 import type { GalleryVariantProps } from "../types";
+import "./bento.css";
 
-const BENTO_CELLS = ["mc-c2 mc-r2", "mc-c2", "mc-c1", "mc-c1", "mc-c2", "mc-c2"];
+const BENTO_CELLS = [
+  "mc-bento-feature",
+  "mc-bento-wide",
+  "mc-bento-small",
+  "mc-bento-small",
+  "mc-bento-small",
+  "mc-bento-small",
+  "mc-bento-small",
+  "mc-bento-small",
+];
 
-/** Bento — a mixed-size tile grid (2×2 / 2×1 / 1×1 cells cycling through BENTO_CELLS). */
-export function Bento({ images, onOpen }: GalleryVariantProps) {
+/** Bento — an eight-image editorial rhythm with alternating feature placement. */
+export function Bento({ images, onOpen, t }: GalleryVariantProps) {
   return (
     <div className="mc-bento">
       {images.map((g, i) => (
-        <div key={i} className={cn("mc-bento-tile mc-mask-in", BENTO_CELLS[i % 6])} style={{ animationDelay: `${(i % 3) * 80}ms` }}>
-          <button type="button" className="mc-zoomable block h-full w-full" data-gimg={i} onClick={() => onOpen(i)}>
-            <img src={g.src} alt={g.alt} loading="lazy" decoding="async" />
-            <ZoomBadge />
+        <div
+          key={i}
+          className={cn("mc-bento-tile mc-mask-in", BENTO_CELLS[i % BENTO_CELLS.length])}
+          style={{ animationDelay: `${(i % 3) * 80}ms` }}
+        >
+          <button
+            type="button"
+            className="mc-gallery-zoomable mc-bento-image"
+            data-gimg={i}
+            onClick={() => onOpen(i)}
+            aria-label={g.alt || t("businessPage.builder.preview.aria.openGalleryImage", { number: i + 1 })}
+          >
+            <GalleryImage src={g.src} alt={g.alt} fallbackLabel={t("businessPage.builder.preview.galleryTitle")} />
           </button>
         </div>
       ))}

@@ -19,7 +19,9 @@ export function ReviewsEditor({ config, locale, onConfigChange }: ReviewsEditorP
 
   const setCopy = (field: "heading" | "sublede", value: string) => {
     const current = config[field] ?? { en: "", ro: "" };
-    onConfigChange({ [field]: { ...current, [locale]: value } });
+    const next = { ...current, [locale]: value };
+    const hasOverride = next.en.trim() !== "" || next.ro.trim() !== "";
+    onConfigChange({ [field]: hasOverride ? next : undefined });
   };
 
   return (
@@ -45,9 +47,6 @@ export function ReviewsEditor({ config, locale, onConfigChange }: ReviewsEditorP
           onChange={(v) => setCopy("heading", v)}
           maxLength={80}
           rows={2}
-          customizeAria={t("businessPage.builder.settings.customize", {
-            field: t("businessPage.builder.settings.headingLabel"),
-          })}
         />
         <div className="mt-5 border-t border-border-subtle pt-5">
           <CopyOverride
@@ -59,9 +58,6 @@ export function ReviewsEditor({ config, locale, onConfigChange }: ReviewsEditorP
             onChange={(v) => setCopy("sublede", v)}
             maxLength={220}
             rows={3}
-            customizeAria={t("businessPage.builder.settings.customize", {
-              field: t("businessPage.builder.settings.subledeLabel"),
-            })}
           />
         </div>
       </div>

@@ -187,6 +187,7 @@
       "loadFailed": "Could not load portfolio.",
       "uploadFailed": "Could not upload {{name}}.",
       "deleteFailed": "Could not delete image.",
+      "publishedGalleryImage": "Remove this photo from the published Website Gallery before deleting it.",
       "updateFeaturedFailed": "Could not update cover image.",
       "waitForUpload": "Please wait for the image to finish uploading.",
       "noLocationSelected": "Please select a location first."

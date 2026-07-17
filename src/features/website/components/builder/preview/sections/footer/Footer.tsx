@@ -1,30 +1,91 @@
-import type { FooterVariantProps } from "./types";
-import { Default } from "./variants/Default";
-import { Poster } from "./variants/Poster";
-import { Minimal } from "./variants/Minimal";
-import { Mega } from "./variants/Mega";
-import { Index } from "./variants/Index";
-import { FootBottom } from "./parts/FootBottom";
-import "./footer.css";
+import { useCallback, useMemo, useState } from "react";
+import { findScrollParent, prefersReducedMotion } from "../../shared/util";
+import type { FooterConfig, FooterLinkItem, FooterStyleKey, FooterVariantProps, FooterViewProps } from "./types";
+import { Directory } from "./variants/Directory";
+import { Editorial } from "./variants/Editorial";
+import { Signature } from "./variants/Signature";
+import { Masthead } from "./variants/Masthead";
+import { Marque } from "./variants/Marque";
 
-// Variant registry — an unknown or unentitled id falls back to the free editorial default (parity with the
-// section orchestrators). Poster/Minimal/Mega/Index are paid skins gated by the backend catalog.
-const VARIANTS = { default: Default, poster: Poster, minimal: Minimal, mega: Mega, index: Index } as const;
+import "./base.css";
 
-// Editorial closing footer — pinned behind the page and uncovered on scroll (LivePreview drives the reveal).
-// The orchestrator owns the `<footer>` shell (reveal ref + `mc-footer--<variant>` modifier) and the shared
-// closing credit; each variant renders only its pad body.
-export function Footer({ data, t, footerRef, variant }: FooterVariantProps) {
-  const v = variant && Object.hasOwn(VARIANTS, variant) ? (variant as keyof typeof VARIANTS) : "default";
-  const Body = VARIANTS[v];
+const FOOTER_LABELS: Record<string, string> = {
+  about: "businessPage.builder.preview.kicker.about",
+  locations: "businessPage.builder.preview.kicker.locations",
+  gallery: "businessPage.builder.preview.kicker.gallery",
+  team: "businessPage.builder.preview.kicker.team",
+  testimonials: "businessPage.builder.preview.kicker.reviews",
+};
+
+const SCOPED_SAMPLE_TYPES = ["about", "locations", "gallery"];
+
+/** The live design identities are authoritative. Every retired footer id deliberately falls back to the new
+ * included Directory design until the accompanying SQL/layout migration has been applied. */
+export function normalizeFooterStyle(value: string | undefined): FooterStyleKey {
+  if (value === "editorial" || value === "signature" || value === "masthead" || value === "marque") return value;
+  return "directory";
+}
+
+const VARIANTS: Record<FooterStyleKey, React.FC<FooterViewProps>> = {
+  directory: Directory,
+  editorial: Editorial,
+  signature: Signature,
+  masthead: Masthead,
+  marque: Marque,
+};
+
+/** Footer dispatcher. Cross-variant ownership stops at visible-section link derivation and scale-aware
+ * scrolling inside the builder preview; each variant owns its complete footer element and behavior. */
+export function Footer({ data, t, footerRef, layout, selectedLocationId, variant }: FooterVariantProps) {
+  const style = normalizeFooterStyle(variant);
+  const View = VARIANTS[style];
+  const footerConfig = (layout.find((section) => section.type === "footer")?.config ?? {}) as FooterConfig;
+  const showLogo = footerConfig.showLogo !== false;
+  const scopedSample = layout.length === 1 && layout[0]?.type === "footer";
+  const links = useMemo<FooterLinkItem[]>(() => {
+    const types = scopedSample
+      ? SCOPED_SAMPLE_TYPES
+      : layout.filter((section) => section.visible && FOOTER_LABELS[section.type]).map((section) => section.type);
+    return types.map((type) => ({ type, label: t(FOOTER_LABELS[type]) }));
+  }, [layout, scopedSample, t]);
+
+  const [footerNode, setFooterNode] = useState<HTMLElement | null>(null);
+  const footerElementRef = useCallback((node: HTMLElement | null) => {
+    setFooterNode((current) => current === node ? current : node);
+    if (typeof footerRef === "function") footerRef(node);
+    else if (footerRef) footerRef.current = node;
+  }, [footerRef]);
+
+  const onNavigate = useCallback((type: string) => {
+    if (!footerNode) return;
+    const previewRoot = footerNode.closest<HTMLElement>(".mc-root");
+    const target = Array.from(
+      previewRoot?.querySelectorAll<HTMLElement>(".mc-page-flow > [data-preview-section]") ?? [],
+    ).find((section) => section.dataset.previewSection === type);
+    const scrollParent = findScrollParent(footerNode);
+    if (!previewRoot || !target || !scrollParent) return;
+
+    const scrollRect = scrollParent.getBoundingClientRect();
+    const targetRect = target.getBoundingClientRect();
+    const previewScale = scrollParent.clientWidth > 0 ? scrollRect.width / scrollParent.clientWidth : 1;
+    const safeScale = Number.isFinite(previewScale) && previewScale > 0 ? previewScale : 1;
+    const nav = previewRoot.querySelector<HTMLElement>(".mc-site-nav");
+    const top = scrollParent.scrollTop + (targetRect.top - scrollRect.top) / safeScale - (nav?.offsetHeight ?? 0) - 12;
+    scrollParent.scrollTo({
+      top: Math.max(0, Math.min(top, scrollParent.scrollHeight - scrollParent.clientHeight)),
+      behavior: prefersReducedMotion() ? "auto" : "smooth",
+    });
+  }, [footerNode]);
+
   return (
-    <footer
-      className={`mc-footer mc-footer--${v}`}
-      data-preview-section="footer"
-      ref={footerRef as React.RefObject<HTMLElement>}
-    >
-      <Body data={data} t={t} />
-      <FootBottom data={data} t={t} showWordmark={v === "default"} />
-    </footer>
+    <View
+      data={data}
+      t={t}
+      footerRef={footerElementRef}
+      links={links}
+      selectedLocationId={selectedLocationId}
+      showLogo={showLogo}
+      onNavigate={onNavigate}
+    />
   );
 }

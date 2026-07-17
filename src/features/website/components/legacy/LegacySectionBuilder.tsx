@@ -42,6 +42,7 @@ import {
 import type {
   Business,
   SectionEntry,
+  GalleryConfig,
   LocationWithAssignments,
   FaqItem,
   AnnouncementContent,
@@ -58,6 +59,13 @@ import { LivePreview, marqueeItems, MARQUEE_MIN_ITEMS, UNNUMBERED, type PreviewD
 import { AutoHeight } from "../builder/AutoHeight";
 import { useLocationTagDictionaries } from "../../../marketplace/hooks/useLocationTagDictionaries";
 import { aboutHeadline } from "../builder/aboutContent";
+import { MIN_GALLERY_IMAGES, isGallerySelectionIncomplete, resolveGalleryImages } from "../builder/gallerySelection";
+import {
+  MIN_TEAM_MEMBERS,
+  MIN_TESTIMONIAL_REVIEWS,
+  reviewCount,
+  teamMemberCount,
+} from "../builder/sectionDataRequirements";
 
 const SECTION_PREVIEW_PREF_KEY = "zavoia:business-page-section-preview";
 const PREVIEW_DEVICE_PREF_KEY = "zavoia:website-builder-preview-device";
@@ -81,24 +89,6 @@ interface UndoToastOptions {
 
 const firstLocaleText = (value: { en?: string; ro?: string } | undefined, locale: "en" | "ro") =>
   value?.[locale]?.trim() || value?.en?.trim() || value?.ro?.trim() || "";
-
-const portfolioPhotoCount = (locations: LocationWithAssignments[]) =>
-  locations.reduce((count, location) => count + (location.portfolioImages?.length ?? 0), 0);
-
-const teamMemberCount = (locations: LocationWithAssignments[]) => {
-  const ids = new Set<number | string>();
-  locations.forEach((location) => {
-    location.teamMembers?.forEach((member) => {
-      ids.add(member.id ?? `${member.firstName ?? ""}-${member.lastName ?? ""}`);
-    });
-  });
-  return ids.size;
-};
-
-const reviewCount = (locations: LocationWithAssignments[], reviews?: PreviewReview[]) => {
-  const aggregate = locations.reduce((count, location) => count + (location.totalReviews ?? 0), 0);
-  return Math.max(aggregate, reviews?.length ?? 0);
-};
 
 const showUndoToast = ({ title, description, undoLabel, onUndo }: UndoToastOptions) => {
   toast.custom(
@@ -480,19 +470,55 @@ export function LegacySectionBuilder(props: LegacySectionBuilderProps) {
     ],
   );
 
-  // The marquee only reads as an intentional band with enough services to scroll; below the threshold it's
-  // pointless, so drop the section from the builder entirely (it also self-hides on render). Both gate on the
-  // same helper so the card and the rendered band never disagree. Indices into props.layout are preserved so
-  // visibility/variant handlers stay correct; the displayed ordinal counts the shown cards.
-  const marqueeReady = marqueeItems(props.locations).length >= MARQUEE_MIN_ITEMS;
+  // Data-backed sections stay discoverable while their toggles remain unavailable until their established
+  // minimum is met. Existing stale visible states are corrected below and publish readiness independently
+  // blocks a read-only/publish-only user from bypassing the same rules.
+  const marqueeItemCount = marqueeItems(props.locations).length;
+  const teamCount = teamMemberCount(props.locations);
+  const reviewsCount = reviewCount(props.locations, props.reviews);
+  const dataLockedTypes = useMemo(
+    () =>
+      new Set<string>([
+        ...(marqueeItemCount < MARQUEE_MIN_ITEMS ? ["marquee"] : []),
+        ...(teamCount < MIN_TEAM_MEMBERS ? ["team"] : []),
+        ...(reviewsCount < MIN_TESTIMONIAL_REVIEWS ? ["testimonials"] : []),
+      ]),
+    [marqueeItemCount, reviewsCount, teamCount],
+  );
+  const dataLockedReason = (type: string) => {
+    if (type === "marquee") {
+      return t("businessPage.builder.card.servicesLocked", { count: MARQUEE_MIN_ITEMS });
+    }
+    if (type === "team") {
+      return t("businessPage.builder.card.teamLocked", { count: MIN_TEAM_MEMBERS });
+    }
+    if (type === "testimonials") {
+      return t("businessPage.builder.card.reviewsLocked", {
+        count: MIN_TESTIMONIAL_REVIEWS,
+      });
+    }
+    return undefined;
+  };
+
+  useEffect(() => {
+    if (!props.canWrite) return;
+    for (const type of dataLockedTypes) {
+      const section = props.layout.find((entry) => entry.type === type);
+      if (section?.visible) props.setSectionVisibleByType(type, false);
+    }
+  }, [
+    dataLockedTypes,
+    props.canWrite,
+    props.layout,
+    props.setSectionVisibleByType,
+  ]);
   // The section list is server-driven via isSectionOffered: required chrome always shows, and once the
   // catalog is authoritative only its content types survive (a card never renders for a type the server
   // doesn't offer — so future paid-only or unseeded sections stay hidden rather than blank). The marquee
-  // additionally self-gates on having enough services. A catalog type with no implemented component is
-  // ignored via the layout match (the layout only carries implemented or saved types).
+  // A catalog type with no implemented component is ignored via the layout match (the layout only carries
+  // implemented or saved types).
   const displaySections = props.layout
     .map((entry, index) => ({ entry, index }))
-    .filter(({ entry }) => entry.type !== "marquee" || marqueeReady)
     .filter(({ entry }) => isSectionOffered(entry.type));
 
   const items = displaySections.map(({ entry }) => entry.type);
@@ -607,10 +633,15 @@ export function LegacySectionBuilder(props: LegacySectionBuilderProps) {
         case "marquee": {
           const count = marqueeItems(props.locations).length;
           return withStatus(
-            count > 0
+            count < MARQUEE_MIN_ITEMS
+              ? t("businessPage.builder.summary.servicesProgress", {
+                  count,
+                  required: MARQUEE_MIN_ITEMS,
+                })
+              : count > 0
               ? t("businessPage.builder.summary.services", { count })
               : t("businessPage.builder.summary.servicesEmpty"),
-            count === 0 ? noDataStatus : undefined,
+            count < MARQUEE_MIN_ITEMS ? noDataStatus : undefined,
             count === 0,
           );
         }
@@ -636,42 +667,48 @@ export function LegacySectionBuilder(props: LegacySectionBuilderProps) {
           );
         }
         case "gallery": {
-          const count = portfolioPhotoCount(props.locations);
+          const count = resolveGalleryImages((entry.config ?? {}) as GalleryConfig, props.locations).length;
+          const needsContent = entry.visible && count < MIN_GALLERY_IMAGES;
           return withStatus(
-            count > 0
-              ? t("businessPage.builder.summary.photos", { count })
-              : t("businessPage.builder.summary.photosEmpty"),
-            count === 0 ? noDataStatus : undefined,
+            needsContent
+              ? t("businessPage.builder.summary.photosProgress", {
+                  count,
+                  required: MIN_GALLERY_IMAGES,
+                })
+              : count > 0
+                ? t("businessPage.builder.summary.photos", { count })
+                : t("businessPage.builder.summary.photosEmpty"),
+            needsContent ? needsContentStatus : count === 0 ? noDataStatus : undefined,
             count === 0,
           );
         }
         case "team": {
           const count = teamMemberCount(props.locations);
           return withStatus(
-            count > 0
+            count < MIN_TEAM_MEMBERS
+              ? t("businessPage.builder.summary.membersProgress", {
+                  count,
+                  required: MIN_TEAM_MEMBERS,
+                })
+              : count > 0
               ? t("businessPage.builder.summary.members", { count })
               : t("businessPage.builder.summary.membersEmpty"),
-            count === 0 ? noDataStatus : undefined,
-            count === 0,
-          );
-        }
-        case "interlude": {
-          const count = portfolioPhotoCount(props.locations);
-          return withStatus(
-            count > 0
-              ? t("businessPage.builder.summary.usesPortfolioPhoto")
-              : t("businessPage.builder.summary.noPortfolioPhoto"),
-            count === 0 ? noDataStatus : undefined,
+            count < MIN_TEAM_MEMBERS ? noDataStatus : undefined,
             count === 0,
           );
         }
         case "testimonials": {
           const count = reviewCount(props.locations, props.reviews);
           return withStatus(
-            count > 0
+            count < MIN_TESTIMONIAL_REVIEWS
+              ? t("businessPage.builder.summary.reviewsProgress", {
+                  count,
+                  required: MIN_TESTIMONIAL_REVIEWS,
+                })
+              : count > 0
               ? t("businessPage.builder.summary.reviews", { count })
               : t("businessPage.builder.summary.reviewsEmpty"),
-            count === 0 ? noDataStatus : undefined,
+            count < MIN_TESTIMONIAL_REVIEWS ? noDataStatus : undefined,
             count === 0,
           );
         }
@@ -791,7 +828,19 @@ export function LegacySectionBuilder(props: LegacySectionBuilderProps) {
     return () => window.cancelAnimationFrame(frame);
   }, [device, openType, workspacePane]);
 
+  const focusHeroCoverRecommendation = useCallback(() => {
+    const reveal = () => {
+      const target = document.getElementById("hero-cover-recommendation");
+      if (!target) return;
+      const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+      target.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "center" });
+      window.requestAnimationFrame(() => target.focus({ preventScroll: true }));
+    };
+    window.requestAnimationFrame(reveal);
+  }, []);
+
   const renderSettings = (entry: SectionEntry, index: number) => {
+    const dataLocked = dataLockedTypes.has(entry.type);
     const meta = isKnownSectionType(entry.type) ? SECTION_META[entry.type] : null;
     // Server-driven pills, matched against the components implemented in code (SECTION_META): a
     // catalog key with no matching component is simply ignored, so a backend typo can't break the
@@ -845,10 +894,10 @@ export function LegacySectionBuilder(props: LegacySectionBuilderProps) {
     return (
       <div className="space-y-4">
         <fieldset
-          disabled={!entry.visible || !props.canWrite}
+          disabled={!entry.visible || !props.canWrite || dataLocked}
           className={cn(
             "m-0 min-w-0 space-y-4 border-0 p-0",
-            (!entry.visible || !props.canWrite) && "pointer-events-none opacity-60 transition-opacity duration-200",
+            (!entry.visible || !props.canWrite || dataLocked) && "pointer-events-none opacity-60 transition-opacity duration-200",
           )}
         >
           {/* Skeleton only where a picker can plausibly appear. The static meta count is a pre-fetch
@@ -863,14 +912,19 @@ export function LegacySectionBuilder(props: LegacySectionBuilderProps) {
               entry={entry}
               variants={variantOptions}
               selectedVariantId={previewVariantId}
-              disabled={!entry.visible || !props.canWrite}
+              disabled={!entry.visible || !props.canWrite || dataLocked}
               onSelect={(option) => {
+                const revealCoverRecommendation =
+                  entry.type === "hero" &&
+                  !props.heroImageUrl &&
+                  (option.variant.id === "cinematic" || option.variant.id === "portal");
                 if (option.locked && option.catalogEntry) {
                   setPreviewVariantByType((current) => ({
                     ...current,
                     [entry.type]: option.variant.id,
                   }));
                   if (!sectionPreviewOpen) setPreviewTrayOpen(true);
+                  if (revealCoverRecommendation) focusHeroCoverRecommendation();
                   return;
                 }
                 setPreviewVariantByType((current) => {
@@ -880,6 +934,7 @@ export function LegacySectionBuilder(props: LegacySectionBuilderProps) {
                   return next;
                 });
                 props.setSectionVariant(index, option.variant.id);
+                if (revealCoverRecommendation) focusHeroCoverRecommendation();
               }}
               t={t}
               isNative={props.isNative}
@@ -958,6 +1013,7 @@ export function LegacySectionBuilder(props: LegacySectionBuilderProps) {
             onAnnouncementChange={props.setAnnouncementContent}
             onAboutChange={props.setAboutContent}
             onTaglineChange={props.setTagline}
+            previewVariant={previewVariantId}
           />
         </fieldset>
 
@@ -1121,6 +1177,7 @@ export function LegacySectionBuilder(props: LegacySectionBuilderProps) {
                       const paidLocked = lockedSectionEntry(entry.type);
                       const open = openType === entry.type && !paidLocked && !readOnly;
                       const rowInfo = rowInfoFor(entry);
+                      const dataLocked = dataLockedTypes.has(entry.type);
                       return (
                         <Collapsible
                           key={entry.type}
@@ -1144,7 +1201,6 @@ export function LegacySectionBuilder(props: LegacySectionBuilderProps) {
                           <SectionCard
                             entry={entry}
                             meta={isKnownSectionType(entry.type) ? SECTION_META[entry.type] : null}
-                            index={pos + 1}
                             summary={rowInfo.summary}
                             status={rowInfo.status}
                             expanded={open}
@@ -1153,13 +1209,21 @@ export function LegacySectionBuilder(props: LegacySectionBuilderProps) {
                             required={REQUIRED_TYPES.has(entry.type)}
                             needsAttention={
                               (entry.type === "about" && !!props.aboutError) ||
-                              (entry.type === "announcement" && !!props.announcementError)
+                              (entry.type === "announcement" && !!props.announcementError) ||
+                              (entry.type === "gallery" &&
+                                entry.visible &&
+                                isGallerySelectionIncomplete(
+                                  (entry.config ?? {}) as GalleryConfig,
+                                  props.locations,
+                                ))
                             }
                             paidLocked={!!paidLocked}
                             priceLabel={paidLocked ? variantPriceLabel(formatPrice, paidLocked) : undefined}
                             hidePrice={props.isNative}
                             inCart={!!paidLocked && (props.cartSectionIds ?? []).includes(paidLocked.id)}
                             pending={catalogPending && !REQUIRED_TYPES.has(entry.type)}
+                            dataLocked={dataLocked}
+                            dataLockedReason={dataLockedReason(entry.type)}
                             canMoveUp={canMoveSection(index, -1)}
                             canMoveDown={canMoveSection(index, 1)}
                             onSelect={() => {
@@ -1171,7 +1235,7 @@ export function LegacySectionBuilder(props: LegacySectionBuilderProps) {
                               setOpenType(open ? null : entry.type);
                             }}
                             onToggleVisible={() => {
-                              if (readOnly) return;
+                              if (readOnly || dataLocked) return;
                               if (paidLocked) {
                                 setSectionPurchaseTarget(paidLocked);
                                 return;

@@ -1,67 +1,113 @@
-import { useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { ImageOff } from "lucide-react";
-import type { SectionEntry, GalleryConfig } from "../../../../../types";
-import { Section, SectionHead, Placeholder } from "../../shared/primitives";
+import type { GalleryConfig, SectionEntry } from "../../../../../types";
+import { useInView } from "../../shared/hooks";
+import { Kicker, Placeholder } from "../../shared/primitives";
 import type { PreviewData, T } from "../../shared/types";
-import { Editorial } from "./variants/Editorial";
 import { Bento } from "./variants/Bento";
-import { Masonry } from "./variants/Masonry";
 import { Carousel } from "./variants/Carousel";
+import { Fan } from "./variants/Fan";
+import { Masonry } from "./variants/Masonry";
+import { Mosaic } from "./variants/Mosaic";
 import { GalleryLightbox } from "./parts/GalleryLightbox";
 import type { GalleryImage, GalleryVariantProps } from "./types";
-import "./gallery.css";
+import { resolveGalleryImages } from "../../../gallerySelection";
+import "./base.css";
 
-// Gallery — owner portfolio photos flattened across the locations, rendered in one of four layouts over a
-// shared fullscreen lightbox (shared-element morph). Each layout is its own component under variants/; the
-// shared lightbox + zoom badge live under parts/. `originalName` (if any) is alt text only — no captions.
-const GALLERY_MAX = 16;
-
-// Layout registry — add a variant by adding its component file + a catalog entry (sectionCatalog). The
-// resolver below maps the saved variant to its component, falling back to the editorial default.
 const VARIANTS: Record<string, React.FC<GalleryVariantProps>> = {
-  editorial: Editorial,
   bento: Bento,
-  masonry: Masonry,
   carousel: Carousel,
+  masonry: Masonry,
+  index: Mosaic,
+  fan: Fan,
 };
 
-export function Gallery({ entry, data, t, no }: { entry: SectionEntry; data: PreviewData; t: T; no: string }) {
-  const cfg = (entry.config ?? {}) as GalleryConfig;
-  const heading = cfg.heading?.[data.locale]?.trim() || t("businessPage.builder.preview.galleryHeading");
-  const images: GalleryImage[] = data.locations
-    .flatMap((l) => (l.portfolioImages ?? []).map((p) => ({ src: p.url, alt: p.originalName ?? "" })))
-    .slice(0, GALLERY_MAX);
-  // Variant resolver — renderer seam for future paid variants: a not-entitled variant falls back to the free default here.
-  const View = Object.hasOwn(VARIANTS, entry.variant) ? VARIANTS[entry.variant] : Editorial;
-  const rootRef = useRef<HTMLDivElement>(null);
-  const [lbIndex, setLbIndex] = useState(-1);
-  const onOpen = (i: number) => setLbIndex(i);
+/** Owner portfolio photos rendered through the five executable Gallery treatments from the design source. */
+export function Gallery({
+  entry,
+  data,
+  t,
+  no,
+}: {
+  entry: SectionEntry;
+  data: PreviewData;
+  t: T;
+  no: string;
+}) {
+  const config = (entry.config ?? {}) as GalleryConfig;
+  const heading = config.heading?.[data.locale]?.trim() || t("businessPage.builder.preview.galleryHeading");
+  const images: GalleryImage[] = resolveGalleryImages(config, data.locations).map((image) => ({
+    id: image.id,
+    src: image.src,
+    alt: image.alt,
+  }));
+  const variant = Object.hasOwn(VARIANTS, entry.variant) ? entry.variant : "bento";
+  const View = VARIANTS[variant];
+  const headingId = useId();
+  const headingWords = heading.split(/\s+/).filter(Boolean);
+  const rootRef = useRef<HTMLElement>(null);
+  const revealed = useInView(rootRef, { threshold: 0.08, once: true });
+  const [lightboxImageId, setLightboxImageId] = useState<string | null>(null);
+  const openLightboxIndex = lightboxImageId
+    ? images.findIndex((image) => image.id === lightboxImageId)
+    : -1;
 
-  const openLightboxIndex = lbIndex >= 0 && lbIndex < images.length ? lbIndex : -1;
+  const setLightboxIndex = (index: number) => {
+    setLightboxImageId(index >= 0 ? images[index]?.id ?? null : null);
+  };
+
+  useEffect(() => {
+    if (lightboxImageId && openLightboxIndex < 0) setLightboxImageId(null);
+  }, [lightboxImageId, openLightboxIndex]);
 
   return (
-    <Section>
-      <SectionHead no={no} kicker={t("businessPage.builder.preview.kicker.gallery")} heading={heading} />
-      {images.length === 0 ? (
-        <Placeholder icon={<ImageOff className="h-4 w-4" strokeWidth={1.6} />}>
-          {t("businessPage.builder.preview.galleryEmpty")}
-        </Placeholder>
-      ) : (
-        <div ref={rootRef}>
-          <View images={images} onOpen={onOpen} t={t} />
-          {openLightboxIndex >= 0 && (
-            <GalleryLightbox
+    <section
+      ref={rootRef}
+      className="mc-gallery-section"
+      data-gallery={variant}
+      data-revealed={revealed ? "1" : "0"}
+      aria-labelledby={headingId}
+    >
+      <div className="mc-gallery-wrap">
+        <header className="mc-gallery-head">
+          <Kicker no={no}>{t("businessPage.builder.preview.kicker.gallery")}</Kicker>
+          <h2 id={headingId} className="mc-gallery-title" aria-label={heading}>
+            {headingWords.map((word, index) => (
+              <span key={`${word}-${index}`} className="mc-gallery-title-word" aria-hidden="true">
+                <span style={{ animationDelay: `${index * 42}ms` }}>{word}</span>
+                {index < headingWords.length - 1 ? "\u00a0" : null}
+              </span>
+            ))}
+          </h2>
+        </header>
+
+        {images.length === 0 ? (
+          <Placeholder icon={<ImageOff className="size-4" strokeWidth={1.6} />}>
+            {t("businessPage.builder.preview.galleryEmpty")}
+          </Placeholder>
+        ) : (
+          <>
+            <View
               images={images}
-              index={openLightboxIndex}
-              setIndex={setLbIndex}
-              rootRef={rootRef}
-              brandColor={data.brandColor}
-              fontKey={data.fontKey}
+              onOpen={setLightboxIndex}
+              lightboxOpen={openLightboxIndex >= 0}
+              lightboxIndex={openLightboxIndex}
               t={t}
             />
-          )}
-        </div>
-      )}
-    </Section>
+            {openLightboxIndex >= 0 ? (
+              <GalleryLightbox
+                images={images}
+                index={openLightboxIndex}
+                setIndex={setLightboxIndex}
+                rootRef={rootRef}
+                brandColor={data.brandColor}
+                fontKey={data.fontKey}
+                t={t}
+              />
+            ) : null}
+          </>
+        )}
+      </div>
+    </section>
   );
 }

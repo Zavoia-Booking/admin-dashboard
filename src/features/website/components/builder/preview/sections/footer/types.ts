@@ -1,17 +1,35 @@
+import type { Ref } from "react";
+import type { FooterConfig, SectionEntry } from "../../../../../types";
 import type { PreviewData, T } from "../../shared/types";
 
-/** Props the Footer orchestrator receives — LivePreview passes the ref it drives on scroll to reveal the
- *  pinned footer, plus the saved footer variant (unknown/unentitled ids fall back to the editorial default). */
+export type FooterStyleKey = "directory" | "editorial" | "signature" | "masthead" | "marque";
+
+export type FooterLinkItem = {
+  type: string;
+  label: string;
+};
+
+/** Inputs supplied by the page renderer. The footer needs the visible layout so its sitemap variants mirror
+ * the links that actually exist on the page instead of rendering a separate, hard-coded navigation tree. */
 export type FooterVariantProps = {
   data: PreviewData;
   t: T;
-  footerRef: React.RefObject<HTMLElement | null>;
+  footerRef: Ref<HTMLElement>;
+  layout: SectionEntry[];
+  selectedLocationId: number | null;
   variant?: string;
 };
 
-/** Contract each footer body variant renders against. The orchestrator owns the `<footer>` shell (reveal ref
- *  + `mc-footer--<variant>` modifier) and the shared closing credit, so a variant renders only its pad body. */
-export type FooterBodyProps = {
+/** Normalized view contract shared by the five design-file variants. Each variant still owns its complete
+ * semantic footer shell, local state, interaction logic, and CSS file. */
+export type FooterViewProps = {
   data: PreviewData;
   t: T;
+  footerRef: Ref<HTMLElement>;
+  links: FooterLinkItem[];
+  selectedLocationId: number | null;
+  showLogo: boolean;
+  onNavigate: (type: string) => void;
 };
+
+export type { FooterConfig };

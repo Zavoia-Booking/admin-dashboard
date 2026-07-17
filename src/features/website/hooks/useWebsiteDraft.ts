@@ -7,10 +7,11 @@ import type {
   PageTheme,
   FaqItem,
   AnnouncementContent,
-  WebsiteAutosaveStatus,
+  WebsiteDraftSaveStatus,
   WebsiteDraftConflict,
   WebsiteSaveFailure,
   WebsiteThemeAssetCatalogItem,
+  LocationWithAssignments,
 } from "../types";
 import type { SaveWebsiteDraftRequest, PublishWebsiteRequest } from "../actions";
 import {
@@ -23,7 +24,12 @@ import {
   SECTION_META,
 } from "../components/builder/sectionCatalog";
 import { BRAND_ACCENT_CATALOG } from "../components/builder/theme";
-import { validateUrlField } from "../../../shared/utils/validation";
+import { validateUrlField, validateWebsiteCopy } from "../../../shared/utils/validation";
+import { firstFaqSaveBlockingError } from "../components/builder/faqValidation";
+import { splitAboutContent } from "../components/builder/aboutContent";
+import { getWebsiteReadinessIssues } from "../components/builder/sectionReadiness";
+import { canonicalizeGalleryConfigForSave } from "../components/builder/gallerySelection";
+import type { ReconciledCheckoutIntent } from "../checkoutIntent";
 
 interface UseWebsiteDraftProps {
   /** The saved baseline from GET /website-builder (Redux). Null while loading. */
@@ -33,10 +39,10 @@ interface UseWebsiteDraftProps {
   onSave: (request: SaveWebsiteDraftRequest) => void;
   /** Save-then-publish entry point; optional so read-only embeds can omit it. */
   onPublish?: (request: PublishWebsiteRequest) => void;
-  /** Current owner-scoped location ids. Stale saved references are removed before a PUT. */
-  allowedLocationIds?: readonly number[];
-  /** Autosave is capability-gated; read-only users keep the same local presentation. */
-  autosaveEnabled: boolean;
+  /** Current owner-scoped locations drive publish readiness and stale-reference cleanup. */
+  locations: LocationWithAssignments[];
+  /** Draft saving is capability-gated; read-only users keep the same local presentation. */
+  saveEnabled: boolean;
   /** True only while the serialized lane is executing a draft PUT. */
   isSaving: boolean;
   /** Any active/queued Website mutation that must stay ordered with draft saves. */
@@ -44,8 +50,6 @@ interface UseWebsiteDraftProps {
   conflict: WebsiteDraftConflict | null;
   saveFailure: WebsiteSaveFailure | null;
 }
-
-const AUTOSAVE_DELAY_MS = 750;
 
 /** The builder API stores only explicit HTTP(S) URLs. Keep the forgiving input
  * experience, but never send the protocol-less value that the backend rejects. */
@@ -68,6 +72,27 @@ function normalizeLocaleText(value: unknown): { en: string; ro: string } {
     ro: stringValue(source.ro),
   };
 }
+
+const WEBSITE_COPY_FIELDS_BY_SECTION: Record<
+  string,
+  ReadonlyArray<{ key: "heading" | "sublede" | "eyebrow"; maxLength: number }>
+> = {
+  hero: [{ key: "eyebrow", maxLength: 80 }],
+  locations: [
+    { key: "heading", maxLength: 80 },
+    { key: "sublede", maxLength: 220 },
+  ],
+  team: [
+    { key: "heading", maxLength: 80 },
+    { key: "sublede", maxLength: 220 },
+  ],
+  gallery: [{ key: "heading", maxLength: 80 }],
+  testimonials: [
+    { key: "heading", maxLength: 80 },
+    { key: "sublede", maxLength: 220 },
+  ],
+  faq: [{ key: "heading", maxLength: 80 }],
+};
 
 /** Fill a saved/empty announcement to the full working shape, migrating the legacy `link` and the
  *  older `cta.target` shape into the flat `cta.url` + opt-in `cta.enabled`. */
@@ -205,6 +230,66 @@ function createSaveRequestId(): string {
   return `website-save-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
+type ReconciledOwnedSelections = Pick<
+  ReconciledCheckoutIntent,
+  "variantSelections" | "themeSelections"
+>;
+
+/** Build the API body from an explicit immutable value set. Checkout reconciliation uses
+ * this path so it can persist the exact proved purchase selection synchronously, without
+ * waiting for React state setters or accidentally including a later unrelated edit. */
+function draftBodyFromValues(
+  values: DraftValues,
+  locations: LocationWithAssignments[],
+): UpdateWebsiteDraftBody {
+  const brandColor = values.brandColorHex.trim() || null;
+  const announcement = normalizeAnnouncement(values.announcementContent);
+  const allowedLocationIdSet = new Set(locations.map((location) => location.id));
+
+  return {
+    tagline: values.tagline || null,
+    aboutContent: values.aboutContent || null,
+    brandColorHex: brandColor,
+    brandColorKey: values.brandColorKey.trim() || null,
+    pageLayout: values.layout.map((section) => {
+      if (!isKnownSectionType(section.type)) {
+        // Unknown entries are opaque JSON records. Never reconstruct them from the subset
+        // this build understands because doing so would erase forward-compatible data.
+        return JSON.parse(JSON.stringify(section)) as SectionEntry;
+      }
+
+      let config = { ...(section.config ?? {}) };
+      if (section.type === "locations") {
+        const hiddenIds = Array.isArray(config.hiddenLocationIds)
+          ? config.hiddenLocationIds.filter(
+              (id): id is number =>
+                Number.isInteger(id) &&
+                id > 0 &&
+                allowedLocationIdSet.has(id),
+            )
+          : [];
+        config.hiddenLocationIds = [...new Set(hiddenIds)];
+      }
+      if (section.type === "gallery") {
+        config = canonicalizeGalleryConfigForSave(config, locations);
+      }
+
+      return {
+        type: section.type,
+        // Preserve future variant keys until the owner explicitly changes them.
+        variant: section.variant,
+        visible: section.visible,
+        config,
+      };
+    }),
+    // The catalog identity is top-level. PageThemeDto accepts presentation values only.
+    pageTheme: { brandColor, fontKey: values.fontKey },
+    faq: values.faqItems,
+    announcement,
+    layoutVersion: LAYOUT_SCHEMA_VERSION,
+  };
+}
+
 /**
  * Pinned lead/tail sections (announcement/nav/hero/footer) never move; targets clamp into
  * the movable band. Pure so the index-based action path and the type-keyed undo path share
@@ -233,8 +318,8 @@ function reorderLayout(prev: SectionEntry[], from: number, to: number): SectionE
  * hero tagline, about content, and the two net-new content blocks (FAQ + Announcement) —
  * plus the versioned save lifecycle against PUT /website-builder.
  *
- * Structural errors (malformed colour, over-long tagline, invalid CTA URL) block saving —
- * the server would reject them. Missing copy (About headline, announcement message) is a
+ * Structural errors (malformed colour, over-long tagline, invalid CTA URL) and invalid custom
+ * section copy block saving. Missing copy (About headline, announcement message) is a
  * READINESS state: incomplete drafts save fine and readiness is surfaced per section.
  *
  * Hero mutations are immediate and advance the baseline version without touching this
@@ -246,14 +331,14 @@ export function useWebsiteDraft({
   lastSavedRequestId,
   onSave,
   onPublish,
-  allowedLocationIds,
-  autosaveEnabled,
+  locations,
+  saveEnabled,
   isSaving,
   mutationBusy,
   conflict,
   saveFailure,
 }: UseWebsiteDraftProps) {
-  const { t } = useTranslation("website");
+  const { t, i18n } = useTranslation("website");
   const [baseline, setBaseline] = useState<DraftBaseline>(() => baselineFromDraft(draft));
   const baselineRef = useRef<DraftBaseline>(baseline);
   const [tagline, setTagline] = useState<string>(baseline.values.tagline);
@@ -287,8 +372,6 @@ export function useWebsiteDraft({
   const reconciliationRequiredRef = useRef(false);
   const [pendingSave, setPendingSave] = useState<SaveWebsiteDraftRequest | null>(null);
   const acceptNextServerBaselineRef = useRef(false);
-  const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [readyAutosaveSignature, setReadyAutosaveSignature] = useState<string | null>(null);
   const [isOnline, setIsOnline] = useState(() =>
     typeof navigator === "undefined" ? true : navigator.onLine,
   );
@@ -318,6 +401,11 @@ export function useWebsiteDraft({
   }, []);
 
   const resetToBaseline = useCallback(() => {
+    pendingSaveRef.current = null;
+    failedSaveRef.current = null;
+    reconciliationRequiredRef.current = false;
+    acceptNextServerBaselineRef.current = false;
+    setPendingSave(null);
     applyWorkingValues(baselineRef.current.values);
   }, [applyWorkingValues]);
 
@@ -378,10 +466,69 @@ export function useWebsiteDraft({
     }
   }, [conflict, saveFailure]);
 
-  // ----- Structural validation (blocks save — the server rejects these shapes) -----
+  // ----- Save-blocking validation (structural constraints + visitor-facing copy policy) -----
   const taglineError = useMemo(
-    () => (tagline.length > 200 ? t("businessPage.errors.taglineTooLong") : null),
+    () => validateWebsiteCopy(tagline, t, {
+      fieldLabel: t("businessPage.branding.tagline.label"),
+      maxLength: 200,
+    }),
     [tagline, t],
+  );
+  const aboutCopyError = useMemo(() => {
+    const { title, body } = splitAboutContent(aboutContent);
+    return validateWebsiteCopy(title, t, {
+      fieldLabel: t("businessPage.about.titleLabel"),
+      maxLength: 200,
+    }) ?? validateWebsiteCopy(body, t, {
+      fieldLabel: t("businessPage.about.bodyLabel"),
+      maxLength: 1800,
+    });
+  }, [aboutContent, t]);
+  const announcementCopyError = useMemo(() => {
+    for (const locale of ["en", "ro"] as const) {
+      const messageError = validateWebsiteCopy(announcementContent.message[locale], t, {
+        fieldLabel: t("businessPage.builder.announcement.messageLabel"),
+        maxLength: 140,
+      });
+      if (messageError) return messageError;
+
+      const labelError = validateWebsiteCopy(announcementContent.cta.label[locale], t, {
+        fieldLabel: t("businessPage.builder.announcement.cta.labelLabel"),
+        maxLength: 40,
+      });
+      if (labelError) return labelError;
+    }
+    return null;
+  }, [announcementContent.cta.label, announcementContent.message, t]);
+  const sectionCopyError = useMemo(() => {
+    for (const entry of layout) {
+      const fields = WEBSITE_COPY_FIELDS_BY_SECTION[entry.type];
+      if (!fields) continue;
+      const config: Record<string, unknown> = isPlainRecord(entry.config) ? entry.config : {};
+
+      for (const field of fields) {
+        const rawCopy = config[field.key];
+        const localizedCopy: Record<string, unknown> = isPlainRecord(rawCopy) ? rawCopy : {};
+        const fieldLabel = field.key === "heading"
+          ? t("businessPage.builder.settings.headingLabel")
+          : field.key === "eyebrow"
+            ? t("businessPage.builder.hero.eyebrowCopyLabel")
+            : t("businessPage.builder.settings.subledeLabel");
+
+        for (const locale of ["en", "ro"] as const) {
+          const error = validateWebsiteCopy(stringValue(localizedCopy[locale]), t, {
+            fieldLabel,
+            maxLength: field.maxLength,
+          });
+          if (error) return error;
+        }
+      }
+    }
+    return null;
+  }, [layout, t]);
+  const faqSaveBlockingError = useMemo(
+    () => firstFaqSaveBlockingError(faqItems, t),
+    [faqItems, t],
   );
   const brandColorError = useMemo(
     () =>
@@ -396,19 +543,14 @@ export function useWebsiteDraft({
     [layout],
   );
 
-  // CTA URL validity — structural. The server rejects ANY non-empty non-http(s) URL, even while
-  // the announcement is hidden or the button is disabled/label-less (stale text still travels in
-  // the payload), so the shape check never depends on those states. The "required" rule stays
-  // scoped to a usable button.
+  // CTA URL shape is structural: every non-empty value must be a valid HTTP(S) URL because it is
+  // persisted regardless of visibility. A missing destination for an otherwise configured button
+  // is content readiness instead, so the owner can save the draft and finish it before publishing.
   const announcementUrlError = useMemo(() => {
     const cta = announcementContent.cta;
     if (cta.url.trim() !== "") return validateUrlField(cta.url, t);
-    const hasLabel = cta.label.en.trim() !== "" || cta.label.ro.trim() !== "";
-    if (announcementVisible && cta.enabled && hasLabel) {
-      return t("businessPage.builder.announcement.cta.urlRequiredHint");
-    }
     return null;
-  }, [announcementVisible, announcementContent.cta, t]);
+  }, [announcementContent.cta, t]);
 
   // Schedule order — structural (the server rejects start > end regardless of visibility).
   // Date-only YYYY-MM-DD keys compare correctly as strings, exactly as the server compares them.
@@ -424,21 +566,46 @@ export function useWebsiteDraft({
   // requiring today's variant/visible/config shape would prevent unrelated edits from saving.
   const layoutError: string | null = null;
 
-  // ----- Readiness (guidance only — never blocks a draft save) -----
+  // ----- Readiness (publish-only — never blocks a draft save) -----
   const announcementMessageWarning = useMemo(() => {
     if (!announcementVisible) return null;
     const m = announcementContent.message;
     const hasMessage = (m.en?.trim() ?? "") !== "" || (m.ro?.trim() ?? "") !== "";
-    return hasMessage ? null : t("businessPage.builder.announcement.messageRequiredHint");
-  }, [announcementVisible, announcementContent.message, t]);
+    if (!hasMessage) return t("businessPage.builder.announcement.messageRequiredHint");
+    const cta = announcementContent.cta;
+    const hasLabel = cta.label.en.trim() !== "" || cta.label.ro.trim() !== "";
+    return cta.enabled && hasLabel && cta.url.trim() === ""
+      ? t("businessPage.builder.announcement.cta.urlRequiredHint")
+      : null;
+  }, [announcementContent, announcementVisible, t]);
 
   const hasBlockingErrors = !!(
     taglineError ||
+    aboutCopyError ||
+    announcementCopyError ||
+    sectionCopyError ||
+    faqSaveBlockingError ||
     brandColorError ||
     announcementUrlError ||
     announcementScheduleError ||
     layoutError
   );
+
+  // Publishing has stricter content-completeness requirements than saving a draft. Keep this
+  // separate from structural validation so owners can safely save incomplete work and return to it.
+  const publishReadinessIssues = useMemo(
+    () =>
+      getWebsiteReadinessIssues({
+        layout,
+        aboutContent,
+        announcementContent,
+        faqItems,
+        locations,
+        locale: i18n.language?.toLowerCase().startsWith("ro") ? "ro" : "en",
+      }),
+    [aboutContent, announcementContent, faqItems, i18n.language, layout, locations],
+  );
+  const hasPublishReadinessIssues = publishReadinessIssues.length > 0;
 
   // ----- Layout operations (pinned/required invariants match sectionCatalog) -----
   const reorder = useCallback((from: number, to: number) => {
@@ -484,36 +651,6 @@ export function useWebsiteDraft({
     setLayout((prev) => prev.map((s, i) => (i === index ? { ...s, variant } : s)));
   }, []);
 
-  /** Apply checkout selections only after the return flow has independently proven their
-   * ownership. Registry validation keeps a stale/future catalog key out of today's draft;
-   * the resulting layout change follows the same ordinary autosave path as a manual pick. */
-  const applyOwnedVariantSelections = useCallback(
-    (selections: ReadonlyArray<{ sectionType: string; variantKey: string }>) => {
-      if (!autosaveEnabled || selections.length === 0) return;
-      const selectionByType = new Map(
-        selections.map((selection) => [selection.sectionType, selection.variantKey]),
-      );
-      setLayout((current) => {
-        let changed = false;
-        const next = current.map((entry) => {
-          const variantKey = selectionByType.get(entry.type);
-          if (
-            !variantKey ||
-            variantKey === entry.variant ||
-            !isKnownSectionType(entry.type) ||
-            !SECTION_META[entry.type].variants.some((variant) => variant.id === variantKey)
-          ) {
-            return entry;
-          }
-          changed = true;
-          return { ...entry, variant: variantKey };
-        });
-        return changed ? next : current;
-      });
-    },
-    [autosaveEnabled],
-  );
-
   const applyThemeAssetSelection = useCallback((asset: WebsiteThemeAssetCatalogItem) => {
     if (asset.kind === "color") {
       // The server catalog is the identity authority. Do not feed this through the legacy
@@ -524,27 +661,6 @@ export function useWebsiteDraft({
     }
     setFontKey(asset.assetKey);
   }, []);
-
-  const applyOwnedThemeSelections = useCallback(
-    (
-      selections: ReadonlyArray<{
-        kind: "color" | "font";
-        assetKey: string;
-        value: string;
-      }>,
-    ) => {
-      if (!autosaveEnabled || selections.length === 0) return;
-      selections.forEach((selection) => {
-        if (selection.kind === "color") {
-          setBrandColorHexState(selection.value);
-          setBrandColorKey(selection.assetKey);
-        } else {
-          setFontKey(selection.assetKey);
-        }
-      });
-    },
-    [autosaveEnabled],
-  );
 
   const setSectionConfig = useCallback((index: number, config: Record<string, unknown>) => {
     setLayout((prev) =>
@@ -560,78 +676,113 @@ export function useWebsiteDraft({
    * unchanged so an older dashboard cannot erase data created by a newer schema. Future
    * variant keys on known sections are also retained until the owner explicitly changes them.
    */
-  const buildDraftBody = useCallback((): UpdateWebsiteDraftBody => {
-    const brandColor = brandColorHex.trim() || null;
-    const announcement = normalizeAnnouncement(announcementContent);
-    const allowedLocationIdSet = allowedLocationIds
-      ? new Set(allowedLocationIds)
-      : null;
-    return {
-      tagline: tagline || null,
-      aboutContent: aboutContent || null,
-      brandColorHex: brandColor,
-      brandColorKey: brandColorKey.trim() || null,
-      pageLayout: layout.map((s) => {
-        if (!isKnownSectionType(s.type)) {
-          // A newer dashboard may have added fields beside type/variant/visible/config.
-          // Unknown entries are opaque JSON records: never reconstruct them from the
-          // subset this build understands, because doing so erases forward data.
-          return JSON.parse(JSON.stringify(s)) as SectionEntry;
-        }
-        const config = { ...(s.config ?? {}) };
-        if (s.type === "locations") {
-          const hiddenIds = Array.isArray(config.hiddenLocationIds)
-            ? config.hiddenLocationIds.filter(
-                (id): id is number =>
-                  Number.isInteger(id) &&
-                  id > 0 &&
-                  (!allowedLocationIdSet || allowedLocationIdSet.has(id)),
-              )
-            : [];
-          config.hiddenLocationIds = [...new Set(hiddenIds)];
-        }
-        return {
-          type: s.type,
-          // A future client may add a variant before this registry knows about it. Preserve the
-          // stored key unless the owner explicitly selects another style in this client.
-          variant: s.variant,
-          visible: s.visible,
-          config,
-        };
-      }),
-      pageTheme: { brandColor, brandColorKey: brandColorKey.trim() || null, fontKey },
-      faq: faqItems,
-      announcement,
-      layoutVersion: LAYOUT_SCHEMA_VERSION,
-    };
-  }, [
-    allowedLocationIds,
-    tagline,
-    aboutContent,
-    brandColorHex,
-    brandColorKey,
-    layout,
-    fontKey,
-    faqItems,
-    announcementContent,
-  ]);
+  const buildDraftBody = useCallback(
+    (): UpdateWebsiteDraftBody => draftBodyFromValues(workingValues, locations),
+    [locations, workingValues],
+  );
 
-  const createSaveSnapshot = useCallback((): SaveWebsiteDraftRequest => {
-    const body = buildDraftBody();
+  const createSaveSnapshotForValues = useCallback((values: DraftValues): SaveWebsiteDraftRequest => {
+    const body = draftBodyFromValues(values, locations);
     const requestId = createSaveRequestId();
     return {
       requestId,
-      workingSignature,
+      workingSignature: serializeValues(values),
       bodySignature: canonicalJson(body),
       body,
       ...(reconciliationRequiredRef.current ? { reconcileFirst: true } : {}),
     };
-  }, [buildDraftBody, workingSignature]);
+  }, [locations]);
 
-  const submitAutosave = useCallback(
-    (options?: { force?: boolean; reconcileFirst?: boolean }) => {
+  const createSaveSnapshot = useCallback(
+    (): SaveWebsiteDraftRequest => createSaveSnapshotForValues(workingValues),
+    [createSaveSnapshotForValues, workingValues],
+  );
+
+  /**
+   * Complete a verified checkout selection as a single, versioned draft transaction.
+   *
+   * This is intentionally not general autosave: only the variant/theme values recovered from
+   * the explicit checkout intent and independently proven owned reach this method. If the owner
+   * has edited anything while Stripe/webhook/catalog reconciliation was pending, the purchase is
+   * merged into that working copy but nothing is submitted automatically; their Save control
+   * remains the authority for those unrelated edits.
+   */
+  const applyOwnedCheckoutSelections = useCallback(
+    (selections: ReconciledOwnedSelections) => {
+      if (!saveEnabled) return null;
+
+      const next = cloneValues(workingValues);
+      const variantByType = new Map(
+        selections.variantSelections.map((selection) => [
+          selection.sectionType,
+          selection.variantKey,
+        ]),
+      );
+      next.layout = next.layout.map((entry) => {
+        const variantKey = variantByType.get(entry.type);
+        if (
+          !variantKey ||
+          variantKey === entry.variant ||
+          !isKnownSectionType(entry.type) ||
+          !SECTION_META[entry.type].variants.some((variant) => variant.id === variantKey)
+        ) {
+          return entry;
+        }
+        return { ...entry, variant: variantKey };
+      });
+
+      for (const selection of selections.themeSelections) {
+        if (selection.kind === "color") {
+          next.brandColorHex = selection.value;
+          next.brandColorKey = selection.assetKey;
+        } else {
+          next.fontKey = selection.assetKey;
+        }
+      }
+
+      const nextSignature = serializeValues(next);
+      if (nextSignature === workingSignature) return null;
+
+      const formWasClean = workingSignature === baselineRef.current.contentSignature;
+      applyWorkingValues(next);
+
       if (
-        !autosaveEnabled ||
+        !formWasClean ||
+        hasBlockingErrors ||
+        conflict ||
+        !isOnline ||
+        mutationBusy ||
+        pendingSaveRef.current
+      ) {
+        return null;
+      }
+
+      // Dispatch from the same reconciliation turn as the local value update. The next paint
+      // therefore shows a real pending save, never a misleading user-created dirty state.
+      const request = createSaveSnapshotForValues(next);
+      pendingSaveRef.current = request;
+      setPendingSave(request);
+      onSave(request);
+      return request.requestId;
+    },
+    [
+      applyWorkingValues,
+      conflict,
+      createSaveSnapshotForValues,
+      hasBlockingErrors,
+      isOnline,
+      mutationBusy,
+      onSave,
+      saveEnabled,
+      workingSignature,
+      workingValues,
+    ],
+  );
+
+  const submitSave = useCallback(
+    (options?: { reconcileFirst?: boolean }) => {
+      if (
+        !saveEnabled ||
         !isDirty ||
         hasBlockingErrors ||
         conflict ||
@@ -639,23 +790,23 @@ export function useWebsiteDraft({
         mutationBusy ||
         pendingSaveRef.current
       ) {
-        return;
+        return false;
       }
       const failureMatchesCurrent =
         saveFailure?.kind !== "cancelled" &&
         saveFailure?.workingSignature === workingSignature;
-      if (failureMatchesCurrent && !options?.force) return;
 
       const request = createSaveSnapshot();
-      if (options?.reconcileFirst || reconciliationRequiredRef.current) {
+      if (options?.reconcileFirst || failureMatchesCurrent || reconciliationRequiredRef.current) {
         request.reconcileFirst = true;
       }
       pendingSaveRef.current = request;
       setPendingSave(request);
       onSave(request);
+      return request.requestId;
     },
     [
-      autosaveEnabled,
+      saveEnabled,
       conflict,
       createSaveSnapshot,
       hasBlockingErrors,
@@ -668,132 +819,25 @@ export function useWebsiteDraft({
       workingSignature,
     ],
   );
-  const submitAutosaveRef = useRef(submitAutosave);
-  useEffect(() => {
-    submitAutosaveRef.current = submitAutosave;
-  }, [submitAutosave]);
 
-  // Debounce the newest valid local state. The timer records which exact signature is
-  // ready; if another mutation still owns the lane, status becomes queued and the same
-  // immutable snapshot is submitted when the lane clears.
-  useEffect(() => {
-    if (autosaveTimerRef.current) {
-      clearTimeout(autosaveTimerRef.current);
-      autosaveTimerRef.current = null;
-    }
-    const failureMatchesCurrent =
-      saveFailure?.kind !== "cancelled" &&
-      saveFailure?.workingSignature === workingSignature;
-    if (
-      !autosaveEnabled ||
-      !isDirty ||
-      hasBlockingErrors ||
-      conflict ||
-      failureMatchesCurrent
-    ) {
-      return;
-    }
+  /** The only ordinary draft-write entry point. It is called by the visible Save control,
+   * Save & leave, retry, and Ctrl/Cmd+S; local edits never submit by themselves. */
+  const saveChangesWithReceipt = useCallback(() => submitSave(), [submitSave]);
+  const saveChanges = useCallback(
+    () => saveChangesWithReceipt() !== false,
+    [saveChangesWithReceipt],
+  );
 
-    const timer = setTimeout(() => {
-      setReadyAutosaveSignature(workingSignature);
-      submitAutosaveRef.current();
-    }, AUTOSAVE_DELAY_MS);
-    autosaveTimerRef.current = timer;
-    return () => {
-      clearTimeout(timer);
-      if (autosaveTimerRef.current === timer) autosaveTimerRef.current = null;
-    };
-  }, [
-    autosaveEnabled,
-    baseline.contentSignature,
-    conflict,
-    hasBlockingErrors,
-    isDirty,
-    saveFailure?.kind,
-    saveFailure?.workingSignature,
-    workingSignature,
-  ]);
-
-  // A ready snapshot may have waited behind hero/save/publish work. Re-check whenever
-  // the lane or acknowledgement changes; the submit callback prevents duplicates.
-  useEffect(() => {
-    if (
-      readyAutosaveSignature !== workingSignature ||
-      !isDirty ||
-      hasBlockingErrors ||
-      conflict
-    ) {
-      return;
-    }
-    const timer = setTimeout(() => submitAutosaveRef.current(), 0);
-    return () => clearTimeout(timer);
-  }, [
-    conflict,
-    hasBlockingErrors,
-    isDirty,
-    isSaving,
-    isOnline,
-    lastSavedRequestId,
-    mutationBusy,
-    readyAutosaveSignature,
-    saveFailure,
-    workingSignature,
-  ]);
-
-  const retryAutosave = useCallback(() => {
-    const failed = failedSaveRef.current;
-    if (!failed || failed.workingSignature !== workingSignature) return;
-    submitAutosave({ force: true, reconcileFirst: true });
-  }, [submitAutosave, workingSignature]);
-
-  /**
-   * Flush the newest valid local snapshot immediately. If another Website mutation owns
-   * the serialized lane, mark this exact signature ready and let the existing queue effect
-   * submit it as soon as the lane clears. A failed ambiguous save always reconciles first.
-   */
-  const flushAutosave = useCallback(() => {
-    if (
-      !autosaveEnabled ||
-      !isDirty ||
-      hasBlockingErrors ||
-      conflict ||
-      !isOnline
-    ) {
-      return;
-    }
-    if (autosaveTimerRef.current) {
-      clearTimeout(autosaveTimerRef.current);
-      autosaveTimerRef.current = null;
-    }
-    setReadyAutosaveSignature(workingSignature);
-    const failureMatchesCurrent =
-      saveFailure?.kind !== "cancelled" &&
-      saveFailure?.workingSignature === workingSignature;
-    submitAutosave({
-      force: true,
-      reconcileFirst: failureMatchesCurrent,
-    });
-  }, [
-    autosaveEnabled,
-    conflict,
-    hasBlockingErrors,
-    isDirty,
-    isOnline,
-    saveFailure?.kind,
-    saveFailure?.workingSignature,
-    submitAutosave,
-    workingSignature,
-  ]);
-
-  // Ctrl/Cmd+S is an invisible autosave accelerator, not a browser-page download.
-  // Only claim the shortcut when there is a valid, saveable local change.
+  // Ctrl/Cmd+S mirrors the visible Save control and never triggers a browser-page download.
   useEffect(() => {
     const canHandleShortcut =
-      autosaveEnabled &&
+      saveEnabled &&
       isDirty &&
       !hasBlockingErrors &&
       !conflict &&
-      isOnline;
+      isOnline &&
+      !mutationBusy &&
+      !pendingSaveRef.current;
     if (!canHandleShortcut || typeof window === "undefined") return;
 
     const handleSaveShortcut = (event: KeyboardEvent) => {
@@ -808,18 +852,19 @@ export function useWebsiteDraft({
         return;
       }
       event.preventDefault();
-      flushAutosave();
+      saveChanges();
     };
 
     window.addEventListener("keydown", handleSaveShortcut);
     return () => window.removeEventListener("keydown", handleSaveShortcut);
   }, [
-    autosaveEnabled,
+    saveEnabled,
     conflict,
-    flushAutosave,
+    saveChanges,
     hasBlockingErrors,
     isDirty,
     isOnline,
+    mutationBusy,
   ]);
 
   /**
@@ -829,12 +874,7 @@ export function useWebsiteDraft({
    * freshly fetched Redux draft version as expectedVersion.
    */
   const replaceLatestWithLocal = useCallback(() => {
-    if (!autosaveEnabled || !isDirty) return;
-    if (autosaveTimerRef.current) {
-      clearTimeout(autosaveTimerRef.current);
-      autosaveTimerRef.current = null;
-    }
-    setReadyAutosaveSignature(workingSignature);
+    if (!saveEnabled || !isDirty) return;
     if (
       hasBlockingErrors ||
       !isOnline ||
@@ -848,7 +888,7 @@ export function useWebsiteDraft({
     setPendingSave(request);
     onSave(request);
   }, [
-    autosaveEnabled,
+    saveEnabled,
     createSaveSnapshot,
     hasBlockingErrors,
     isDirty,
@@ -871,17 +911,21 @@ export function useWebsiteDraft({
    * so it also needs a normalization save before the first publish even when visually clean.
    */
   const handlePublish = useCallback(() => {
-    if (!onPublish || hasBlockingErrors || !isOnline || currentFailure) return false;
-    if (autosaveTimerRef.current) {
-      clearTimeout(autosaveTimerRef.current);
-      autosaveTimerRef.current = null;
-    }
+    if (
+      !onPublish ||
+      hasBlockingErrors ||
+      hasPublishReadinessIssues ||
+      !isOnline ||
+      currentFailure ||
+      mutationBusy ||
+      pendingSaveRef.current
+    ) return false;
     if (conflict) return false;
     // A synthetic version-zero draft needs the normalizing PUT only when this user may
     // edit. Publish is an independent capability: a publish-only user must never issue an
     // unauthorized draft write, so the publish endpoint receives the existing version and
     // performs its own server-side validation/normalization.
-    if (isDirty || (baseline.version === 0 && autosaveEnabled)) {
+    if (isDirty || (baseline.version === 0 && saveEnabled)) {
       const request = createSaveSnapshot();
       pendingSaveRef.current = request;
       setPendingSave(request);
@@ -892,12 +936,14 @@ export function useWebsiteDraft({
     return true;
   }, [
     baseline.version,
-    autosaveEnabled,
+    saveEnabled,
     conflict,
     createSaveSnapshot,
     hasBlockingErrors,
+    hasPublishReadinessIssues,
     isDirty,
     isOnline,
+    mutationBusy,
     onPublish,
     currentFailure,
   ]);
@@ -914,7 +960,7 @@ export function useWebsiteDraft({
     }
     return pending;
   })();
-  const autosaveStatus: WebsiteAutosaveStatus = conflict
+  const saveStatus: WebsiteDraftSaveStatus = conflict
     ? "conflict"
     : hasBlockingErrors
       ? "invalid"
@@ -926,13 +972,28 @@ export function useWebsiteDraft({
             ? effectivePending.workingSignature === workingSignature && isSaving
               ? "saving"
               : "queued"
-            : isDirty &&
-                readyAutosaveSignature === workingSignature &&
-                mutationBusy
-              ? "queued"
-              : isDirty
-                ? "dirty"
-                : "clean";
+            : isDirty
+              ? "dirty"
+              : "clean";
+
+  const canSaveChanges =
+    saveEnabled &&
+    isDirty &&
+    !hasBlockingErrors &&
+    !conflict &&
+    isOnline &&
+    !mutationBusy &&
+    !effectivePending;
+
+  const retrySaveWithReceipt = useCallback(() => {
+    const failed = failedSaveRef.current;
+    if (!failed || failed.workingSignature !== workingSignature) return false;
+    return submitSave({ reconcileFirst: true });
+  }, [submitSave, workingSignature]);
+  const retrySave = useCallback(
+    () => retrySaveWithReceipt() !== false,
+    [retrySaveWithReceipt],
+  );
 
   const acceptNextServerBaseline = useCallback(() => {
     acceptNextServerBaselineRef.current = true;
@@ -954,17 +1015,24 @@ export function useWebsiteDraft({
     announcementContent,
     // Structural errors (block save)
     taglineError,
+    aboutCopyError,
+    announcementCopyError,
+    sectionCopyError,
+    faqContentError: faqSaveBlockingError,
     brandColorError,
     announcementUrlError,
     announcementScheduleError,
     layoutError,
     hasBlockingErrors,
-    // Readiness guidance (never blocks)
+    publishReadinessIssues,
+    hasPublishReadinessIssues,
+    // Readiness guidance (blocks publish, never a draft save)
     announcementMessageWarning,
     isDirty,
     isOnline,
-    autosaveStatus,
-    canRetryAutosave: !!currentFailure,
+    saveStatus,
+    canSaveChanges,
+    canRetrySave: !!currentFailure,
     // Setters + layout operations
     setTagline,
     setAboutContent,
@@ -976,17 +1044,18 @@ export function useWebsiteDraft({
     reorderSections: reorder,
     toggleSectionVisible: toggleVisible,
     setSectionVariant: setVariant,
-    applyOwnedVariantSelections,
     applyThemeAssetSelection,
-    applyOwnedThemeSelections,
+    applyOwnedCheckoutSelections,
     setSectionConfig,
     // Type-keyed variants for undo closures (see above)
     moveSectionOfType,
     setSectionVisibleByType,
     setSectionConfigByType,
-    // Autosave recovery, publish barrier + discard
-    retryAutosave,
-    flushAutosave,
+    // Explicit-save recovery, publish barrier + discard
+    retrySave,
+    retrySaveWithReceipt,
+    saveChanges,
+    saveChangesWithReceipt,
     replaceLatestWithLocal,
     handlePublish,
     buildDraftBody,

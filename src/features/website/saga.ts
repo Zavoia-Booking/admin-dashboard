@@ -589,6 +589,7 @@ function* handlePublishWebsite(
         publishWebsiteAction.failure({
           message: saveResult.message,
           ...scope,
+          failureKind: saveResult.conflict ? 'conflict' : 'save',
           conflict: saveResult.conflict,
         }),
       );
@@ -633,7 +634,12 @@ function* handlePublishWebsite(
           };
           toast.error(i18n.t("website:page.toasts.draftConflict"));
           yield put(
-            publishWebsiteAction.failure({ message, ...scope, conflict }),
+            publishWebsiteAction.failure({
+              message,
+              ...scope,
+              failureKind: 'conflict',
+              conflict,
+            }),
           );
           return;
         }
@@ -649,6 +655,7 @@ function* handlePublishWebsite(
         publishWebsiteAction.failure({
           message,
           ...scope,
+          failureKind: 'conflict',
           conflict: {
             currentVersion: details?.currentVersion ?? 0,
             updatedAt: details?.updatedAt ?? null,
@@ -674,13 +681,20 @@ function* handlePublishWebsite(
         publishWebsiteAction.failure({
           message,
           ...scope,
+          failureKind: 'locked',
           lockedItems: details,
         }),
       );
       return;
     }
     toast.error(message || i18n.t('website:page.toasts.publishFailed'));
-    yield put(publishWebsiteAction.failure({ message, ...scope }));
+    yield put(
+      publishWebsiteAction.failure({
+        message,
+        ...scope,
+        failureKind: 'publish',
+      }),
+    );
   }
 }
 
@@ -887,7 +901,14 @@ function* settleMutationIntent(
         conflict,
       );
     }
-    yield put(publishWebsiteAction.failure({ message: "", ...scope, conflict }));
+    yield put(
+      publishWebsiteAction.failure({
+        message: "",
+        ...scope,
+        failureKind,
+        conflict,
+      }),
+    );
   } else {
     yield put(unpublishWebsiteAction.failure({ message: "", ...scope }));
   }

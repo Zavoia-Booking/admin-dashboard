@@ -1,17 +1,20 @@
-import { useState } from "react";
-import { Switch } from "../../../../shared/components/ui/switch";
-import { Textarea } from "../../../../shared/components/ui/textarea";
-import { Collapsible, CollapsibleContent } from "../../../../shared/components/ui/collapsible";
-import { AutoHeight } from "./AutoHeight";
+import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+import TextareaField from "../../../../shared/components/forms/fields/TextareaField";
+import { cn } from "../../../../shared/lib/utils";
+import {
+  hasUnsafeWebsiteCopyCharacters,
+  validateWebsiteCopy,
+} from "../../../../shared/utils/validation";
 
 /** Shared group label style for section-settings sub-headings. */
 export const GROUP_LABEL = "text-[11px] font-medium uppercase tracking-[0.14em] text-foreground-3";
 
 /**
- * One section-copy field that defaults to the built-in text. The default is shown (muted) while the
- * switch is off; flipping it on reveals the editor. Turning it back off reverts to the default by
- * clearing the override. Shared by the Locations / Team / Gallery / Reviews / Contact section editors —
- * each stores its copy per locale (a blank override falls back to the default editorial string).
+ * Always-visible editor for visitor-facing section copy. The resolved built-in copy remains inherited
+ * until the owner actually types; a custom value can be explicitly reset without presenting editability
+ * as a show/hide switch. Each locale stores its own override, while blank values keep following the
+ * translated (and sometimes data-dependent) default.
  */
 export function CopyOverride({
   idBase,
@@ -21,7 +24,6 @@ export function CopyOverride({
   onChange,
   maxLength,
   rows,
-  customizeAria,
   locale,
 }: {
   idBase: string;
@@ -31,52 +33,110 @@ export function CopyOverride({
   onChange: (value: string) => void;
   maxLength: number;
   rows: number;
-  customizeAria: string;
-  /** Active edit locale — switching it re-derives the open/closed switch from the new locale's value. */
+  /** Active content locale. Edit state never crosses from one locale into the other. */
   locale: "en" | "ro";
 }) {
-  const labelId = `${idBase}-label`;
-  const [openState, setOpenState] = useState(() => ({ locale, open: value.trim() !== "" }));
-  // A locale switch derives directly from that locale's value. Keeping the locale beside the user's
-  // explicit toggle avoids an effect-driven state reset and preserves the switch while typing.
-  const open = openState.locale === locale ? openState.open : value.trim() !== "";
+  const { t } = useTranslation(["website", "common"]);
+  const [editState, setEditState] = useState<{
+    locale: "en" | "ro";
+    text: string;
+    changed: boolean;
+  } | null>(null);
+  useEffect(() => setEditState(null), [locale]);
+  const activeEdit = editState?.locale === locale ? editState : null;
+  const persistedCustom = value.trim() !== "";
+  const displayedValue = activeEdit?.text ?? (persistedCustom ? value : defaultText);
+  const candidate = activeEdit?.changed ? activeEdit.text : value;
+  const candidateTrimmed = candidate.trim();
+  const custom = activeEdit?.changed
+    ? candidateTrimmed !== "" && candidateTrimmed !== defaultText.trim()
+    : persistedCustom;
+  const validationError = custom
+    ? validateWebsiteCopy(candidate, t, { fieldLabel: label, maxLength })
+    : null;
+  // Minimum-length guidance waits until blur so the first keystroke is not immediately treated as an
+  // error. Markup delimiters are actionable immediately and should never appear valid while typing.
+  const error = validationError && (
+    !activeEdit ||
+    !activeEdit.changed ||
+    hasUnsafeWebsiteCopyCharacters(candidate)
+  )
+    ? validationError
+    : undefined;
 
-  const handleToggle = (next: boolean) => {
-    setOpenState({ locale, open: next });
-    if (!next && value.trim() !== "") onChange("");
+  const handleFocus = () => {
+    if (activeEdit) return;
+    setEditState({ locale, text: displayedValue, changed: false });
+  };
+
+  const handleChange = (next: string) => {
+    setEditState({ locale, text: next, changed: true });
+    onChange(next);
+  };
+
+  const handleBlur = () => {
+    if (!activeEdit) return;
+    if (!activeEdit.changed) {
+      setEditState(null);
+      return;
+    }
+
+    const normalized = activeEdit.text.trim();
+    if (!normalized || normalized === defaultText.trim()) {
+      onChange("");
+    } else if (normalized !== activeEdit.text) {
+      onChange(normalized);
+    }
+    setEditState(null);
+  };
+
+  const useDefault = () => {
+    setEditState(null);
+    onChange("");
   };
 
   return (
-    <div>
-      <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <span id={labelId} className={GROUP_LABEL}>
-            {label}
-          </span>
-          {!open && <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-foreground-2">{defaultText}</p>}
-        </div>
-        <Switch checked={open} onCheckedChange={handleToggle} aria-label={customizeAria} />
-      </div>
-      <Collapsible open={open}>
-        <CollapsibleContent>
-          <AutoHeight className="pt-3">
-            <Textarea
-              id={idBase}
-              aria-labelledby={labelId}
-              value={value}
-              onChange={(e) => onChange(e.target.value)}
-              placeholder={defaultText}
-              rows={rows}
-              maxLength={maxLength}
-              className="min-h-0 resize-none border-border text-sm leading-relaxed transition-[border-color,box-shadow] duration-150 hover:border-border-strong focus:border-focus focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-focus focus-visible:ring-offset-0 dark:border-border-subtle"
-            />
-            <div className="mt-2 text-right text-[11px] tabular-nums text-foreground-3">
-              {value.length}/{maxLength}
-            </div>
-          </AutoHeight>
-        </CollapsibleContent>
-      </Collapsible>
-    </div>
+    <TextareaField
+      id={idBase}
+      label={label}
+      labelMeta={(
+        <span
+          className={cn(
+            "atelier-copy-source-badge rounded-full border px-1.5 py-0.5 font-mono text-[9px] font-semibold leading-none tracking-[0.08em] transition-[color,background-color,border-color] duration-150",
+            custom
+              ? "border-primary/25 bg-primary/10 text-primary"
+              : "border-border-subtle bg-surface-hover text-foreground-3",
+          )}
+        >
+          {custom
+            ? t("businessPage.builder.settings.copyCustomBadge")
+            : t("businessPage.builder.settings.copyDefaultBadge")}
+        </span>
+      )}
+      labelAction={custom ? (
+        <button
+          type="button"
+          onClick={useDefault}
+          className="atelier-copy-use-default rounded-md px-1.5 py-1 text-[10.5px] font-semibold text-foreground-3 outline-none transition-[color,background-color,transform] duration-150 hover:bg-surface-hover hover:text-foreground-1 active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-focus"
+          aria-label={t("businessPage.builder.settings.copyUseDefaultAria", { field: label })}
+        >
+          {t("businessPage.builder.settings.copyUseDefault")}
+        </button>
+      ) : undefined}
+      value={displayedValue}
+      onChange={handleChange}
+      onFocus={handleFocus}
+      onBlur={handleBlur}
+      placeholder={defaultText}
+      rows={rows}
+      maxLength={maxLength}
+      error={error}
+      className="!pt-0"
+      textareaClassName={cn(
+        "h-auto min-h-0 text-sm leading-relaxed transition-[color,border-color,background-color,box-shadow] duration-150",
+        !custom && "text-foreground-2",
+      )}
+    />
   );
 }
 

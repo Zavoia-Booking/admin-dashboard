@@ -7,6 +7,11 @@ import { cn } from "../../../../shared/lib/utils";
 export function InfoPulse({ className }: { className?: string }) {
   return (
     <span className={cn("relative flex h-3.5 w-3.5 shrink-0", className)}>
+      <span
+        className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-20 motion-reduce:animate-none"
+        style={{ animationDuration: "3s" }}
+        aria-hidden
+      />
       <Info className="relative inline-flex h-3.5 w-3.5 text-primary" />
     </span>
   );

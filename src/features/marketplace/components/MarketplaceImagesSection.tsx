@@ -204,7 +204,7 @@ export function MarketplaceImagesSection({
     }
   }, [featured, images, onFeaturedImageChange]);
 
-  const MAX_PORTFOLIO_IMAGES = 10;
+  const MAX_PORTFOLIO_IMAGES = 16;
   const MAX_SIZE_MB = 10;
   const RECOMMENDED_SIZE_MB = 5;
   const ALLOWED_TYPES = [
@@ -448,9 +448,14 @@ export function MarketplaceImagesSection({
             img.tempId === tempId ? { ...img, isDeleting: false } : img,
           ),
         );
-        // Backend rejections carry a translated code (e.g. E21: can't delete the
-        // last image of a public location) — surface it over the generic fallback.
-        toast.error(getErrorMessage(error) || t("portfolio.errors.deleteFailed"));
+        const reason = (
+          error as { response?: { data?: { details?: { reason?: string } } } }
+        ).response?.data?.details?.reason;
+        toast.error(
+          reason === "publishedWebsiteGalleryImage"
+            ? t("portfolio.errors.publishedGalleryImage")
+            : getErrorMessage(error) || t("portfolio.errors.deleteFailed"),
+        );
       }
     } else {
       // Image not yet uploaded (still uploading or failed) - just remove from local state

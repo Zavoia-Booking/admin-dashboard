@@ -1,0 +1,9 @@
+/* Cinematic — full-bleed cover photo with a bottom-left lockup (the photo-forward premium hero). The
+   cover scrim + parallax are inline in the component; shared entrance/cue live in base.css. Heights key
+   off the preview's own width (container-query units); the scoped card keeps a modest height so toggling
+   variants never jumps, the phone tier goes near full-height so it reads immersive. */
+.mc-hero-cine { min-height: var(--mc-vph, clamp(420px, 82cqw, 760px)); }
+
+@container (max-width: 430px) {
+  .mc-hero-cine { min-height: var(--mc-vph, 620px); }
+}

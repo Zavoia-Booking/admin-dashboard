@@ -1,19 +1,20 @@
-import { useEffect, useRef, useState } from "react";
-import { ZoomBadge } from "../parts/ZoomBadge";
-import type { GalleryImage, GalleryVariantProps } from "../types";
+import { useLayoutEffect, useRef, useState } from "react";
+import { GalleryImage } from "../parts/GalleryImage";
+import type { GalleryImage as GalleryImageData, GalleryVariantProps } from "../types";
+import "./masonry.css";
 
 const MASONRY_AR = ["3/4", "5/4", "4/5", "3/4", "2/3", "1/1", "4/5", "3/4", "5/4", "4/5", "2/3", "5/6"];
 
 function masonryColCount(width: number, count: number): number {
-  const cap = width <= 480 ? 2 : width <= 820 ? 3 : 4;
+  const cap = width <= 640 ? 2 : width <= 980 ? 3 : 4;
   return Math.min(cap, count <= 3 ? 2 : count <= 7 ? 3 : 4);
 }
 
 /** Masonry — shortest-column packing into a measured, responsive column count; each tile a zoomable thumb. */
-export function Masonry({ images, onOpen }: GalleryVariantProps) {
+export function Masonry({ images, onOpen, t }: GalleryVariantProps) {
   const rootRef = useRef<HTMLDivElement>(null);
-  const [cols, setCols] = useState(3);
-  useEffect(() => {
+  const [cols, setCols] = useState(() => masonryColCount(1320, images.length));
+  useLayoutEffect(() => {
     const el = rootRef.current;
     if (!el) return;
     const measure = () => setCols(masonryColCount(el.clientWidth, images.length));
@@ -24,7 +25,7 @@ export function Masonry({ images, onOpen }: GalleryVariantProps) {
   }, [images.length]);
 
   // Shortest-column packing: push each tile into the column with the least accumulated aspect-height.
-  const columns: { g: GalleryImage; i: number; ar: string }[][] = Array.from({ length: cols }, () => []);
+  const columns: { g: GalleryImageData; i: number; ar: string }[][] = Array.from({ length: cols }, () => []);
   const heights = new Array(cols).fill(0);
   images.forEach((g, i) => {
     const ar = MASONRY_AR[i % MASONRY_AR.length];
@@ -43,13 +44,13 @@ export function Masonry({ images, onOpen }: GalleryVariantProps) {
             <figure className="mc-masonry-tile" key={i}>
               <button
                 type="button"
-                className="mc-zoomable mc-mask-in block w-full"
+                className="mc-gallery-zoomable mc-masonry-image mc-mask-in"
                 data-gimg={i}
                 onClick={() => onOpen(i)}
                 style={{ aspectRatio: ar, animationDelay: `${(ci % 3) * 70}ms` }}
+                aria-label={g.alt || t("businessPage.builder.preview.aria.openGalleryImage", { number: i + 1 })}
               >
-                <img src={g.src} alt={g.alt} loading="lazy" decoding="async" />
-                <ZoomBadge />
+                <GalleryImage src={g.src} alt={g.alt} fallbackLabel={t("businessPage.builder.preview.galleryTitle")} />
               </button>
             </figure>
           ))}

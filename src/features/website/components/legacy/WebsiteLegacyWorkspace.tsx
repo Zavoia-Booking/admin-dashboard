@@ -123,8 +123,8 @@ export function WebsiteLegacyWorkspace({ identity, draft, locations, businessId 
     lastSavedRequestId,
     onSave,
     onPublish,
-    allowedLocationIds: locations.map((location) => location.id),
-    autosaveEnabled: canWrite,
+    locations,
+    saveEnabled: canWrite,
     isSaving,
     mutationBusy: isSaving || isHeroMutating || isPublishing || isUnpublishing,
     conflict,
@@ -170,9 +170,10 @@ export function WebsiteLegacyWorkspace({ identity, draft, locations, businessId 
   const publishDisabled =
     !canPublish ||
     hasLockedBlockers ||
+    form.hasPublishReadinessIssues ||
     form.hasBlockingErrors ||
     !form.isOnline ||
-    form.canRetryAutosave ||
+    form.canRetrySave ||
     publishBusy ||
     isSaving ||
     isHeroMutating ||
@@ -186,13 +187,15 @@ export function WebsiteLegacyWorkspace({ identity, draft, locations, businessId 
         ? t("page.publishReason.locked")
         : form.hasBlockingErrors
           ? t("page.publishReason.errors")
-          : !form.isOnline
-            ? t("page.publishReason.offline")
-            : form.canRetryAutosave
-              ? t("page.publishReason.saveFailed")
-          : publishBusy || isSaving || isHeroMutating
-            ? t("page.publishReason.busy")
-            : t("page.publishReason.current");
+          : form.hasPublishReadinessIssues
+            ? t("page.publishReason.contentIncomplete")
+            : !form.isOnline
+              ? t("page.publishReason.offline")
+              : form.canRetrySave
+                ? t("page.publishReason.saveFailed")
+                : publishBusy || isSaving || isHeroMutating
+                  ? t("page.publishReason.busy")
+                  : t("page.publishReason.current");
 
   const handleUnpublishConfirm = () => {
     setUnpublishDialogOpen(false);
@@ -262,7 +265,7 @@ export function WebsiteLegacyWorkspace({ identity, draft, locations, businessId 
       <Button
         type="button"
         variant="outline"
-        onClick={form.flushAutosave}
+        onClick={form.saveChanges}
         disabled={!canWrite || !form.isDirty || form.hasBlockingErrors || isSaving || isHeroMutating || publishBusy}
         className="min-h-11 px-3 text-[12px] font-semibold"
       >
@@ -399,7 +402,7 @@ export function WebsiteLegacyWorkspace({ identity, draft, locations, businessId 
             )}
             <Button
               variant="outline"
-              onClick={form.flushAutosave}
+              onClick={form.saveChanges}
               disabled={!canWrite || !form.isDirty || form.hasBlockingErrors || isSaving || isHeroMutating || publishBusy}
               className="min-h-11 px-4 xl:h-8 xl:min-h-0"
             >

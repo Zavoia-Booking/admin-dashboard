@@ -5,6 +5,7 @@ import type {
 } from "../types";
 import type { WebsiteDraftForm } from "../hooks/useWebsiteDraft";
 import type { WebsiteBuilderController } from "../hooks/useWebsiteBuilderController";
+import type { WebsiteSectionFocusRequest } from "../hooks/useWebsiteWorkspaceController";
 import { SectionBuilder } from "./builder/SectionBuilder";
 import { PendingUnlocksTrigger } from "./builder/PendingUnlocksTray";
 import { aboutHeadline } from "./builder/aboutContent";
@@ -18,7 +19,7 @@ interface WebsiteBuilderCoreProps {
   locations: LocationWithAssignments[];
   form: WebsiteDraftForm;
   /** Request from the workspace (publish-blocker chips) to open/scroll to a section. */
-  focusSection?: { type: string; nonce: number } | null;
+  focusSection?: WebsiteSectionFocusRequest | null;
   /** Controlled shell entry point into the existing full-page preview flow. */
   previewOpen?: boolean;
   onPreviewOpenChange?: (open: boolean) => void;
@@ -56,6 +57,7 @@ export function WebsiteBuilderCore({
     catalogError,
     retryCatalog,
     catalogPurchasesReady,
+    checkoutBlocked,
     isVariantCheckoutLoading,
     variantCart,
     sectionCart,
@@ -66,6 +68,7 @@ export function WebsiteBuilderCore({
     teamRatings,
     ratingDistribution,
     previewReviews,
+    previewOnlyVariantSelections,
     handlePreviewOnlyVariantsChange,
     handleBuyVariant,
     handleBuySection,
@@ -140,6 +143,7 @@ export function WebsiteBuilderCore({
                   entries={cartItems}
                   isLoading={isVariantCheckoutLoading}
                   isBlocked={checkoutReconciliationBusy || !catalogPurchasesReady}
+                  checkoutBlocked={checkoutBlocked}
                   onRemove={handleRemoveCartItem}
                   onClear={handleClearCart}
                   onCheckout={handleCheckoutCart}
@@ -172,12 +176,14 @@ export function WebsiteBuilderCore({
           catalogLoaded={catalogLoaded}
           isVariantCheckoutLoading={isVariantCheckoutLoading}
           purchaseActionsReady={catalogPurchasesReady && !checkoutReconciliationBusy}
+          checkoutBlocked={checkoutBlocked}
           onBuyVariant={canPurchase ? handleBuyVariant : undefined}
           onBuySection={canPurchase ? handleBuySection : undefined}
           cartVariantIds={variantCart}
           cartSectionIds={sectionCart}
           onToggleCartVariant={canPurchase ? handleToggleCartVariant : undefined}
           onToggleCartSection={canPurchase ? handleToggleCartSection : undefined}
+          previewOnlyVariantSelections={previewOnlyVariantSelections}
           onPreviewOnlyVariantsChange={handlePreviewOnlyVariantsChange}
           isNative={isNative}
         />

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import type { WebsiteDraft } from "../types";
+import type { LocationWithAssignments, WebsiteDraft } from "../types";
 import {
   clearWebsiteConflictAction,
   cancelWebsiteMutationIntentsAction,
@@ -24,6 +24,7 @@ import {
   selectWebsiteError,
   selectWebsiteSaveFailure,
   selectWebsitePublish,
+  selectWebsitePublishFailure,
   selectWebsitePublishLockedItems,
   selectWebsitePublishing,
   selectWebsiteSaving,
@@ -44,6 +45,17 @@ import type {
   AtelierPublishStatus,
   AtelierSaveStatus,
 } from "../components/atelier/WebsiteAtelierHeader";
+import type { WebsiteReadinessIssue } from "../components/builder/sectionReadiness";
+import type {
+  ReconciledCheckoutIntent,
+  WebsiteCheckoutReturnContext,
+} from "../checkoutIntent";
+
+export interface WebsiteSectionFocusRequest {
+  type: string;
+  nonce: number;
+  readinessIssue?: WebsiteReadinessIssue;
+}
 
 export interface WebsitePublishBlocker {
   key: string;
@@ -52,11 +64,13 @@ export interface WebsitePublishBlocker {
   kind: "section" | "variant" | "color" | "font";
   catalogId: number;
   baseVariantKey?: string;
+  /** True when the option changes only the local preview and is not part of the saved draft. */
+  previewOnly?: boolean;
 }
 
 interface UseWebsiteWorkspaceControllerOptions {
   draft: WebsiteDraft;
-  locationIds: readonly number[];
+  locations: LocationWithAssignments[];
 }
 
 /**
@@ -69,7 +83,7 @@ interface UseWebsiteWorkspaceControllerOptions {
  */
 export function useWebsiteWorkspaceController({
   draft,
-  locationIds,
+  locations,
 }: UseWebsiteWorkspaceControllerOptions) {
   const { t } = useTranslation("website");
   const dispatch = useDispatch();
@@ -82,6 +96,7 @@ export function useWebsiteWorkspaceController({
   const lastSavedRequestId = useSelector(selectWebsiteLastSavedRequestId);
   const saveFailure = useSelector(selectWebsiteSaveFailure);
   const publish = useSelector(selectWebsitePublish);
+  const publishFailure = useSelector(selectWebsitePublishFailure);
   const isPublishing = useSelector(selectWebsitePublishing);
   const isUnpublishing = useSelector(selectWebsiteUnpublishing);
   const rawVariantCatalog = useSelector(selectWebsiteVariantCatalog);
@@ -92,13 +107,12 @@ export function useWebsiteWorkspaceController({
   const catalogError = useSelector(selectWebsiteCatalogError);
   const serverLockedItems = useSelector(selectWebsitePublishLockedItems);
   const [unpublishDialogOpen, setUnpublishDialogOpen] = useState(false);
-  const [focusSection, setFocusSection] = useState<{
-    type: string;
-    nonce: number;
-  } | null>(null);
+  const [focusSection, setFocusSection] = useState<WebsiteSectionFocusRequest | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [replaceConflictVersion, setReplaceConflictVersion] = useState<number | null>(null);
   const [reloadConflictVersion, setReloadConflictVersion] = useState<number | null>(null);
+  const [publishReviewCheckoutSaveRequestId, setPublishReviewCheckoutSaveRequestId] =
+    useState<string | null>(null);
 
   const canEdit = !!access?.canEdit;
   const canPurchase = !!access?.canPurchase;
@@ -132,17 +146,47 @@ export function useWebsiteWorkspaceController({
     lastSavedRequestId,
     onSave,
     onPublish,
-    allowedLocationIds: locationIds,
-    autosaveEnabled: canEdit,
+    locations,
+    saveEnabled: canEdit,
     isSaving,
     mutationBusy: isLoading || isSaving || isHeroMutating || isPublishing || isUnpublishing,
     conflict,
     saveFailure,
   });
+  const handleReconcileCheckoutSelections = useCallback(
+    (
+      selections: Pick<
+        ReconciledCheckoutIntent,
+        "variantSelections" | "themeSelections"
+      >,
+      returnContext: WebsiteCheckoutReturnContext | null,
+    ) => {
+      const requestId = form.applyOwnedCheckoutSelections(selections);
+      setPublishReviewCheckoutSaveRequestId(
+        returnContext === "publish-review" && typeof requestId === "string"
+          ? requestId
+          : null,
+      );
+    },
+    [form.applyOwnedCheckoutSelections],
+  );
   const checkoutReturn = useCheckoutReturn({
-    onReconcileVariantSelections: form.applyOwnedVariantSelections,
-    onReconcileThemeSelections: form.applyOwnedThemeSelections,
+    onReconcileSelections: handleReconcileCheckoutSelections,
   });
+
+  const checkoutSelectionSaveSettled =
+    publishReviewCheckoutSaveRequestId === null ||
+    (lastSavedRequestId === publishReviewCheckoutSaveRequestId &&
+      form.saveStatus === "clean" &&
+      !form.isDirty) ||
+    saveFailure?.requestId === publishReviewCheckoutSaveRequestId ||
+    conflict != null;
+  const checkoutReturnResumePublishReview =
+    checkoutReturn.resumePublishReview && checkoutSelectionSaveSettled;
+  const consumeCheckoutReturnPublishReview = useCallback(() => {
+    checkoutReturn.consumePublishReviewResume();
+    setPublishReviewCheckoutSaveRequestId(null);
+  }, [checkoutReturn.consumePublishReviewResume]);
 
   const isPublished = publish?.isPublished ?? false;
   const hasUnpublishedChanges =
@@ -152,7 +196,6 @@ export function useWebsiteWorkspaceController({
         draft.version > publish.publishedVersion));
   const isPublishedCurrent = isPublished && !hasUnpublishedChanges;
   const publishBusy = isPublishing || isUnpublishing;
-
   const publishBlockers = useMemo<WebsitePublishBlocker[]>(() => {
     if (!catalogLoaded) return [];
 
@@ -297,16 +340,40 @@ export function useWebsiteWorkspaceController({
   ]);
 
   const hasLockedBlockers = publishBlockers.length > 0;
-  const saveRecoveryRequired = !form.isOnline || form.canRetryAutosave;
+  const saveRecoveryRequired = !form.isOnline || form.canRetrySave;
+  const saveBusy = isLoading || isSaving || isHeroMutating || isPublishing || isUnpublishing;
+  const saveDisabled = !form.canSaveChanges;
+  const saveMode = form.canRetrySave ? "retry" as const : "save" as const;
+  const saveLabel = form.canRetrySave
+    ? t("page.actions.retrySave")
+    : t("page.actions.saveChanges");
+  const saveDisabledReason = !saveDisabled
+    ? null
+    : !canEdit
+      ? t("page.saveReason.readOnly")
+      : !form.isDirty
+        ? t("page.saveReason.clean")
+        : form.hasBlockingErrors
+          ? t("page.saveReason.errors")
+          : !form.isOnline
+            ? t("page.saveReason.offline")
+            : !!conflict
+              ? t("page.saveReason.conflict")
+              : saveBusy
+                ? t("page.saveReason.busy")
+                : null;
   const publishDisabled =
     !canPublish ||
     !catalogLoaded ||
     catalogLoading ||
     !!catalogError ||
+    form.hasPublishReadinessIssues ||
     form.hasBlockingErrors ||
     !!conflict ||
     saveRecoveryRequired ||
     publishBusy ||
+    isSaving ||
+    isHeroMutating ||
     isLoading ||
     isPublishedCurrent;
   const publishDisabledReason = !publishDisabled
@@ -318,27 +385,31 @@ export function useWebsiteWorkspaceController({
         : catalogError
           ? t("page.publishReason.catalogUnavailable")
           : form.hasBlockingErrors
-          ? t("page.publishReason.errors")
-          : !form.isOnline
-            ? t("page.publishReason.offline")
-            : form.canRetryAutosave
-              ? t("page.publishReason.saveFailed")
-          : !!conflict || publishBusy || isLoading
-            ? t("page.publishReason.busy")
-            : t("page.publishReason.current");
+            ? t("page.publishReason.errors")
+            : form.hasPublishReadinessIssues
+              ? t("page.publishReason.contentIncomplete")
+              : !form.isOnline
+                ? t("page.publishReason.offline")
+                : form.canRetrySave
+                  ? t("page.publishReason.saveFailed")
+                  : !!conflict || publishBusy || isSaving || isHeroMutating || isLoading
+                    ? t("page.publishReason.busy")
+                    : t("page.publishReason.current");
 
   // Catalog loading/failure belongs inside Publish review, where the owner can see the
-  // checking state or invoke the real retry action. Invalid/offline/conflicted work still
-  // disables the trigger because opening a review would incorrectly imply readiness.
-  const publishReviewDisabled =
+  // checking state or invoke the real retry action. Content readiness also belongs inside that
+  // review so owners can jump to or hide an incomplete section. Invalid/offline/conflicted work
+  // still disables the trigger because opening a review would incorrectly imply readiness.
+  const publishReviewGuardDisabled =
     !canPublish ||
     form.hasBlockingErrors ||
     !!conflict ||
     saveRecoveryRequired ||
     publishBusy ||
-    isLoading ||
-    isPublishedCurrent;
-  const publishReviewDisabledReason = !publishReviewDisabled
+    isSaving ||
+    isHeroMutating ||
+    isLoading;
+  const publishReviewGuardDisabledReason = !publishReviewGuardDisabled
     ? null
     : !canPublish
       ? t("page.publishReason.readOnly")
@@ -346,26 +417,53 @@ export function useWebsiteWorkspaceController({
         ? t("page.publishReason.errors")
         : !form.isOnline
           ? t("page.publishReason.offline")
-          : form.canRetryAutosave
+          : form.canRetrySave
             ? t("page.publishReason.saveFailed")
-            : !!conflict || publishBusy || isLoading
+            : !!conflict || publishBusy || isSaving || isHeroMutating || isLoading
               ? t("page.publishReason.busy")
-              : t("page.publishReason.current");
+              : null;
+  const publishReviewDisabled = publishReviewGuardDisabled || isPublishedCurrent;
+  const publishReviewDisabledReason =
+    publishReviewGuardDisabledReason ??
+    (isPublishedCurrent ? t("page.publishReason.current") : null);
+
+  const discardBusy =
+    isLoading ||
+    isSaving ||
+    isHeroMutating ||
+    publishBusy ||
+    form.saveStatus === "saving" ||
+    form.saveStatus === "queued";
+  const discardVisible = form.isDirty && !conflict;
+  const discardDisabled =
+    !canEdit ||
+    !form.isDirty ||
+    !!conflict ||
+    discardBusy;
+  const discardDisabledReason = !discardDisabled
+    ? null
+    : !canEdit
+      ? t("page.saveReason.readOnly")
+      : !!conflict
+        ? t("page.saveReason.conflict")
+        : discardBusy
+          ? t("page.saveReason.busy")
+          : null;
 
   const navigationBlocker = useUnsavedChangesBlocker({
     when:
-      form.autosaveStatus === "dirty" ||
-      form.autosaveStatus === "invalid" ||
-      form.autosaveStatus === "saving" ||
-      form.autosaveStatus === "queued" ||
-      form.autosaveStatus === "offline" ||
-      form.autosaveStatus === "failed" ||
-      form.autosaveStatus === "conflict" ||
+      form.saveStatus === "dirty" ||
+      form.saveStatus === "invalid" ||
+      form.saveStatus === "saving" ||
+      form.saveStatus === "queued" ||
+      form.saveStatus === "offline" ||
+      form.saveStatus === "failed" ||
+      form.saveStatus === "conflict" ||
       isHeroMutating ||
       isPublishing ||
       isUnpublishing,
     proceedWhen:
-      form.autosaveStatus === "clean" &&
+      form.saveStatus === "clean" &&
       !isHeroMutating &&
       !isPublishing &&
       !isUnpublishing,
@@ -382,9 +480,11 @@ export function useWebsiteWorkspaceController({
   }, [dispatch]);
 
   const discardChanges = useCallback(() => {
+    if (discardDisabled) return false;
     dispatch(cancelWebsiteMutationIntentsAction());
     form.resetToBaseline();
-  }, [dispatch, form]);
+    return true;
+  }, [discardDisabled, dispatch, form]);
 
   const clearConflict = useCallback(() => {
     dispatch(clearWebsiteConflictAction());
@@ -424,10 +524,14 @@ export function useWebsiteWorkspaceController({
     setReplaceConflictVersion(null);
   }, []);
 
-  const focusPublishBlocker = useCallback((type: string) => {
+  const focusPublishBlocker = useCallback((
+    type: string,
+    readinessIssue?: WebsiteReadinessIssue,
+  ) => {
     setFocusSection((current) => ({
       type,
       nonce: (current?.nonce ?? 0) + 1,
+      readinessIssue,
     }));
   }, []);
 
@@ -435,7 +539,7 @@ export function useWebsiteWorkspaceController({
     setPreviewOpen(true);
   }, []);
 
-  const saveStatusMap: Record<typeof form.autosaveStatus, AtelierSaveStatus> = {
+  const saveStatusMap: Record<typeof form.saveStatus, AtelierSaveStatus> = {
     clean: "saved",
     dirty: "unsaved",
     invalid: "invalid",
@@ -445,7 +549,7 @@ export function useWebsiteWorkspaceController({
     failed: "failed",
     conflict: "conflict",
   };
-  const saveStatus = saveStatusMap[form.autosaveStatus];
+  const saveStatus = saveStatusMap[form.saveStatus];
   const publishStatus: AtelierPublishStatus = isPublished
     ? hasUnpublishedChanges
       ? "stale"
@@ -490,6 +594,8 @@ export function useWebsiteWorkspaceController({
     checkoutReturnState: checkoutReturn.state,
     checkoutReturnBlocksNewCheckout: checkoutReturn.blocksNewCheckout,
     checkoutReturnBusinessMismatch: checkoutReturn.returnBusinessMismatch,
+    checkoutReturnResumePublishReview,
+    consumeCheckoutReturnPublishReview,
     retryCheckoutReturn: checkoutReturn.retry,
     permissions: {
       canEdit,
@@ -506,6 +612,8 @@ export function useWebsiteWorkspaceController({
     },
     publication: {
       publish,
+      failure: publishFailure,
+      retryPending: publishFailure != null,
       isPublished,
       hasUnpublishedChanges,
       isPublishedCurrent,
@@ -514,8 +622,31 @@ export function useWebsiteWorkspaceController({
       disabledReason: publishDisabledReason,
       reviewDisabled: publishReviewDisabled,
       reviewDisabledReason: publishReviewDisabledReason,
+      reviewGuardDisabled: publishReviewGuardDisabled,
+      reviewGuardDisabledReason: publishReviewGuardDisabledReason,
     },
     saveStatus,
+    draftSave: {
+      mode: saveMode,
+      label: saveLabel,
+      disabled: saveDisabled,
+      disabledReason: saveDisabledReason,
+      busy: isSaving,
+      save: form.canRetrySave ? form.retrySave : form.saveChanges,
+      saveWithReceipt: form.canRetrySave
+        ? form.retrySaveWithReceipt
+        : form.saveChangesWithReceipt,
+      lastSavedRequestId,
+      failure: saveFailure,
+      conflict,
+    },
+    discardAction: {
+      visible: discardVisible,
+      disabled: discardDisabled,
+      disabledReason: discardDisabledReason,
+      busy: discardBusy,
+      discard: discardChanges,
+    },
     publishBlockers,
     hasLockedBlockers,
     serverLockedItems,
@@ -531,7 +662,6 @@ export function useWebsiteWorkspaceController({
     setPreviewOpen,
     requestPreview,
     navigationBlocker,
-    discardChanges,
     conflict,
     conflictDialogOpen,
     replaceConflictDialogOpen,

@@ -9,6 +9,7 @@ export interface DeleteResponse {
   teamMembersCount?: number;
   activeUsersCount?: number;
   pendingUsersCount?: number;
+  websiteGalleryImagesCount?: number;
 }
 
 export type ResourceType = 'location' | 'service' | 'team_member' | 'bundle';

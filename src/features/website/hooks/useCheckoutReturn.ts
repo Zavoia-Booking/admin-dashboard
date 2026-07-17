@@ -21,8 +21,11 @@ import {
 } from "../selectors";
 import {
   clearWebsiteCheckoutIntent,
+  parseWebsiteCheckoutReturnContext,
   reconcileWebsiteCheckoutIntent,
-  type ReconciledThemeSelection,
+  WEBSITE_CHECKOUT_CONTEXT_PARAM,
+  type ReconciledCheckoutIntent,
+  type WebsiteCheckoutReturnContext,
 } from "../checkoutIntent";
 
 /** Bounded backoff: ~45s total before giving up on webhook delivery. */
@@ -45,6 +48,8 @@ export interface CheckoutReturnResult {
   state: CheckoutReturnState;
   blocksNewCheckout: boolean;
   returnBusinessMismatch: boolean;
+  resumePublishReview: boolean;
+  consumePublishReviewResume: () => void;
   retry: () => void;
 }
 
@@ -102,15 +107,15 @@ function isOwnerScopedSessionNotFound(error: unknown): boolean {
  * All timers and in-flight polling stop on unmount.
  */
 export function useCheckoutReturn(options?: {
-  onReconcileVariantSelections?: (
-    selections: ReadonlyArray<{ sectionType: string; variantKey: string }>,
-  ) => void;
-  onReconcileThemeSelections?: (
-    selections: ReadonlyArray<ReconciledThemeSelection>,
+  onReconcileSelections?: (
+    selections: Pick<
+      ReconciledCheckoutIntent,
+      "variantSelections" | "themeSelections"
+    >,
+    returnContext: WebsiteCheckoutReturnContext | null,
   ) => void;
 }): CheckoutReturnResult {
-  const onReconcileVariantSelections = options?.onReconcileVariantSelections;
-  const onReconcileThemeSelections = options?.onReconcileThemeSelections;
+  const onReconcileSelections = options?.onReconcileSelections;
   const { t } = useTranslation("website");
   const dispatch = useDispatch();
   const businessId = useSelector(selectBusinessId);
@@ -121,6 +126,7 @@ export function useCheckoutReturn(options?: {
   const catalogError = useSelector(selectWebsiteCatalogError);
   const [searchParams, setSearchParams] = useSearchParams();
   const [state, setState] = useState<CheckoutReturnState>("idle");
+  const [resumePublishReview, setResumePublishReview] = useState(false);
   const [pollRetryRevision, setPollRetryRevision] = useState(0);
   const [confirmedProofBusinessId, setConfirmedProofBusinessId] = useState<string | null>(null);
   const settledSessionRef = useRef<string | null>(null);
@@ -132,6 +138,9 @@ export function useCheckoutReturn(options?: {
 
   const sessionId = searchParams.get("session_id");
   const checkoutCancelled = searchParams.get("variantPurchase") === "cancelled";
+  const returnContext = parseWebsiteCheckoutReturnContext(
+    searchParams.get(WEBSITE_CHECKOUT_CONTEXT_PARAM),
+  );
   // This marker is written into the checkout return URL and never inferred from mutable
   // client state. It is removed only with the rest of a correctly scoped terminal return.
   const returnBusinessId = searchParams.get(RETURN_BUSINESS_ID_PARAM);
@@ -147,8 +156,20 @@ export function useCheckoutReturn(options?: {
     next.delete("session_id");
     next.delete("variantPurchase");
     next.delete(RETURN_BUSINESS_ID_PARAM);
+    next.delete(WEBSITE_CHECKOUT_CONTEXT_PARAM);
     setSearchParams(next, { replace: true });
   }, [searchParams, setSearchParams]);
+
+  const stripReturnContext = useCallback(() => {
+    const next = new URLSearchParams(searchParams);
+    if (!next.has(WEBSITE_CHECKOUT_CONTEXT_PARAM)) return;
+    next.delete(WEBSITE_CHECKOUT_CONTEXT_PARAM);
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams]);
+
+  const consumePublishReviewResume = useCallback(() => {
+    setResumePublishReview(false);
+  }, []);
 
   const retry = useCallback(() => {
     if (businessId == null || returnBusinessMismatch) return;
@@ -383,6 +404,9 @@ export function useCheckoutReturn(options?: {
       const result = confirmedResultRef.current;
       if (!result) return;
       setState(result);
+      if (returnContext === "publish-review") {
+        setResumePublishReview(true);
+      }
       toast.success(
         t(result === "completed" ? "page.toasts.purchaseCompleted" : "page.toasts.purchasePartial"),
       );
@@ -391,7 +415,11 @@ export function useCheckoutReturn(options?: {
       setConfirmedProofBusinessId(null);
       catalogReconcileAttemptsRef.current = 0;
       catalogRecoveryAnnouncedRef.current = false;
-      if (!preserveReturnMarker) stripReturnMarker();
+      if (preserveReturnMarker) {
+        stripReturnContext();
+      } else {
+        stripReturnMarker();
+      }
     };
 
     if (!reconciled) {
@@ -400,11 +428,17 @@ export function useCheckoutReturn(options?: {
       settleConfirmedReturn();
       return;
     }
-    if (reconciled.variantSelections.length > 0) {
-      onReconcileVariantSelections?.(reconciled.variantSelections);
-    }
-    if (reconciled.themeSelections.length > 0) {
-      onReconcileThemeSelections?.(reconciled.themeSelections);
+    if (
+      reconciled.variantSelections.length > 0 ||
+      reconciled.themeSelections.length > 0
+    ) {
+      // Apply the complete, independently proved checkout selection as one transaction.
+      // Keeping variants and theme assets together lets the draft layer persist one exact
+      // snapshot instead of racing separate React state updates/saves.
+      onReconcileSelections?.({
+        variantSelections: reconciled.variantSelections,
+        themeSelections: reconciled.themeSelections,
+      }, returnContext);
     }
     if (!reconciled.hasRemainingIntent) {
       settleConfirmedReturn();
@@ -445,11 +479,12 @@ export function useCheckoutReturn(options?: {
     catalogError,
     dispatch,
     isCatalogLoading,
-    onReconcileThemeSelections,
-    onReconcileVariantSelections,
+    onReconcileSelections,
     returnBusinessMismatch,
+    returnContext,
     retry,
     sectionCatalog,
+    stripReturnContext,
     stripReturnMarker,
     t,
     themeAssetCatalog,
@@ -474,6 +509,8 @@ export function useCheckoutReturn(options?: {
     state: effectiveState,
     blocksNewCheckout,
     returnBusinessMismatch: effectiveReturnBusinessMismatch,
+    resumePublishReview,
+    consumePublishReviewResume,
     retry,
   };
 }

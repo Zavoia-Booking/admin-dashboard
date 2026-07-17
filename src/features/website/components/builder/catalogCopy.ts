@@ -27,7 +27,11 @@ export const localizeWebsiteVariantCatalog = (
 ): WebsiteVariantCatalogEntry[] =>
   entries.map((entry) => {
     const section = sectionName(t, entry.sectionType);
-    const style = t(`businessPage.sections.variants.${entry.variantKey}`, {
+    // The executable Gallery renderer persists `index`, while the customer-facing design name is Mosaic.
+    const styleKey = entry.sectionType === "gallery" && entry.variantKey === "index"
+      ? "mosaic"
+      : entry.variantKey;
+    const style = t(`businessPage.sections.variants.${styleKey}`, {
       defaultValue: t("businessPage.catalog.unknownStyle"),
     });
 

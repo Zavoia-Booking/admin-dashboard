@@ -13,6 +13,7 @@ import { useTranslation } from "react-i18next";
 import { X } from "lucide-react";
 import { cn } from "../../lib/utils";
 import type { LucideIcon } from "lucide-react";
+import { Spinner } from "../ui/spinner.tsx";
 
 export interface ConfirmDialogProps {
   open: boolean;
@@ -21,6 +22,8 @@ export interface ConfirmDialogProps {
   onOpenChange?: (open: boolean) => void;
   cancelTitle?: string | null;
   confirmTitle?: string;
+  confirmDisabled?: boolean;
+  confirmBusy?: boolean;
   title: string;
   description: string | React.ReactNode;
   showCloseButton?: boolean;
@@ -42,6 +45,8 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   onOpenChange,
   cancelTitle,
   confirmTitle,
+  confirmDisabled = false,
+  confirmBusy = false,
   title,
   description,
   showCloseButton = false,
@@ -56,8 +61,11 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   confirmClassName,
 }) => {
   const { t } = useTranslation("common");
+  const isConfirmDisabled = confirmDisabled || confirmBusy;
 
   const handleConfirm = () => {
+    if (isConfirmDisabled) return;
+
     onConfirm();
     if (onOpenChange) {
       onOpenChange(false);
@@ -131,6 +139,8 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
           )}
           <AlertDialogAction
             onClick={handleConfirm}
+            disabled={isConfirmDisabled}
+            aria-busy={confirmBusy || undefined}
             className={cn(
               "rounded-full h-11 px-6 font-semibold cursor-pointer",
               isDestructive
@@ -139,6 +149,7 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
               confirmClassName
             )}
           >
+            {confirmBusy ? <Spinner size="sm" color="white" /> : null}
             {confirmTitle || `Confirm`}
           </AlertDialogAction>
         </AlertDialogFooter>
