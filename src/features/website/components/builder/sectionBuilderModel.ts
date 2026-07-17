@@ -13,8 +13,6 @@ import { aboutHeadline } from "./aboutContent";
 import { MIN_GALLERY_IMAGES, resolveGalleryImages } from "./gallerySelection";
 import { completeFaqCount } from "./sectionReadiness";
 import {
-  isTeamLocked,
-  isTestimonialsLocked,
   MIN_TEAM_MEMBERS,
   MIN_TESTIMONIAL_REVIEWS,
   reviewCount,

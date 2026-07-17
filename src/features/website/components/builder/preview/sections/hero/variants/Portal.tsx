@@ -16,7 +16,7 @@ const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
  *  foot. The scroll-jack is driven off the preview's own scroll container (never window), preview-scale
  *  aware. (Design source: HeroPortal.) */
 export function Portal(props: HeroVariantProps) {
-  const { data, t, parallax } = props;
+  const { data, parallax } = props;
   const { name, tagline, ctaLabel } = deriveHeroContent(props);
   const trackRef = useRef<HTMLElement>(null);
   const pinRef = useRef<HTMLDivElement>(null);

@@ -1,7 +1,6 @@
+import type { TFunction } from "i18next";
 import type { FaqItem } from "../../types";
 import { validateWebsiteCopy } from "../../../../shared/utils/validation";
-
-type Translate = (key: string, options?: Record<string, unknown>) => string;
 
 export interface FaqFieldErrors {
   question?: string;
@@ -11,7 +10,7 @@ export interface FaqFieldErrors {
 function validateFaqItemCopyLocale(
   item: FaqItem,
   locale: "en" | "ro",
-  t: Translate,
+  t: TFunction,
   number: number,
 ): FaqFieldErrors {
   return {
@@ -30,7 +29,7 @@ function validateFaqItemCopyLocale(
 export function validateFaqItemLocale(
   item: FaqItem,
   locale: "en" | "ro",
-  t: Translate,
+  t: TFunction,
   number: number,
 ): FaqFieldErrors {
   const question = item.q[locale] ?? "";
@@ -57,7 +56,7 @@ export function validateFaqItemLocale(
 /** Unsafe or oversized copy blocks saving; an incomplete pair remains a saveable draft. */
 export function firstFaqSaveBlockingError(
   items: FaqItem[],
-  t: Translate,
+  t: TFunction,
 ): string | null {
   for (let index = 0; index < items.length; index += 1) {
     for (const locale of ["en", "ro"] as const) {
