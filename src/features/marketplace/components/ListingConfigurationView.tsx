@@ -31,10 +31,8 @@ const validTabs: MarketplaceTab[] = [
 ];
 
 function resolveMarketplaceTab(rawTab: string | null): MarketplaceTab {
-  if (rawTab && validTabs.includes(rawTab as MarketplaceTab)) {
-    return rawTab as MarketplaceTab;
-  }
-
+  const tab = rawTab as MarketplaceTab | null;
+  if (tab && validTabs.includes(tab)) return tab;
   return rawTab === "portfolio" ? "locations" : "business";
 }
 
@@ -65,18 +63,18 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
+  const rawTab = searchParams.get("tab");
+  const activeTab = resolveMarketplaceTab(rawTab);
 
   // State for unsaved changes confirmation dialog
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
   const pendingNavigationPathRef = useRef<string | null>(null);
   const allowNavigationRef = useRef(false);
 
-  const rawTab = searchParams.get("tab");
-  const activeTab = resolveMarketplaceTab(rawTab);
   const canWrite = useCanWrite();
 
-  // Normalize legacy tab names in the URL. The active tab itself is derived from
-  // the URL so browser navigation never requires a synchronizing state update.
+  // Canonicalize legacy tab names. The active tab itself is derived from the URL above,
+  // so browser navigation and redirects never require a second state synchronization pass.
   // The retired Website Builder tab is redirected by the route before this view mounts.
   useEffect(() => {
     if (rawTab === "profile" || rawTab === "booking-settings") {
