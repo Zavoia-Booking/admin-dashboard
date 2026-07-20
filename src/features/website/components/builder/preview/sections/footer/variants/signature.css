@@ -18,6 +18,24 @@
   grid-template-columns: minmax(150px, 0.7fr) repeat(3, minmax(0, 1fr));
 }
 
+.mc-fsig[data-has-follow="false"] {
+  grid-template-areas:
+    "mark mark mark mark"
+    "links links links links"
+    "base base base base";
+}
+
+.mc-fsig[data-has-follow="true"][data-has-links="false"] {
+  grid-template-areas:
+    "mark mark mark mark"
+    "follow follow follow follow"
+    "base base base base";
+}
+
+.mc-fsig[data-has-follow="true"][data-has-links="false"] .mc-fsig-follow {
+  border-right: 0;
+}
+
 .mc-fsig-mark-wrap {
   grid-area: mark;
   padding: clamp(8px, 1.4cqw, 18px) var(--fsig-gutter) clamp(6px, 1cqw, 14px);
@@ -60,7 +78,7 @@
 .mc-fsig-links {
   display: grid;
   grid-area: links;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
   align-items: start;
   gap: clamp(18px, 3cqw, 40px);
   padding: clamp(28px, 3.5cqw, 52px) var(--fsig-gutter) clamp(28px, 3.5cqw, 52px) clamp(24px, 3cqw, 48px);

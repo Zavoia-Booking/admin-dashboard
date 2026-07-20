@@ -1,12 +1,31 @@
 import { ArrowRight } from "lucide-react";
 
-/** Announcement CTA — a mono, underlined label (styled by `.mc-anno-in a`). Inert in the preview (no href):
- *  the live page wires it to the owner's destination. */
-export function AnnoCta({ label, showArrow }: { label: string; showArrow: boolean }) {
+interface AnnoCtaProps {
+  label: string;
+  url: string;
+  newTab: boolean;
+  showArrow: boolean;
+  appearance?: "bar" | "dialog";
+}
+
+/** Keeps real link semantics in the preview while preventing the builder from navigating away. */
+export function AnnoCta({
+  label,
+  url,
+  newTab,
+  showArrow,
+  appearance = "bar",
+}: AnnoCtaProps) {
   return (
-    <a>
+    <a
+      className={appearance === "dialog" ? "mc-anno-details-action" : "mc-anno-link"}
+      href={url || "#"}
+      target={newTab && url ? "_blank" : undefined}
+      rel={newTab && url ? "noreferrer" : undefined}
+      onClick={(event) => event.preventDefault()}
+    >
       {label}
-      {showArrow && <ArrowRight className="h-3 w-3 shrink-0" strokeWidth={2} aria-hidden />}
+      {showArrow && <ArrowRight className="mc-anno-arrow" strokeWidth={2} aria-hidden />}
     </a>
   );
 }

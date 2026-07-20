@@ -60,6 +60,7 @@ function computeTumble(name: string, w: number) {
 export function Tumble(props: HeroVariantProps) {
   const { t } = props;
   const { name, tagline, rating, count, showRating, ctaLabel } = deriveHeroContent(props);
+  const hasTagline = !!tagline?.trim();
   const headerRef = useRef<HTMLElement>(null);
   const [w, setW] = useState(900);
   useLayoutEffect(() => {
@@ -217,12 +218,12 @@ export function Tumble(props: HeroVariantProps) {
         ))}
       </h1>
       <div className="mc-herotb-side mc-rev-fade" style={{ animationDelay: "200ms" }}>
-        <p className="mc-herotb-tag">— {tagline}</p>
+        {hasTagline && <p className="mc-herotb-tag">— {tagline}</p>}
         <span className="mc-herotb-reg" aria-hidden>®</span>
       </div>
       <div className="mc-herotb-foot mc-rev-up" style={{ animationDelay: "340ms" }}>
         <div className="mc-herotb-cta">
-          {tagline && <p className="mc-herotb-foottag">— {tagline}</p>}
+          {hasTagline && <p className="mc-herotb-foottag">— {tagline}</p>}
           <BookButton label={ctaLabel} tone="accent" size="lg" />
           {showRating && <HeroRate rating={rating} count={count} t={t} />}
         </div>

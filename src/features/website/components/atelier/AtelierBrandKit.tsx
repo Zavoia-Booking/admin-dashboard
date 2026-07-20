@@ -13,8 +13,10 @@ interface AtelierBrandKitProps {
   canWrite: boolean;
   brandColorHex: string;
   setBrandColorHex: (value: string) => void;
+  brandColorError?: string | null;
   fontKey: string;
   setFontKey: (value: string) => void;
+  fontError?: string | null;
   themeAssets?: WebsiteThemeAssetCatalogItem[];
   catalogReady?: boolean;
   catalogError?: string | null;
@@ -39,8 +41,10 @@ export function AtelierBrandKit({
   canWrite,
   brandColorHex,
   setBrandColorHex,
+  brandColorError,
   fontKey,
   setFontKey,
+  fontError,
   themeAssets,
   catalogReady,
   catalogError,
@@ -103,6 +107,7 @@ export function AtelierBrandKit({
           premiumSelectionReady={premiumSelectionReady}
           effectiveBrandColorHex={effectiveBrandColorHex}
           onThemeAssetSelect={onThemeAssetSelect}
+          error={brandColorError}
         />
         <ThemePanel
           variant="atelier"
@@ -117,6 +122,7 @@ export function AtelierBrandKit({
           premiumSelectionReady={premiumSelectionReady}
           effectiveFontKey={effectiveFontKey}
           onThemeAssetSelect={onThemeAssetSelect}
+          error={fontError}
         />
       </div>
     </section>

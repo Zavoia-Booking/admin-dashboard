@@ -197,7 +197,12 @@ export function VariantPurchaseDialog<T extends PurchasableCatalogItem>({
 
   if (isAtelierCompact) {
     return (
-      <Drawer open={!!variant} onOpenChange={(open) => !isLoading && onOpenChange(open)}>
+      <Drawer
+        open={!!variant}
+        onOpenChange={(open) => !isLoading && onOpenChange(open)}
+        autoFocus
+        repositionInputs={false}
+      >
         <DrawerContent
           overlayClassName="z-[79]"
           className="website-atelier atelier-purchase-dialog z-[80] max-h-[85dvh] px-4 pb-[calc(1rem+env(safe-area-inset-bottom))]"

@@ -3,25 +3,34 @@ import type {
   AnnouncementContent,
   Business,
   FaqItem,
+  FooterConfig,
   GalleryConfig,
-  LocationWithAssignments,
+  LocationsConfig,
+  WebsiteBuilderLocation,
   SectionEntry,
   WebsiteSectionCatalogEntry,
   WebsiteVariantCatalogEntry,
 } from "../../types";
-import { aboutHeadline } from "./aboutContent";
+import { aboutHeadline, splitAboutContent } from "./aboutContent";
 import { MIN_GALLERY_IMAGES, resolveGalleryImages } from "./gallerySelection";
-import { completeFaqCount } from "./sectionReadiness";
+import { completeFaqCount, hasIncompleteFaqPair } from "./sectionReadiness";
 import {
   MIN_TEAM_MEMBERS,
   MIN_TESTIMONIAL_REVIEWS,
+  TEAM_FLAT_MAX,
+  TEAM_LOCATION_MAX,
   reviewCount,
   teamMemberCount,
 } from "./sectionDataRequirements";
-import { isKnownSectionType, PINNED_TYPES, REQUIRED_TYPES } from "./sectionCatalog";
+import { footerDefaultHeadlineCopy } from "./footerHeadline";
+import { heroVariantRequiresCoverImage } from "./heroCoverRequirement";
+import { isKnownSectionType, PINNED_TYPES, REQUIRED_TYPES, SECTION_META } from "./sectionCatalog";
+import { resolveVisibleLocations } from "./locationSelection";
 import { UNNUMBERED } from "./preview/shared/constants";
 import { MARQUEE_MIN_ITEMS } from "./preview/sections/marquee/model";
 import type { PreviewData, PreviewReview, RatingBars } from "./preview/shared/types";
+import { aggregateReviews } from "./preview/shared/util";
+import { isWebsiteSectionLinkType } from "./preview/shared/sectionLinks";
 
 export {
   isTeamLocked,
@@ -64,6 +73,9 @@ export type SectionBuilderT = (key: string, options?: Record<string, unknown>) =
 export interface SectionRowInfoContext {
   t: SectionBuilderT;
   locale: "en" | "ro";
+  layout: readonly SectionEntry[];
+  business: Business | null;
+  selectedLocationId?: number | null;
   announcementContent: AnnouncementContent;
   announcementError?: string | null;
   heroImageUrl: string | null;
@@ -71,7 +83,9 @@ export interface SectionRowInfoContext {
   taglineError?: string;
   aboutContent: string;
   aboutError?: string | null;
-  locations: LocationWithAssignments[];
+  locations: WebsiteBuilderLocation[];
+  /** Exact location set Services renders after applying the website-wide Locations selection. */
+  serviceLocations: WebsiteBuilderLocation[];
   marqueeItemCount: number;
   reviews?: PreviewReview[];
   faqItems: FaqItem[];
@@ -79,16 +93,67 @@ export interface SectionRowInfoContext {
   variantCatalogByKey: VariantCatalogByKey;
 }
 
+/** Distinct menu entities across locations; the same service assigned twice still appears once in the row summary. */
+export function serviceMenuCounts(
+  locations: WebsiteBuilderLocation[],
+  includeBundles = true,
+): { services: number; bundles: number; locations: number; items: number } {
+  const serviceIds = new Set<number>();
+  const bundleIds = new Set<number>();
+  for (const location of locations) {
+    for (const service of location.services ?? []) serviceIds.add(service.id);
+    if (includeBundles) {
+      for (const bundle of location.bundles ?? []) bundleIds.add(bundle.id);
+    }
+  }
+  return {
+    services: serviceIds.size,
+    bundles: bundleIds.size,
+    locations: locations.length,
+    items: serviceIds.size + bundleIds.size,
+  };
+}
+
+export function serviceMenuSummary(
+  t: SectionBuilderT,
+  counts: ReturnType<typeof serviceMenuCounts>,
+  includeBundles = true,
+): string {
+  const parts: string[] = [];
+  if (counts.services > 0) {
+    parts.push(t("businessPage.builder.summary.services", { count: counts.services }));
+  }
+  if (includeBundles && counts.bundles > 0) {
+    parts.push(t("businessPage.builder.summary.bundles", { count: counts.bundles }));
+  }
+  if (counts.locations > 0) {
+    parts.push(t("businessPage.builder.summary.serviceLocations", { count: counts.locations }));
+  }
+  return parts.join(" · ");
+}
+
+/** Prefix the content snapshot with the style currently rendered, including preview-only styles. */
+export function sectionSummaryWithVariant(
+  entry: SectionEntry,
+  summary: string,
+  t: SectionBuilderT,
+): string {
+  if (!isKnownSectionType(entry.type)) return summary;
+  const variant = SECTION_META[entry.type].variants.find((item) => item.id === entry.variant);
+  return variant ? `${t(variant.labelKey)} · ${summary}` : summary;
+}
+
 export interface BuildPreviewDataInput {
   business: Business | null;
   heroImageUrl: string | null;
   tagline: string;
   aboutContent: string;
+  establishedYear: number | null;
   useBusinessEmail: boolean;
   email: string;
   useBusinessPhone: boolean;
   phone: string;
-  locations: LocationWithAssignments[];
+  locations: WebsiteBuilderLocation[];
   faqItems: FaqItem[];
   announcementContent: AnnouncementContent;
   brandColorHex: string;
@@ -170,11 +235,16 @@ export function isCatalogPending(
   return !!loading && (variantCatalog?.length ?? 0) === 0 && (sectionCatalog?.length ?? 0) === 0;
 }
 
-/** Keep only selections that are still paid, unowned, and different from the saved draft. */
+/**
+ * Keep only selections that are still paid and unowned. A caller-designated paid-only section may
+ * preview the same variant key already stored in its dormant layout entry: in that case the
+ * temporary selection represents preview-only visibility, not a persisted style change.
+ */
 export function derivePreviewOnlyVariants(
   selectedByType: Readonly<Record<string, string>>,
   layout: readonly SectionEntry[],
   variantCatalogByKey: VariantCatalogByKey,
+  previewVisibleSectionTypes: ReadonlySet<string> = new Set(),
 ): Record<string, string> {
   const previewOnlyByType: Record<string, string> = {};
 
@@ -183,7 +253,10 @@ export function derivePreviewOnlyVariants(
     const catalogEntry = variantCatalogByKey.get(catalogKey(type, variantKey));
     const stillPreviewOnly =
       !!saved &&
-      saved.variant !== variantKey &&
+      (
+        saved.variant !== variantKey ||
+        (!saved.visible && previewVisibleSectionTypes.has(type))
+      ) &&
       isPaidCatalogEntryLocked(catalogEntry);
 
     if (stillPreviewOnly) previewOnlyByType[type] = variantKey;
@@ -192,14 +265,21 @@ export function derivePreviewOnlyVariants(
   return previewOnlyByType;
 }
 
-/** Overlay locked preview choices without mutating the persisted draft layout. */
+/** Overlay locked choices and caller-designated temporary visibility without mutating the draft. */
 export function overlayPreviewVariants(
   layout: readonly SectionEntry[],
   previewVariantByType: Readonly<Record<string, string>>,
+  previewVisibleSectionTypes: ReadonlySet<string> = new Set(),
 ): SectionEntry[] {
   return layout.map((section) => {
     const previewVariant = previewVariantByType[section.type];
-    return previewVariant ? { ...section, variant: previewVariant } : section;
+    return previewVariant
+      ? {
+          ...section,
+          variant: previewVariant,
+          visible: section.visible || previewVisibleSectionTypes.has(section.type),
+        }
+      : section;
   });
 }
 
@@ -251,6 +331,7 @@ export function buildPreviewData({
   heroImageUrl,
   tagline,
   aboutContent,
+  establishedYear,
   useBusinessEmail,
   email,
   useBusinessPhone,
@@ -268,10 +349,13 @@ export function buildPreviewData({
 }: BuildPreviewDataInput): PreviewData {
   return {
     businessName: business?.name ?? "",
+    businessTimezone: business?.timezone?.trim() || "UTC",
     logo: business?.logo ?? null,
     heroImageUrl,
     tagline,
     aboutContent,
+    establishedYear,
+    businessCurrency: business?.businessCurrency?.trim().toUpperCase() || "EUR",
     email: useBusinessEmail ? business?.email ?? "" : email,
     phone: useBusinessPhone ? business?.phone ?? "" : phone,
     social: {
@@ -294,20 +378,27 @@ export function buildPreviewData({
   };
 }
 
+const compactSummaryText = (value: string): string => value.replace(/\s+/g, " ").trim();
+
+const FOOTER_LINK_VARIANTS = new Set(["directory", "signature", "masthead", "marque"]);
+const FOOTER_LOCATION_LIST_VARIANTS = new Set(["directory", "editorial", "signature", "masthead"]);
+
 const firstLocaleText = (value: { en?: string; ro?: string } | undefined, locale: "en" | "ro") =>
-  value?.[locale]?.trim() || value?.en?.trim() || value?.ro?.trim() || "";
+  compactSummaryText(value?.[locale] || value?.en || value?.ro || "");
 
 export function buildSectionRowInfo(entry: SectionEntry, context: SectionRowInfoContext): SectionRowInfo {
   const {
     t,
     locale,
+    layout,
+    business,
+    selectedLocationId,
     announcementContent,
     announcementError,
     heroImageUrl,
     tagline,
     taglineError,
     aboutContent,
-    aboutError,
     locations,
     marqueeItemCount,
     reviews,
@@ -368,49 +459,62 @@ export function buildSectionRowInfo(entry: SectionEntry, context: SectionRowInfo
       );
     }
     case "nav":
-      return withStatus(t("businessPage.builder.summary.logoLinksBooking"));
+      return withStatus(t("businessPage.builder.summary.pageLinks", {
+        count: layout.filter((section) => section.visible && isWebsiteSectionLinkType(section.type)).length,
+      }));
     case "hero": {
       const hasCover = !!heroImageUrl;
-      const hasSubtitle = tagline.trim().length > 0;
-      // Cinematic + Portal are photo-forward — nudge for a cover when one of them is selected without a photo.
-      const wantsCover = entry.variant === "cinematic" || entry.variant === "portal";
+      const subtitle = compactSummaryText(tagline);
+      const wantsCover = heroVariantRequiresCoverImage(entry.variant);
       const coverHint: SectionRowStatus | undefined =
         wantsCover && !hasCover
           ? { label: t("businessPage.builder.summary.addCover"), tone: "warning" }
           : undefined;
       return withStatus(
-        hasCover
-          ? t("businessPage.builder.summary.coverSet")
-          : hasSubtitle
-            ? t("businessPage.builder.summary.subtitleSet")
-            : t("businessPage.builder.summary.addSubtitle"),
+        subtitle || compactSummaryText(business?.name ?? "") || t("businessPage.builder.summary.heroEssentials"),
         taglineError ? needsContentStatus : coverHint,
       );
     }
     case "marquee":
       if (marqueeItemCount < MARQUEE_MIN_ITEMS) {
-        return {
-          summary: t("businessPage.builder.summary.servicesProgress", {
+        return withStatus(
+          t("businessPage.builder.summary.stripNamesProgress", {
             count: marqueeItemCount,
             required: MARQUEE_MIN_ITEMS,
           }),
-          noData: marqueeItemCount === 0,
-        };
+          marqueeItemCount === 0 ? noDataStatus : undefined,
+          marqueeItemCount === 0,
+        );
       }
-      return withStatus(t("businessPage.builder.summary.services", { count: marqueeItemCount }));
+      return withStatus(t("businessPage.builder.summary.stripNames", { count: marqueeItemCount }));
     case "about": {
       const headline = aboutHeadline(aboutContent);
-      const needsContent = entry.visible && !!aboutError;
+      const headlineMissing = entry.visible && entry.config?.headlineHidden === true;
+      const storyMissing = entry.visible && !splitAboutContent(aboutContent).body.trim();
       return withStatus(
-        headline || t("businessPage.builder.summary.noHeadline"),
-        needsContent ? needsContentStatus : undefined,
-        !headline,
+        headlineMissing
+          ? t("businessPage.builder.summary.noHeadline")
+          : headline || t("businessPage.builder.preview.aboutGhostLede"),
+        headlineMissing || storyMissing ? needsContentStatus : undefined,
+      );
+    }
+    case "services": {
+      const includeBundles = entry.config?.hideBundles !== true;
+      const counts = serviceMenuCounts(context.serviceLocations, includeBundles);
+      return withStatus(
+        counts.items > 0
+          ? serviceMenuSummary(t, counts, includeBundles)
+          : t("businessPage.builder.summary.servicesEmpty"),
+        counts.items === 0 ? noDataStatus : undefined,
+        counts.items === 0,
       );
     }
     case "locations": {
-      const hiddenIds = (entry.config?.hiddenLocationIds as number[] | undefined) ?? [];
       const total = locations.length;
-      const visible = locations.filter((location) => !hiddenIds.includes(location.id)).length;
+      const visible = resolveVisibleLocations(
+        (entry.config ?? {}) as LocationsConfig,
+        locations,
+      ).length;
       return withStatus(
         total > 0
           ? t("businessPage.builder.summary.locationsShown", { shown: visible, total })
@@ -438,16 +542,32 @@ export function buildSectionRowInfo(entry: SectionEntry, context: SectionRowInfo
     case "team": {
       const count = teamMemberCount(locations);
       if (count < MIN_TEAM_MEMBERS) {
-        return {
-          summary: t("businessPage.builder.summary.membersProgress", {
+        return withStatus(
+          t("businessPage.builder.summary.membersProgress", {
             count,
             required: MIN_TEAM_MEMBERS,
           }),
-          noData: count === 0,
-        };
+          count === 0 ? noDataStatus : undefined,
+          count === 0,
+        );
+      }
+      if (entry.variant === "columns") {
+        const locationCounts = locations
+          .map((location) => Math.min(location.teamMembers?.length ?? 0, TEAM_LOCATION_MAX))
+          .filter((locationCount) => locationCount > 0);
+        return withStatus([
+          t("businessPage.builder.summary.membersPerLocation", {
+            count: Math.max(...locationCounts),
+          }),
+          t("businessPage.builder.summary.serviceLocations", {
+            count: locationCounts.length,
+          }),
+        ].join(" · "));
       }
       return withStatus(
-        t("businessPage.builder.summary.members", { count }),
+        t("businessPage.builder.summary.membersShown", {
+          count: Math.min(count, TEAM_FLAT_MAX),
+        }),
       );
     }
     case "testimonials": {
@@ -455,33 +575,91 @@ export function buildSectionRowInfo(entry: SectionEntry, context: SectionRowInfo
       // Gated shut below the review threshold. Keep the row copy focused on measurable progress;
       // the inspector provides the fuller explanation beside the disabled controls.
       if (count < MIN_TESTIMONIAL_REVIEWS) {
-        return {
-          summary: t("businessPage.builder.summary.reviewsProgress", {
+        return withStatus(
+          t("businessPage.builder.summary.reviewsProgress", {
             count,
             required: MIN_TESTIMONIAL_REVIEWS,
           }),
-          noData: true,
-        };
+          count === 0 ? noDataStatus : undefined,
+          count === 0,
+        );
       }
-      return withStatus(t("businessPage.builder.summary.reviews", { count }));
+      const aggregate = aggregateReviews(locations);
+      const quoteCount = (reviews ?? []).filter((review) => review.comment.trim().length > 0).length;
+      const parts = aggregate.rating > 0
+        ? [
+            t("businessPage.builder.summary.reviewAverage", {
+              rating: new Intl.NumberFormat(locale === "ro" ? "ro-RO" : "en", {
+                minimumFractionDigits: 1,
+                maximumFractionDigits: 1,
+              }).format(aggregate.rating),
+            }),
+            t("businessPage.builder.summary.reviews", { count: aggregate.count }),
+          ]
+        : quoteCount > 0
+          ? [t("businessPage.builder.summary.customerQuotes", { count: quoteCount })]
+          : [t("businessPage.builder.summary.reviews", { count: aggregate.count })];
+      return withStatus(parts.join(" · "));
     }
     case "faq": {
       // A publish-ready FAQ needs a question and answer in the same locale.
       // Blank or half-written draft rows do not count as completed answers.
       const count = completeFaqCount(faqItems);
-      const needsContent = entry.visible && count < 1;
+      const unfinished = faqItems.filter(hasIncompleteFaqPair).length;
+      const started = faqItems.some((item) =>
+        [item.q.en, item.q.ro, item.a.en, item.a.ro].some((value) => value.trim().length > 0),
+      );
+      const needsContent = entry.visible && (count < 1 || unfinished > 0);
+      const parts = started
+        ? [
+            t("businessPage.builder.summary.questionsComplete", { count }),
+            ...(unfinished > 0
+              ? [t("businessPage.builder.summary.questionsUnfinished", { count: unfinished })]
+              : []),
+          ]
+        : [];
       return withStatus(
-        needsContent
-          ? t("businessPage.builder.summary.questionsProgress", { count, required: 1 })
-          : count > 0
-          ? t("businessPage.builder.summary.questions", { count })
-          : t("businessPage.builder.summary.questionsEmpty"),
+        parts.length > 0 ? parts.join(" · ") : t("businessPage.builder.summary.questionsEmpty"),
         needsContent ? needsContentStatus : count === 0 ? noDataStatus : undefined,
         count === 0,
       );
     }
-    case "footer":
-      return withStatus(t("businessPage.builder.summary.footerContent"));
+    case "footer": {
+      const linkCount = layout.filter(
+        (section) => section.visible && isWebsiteSectionLinkType(section.type),
+      ).length;
+      const socialCount = [
+        business?.instagramUrl,
+        business?.tiktokUrl,
+        business?.facebookUrl,
+        business?.pinterestUrl,
+      ].filter((value) => !!value?.trim()).length;
+      const parts = [
+        ...(FOOTER_LINK_VARIANTS.has(entry.variant)
+          ? [t("businessPage.builder.summary.pageLinks", { count: linkCount })]
+          : []),
+        ...(FOOTER_LOCATION_LIST_VARIANTS.has(entry.variant) && locations.length > 0
+          ? [t("businessPage.builder.summary.serviceLocations", { count: locations.length })]
+          : []),
+        ...(socialCount > 0
+          ? [t("businessPage.builder.summary.socialLinks", { count: socialCount })]
+          : []),
+      ];
+      const config = (entry.config ?? {}) as FooterConfig;
+      const headline = compactSummaryText(config.headline?.[locale] ?? "");
+      const description = compactSummaryText(config.description?.[locale] ?? "");
+      const defaultHeadline = footerDefaultHeadlineCopy(locations, selectedLocationId);
+      const visitorCopy = entry.variant === "editorial"
+        ? (
+            config.headlineHidden?.[locale] === true
+              ? ""
+              : headline || t(defaultHeadline.key, defaultHeadline.options)
+          ) || description
+        : entry.variant === "directory"
+          ? description
+          : "";
+      return withStatus(visitorCopy || parts.join(" · ") || t("businessPage.builder.summary.footerEssentials"));
+    }
     default:
       return withStatus(t("businessPage.builder.summary.generated"));
   }

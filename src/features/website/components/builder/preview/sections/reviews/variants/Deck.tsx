@@ -1,18 +1,48 @@
-import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type KeyboardEvent as ReactKeyboardEvent,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
 import { ArrowRight } from "lucide-react";
 import { prefersReducedMotion } from "../../../shared/util";
-import { useGalleryFan, useGalleryFanSpread } from "../../gallery/parts/useGalleryFan";
+import { useGalleryFanSpread } from "../../gallery/parts/useGalleryFan";
 import { RvHead } from "../parts/RvHead";
 import { RvStackFace } from "../parts/RvStackFace";
 import type { ReviewsViewProps } from "../types";
 import "./deck.css";
 
-/** Deck — a physical deck of dark testimonial cards you flick through. The shared continuous-position engine
- *  (useGalleryFan: 1:1 drag, velocity flick, eased settle, wheel + arrow-key nav) drives every card's
- *  transform from its live offset (o = i − pos), so Prev/Next slide the whole stack — the front card lifts
- *  away up-left as the next rises from the peek behind it. An invisible sizer locks the deck to the tallest
- *  voice; the stack fans in on first view. Mirrors the source `RvStack`. */
-export function Deck({ quotes, heading, kicker, no, italic, businessName, t }: ReviewsViewProps) {
+type DeckDrag = {
+  x0: number;
+  base: number;
+};
+
+type DeckMotionState = {
+  pos: number;
+  active: number;
+  from: number;
+  to: number;
+  startedAt: number;
+  duration: number;
+  timer: number;
+  drag: DeckDrag | null;
+  moved: boolean;
+  movedTimer: number;
+  downIndex: number;
+  direction: 1 | -1;
+  holdUntil: number;
+};
+
+const easeOutQuart = (value: number) => 1 - (1 - value) ** 4;
+
+/** Deck — a physical deck of dark testimonial cards with deliberately restrained drag physics. The card
+ *  follows the pointer continuously, but a gesture can move only one voice in either direction and never
+ *  inherits release velocity. This keeps the tactile toss while preventing short flicks from racing through
+ *  the stack. An invisible sizer locks the deck to the tallest voice. Mirrors the source `RvStack`. */
+export function Deck({ quotes, showHeading, heading, kicker, no, italic, businessName, t }: ReviewsViewProps) {
   const n = quotes.length;
   const reduced = prefersReducedMotion();
   const [hover, setHover] = useState(false);
@@ -24,46 +54,120 @@ export function Deck({ quotes, heading, kicker, no, italic, businessName, t }: R
     return () => window.removeEventListener("resize", on);
   }, []);
 
-  const fan = useGalleryFan(n, Math.max(240, vw * 0.34), { reducedMotion: reduced }); // drag distance per card
+  const step = Math.max(240, vw * 0.46);
   const spread = useGalleryFanSpread(deckRef, reduced); // 0→1 fan-out on first view
-  // Open on the first voice.
-  useEffect(() => {
-    fan.goTo(0);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
+  const [motionView, setMotionView] = useState({ pos: 0, active: 0, dragging: false });
+  const motionRef = useRef<DeckMotionState>({
+    pos: 0,
+    active: 0,
+    from: 0,
+    to: 0,
+    startedAt: 0,
+    duration: 0,
+    timer: 0,
+    drag: null,
+    moved: false,
+    movedTimer: 0,
+    downIndex: -1,
+    direction: 1,
+    holdUntil: 0,
+  });
+
+  const requestRender = useCallback(() => {
+    const motion = motionRef.current;
+    setMotionView({
+      pos: motion.pos,
+      active: motion.active,
+      dragging: motion.drag !== null,
+    });
   }, []);
-  const active = fan.active;
-  const pos = fan.pos;
+
+  const stopTween = useCallback(() => {
+    const motion = motionRef.current;
+    if (motion.timer) window.clearInterval(motion.timer);
+    motion.timer = 0;
+  }, []);
+
+  const tweenTo = useCallback(
+    (target: number) => {
+      const motion = motionRef.current;
+      motion.from = motion.pos;
+      motion.to = target;
+      motion.startedAt = performance.now();
+
+      if (reduced) {
+        stopTween();
+        motion.pos = target;
+        requestRender();
+        return;
+      }
+
+      const distance = Math.abs(target - motion.pos);
+      motion.duration = Math.max(560, Math.min(1100, 660 + distance * 240));
+      if (motion.timer) return;
+
+      motion.timer = window.setInterval(() => {
+        const progress = motion.duration
+          ? Math.min(1, (performance.now() - motion.startedAt) / motion.duration)
+          : 1;
+        motion.pos = motion.from + (motion.to - motion.from) * easeOutQuart(progress);
+        requestRender();
+        if (progress >= 1) {
+          motion.pos = motion.to;
+          stopTween();
+        }
+      }, 1000 / 60);
+    },
+    [reduced, requestRender, stopTween],
+  );
+
+  const goTo = useCallback(
+    (index: number, manual = true) => {
+      const motion = motionRef.current;
+      const target = Math.max(0, Math.min(Math.max(0, n - 1), index));
+      motion.direction = target >= motion.active ? 1 : -1;
+      motion.active = target;
+      if (manual) motion.holdUntil = performance.now() + 5000;
+      tweenTo(target);
+      requestRender();
+    },
+    [n, requestRender, tweenTo],
+  );
+
+  useEffect(
+    () => () => {
+      stopTween();
+      const motion = motionRef.current;
+      if (motion.movedTimer) window.clearTimeout(motion.movedTimer);
+    },
+    [stopTween],
+  );
+
+  const active = Math.min(motionView.active, Math.max(0, n - 1));
+  const pos = Math.min(motionView.pos, Math.max(0, n - 1) + 1);
 
   // Auto-advance — ping-pongs between the ends; pauses on hover / drag / off-screen / before fan-in, and for
   // a few seconds after any manual nav so a click never compounds with the timer into a double-step.
-  const dirRef = useRef(1);
-  const holdRef = useRef(0);
-  const go = (i: number) => {
-    const target = Math.max(0, Math.min(n - 1, i));
-    dirRef.current = target >= active ? 1 : -1;
-    holdRef.current = performance.now() + 4000;
-    fan.goTo(target);
-  };
   useEffect(() => {
-    if (reduced || hover || fan.dragging || n < 2 || spread < 0.9) return;
-    const id = setInterval(() => {
-      if (performance.now() < holdRef.current) return;
-      let d = dirRef.current;
-      let next = fan.active + d;
+    if (reduced || hover || n < 2 || spread < 0.9) return;
+    const id = window.setInterval(() => {
+      const motion = motionRef.current;
+      if (motion.drag || performance.now() < motion.holdUntil) return;
+      let direction = motion.direction;
+      let next = motion.active + direction;
       if (next > n - 1) {
-        d = -1;
+        direction = -1;
         next = n - 2;
       } else if (next < 0) {
-        d = 1;
+        direction = 1;
         next = 1;
       }
-      dirRef.current = d;
-      fan.goTo(next);
-    }, 5200);
-    return () => clearInterval(id);
-    // fan is intentionally omitted: it's a fresh object each render and would reset the timer every frame.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hover, fan.dragging, fan.active, n, reduced, spread]);
+      motion.direction = direction;
+      goTo(next, false);
+    }, 6000);
+    return () => window.clearInterval(id);
+  }, [goTo, hover, n, reduced, spread]);
 
   const brand = (businessName || "Studio").trim().charAt(0).toUpperCase() || "S";
   const num = (i: number) => String(i + 1).padStart(2, "0");
@@ -108,33 +212,100 @@ export function Deck({ quotes, heading, kicker, no, italic, businessName, t }: R
     };
   };
 
-  // Click routing — pointer capture (drag physics) retargets the click to the deck, so remember which card
-  // the press started on and act on the deck's click.
-  const downRef = useRef(-1);
-  const onDown = (e: ReactPointerEvent<HTMLDivElement>) => {
-    const card = (e.target as HTMLElement)?.closest?.(".mc-rvx-live") as HTMLElement | null;
-    downRef.current = card ? parseInt(card.dataset.i ?? "-1", 10) : -1;
-    fan.stageProps.onPointerDown(e);
-  };
-  const onClick = () => {
-    const i = downRef.current;
-    if (i < 0 || fan.moved()) return;
-    if (i !== active) go(i);
-  };
+  // Pointer drag — one-to-one follow with a one-card clamp and rubber-band resistance beyond it. Release
+  // chooses previous / next only after crossing 20% of a card; release speed never amplifies the gesture.
+  const onDown = useCallback(
+    (event: ReactPointerEvent<HTMLDivElement>) => {
+      if (n < 1 || event.button !== 0) return;
+      try {
+        event.currentTarget.setPointerCapture(event.pointerId);
+      } catch {
+        // Pointer capture can be unavailable in embedded preview contexts; in-bounds dragging still works.
+      }
+      stopTween();
+      const motion = motionRef.current;
+      const card = (event.target as HTMLElement)?.closest?.(".mc-rvx-live") as HTMLElement | null;
+      motion.downIndex = card ? parseInt(card.dataset.i ?? "-1", 10) : -1;
+      motion.drag = { x0: event.clientX, base: motion.active };
+      motion.moved = false;
+      motion.holdUntil = performance.now() + 5000;
+      requestRender();
+    },
+    [n, requestRender, stopTween],
+  );
+
+  const onMove = useCallback(
+    (event: ReactPointerEvent<HTMLDivElement>) => {
+      const motion = motionRef.current;
+      const drag = motion.drag;
+      if (!drag) return;
+
+      const deltaX = event.clientX - drag.x0;
+      if (Math.abs(deltaX) > 4) motion.moved = true;
+      let fraction = -deltaX / step;
+      if (fraction > 1) fraction = 1 + (fraction - 1) * 0.3;
+      else if (fraction < -1) fraction = -1 + (fraction + 1) * 0.3;
+
+      let nextPos = drag.base + fraction;
+      if (nextPos < 0) nextPos *= 0.32;
+      else if (nextPos > n - 1) nextPos = n - 1 + (nextPos - (n - 1)) * 0.32;
+      motion.pos = nextPos;
+      requestRender();
+    },
+    [n, requestRender, step],
+  );
+
+  const onUp = useCallback(() => {
+    const motion = motionRef.current;
+    const drag = motion.drag;
+    if (!drag) return;
+    motion.drag = null;
+    const fraction = motion.pos - drag.base;
+    const target = fraction > 0.2 ? drag.base + 1 : fraction < -0.2 ? drag.base - 1 : drag.base;
+    goTo(target);
+    if (motion.movedTimer) window.clearTimeout(motion.movedTimer);
+    motion.movedTimer = window.setTimeout(() => {
+      motion.moved = false;
+      motion.movedTimer = 0;
+    }, 0);
+  }, [goTo]);
+
+  const onKeyDown = useCallback(
+    (event: ReactKeyboardEvent<HTMLDivElement>) => {
+      if (event.key === "ArrowRight") {
+        event.preventDefault();
+        goTo(motionRef.current.active + 1);
+      } else if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        goTo(motionRef.current.active - 1);
+      }
+    },
+    [goTo],
+  );
+
+  const onClick = useCallback(() => {
+    const motion = motionRef.current;
+    if (motion.downIndex < 0 || motion.moved || motion.downIndex === motion.active) return;
+    goTo(motion.downIndex);
+  }, [goTo]);
 
   return (
     <>
-      <RvHead no={no} kicker={kicker} heading={heading} center />
+      <RvHead no={no} kicker={kicker} heading={heading} showHeading={showHeading} center />
       <div className="mc-rvx" onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
         <div
           className="mc-rvx-deck"
           ref={deckRef}
-          data-drag={fan.dragging ? "1" : "0"}
+          data-drag={motionView.dragging ? "1" : "0"}
           tabIndex={0}
           role="group"
           aria-label={t("businessPage.builder.preview.reviewsDeckHint")}
-          {...fan.stageProps}
           onPointerDown={onDown}
+          onPointerMove={onMove}
+          onPointerUp={onUp}
+          onPointerCancel={onUp}
+          onLostPointerCapture={onUp}
+          onKeyDown={onKeyDown}
           onClick={onClick}
         >
           <div className="mc-rvx-sizer" aria-hidden>
@@ -165,7 +336,7 @@ export function Deck({ quotes, heading, kicker, no, italic, businessName, t }: R
                 data-on={i === active ? "1" : "0"}
                 aria-current={i === active ? "true" : undefined}
                 aria-label={`${t("businessPage.builder.preview.reviewsVoice", { n: num(i) })} — ${r.customerName}`}
-                onClick={() => go(i)}
+                onClick={() => goTo(i)}
               />
             ))}
           </div>
@@ -175,7 +346,7 @@ export function Deck({ quotes, heading, kicker, no, italic, businessName, t }: R
               className="mc-rv-arr"
               aria-label={t("businessPage.builder.preview.reviewsPrev")}
               disabled={active === 0}
-              onClick={() => go(active - 1)}
+              onClick={() => goTo(active - 1)}
             >
               <ArrowRight className="h-[18px] w-[18px]" strokeWidth={1.6} style={{ transform: "rotate(180deg)" }} />
             </button>
@@ -184,7 +355,7 @@ export function Deck({ quotes, heading, kicker, no, italic, businessName, t }: R
               className="mc-rv-arr"
               aria-label={t("businessPage.builder.preview.reviewsNext")}
               disabled={active === n - 1}
-              onClick={() => go(active + 1)}
+              onClick={() => goTo(active + 1)}
             >
               <ArrowRight className="h-[18px] w-[18px]" strokeWidth={1.6} />
             </button>

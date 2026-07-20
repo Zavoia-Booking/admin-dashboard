@@ -1,0 +1,251 @@
+/* FAQ · Index — editorial master/detail, switching to an inline accordion at 880px. */
+.mc-fq-fade {
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 500ms var(--mc-faq-ease-out), transform 500ms var(--mc-faq-ease-out);
+}
+
+.mc-fq-fade[data-shown="1"] {
+  opacity: 1;
+  transform: none;
+}
+
+.mc-fqx-card {
+  width: 100%;
+}
+
+.mc-fqx-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  align-items: start;
+  gap: clamp(34px, 6.4cqw, 116px);
+}
+
+.mc-fqx-eyebrow {
+  display: block;
+  margin-bottom: clamp(15px, 2cqw, 24px);
+  color: var(--mc-muted);
+  font-family: var(--mc-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.mc-fqx-list {
+  border-top: 1px solid var(--mc-line);
+}
+
+.mc-fqx-row {
+  display: grid;
+  width: 100%;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: clamp(16px, 3cqw, 40px);
+  border: 0;
+  border-bottom: 1px solid var(--mc-line);
+  padding: clamp(15px, 2.3cqw, 26px) 0;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+}
+
+.mc-fqx-row-tx {
+  color: color-mix(in oklch, var(--mc-fg) 72%, var(--mc-bg));
+  font-family: var(--mc-display);
+  font-size: clamp(18px, 1.9cqw, 27px);
+  font-weight: var(--mc-display-weight);
+  line-height: 1.14;
+  letter-spacing: var(--mc-display-tracking);
+  transition: color 300ms var(--mc-faq-ease-out);
+  text-wrap: balance;
+}
+
+.mc-fqx-row[data-on="1"] .mc-fqx-row-tx,
+.mc-fqx-row:hover .mc-fqx-row-tx {
+  color: var(--mc-fg);
+}
+
+.mc-fqx-row-ic {
+  display: flex;
+  width: clamp(40px, 3cqw, 50px);
+  height: clamp(40px, 3cqw, 50px);
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid color-mix(in oklch, var(--mc-fg) 32%, transparent);
+  border-radius: 50%;
+  color: var(--mc-fg);
+  transition:
+    background-color 300ms var(--mc-faq-ease-out),
+    color 300ms,
+    border-color 300ms,
+    transform 400ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.mc-fqx-row:hover .mc-fqx-row-ic {
+  border-color: var(--mc-fg);
+  transform: translateX(2px);
+}
+
+.mc-fqx-row[data-on="1"] .mc-fqx-row-ic {
+  border-color: var(--mc-accent);
+  background: var(--mc-accent);
+  color: var(--mc-on-accent);
+}
+
+.mc-fqx-aside {
+  position: sticky;
+  top: clamp(96px, calc(var(--mc-vph, 760px) * 0.13), 150px);
+}
+
+.mc-fqx-answer-wrap {
+  min-height: clamp(128px, calc(var(--mc-vph, 760px) * 0.17), 188px);
+}
+
+.mc-fqx-answer {
+  max-width: 48ch;
+  margin: 0;
+  color: var(--mc-muted);
+  font-size: clamp(15.5px, 1.15cqw, 17px);
+  line-height: 1.72;
+  text-wrap: pretty;
+}
+
+.mc-fqx-cta {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: clamp(20px, 3cqw, 32px);
+}
+
+.mc-fqx-cta-ic {
+  display: flex;
+  width: 46px;
+  height: 46px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid color-mix(in oklch, var(--mc-fg) 32%, transparent);
+  border-radius: 50%;
+  background: none;
+  color: var(--mc-fg);
+  transition: background-color 300ms var(--mc-faq-ease-out), color 300ms, border-color 300ms;
+}
+
+.mc-fqx-cta-ic:hover {
+  border-color: var(--mc-fg);
+  background: var(--mc-fg);
+  color: var(--mc-bg);
+}
+
+.mc-fqx-cta-link {
+  color: var(--mc-fg);
+  font-family: var(--mc-mono);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  text-transform: uppercase;
+  transition: color 300ms;
+}
+
+.mc-fqx-cta-link:hover {
+  color: var(--mc-accent);
+}
+
+.mc-fqx-mail {
+  display: inline-block;
+  margin-top: 15px;
+  color: var(--mc-muted);
+  font-family: var(--mc-mono);
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  text-decoration: none;
+  transition: color 300ms;
+}
+
+.mc-fqx-mail:hover {
+  color: var(--mc-fg);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.mc-fqx-stack {
+  display: flex;
+  flex-direction: column;
+}
+
+.mc-fqx-stack .mc-fqx-cta {
+  margin-top: clamp(22px, 6cqw, 34px);
+}
+
+.mc-fqx-list--acc .mc-fqx-row {
+  border-bottom: 0;
+}
+
+.mc-fqx-list--acc .mc-fqx-item {
+  border-bottom: 1px solid var(--mc-line);
+}
+
+.mc-fqx-list--acc .mc-fqx-row[data-on="1"] .mc-fqx-row-ic {
+  transform: rotate(90deg);
+}
+
+.mc-fqx-acc {
+  overflow: hidden;
+  transition: max-height 450ms var(--mc-faq-ease-out);
+}
+
+.mc-fqx-acc-a {
+  margin: 0;
+  padding: 2px 0 clamp(16px, 4.5cqw, 24px);
+  color: var(--mc-muted);
+  font-size: 15.5px;
+  line-height: 1.7;
+  text-wrap: pretty;
+}
+
+@container (max-width: 880px) {
+  .mc-fqx-grid {
+    grid-template-columns: 1fr;
+    gap: clamp(26px, 5cqw, 38px);
+  }
+
+  .mc-fqx-aside {
+    position: static;
+    border-top: 1px solid var(--mc-line);
+    padding-top: clamp(22px, 4cqw, 32px);
+  }
+
+  .mc-fqx-answer-wrap { min-height: 0; }
+  .mc-fqx-answer { max-width: none; }
+}
+
+@container (max-width: 480px) {
+  .mc-fqx-row-tx { font-size: clamp(18px, 5.6cqw, 23px); }
+}
+
+/* This later mobile-type pass intentionally wins over the narrower trim rule, as in the source. */
+@container (max-width: 600px) {
+  .mc-fqx-row-tx { font-size: clamp(19px, 5.6cqw, 25px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mc-fq-fade {
+    opacity: 1;
+    transform: none;
+    transition: none !important;
+  }
+
+  .mc-fqx-row-tx,
+  .mc-fqx-row-ic,
+  .mc-fqx-cta-ic,
+  .mc-fqx-cta-link,
+  .mc-fqx-mail,
+  .mc-fqx-acc {
+    transition: none !important;
+  }
+}

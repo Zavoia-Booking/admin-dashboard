@@ -51,6 +51,7 @@ export const TextField: React.FC<TextFieldProps> = ({
 }) => {
   const generatedId = useId();
   const id = providedId ?? generatedId;
+  const errorId = `${id}-error`;
   const Icon = icon === null ? null : icon ?? MapPin;
 
   return (
@@ -81,12 +82,14 @@ export const TextField: React.FC<TextFieldProps> = ({
               : "border-border dark:border-border-subtle hover:border-border-strong focus:border-focus focus-visible:ring-focus"
           }`}
           aria-invalid={!!error}
+          aria-describedby={error ? errorId : undefined}
         />
         {Icon ? <Icon className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" /> : null}
       </div>
       <div className="h-5">
         {error && (
           <p
+            id={errorId}
             className="mt-1 flex items-center gap-1.5 text-xs text-destructive"
             role="alert"
             aria-live="polite"

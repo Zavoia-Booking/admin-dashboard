@@ -1,11 +1,11 @@
-import type { LocationWithAssignments } from "../../../../../types";
+import type { WebsiteBuilderLocation } from "../../../../../types";
 import type { ChipOption, ResolvedTagDictionaries } from "../../../../../../marketplace/hooks/useLocationTagDictionaries";
 import type { LocationTagGroup } from "./types";
 
 /** Tag categories in reading order — mirrors the owner-facing amenities slider so the page is scannable.
  *  Each group keeps its own id space (separate dictionary tables), so ids resolve against their own group.
  *  Shared by the Locations detail panel (switcher) + the atlas sheet. */
-const TAG_GROUP_ORDER: { ids: keyof LocationWithAssignments; dict: keyof ResolvedTagDictionaries }[] = [
+const TAG_GROUP_ORDER: { ids: keyof WebsiteBuilderLocation; dict: keyof ResolvedTagDictionaries }[] = [
   { ids: "amenityTagIds", dict: "amenities" },
   { ids: "accessibilityTagIds", dict: "accessibility" },
   { ids: "paymentMethodTagIds", dict: "paymentMethods" },
@@ -15,7 +15,7 @@ const TAG_GROUP_ORDER: { ids: keyof LocationWithAssignments; dict: keyof Resolve
 ];
 
 export function buildLocationTagGroups(
-  loc: LocationWithAssignments,
+  loc: WebsiteBuilderLocation,
   dict: ResolvedTagDictionaries | null,
 ): LocationTagGroup[] {
   if (!dict) return [];

@@ -8,13 +8,15 @@ import {
   selectBusinessAction,
   setAuthUserAction,
 } from "../auth/actions";
+import { enterWebsiteBuilderAction } from "../website/actions";
 
 type Actions =
   | ActionType<typeof actions>
   | ActionType<typeof hydrateSessionAction>
   | ActionType<typeof logoutRequestAction>
   | ActionType<typeof selectBusinessAction>
-  | ActionType<typeof setAuthUserAction>;
+  | ActionType<typeof setAuthUserAction>
+  | ActionType<typeof enterWebsiteBuilderAction>;
 
 const initialState: ReviewsState = {
   scopeBusinessId: null,
@@ -30,6 +32,7 @@ const initialState: ReviewsState = {
   teamMemberReviewsMoreLoading: false,
   highlightReviews: [],
   highlightReviewsLoading: false,
+  highlightReviewsLoaded: false,
   error: null,
 };
 
@@ -62,6 +65,20 @@ export const ReviewsReducer: Reducer<ReviewsState, any> = (
 
     case getType(logoutRequestAction.success):
       return initialState;
+
+    // A real Website route entry must never render retained review-derived preview data as
+    // current while its owner-scoped reads are still in flight. The Website controller starts
+    // both requests after the fresh primary builder view unlocks the editable workspace.
+    case getType(enterWebsiteBuilderAction):
+      return {
+        ...state,
+        stats: null,
+        statsLoading: false,
+        highlightReviews: [],
+        highlightReviewsLoading: false,
+        highlightReviewsLoaded: false,
+        error: null,
+      };
 
     // Stats
     case getType(actions.fetchReviewStatsAction.request):
@@ -156,17 +173,18 @@ export const ReviewsReducer: Reducer<ReviewsState, any> = (
     // Highlight reviews (business-page preview). Failure is intentionally silent — it must not surface
     // an error in the Reviews tab (which reads `error`); the preview just degrades to no quotes.
     case getType(actions.fetchHighlightReviewsAction.request):
-      return { ...state, highlightReviewsLoading: true };
+      return { ...state, highlightReviewsLoading: true, highlightReviewsLoaded: false };
     case getType(actions.fetchHighlightReviewsAction.success):
       if (action.payload.scopeBusinessId !== state.scopeBusinessId) return state;
       return {
         ...state,
         highlightReviewsLoading: false,
+        highlightReviewsLoaded: true,
         highlightReviews: action.payload.data,
       };
     case getType(actions.fetchHighlightReviewsAction.failure):
       if (action.payload.scopeBusinessId !== state.scopeBusinessId) return state;
-      return { ...state, highlightReviewsLoading: false };
+      return { ...state, highlightReviewsLoading: false, highlightReviewsLoaded: false };
 
     default:
       return state;

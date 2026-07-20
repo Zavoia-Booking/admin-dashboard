@@ -1,12 +1,12 @@
 import { useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
-import { toast } from "sonner";
 import { ImagePlus, UploadCloud, X } from "lucide-react";
 import { Button } from "../../../shared/components/ui/button";
 import { Spinner } from "../../../shared/components/ui/spinner";
 import { cn } from "../../../shared/lib/utils";
 import { deleteWebsiteHeroAction, uploadWebsiteHeroAction } from "../actions";
+import { websiteToast as toast } from "../websiteToast";
 import {
   selectWebsiteHeroMutating,
   selectWebsiteConflict,
@@ -46,10 +46,15 @@ interface HeroImageUploadProps {
  * versioned hero endpoints: every mutation sends the current draft version, and a
  * success advances only the saved baseline (unsaved text/layout edits are preserved).
  */
-export function HeroImageUpload({ heroImageUrl, canWrite, variant = "default" }: HeroImageUploadProps) {
+export function HeroImageUpload({
+  heroImageUrl,
+  canWrite,
+  variant = "default",
+}: HeroImageUploadProps) {
   const { t } = useTranslation("website");
   const dispatch = useDispatch();
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const emptyStateButtonRef = useRef<HTMLButtonElement | null>(null);
   const dragCounterRef = useRef(0);
   const [dragActive, setDragActive] = useState(false);
   const isHeroMutating = useSelector(selectWebsiteHeroMutating);
@@ -79,15 +84,24 @@ export function HeroImageUpload({ heroImageUrl, canWrite, variant = "default" }:
       mime = EXT_TO_MIME[extension];
     }
     if (!mime || !ALLOWED_TYPES.includes(mime)) {
-      toast.error(t("portfolio.errors.unsupportedFormatGeneric", { formats: "JPG, PNG, WEBP, or AVIF" }));
+      toast.error(
+        t("businessPage.branding.hero.errors.unsupportedFormat", {
+          formats: "JPG, PNG, WEBP, AVIF",
+        }),
+        { id: "website-hero-file-type" },
+      );
       return false;
     }
     if (file.size > MAX_SIZE_MB * 1024 * 1024) {
-      toast.error(t("portfolio.errors.fileSizeExceeds", { size: MAX_SIZE_MB }));
+      toast.error(t("businessPage.branding.hero.errors.fileSizeExceeds", { size: MAX_SIZE_MB }), {
+        id: "website-hero-file-size",
+      });
       return false;
     }
     if (file.size > RECOMMENDED_SIZE_MB * 1024 * 1024) {
-      toast.warning(t("portfolio.errors.fileSizeWarning"));
+      toast.warning(t("businessPage.branding.hero.errors.fileSizeWarning"), {
+        id: "website-hero-file-size-warning",
+      });
     }
     return true;
   };
@@ -235,6 +249,7 @@ export function HeroImageUpload({ heroImageUrl, canWrite, variant = "default" }:
         </div>
       ) : (
         <button
+          ref={emptyStateButtonRef}
           type="button"
           disabled={!canWrite || busy}
           onClick={() => inputRef.current?.click()}

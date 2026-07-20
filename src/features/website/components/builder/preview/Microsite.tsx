@@ -1,16 +1,21 @@
-import { memo, useEffect, useRef, useState, type CSSProperties } from "react";
+import { memo, useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
-import type { SectionEntry } from "../../../types";
+import type { WebsiteBuilderLocation, SectionEntry } from "../../../types";
 import { previewVars } from "../theme";
 import { isKnownSectionType } from "../sectionCatalog";
+import { resolvePreviewLocations } from "../locationSelection";
 import { cn } from "../../../../../shared/lib/utils";
 
 import "./shared/animations.css";
 import { UNNUMBERED } from "./shared/constants";
 import { findScrollParent, prefersReducedMotion } from "./shared/util";
 import { useFooterReveal } from "./shared/hooks";
-import { AnnouncementBar } from "./sections/announcement/Announcement";
+import {
+  AnnouncementBar,
+  normalizeAnnouncementLayout,
+} from "./sections/announcement/Announcement";
 import { About } from "./sections/about/About";
+import { Services } from "./sections/services/Services";
 import { Faq } from "./sections/faq/Faq";
 import { Marquee } from "./sections/marquee/Marquee";
 import { Team } from "./sections/team/Team";
@@ -29,15 +34,32 @@ import type { PreviewData, LivePreviewProps, T } from "./shared/types";
  * calm placeholders. Fluid type keys off the preview's own width via container-query units, so the
  * same component reads well in the small per-section card and the full-page dialog alike.
  */
-function LivePreviewImpl({ layout, data, chrome = true, startNumber = 1, focusType }: LivePreviewProps) {
+function LivePreviewImpl({
+  layout,
+  data,
+  chrome = true,
+  startNumber = 1,
+  focusType,
+  selectedLocationId: controlledSelectedLocationId,
+  onSelectedLocationChange,
+  locationScope,
+}: LivePreviewProps) {
   const { t } = useTranslation("website");
   const visible = layout.filter((s) => s.visible);
 
-  // The announcement is the sticky ribbon above the nav; the nav + footer are chrome pinned at the top /
-  // bottom — all three are excluded from the in-flow section list in the full page. In the scoped
-  // one-section preview (no chrome) nav/footer instead render inline via SectionView so their own card
-  // shows a live sample.
+  // Announcement and site chrome are excluded from the page flow. Ribbon/Ticker travel above the nav;
+  // Pill instead floats below it without changing the hero or nav offset.
   const bar = visible.find((s) => s.type === "announcement");
+  const hasBar = bar !== undefined;
+  const [announcementShowing, setAnnouncementShowing] = useState(hasBar);
+  useEffect(() => {
+    // Dismissal is interactive but local to this builder preview. Any Announcement content,
+    // setting, style, locale, or visibility change must make the updated result inspectable again.
+    setAnnouncementShowing(hasBar);
+  }, [bar, data.announcement, data.locale, hasBar]);
+  const activeBar = bar && announcementShowing ? bar : undefined;
+  const announcementLayout = bar ? normalizeAnnouncementLayout(bar.variant) : null;
+  const floatingAnnouncement = !!activeBar && chrome && announcementLayout === "pill";
   const stacked = visible.filter(
     (s) => s.type !== "announcement" && ((s.type !== "nav" && s.type !== "footer") || !chrome),
   );
@@ -46,24 +68,72 @@ function LivePreviewImpl({ layout, data, chrome = true, startNumber = 1, focusTy
   const navOn = !layout.some((s) => s.type === "nav" && !s.visible);
   const footerOn = !layout.some((s) => s.type === "footer" && !s.visible);
   const footerVariant = normalizeFooterStyle(layout.find((s) => s.type === "footer")?.variant);
-  const [selectedLocationId, setSelectedLocationId] = useState<number | null>(() => data.locations[0]?.id ?? null);
+  const preferredLocations = locationScope ?? resolvePreviewLocations(layout, data.locations);
+  const preferredLocationKey = preferredLocations.map((location) => location.id).join(",");
+  const preferredLocationId = preferredLocations[0]?.id ?? null;
+  const [internalSelectedLocationId, setInternalSelectedLocationId] =
+    useState<number | null>(preferredLocationId);
+  const isLocationSelectionControlled = controlledSelectedLocationId !== undefined;
+  const selectedLocationId = controlledSelectedLocationId === undefined
+    ? internalSelectedLocationId
+    : controlledSelectedLocationId;
+  const setSelectedLocationId = useCallback(
+    (locationId: number | null) => {
+      if (!isLocationSelectionControlled) {
+        setInternalSelectedLocationId(locationId);
+      }
+      onSelectedLocationChange?.(locationId);
+    },
+    [isLocationSelectionControlled, onSelectedLocationChange],
+  );
+  const previousPreferredLocationId = useRef(preferredLocationId);
+  const reportedInitialLocationRef = useRef(false);
+  const selectedLocationIsVisible =
+    selectedLocationId !== null &&
+    preferredLocations.some((location) => location.id === selectedLocationId);
 
   useEffect(() => {
-    if (!data.locations.some((location) => location.id === selectedLocationId)) {
-      setSelectedLocationId(data.locations[0]?.id ?? null);
+    const firstLocationChanged = previousPreferredLocationId.current !== preferredLocationId;
+    previousPreferredLocationId.current = preferredLocationId;
+
+    if (
+      (!isLocationSelectionControlled && firstLocationChanged) ||
+      (selectedLocationId !== null && !selectedLocationIsVisible) ||
+      (selectedLocationId === null && preferredLocationId !== null)
+    ) {
+      setSelectedLocationId(preferredLocationId);
     }
-  }, [data.locations, selectedLocationId]);
+  }, [
+    preferredLocationId,
+    preferredLocationKey,
+    isLocationSelectionControlled,
+    selectedLocationId,
+    selectedLocationIsVisible,
+    setSelectedLocationId,
+  ]);
+
+  useEffect(() => {
+    if (
+      reportedInitialLocationRef.current ||
+      isLocationSelectionControlled ||
+      !onSelectedLocationChange
+    ) return;
+    reportedInitialLocationRef.current = true;
+    onSelectedLocationChange(internalSelectedLocationId);
+  }, [internalSelectedLocationId, isLocationSelectionControlled, onSelectedLocationChange]);
 
   // Every hero variant is an immersive, full-bleed header the nav floats over and frosts on scroll. Only an
   // announcement bar above the nav forces the solid paper bar from the top. Tumble is a warm-paper (light)
   // hero — the nav renders dark ink over it until it frosts (mirrors the design's useMCLightHero, which only
   // Tumble calls); every other hero is dark at the top and takes light chrome. Over the drenched field (the
-  // free base with no cover) the CTA also frosts white→accent, so a static accent pill doesn't blend in.
+  // free text-panel base) the CTA also frosts white→accent, so a static accent pill doesn't blend in.
   const first = stacked[0];
-  const firstHeroVariant = !bar && first?.type === "hero" ? first.variant : null;
+  const firstHeroVariant = (!activeBar || announcementLayout === "pill") && first?.type === "hero"
+    ? first.variant
+    : null;
   const overHero = firstHeroVariant !== null;
   const overHeroTone: "light" | "dark" = firstHeroVariant === "tumble" ? "light" : "dark";
-  const ctaFrost = firstHeroVariant === "default" && !data.heroImageUrl;
+  const ctaFrost = firstHeroVariant === "default";
 
   // Scroll chrome: the nav sticks to the dialog's scroll container and frosts gradually as the hero scrolls
   // up behind it. The over-hero composition is a CSS grid overlap, so the hero starts under the transparent
@@ -106,6 +176,16 @@ function LivePreviewImpl({ layout, data, chrome = true, startNumber = 1, focusTy
   // Section numbers (mono kicker) follow the visible non-bar order, mirroring the microsite's "0N —".
   // `startNumber` lets the scoped one-section preview carry its real page ordinal instead of restarting at 1.
   let n = startNumber - 1;
+  const announcementNode = activeBar ? (
+    <AnnouncementBar
+      entry={activeBar}
+      data={data}
+      t={t}
+      sample={!chrome}
+      showPlaceholder={chrome}
+      onVisibilityChange={setAnnouncementShowing}
+    />
+  ) : null;
 
   return (
     <div
@@ -118,10 +198,10 @@ function LivePreviewImpl({ layout, data, chrome = true, startNumber = 1, focusTy
       style={{ ...previewVars(data.brandColor, data.fontKey), backgroundColor: "var(--mc-bg)", containerType: "inline-size" } as CSSProperties}
     >
       <div className={chrome ? cn("mc-content", overHero && "mc-content--nav-overlay") : undefined}>
-      {bar ? (
-        // Announcement ribbon + nav travel together, pinned to the top of the scroll container.
-        <div className="sticky top-0 z-30">
-          <AnnouncementBar entry={bar} data={data} t={t} sample={!chrome} />
+      {activeBar && !floatingAnnouncement ? (
+        // Ribbon/Ticker + nav travel together, pinned to the top of the full preview.
+        <div className={chrome ? "sticky top-0 z-30" : undefined}>
+          {announcementNode}
           {chrome && navOn && stacked.length > 0 && (
             <Nav
               data={data}
@@ -135,24 +215,25 @@ function LivePreviewImpl({ layout, data, chrome = true, startNumber = 1, focusTy
           )}
         </div>
       ) : (
-        chrome &&
-        navOn &&
-        stacked.length > 0 && (
-          <Nav
-            data={data}
-            layout={layout}
-            t={t}
-            overHero={overHero}
-            overHeroTone={overHeroTone}
-            ctaFrost={ctaFrost}
-            progress={progress}
-            navRef={navRef}
-          />
-        )
+        <>
+          {chrome && navOn && stacked.length > 0 && (
+            <Nav
+              data={data}
+              layout={layout}
+              t={t}
+              overHero={overHero}
+              overHeroTone={overHeroTone}
+              ctaFrost={ctaFrost}
+              progress={progress}
+              navRef={navRef}
+            />
+          )}
+          {floatingAnnouncement && <div className="mc-anno-pill-layer">{announcementNode}</div>}
+        </>
       )}
       <div className="mc-page-flow">
         {stacked.length === 0 ? (
-          bar ? null : (
+          activeBar ? null : (
             <div className="px-6 py-16 text-center text-sm" style={{ color: "var(--mc-muted)" }}>
               {t("businessPage.builder.preview.allHidden")}
             </div>
@@ -180,6 +261,7 @@ function LivePreviewImpl({ layout, data, chrome = true, startNumber = 1, focusTy
                   no={no}
                   chrome={chrome}
                   layout={layout}
+                  locations={preferredLocations}
                   selectedLocationId={selectedLocationId}
                   onSelectLocation={setSelectedLocationId}
                 />
@@ -219,6 +301,7 @@ function SectionView({
   no,
   chrome,
   layout,
+  locations,
   selectedLocationId,
   onSelectLocation,
 }: {
@@ -228,6 +311,7 @@ function SectionView({
   no: string;
   chrome: boolean;
   layout: SectionEntry[];
+  locations: WebsiteBuilderLocation[];
   selectedLocationId: number | null;
   onSelectLocation: (locationId: number) => void;
 }) {
@@ -254,16 +338,28 @@ function SectionView({
     case "marquee":
       return <Marquee entry={entry} data={data} chrome={chrome} />;
     case "about":
-      return <About entry={entry} data={data} t={t} no={no} />;
+      return <About entry={entry} data={data} t={t} layout={layout} />;
+    case "services":
+      return (
+        <Services
+          entry={entry}
+          data={data}
+          t={t}
+          locations={locations}
+          selectedLocationId={selectedLocationId}
+          onSelectLocation={onSelectLocation}
+        />
+      );
     case "locations":
       return (
         <Locations
           entry={entry}
           data={data}
           t={t}
-          no={no}
           selectedLocationId={selectedLocationId}
           onSelectLocation={onSelectLocation}
+          showTeamLink={layout.some((section) => section.type === "team" && section.visible)}
+          layout={layout}
         />
       );
     case "gallery":

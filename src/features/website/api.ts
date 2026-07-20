@@ -16,8 +16,12 @@ import { apiClient } from "../../shared/lib/http";
 // overwriting a newer draft. These endpoints never touch Marketplace state.
 // ---------------------------------------------------------------------------
 
-export const getWebsiteBuilderApi = async (): Promise<WebsiteBuilderResponse> => {
-  const { data } = await apiClient().get<WebsiteBuilderResponse>('/website-builder');
+export const getWebsiteBuilderApi = async (
+  options: { signal?: AbortSignal } = {},
+): Promise<WebsiteBuilderResponse> => {
+  const { data } = await apiClient().get<WebsiteBuilderResponse>('/website-builder', {
+    signal: options.signal,
+  });
   return data;
 };
 
@@ -74,8 +78,12 @@ export const unpublishWebsiteApi = async (): Promise<{ message: string; publish:
 // ---------------------------------------------------------------------------
 
 /** Section, variant, and theme-asset catalog with per-business ownership/availability. */
-export const getWebsiteVariantCatalogApi = async (): Promise<WebsiteCatalogResponse> => {
-  const { data } = await apiClient().get<{ data: WebsiteCatalogResponse }>('/website-variants/catalog');
+export const getWebsiteVariantCatalogApi = async (
+  options: { signal?: AbortSignal } = {},
+): Promise<WebsiteCatalogResponse> => {
+  const { data } = await apiClient().get<{ data: WebsiteCatalogResponse }>('/website-variants/catalog', {
+    signal: options.signal,
+  });
   return data.data;
 };
 

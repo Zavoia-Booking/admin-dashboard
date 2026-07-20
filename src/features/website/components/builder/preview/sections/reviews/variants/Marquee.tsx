@@ -67,13 +67,13 @@ function RvLane({ items, dir, speed }: { items: PreviewReview[]; dir: 1 | -1; sp
 
 /** Marquee — a centred one-line aggregate over two counter-drifting lanes; the motion carries the section.
  *  Mirrors the source `RvMarquee`. */
-export function Marquee({ quotes, rating, count, heading, kicker, no, t }: ReviewsViewProps) {
+export function Marquee({ quotes, rating, count, showHeading, heading, kicker, no, t }: ReviewsViewProps) {
   const cut = Math.ceil(quotes.length / 2);
   const a = quotes.slice(0, cut);
   const b = quotes.slice(cut);
   return (
     <>
-      <RvHead no={no} kicker={kicker} heading={heading} center>
+      <RvHead no={no} kicker={kicker} heading={heading} showHeading={showHeading} center>
         {count > 0 && (
           <div className="mc-rv-line">
             <Stars value={rating} size={14} />

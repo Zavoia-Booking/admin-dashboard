@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
-import { toast } from "sonner";
-import type { LocationWithAssignments, WebsiteDraft } from "../types";
+import type { WebsiteBuilderLocation, WebsiteDraft } from "../types";
+import { websiteToast as toast } from "../websiteToast";
 import {
   clearWebsiteConflictAction,
   cancelWebsiteMutationIntentsAction,
@@ -46,6 +46,7 @@ import type {
   AtelierSaveStatus,
 } from "../components/atelier/WebsiteAtelierHeader";
 import type { WebsiteReadinessIssue } from "../components/builder/sectionReadiness";
+import type { WebsiteDraftIssue } from "../components/builder/draftValidation";
 import type {
   ReconciledCheckoutIntent,
   WebsiteCheckoutReturnContext,
@@ -55,6 +56,7 @@ export interface WebsiteSectionFocusRequest {
   type: string;
   nonce: number;
   readinessIssue?: WebsiteReadinessIssue;
+  blockingIssue?: WebsiteDraftIssue;
 }
 
 export interface WebsitePublishBlocker {
@@ -70,7 +72,8 @@ export interface WebsitePublishBlocker {
 
 interface UseWebsiteWorkspaceControllerOptions {
   draft: WebsiteDraft;
-  locations: LocationWithAssignments[];
+  locations: WebsiteBuilderLocation[];
+  defaultAboutStory?: string | null;
 }
 
 /**
@@ -84,6 +87,7 @@ interface UseWebsiteWorkspaceControllerOptions {
 export function useWebsiteWorkspaceController({
   draft,
   locations,
+  defaultAboutStory,
 }: UseWebsiteWorkspaceControllerOptions) {
   const { t } = useTranslation("website");
   const dispatch = useDispatch();
@@ -143,6 +147,7 @@ export function useWebsiteWorkspaceController({
 
   const form = useWebsiteDraft({
     draft,
+    defaultAboutStory,
     lastSavedRequestId,
     onSave,
     onPublish,
@@ -351,17 +356,17 @@ export function useWebsiteWorkspaceController({
     ? null
     : !canEdit
       ? t("page.saveReason.readOnly")
-      : !form.isDirty
-        ? t("page.saveReason.clean")
-        : form.hasBlockingErrors
-          ? t("page.saveReason.errors")
-          : !form.isOnline
-            ? t("page.saveReason.offline")
-            : !!conflict
-              ? t("page.saveReason.conflict")
-              : saveBusy
-                ? t("page.saveReason.busy")
-                : null;
+      : !!conflict
+        ? t("page.saveReason.conflict")
+        : saveBusy || form.saveStatus === "saving" || form.saveStatus === "queued"
+          ? t("page.saveReason.busy")
+          : form.hasBlockingErrors
+            ? t("page.saveReason.errors")
+            : !form.isOnline
+              ? t("page.saveReason.offline")
+              : !form.isDirty
+                ? t("page.saveReason.clean")
+                : t("page.saveReason.busy");
   const publishDisabled =
     !canPublish ||
     !catalogLoaded ||
@@ -396,13 +401,11 @@ export function useWebsiteWorkspaceController({
                     ? t("page.publishReason.busy")
                     : t("page.publishReason.current");
 
-  // Catalog loading/failure belongs inside Publish review, where the owner can see the
-  // checking state or invoke the real retry action. Content readiness also belongs inside that
-  // review so owners can jump to or hide an incomplete section. Invalid/offline/conflicted work
-  // still disables the trigger because opening a review would incorrectly imply readiness.
+  // Catalog, content-readiness, and field-validation blockers belong inside Publish review so the
+  // owner can understand and repair them. Offline/conflicted/busy work still disables the trigger.
+  // The final publish action remains guarded by `publishDisabled` above.
   const publishReviewGuardDisabled =
     !canPublish ||
-    form.hasBlockingErrors ||
     !!conflict ||
     saveRecoveryRequired ||
     publishBusy ||
@@ -413,19 +416,22 @@ export function useWebsiteWorkspaceController({
     ? null
     : !canPublish
       ? t("page.publishReason.readOnly")
-      : form.hasBlockingErrors
-        ? t("page.publishReason.errors")
-        : !form.isOnline
-          ? t("page.publishReason.offline")
-          : form.canRetrySave
-            ? t("page.publishReason.saveFailed")
-            : !!conflict || publishBusy || isSaving || isHeroMutating || isLoading
+      : !form.isOnline
+        ? t("page.publishReason.offline")
+        : form.canRetrySave
+          ? t("page.publishReason.saveFailed")
+          : !!conflict
+            ? t("page.publishReason.conflict")
+            : publishBusy || isSaving || isHeroMutating || isLoading
               ? t("page.publishReason.busy")
               : null;
-  const publishReviewDisabled = publishReviewGuardDisabled || isPublishedCurrent;
+  const publishReviewDisabled =
+    publishReviewGuardDisabled || (isPublishedCurrent && !form.hasBlockingErrors);
   const publishReviewDisabledReason =
     publishReviewGuardDisabledReason ??
-    (isPublishedCurrent ? t("page.publishReason.current") : null);
+    (isPublishedCurrent && !form.hasBlockingErrors
+      ? t("page.publishReason.current")
+      : null);
 
   const discardBusy =
     isLoading ||
@@ -535,6 +541,14 @@ export function useWebsiteWorkspaceController({
     }));
   }, []);
 
+  const focusBlockingIssue = useCallback((blockingIssue: WebsiteDraftIssue) => {
+    setFocusSection((current) => ({
+      type: blockingIssue.type,
+      nonce: (current?.nonce ?? 0) + 1,
+      blockingIssue,
+    }));
+  }, []);
+
   const requestPreview = useCallback(() => {
     setPreviewOpen(true);
   }, []);
@@ -574,7 +588,9 @@ export function useWebsiteWorkspaceController({
     if (loadError || !conflictVersionProved) return;
 
     dispatch(clearWebsiteConflictAction());
-    toast.info(t("page.actions.reload"));
+    toast.success(t("page.toasts.latestVersionLoaded"), {
+      id: "website-latest-version-loaded",
+    });
   }, [conflictVersionProved, dispatch, isLoading, loadError, reloadingLatest, t]);
 
   const conflictDialogOpen =
@@ -658,6 +674,7 @@ export function useWebsiteWorkspaceController({
     },
     focusSection,
     focusPublishBlocker,
+    focusBlockingIssue,
     previewOpen,
     setPreviewOpen,
     requestPreview,

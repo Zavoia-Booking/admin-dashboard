@@ -1,7 +1,7 @@
 import type {
   GalleryConfig,
   GalleryImageRef,
-  LocationWithAssignments,
+  WebsiteBuilderLocation,
 } from "../../types";
 
 export const MIN_GALLERY_IMAGES = 4;
@@ -20,7 +20,7 @@ export interface ResolvedGalleryImage {
 export const galleryImageRefId = ({ locationId, imageKey }: GalleryImageRef) =>
   JSON.stringify([locationId, imageKey]);
 
-function isGalleryImageRef(value: unknown): value is GalleryImageRef {
+export function isGalleryImageRef(value: unknown): value is GalleryImageRef {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
   const ref = value as Partial<GalleryImageRef>;
   return Number.isInteger(ref.locationId) && (ref.locationId ?? 0) > 0 &&
@@ -33,7 +33,7 @@ function includedLocationSet(config: Pick<GalleryConfig, "includedLocationIds">)
     : null;
 }
 
-function imagesForLocation(location: LocationWithAssignments): ResolvedGalleryImage[] {
+function imagesForLocation(location: WebsiteBuilderLocation): ResolvedGalleryImage[] {
   const images = (location.portfolioImages ?? [])
     .filter((image) => typeof image.key === "string" && image.key.trim() && image.url)
     .map((image) => ({
@@ -52,7 +52,7 @@ function imagesForLocation(location: LocationWithAssignments): ResolvedGalleryIm
 
 /** Every selectable image, grouped in the API's stable location order and featured-first within a location. */
 export function collectGalleryImages(
-  locations: LocationWithAssignments[],
+  locations: WebsiteBuilderLocation[],
   config: Pick<GalleryConfig, "includedLocationIds"> = {},
 ): ResolvedGalleryImage[] {
   const included = includedLocationSet(config);
@@ -66,7 +66,7 @@ export function collectGalleryImages(
  * then the remaining upload order. Exact repeated refs/URLs are emitted once.
  */
 export function autoFillGalleryImageRefs(
-  locations: LocationWithAssignments[],
+  locations: WebsiteBuilderLocation[],
   config: Pick<GalleryConfig, "includedLocationIds"> = {},
   limit = DEFAULT_GALLERY_IMAGES,
 ): GalleryImageRef[] {
@@ -101,7 +101,7 @@ export function autoFillGalleryImageRefs(
 /** Resolve the persisted order against current portfolio data; missing/deleted refs are skipped safely. */
 export function resolveGalleryImages(
   config: GalleryConfig,
-  locations: LocationWithAssignments[],
+  locations: WebsiteBuilderLocation[],
 ): ResolvedGalleryImage[] {
   const available = collectGalleryImages(locations, config);
   const byId = new Map(available.map((image) => [image.id, image]));
@@ -125,7 +125,7 @@ export function resolveGalleryImages(
 
 export function isGallerySelectionIncomplete(
   config: GalleryConfig,
-  locations: LocationWithAssignments[],
+  locations: WebsiteBuilderLocation[],
 ): boolean {
   return resolveGalleryImages(config, locations).length < MIN_GALLERY_IMAGES;
 }
@@ -133,7 +133,7 @@ export function isGallerySelectionIncomplete(
 /** Materialize the legacy auto-fill state before the first explicit selection/order edit. */
 export function currentGalleryImageRefs(
   config: GalleryConfig,
-  locations: LocationWithAssignments[],
+  locations: WebsiteBuilderLocation[],
 ): GalleryImageRef[] {
   return Array.isArray(config.imageRefs)
     ? config.imageRefs.filter(isGalleryImageRef).slice(0, MAX_GALLERY_IMAGES)
@@ -147,7 +147,7 @@ export function currentGalleryImageRefs(
  */
 export function canonicalizeGalleryConfigForSave(
   config: Record<string, unknown>,
-  locations: LocationWithAssignments[],
+  locations: WebsiteBuilderLocation[],
 ): Record<string, unknown> {
   const next = { ...config };
   const ownedLocationIds = new Set(locations.map((location) => location.id));

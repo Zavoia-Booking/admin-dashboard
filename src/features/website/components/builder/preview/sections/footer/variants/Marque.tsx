@@ -28,6 +28,8 @@ export function Marque({ data, t, footerRef, links, selectedLocationId, onNaviga
   const phone = location?.phone?.trim() || data.phone?.trim();
   const email = data.email?.trim();
   const socials = socialLinks(data.social);
+  const hasContact = !!(address || phone || email);
+  const columnCount = 1 + Number(socials.length > 0) + Number(hasContact);
 
   const navigate = (event: React.MouseEvent<HTMLAnchorElement>, type: string) => {
     event.preventDefault();
@@ -39,7 +41,11 @@ export function Marque({ data, t, footerRef, links, selectedLocationId, onNaviga
       <div className="mc-fmq">
         <div className="mc-fmq-rule" aria-hidden />
 
-        <div className="mc-fmq-top">
+        <div
+          className="mc-fmq-top"
+          data-columns={columnCount}
+          data-has-contact={hasContact ? "true" : "false"}
+        >
           <nav className="mc-fmq-col" aria-label={t("businessPage.builder.preview.footerExplore")}>
             {links.map((link) => (
               <a
@@ -58,41 +64,45 @@ export function Marque({ data, t, footerRef, links, selectedLocationId, onNaviga
             </span>
           </nav>
 
-          <nav className="mc-fmq-col" aria-label={t("businessPage.builder.preview.footerFollow")}>
-            {socials.map((social) => (
-              <a
-                key={social.key}
-                className="mc-fmq-link"
-                href={social.url}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <span className="mc-fmq-box" aria-hidden>[ ]</span>
-                <span>{social.label}</span>
-              </a>
-            ))}
-          </nav>
+          {socials.length > 0 && (
+            <nav className="mc-fmq-col" aria-label={t("businessPage.builder.preview.footerFollow")}>
+              {socials.map((social) => (
+                <a
+                  key={social.key}
+                  className="mc-fmq-link"
+                  href={social.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <span className="mc-fmq-box" aria-hidden>[ ]</span>
+                  <span>{social.label}</span>
+                </a>
+              ))}
+            </nav>
+          )}
 
-          <dl className="mc-fmq-contact">
-            {address && (
-              <div className="mc-fmq-crow">
-                <dt>A</dt>
-                <dd>{address}</dd>
-              </div>
-            )}
-            {phone && (
-              <div className="mc-fmq-crow">
-                <dt>P</dt>
-                <dd><a href={telHref(phone)}>{phone}</a></dd>
-              </div>
-            )}
-            {email && (
-              <div className="mc-fmq-crow">
-                <dt>E</dt>
-                <dd><a className="mc-fmq-email" href={`mailto:${email}`}>{email}</a></dd>
-              </div>
-            )}
-          </dl>
+          {hasContact && (
+            <dl className="mc-fmq-contact">
+              {address && (
+                <div className="mc-fmq-crow">
+                  <dt>A</dt>
+                  <dd>{address}</dd>
+                </div>
+              )}
+              {phone && (
+                <div className="mc-fmq-crow">
+                  <dt>P</dt>
+                  <dd><a href={telHref(phone)}>{phone}</a></dd>
+                </div>
+              )}
+              {email && (
+                <div className="mc-fmq-crow">
+                  <dt>E</dt>
+                  <dd><a className="mc-fmq-email" href={`mailto:${email}`}>{email}</a></dd>
+                </div>
+              )}
+            </dl>
+          )}
         </div>
 
         <div className="mc-fmq-bottom">

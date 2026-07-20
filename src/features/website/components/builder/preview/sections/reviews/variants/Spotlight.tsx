@@ -15,7 +15,7 @@ const DARK_EMPTY = "color-mix(in oklch, var(--mc-bg) 22%, transparent)";
  *  stars, a giant number ornament, a height-locked slide (every voice laid out invisibly so the panel keeps
  *  its tallest quote's height), and an accent progress hairline along the bottom edge. Auto-advances (driven
  *  by setInterval + performance.now, like the showcase, so an idled rAF can't freeze it). Mirrors `RvSpotlight`. */
-export function Spotlight({ quotes, rating, count, heading, sublede, kicker, no, italic, t }: ReviewsViewProps) {
+export function Spotlight({ quotes, rating, count, showHeading, heading, kicker, no, italic, t }: ReviewsViewProps) {
   const n = quotes.length;
   const reduced = prefersReducedMotion();
   const [active, setActive] = useState(0);
@@ -56,12 +56,12 @@ export function Spotlight({ quotes, rating, count, heading, sublede, kicker, no,
   // Ratings can exist without written comments (the gate unlocks on rating count, but quotes are the
   // comment-bearing subset): render the head alone rather than a voice-less ink panel. Never crashes on `cur`.
   if (n === 0 || !cur) {
-    return <RvHead no={no} kicker={kicker} heading={heading} sublede={sublede} />;
+    return <RvHead no={no} kicker={kicker} heading={heading} showHeading={showHeading} />;
   }
 
   return (
     <>
-      <RvHead no={no} kicker={kicker} heading={heading} sublede={sublede} />
+      <RvHead no={no} kicker={kicker} heading={heading} showHeading={showHeading} />
       <div
         className="mc-rvst"
         ref={rootRef}

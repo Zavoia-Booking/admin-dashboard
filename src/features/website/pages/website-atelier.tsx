@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect } from "react";
+import { lazy, Suspense, useEffect, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
@@ -7,7 +7,7 @@ import BusinessSetupGate from "../../../shared/components/guards/BusinessSetupGa
 import { Button } from "../../../shared/components/ui/button";
 import { Spinner } from "../../../shared/components/ui/spinner";
 import { selectBusinessId } from "../../auth/selectors";
-import { fetchWebsiteBuilderAction } from "../actions";
+import { enterWebsiteBuilderAction, fetchWebsiteBuilderAction } from "../actions";
 import {
   selectWebsiteLoading,
   selectWebsiteError,
@@ -75,16 +75,39 @@ export default function WebsiteAtelierPage() {
   const locations = useSelector(selectWebsiteLocations);
   const access = useSelector(selectWebsiteAccess);
   const businessId = useSelector(selectBusinessId);
+  const entryRequestBusinessIdRef = useRef<string | null>(null);
+  const businessScopeKey = businessId == null ? null : String(businessId);
+  const entryRequestStarted =
+    businessScopeKey !== null && entryRequestBusinessIdRef.current === businessScopeKey;
 
   useEffect(() => {
-    if (!businessId) return;
-    dispatch(fetchWebsiteBuilderAction.request());
-  }, [businessId, dispatch]);
+    if (businessScopeKey === null) {
+      entryRequestBusinessIdRef.current = null;
+      return;
+    }
+    if (entryRequestBusinessIdRef.current === businessScopeKey) return;
+    // A ref survives React's development-only StrictMode effect replay, but a real route remount
+    // gets a new one and therefore always performs a fresh owner-scoped read.
+    entryRequestBusinessIdRef.current = businessScopeKey;
+    dispatch(enterWebsiteBuilderAction());
+  }, [businessScopeKey, dispatch]);
 
-  // Initial load only — a refetch (post-save reload) keeps the workspace mounted.
-  if (isLoading && !draft) {
+  useEffect(() => {
+    if (businessScopeKey === null || typeof window === "undefined") return;
+    const handlePageShow = (event: PageTransitionEvent) => {
+      // Browser Back can restore the whole Redux/React tree from BFCache without remounting the
+      // route. Treat that as a real entry so off-page profile/location edits cannot stay cached.
+      if (event.persisted) dispatch(enterWebsiteBuilderAction());
+    };
+    window.addEventListener("pageshow", handlePageShow);
+    return () => window.removeEventListener("pageshow", handlePageShow);
+  }, [businessScopeKey, dispatch]);
+
+  // Never mount the editor from retained route data. Once this entry request has started,
+  // in-workspace refetches keep their existing stale-while-revalidate behavior.
+  if (!entryRequestStarted || (isLoading && (!identity || !draft || !access))) {
     return (
-      <WebsiteStateShell businessName={identity?.name}>
+      <WebsiteStateShell businessName={entryRequestStarted ? identity?.name : null}>
         <BusinessSetupGate>
           <div className="grid place-items-center" aria-label={t("page.status.loading")}>
             <Spinner size="lg" />

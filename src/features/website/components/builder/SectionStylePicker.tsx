@@ -1,4 +1,4 @@
-import { useMemo, useState, type CSSProperties, type KeyboardEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from "react";
 import { Check, Lock, LockOpen, Sparkles } from "lucide-react";
 import { cn } from "../../../../shared/lib/utils";
 import type { SectionEntry, WebsiteVariantCatalogEntry } from "../../types";
@@ -48,6 +48,7 @@ export function SectionStylePicker({
   entry,
   variants,
   selectedVariantId,
+  previewOnlyVariantId,
   disabled,
   isOptionDisabled,
   onSelect,
@@ -60,6 +61,8 @@ export function SectionStylePicker({
   entry: SectionEntry;
   variants: SectionStyleOption[];
   selectedVariantId: string;
+  /** Exact locked selection rendered locally without changing the saved draft. */
+  previewOnlyVariantId?: string;
   disabled: boolean;
   /** Granular capability gate. Read-only users may still preview locked styles while
    * included/owned choices remain non-mutating. */
@@ -94,6 +97,25 @@ export function SectionStylePicker({
   const premiumCount = variants.length - includedCount;
   const selectedDescriptionKey = `businessPage.sections.variantDescriptions.${entry.type}.${selectedVariantId}`;
   const selectedVariant = variants.find((option) => option.variant.id === selectedVariantId)?.variant;
+  const optionsRef = useRef<HTMLDivElement | null>(null);
+
+  // The compact Atelier gallery is a horizontal rail. When a sheet opens—or a choice changes—keep
+  // the selected card in the first readable position without moving the surrounding sheet itself.
+  useEffect(() => {
+    if (!isAtelier) return;
+    const container = optionsRef.current;
+    const selected = container?.querySelector<HTMLButtonElement>('[role="radio"][aria-checked="true"]');
+    if (!container || !selected) return;
+    const styles = window.getComputedStyle(container);
+    if (styles.display === "grid") return;
+
+    const containerRect = container.getBoundingClientRect();
+    const selectedRect = selected.getBoundingClientRect();
+    const inset = Number.parseFloat(styles.paddingLeft) || 0;
+    const maxLeft = Math.max(0, container.scrollWidth - container.clientWidth);
+    const left = container.scrollLeft + selectedRect.left - containerRect.left - inset;
+    container.scrollTo({ left: Math.min(maxLeft, Math.max(0, left)), behavior: "auto" });
+  }, [isAtelier, selectedVariantId, variants.length]);
 
   const updateRailPosition = (container: HTMLDivElement) => {
     if (window.getComputedStyle(container).display === "grid") return;
@@ -182,6 +204,7 @@ export function SectionStylePicker({
       </div>
 
       <div
+        ref={optionsRef}
         className={cn(
           "mt-2.5 flex snap-x snap-mandatory gap-2.5 overflow-x-auto pb-1",
           isAtelier
@@ -190,8 +213,8 @@ export function SectionStylePicker({
         )}
         role="radiogroup"
         onKeyDown={handleRadioKeyDown}
-        onScroll={(event) => updateRailPosition(event.currentTarget)}
-        onClick={(event) => {
+        onScroll={isAtelier ? undefined : (event) => updateRailPosition(event.currentTarget)}
+        onClick={isAtelier ? undefined : (event) => {
           const card = (event.target as HTMLElement).closest<HTMLButtonElement>('[role="radio"]');
           if (!card) return;
           const cards = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="radio"]'));
@@ -206,7 +229,7 @@ export function SectionStylePicker({
             option={option}
             active={selectedVariantId === option.variant.id}
             current={entry.variant === option.variant.id}
-            previewOnly={selectedVariantId === option.variant.id && entry.variant !== option.variant.id && option.locked}
+            previewOnly={previewOnlyVariantId === option.variant.id && option.locked}
             tabStop={i === tabStopIndex}
             disabled={disabled || !!isOptionDisabled?.(option)}
             onSelect={onSelect}
@@ -299,12 +322,12 @@ function VariantOptionCard({
     [sectionType, variant.id],
   );
   const badge = isAtelier
-    ? current
-      ? t("businessPage.paidVariants.currentBadge")
-      : previewOnly
-        ? t("businessPage.paidVariants.previewBadge")
-        : option.locked
-          ? (isNative ? null : option.priceLabel) ?? t("businessPage.paidVariants.lockedBadge")
+    ? previewOnly
+      ? t("businessPage.paidVariants.previewBadge")
+      : option.locked
+        ? (isNative ? null : option.priceLabel) ?? t("businessPage.paidVariants.lockedBadge")
+        : current
+          ? t("businessPage.paidVariants.currentBadge")
           : option.owned
             ? t("businessPage.paidVariants.ownedBadge")
             : t("businessPage.paidVariants.includedBadge")
@@ -322,6 +345,7 @@ function VariantOptionCard({
     <button
       type="button"
       role="radio"
+      data-section-variant={variant.id}
       aria-checked={active}
       tabIndex={tabStop ? 0 : -1}
       disabled={disabled}
@@ -393,14 +417,14 @@ function VariantOptionCard({
           {t(variant.labelKey)}
         </span>
         <span className="flex shrink-0 items-center gap-1.5">
-          {active && !isAtelier ? (
-            <span className="inline-flex size-4 shrink-0 items-center justify-center rounded-full bg-foreground-1 text-surface">
-              <Check className="size-3" strokeWidth={2.4} aria-hidden />
-            </span>
-          ) : !isAtelier && !isNative && option.inCart ? (
+          {!isAtelier && !isNative && option.inCart ? (
             <LockOpen className="size-4 shrink-0 text-primary" strokeWidth={1.9} aria-hidden />
           ) : !isAtelier && option.locked ? (
             <Lock className="size-4 shrink-0 text-foreground-3" strokeWidth={1.9} aria-hidden />
+          ) : active && !isAtelier ? (
+            <span className="inline-flex size-4 shrink-0 items-center justify-center rounded-full bg-foreground-1 text-surface">
+              <Check className="size-3" strokeWidth={2.4} aria-hidden />
+            </span>
           ) : !isAtelier && option.owned ? (
             <Sparkles className="size-4 shrink-0 text-primary" strokeWidth={1.8} aria-hidden />
           ) : null}
@@ -411,7 +435,7 @@ function VariantOptionCard({
               isAtelier && current && "atelier-variant-tag-current",
               isAtelier && previewOnly && "atelier-variant-tag-previewing",
               isAtelier && option.owned && !current && "atelier-variant-tag-owned",
-              isAtelier && option.locked && !current && !previewOnly && "atelier-variant-tag-price",
+              isAtelier && option.locked && !previewOnly && "atelier-variant-tag-price",
               option.locked || option.inCart
                 ? "border-border bg-surface-hover/70 text-foreground-2"
                 : option.owned
@@ -465,17 +489,20 @@ const ATELIER_WIREFRAMES: Readonly<Record<string, readonly AtelierWireBlock[]>> 
   "hero:drift": wire([0, 0, 64, 44, "i"], [8, 9, 48, 26, "g"], [10, 17, 44, 5, "t"], [16, 25, 32, 5, "t"], [26, 34, 12, 3, "a", 2]),
   "hero:tumble": wire([6, 14, 6, 8, "t", 1, -8], [15, 12, 6, 9, "t", 1, 6], [24, 15, 6, 8, "t", 1, -4], [33, 13, 6, 9, "t", 1, 9], [42, 15, 6, 8, "t", 1, -7], [51, 14, 6, 8, "t", 1, 5], [6, 34, 20, 2, "l"], [30, 33, 10, 3, "a", 3]),
   "announcement:bar": wire([0, 2, 64, 6, "a"], [6, 4, 26, 2, "t"], [48, 4, 10, 2, "t"], [4, 14, 56, 24, "s", 2]),
-  "announcement:split": wire([0, 2, 64, 6, "a"], [4, 4, 22, 2, "t"], [40, 4, 8, 2, "t"], [52, 4, 8, 2, "t"], [4, 14, 56, 24, "s", 2]),
-  "announcement:hairline": wire([12, 3, 40, 2, "t"], [0, 8, 64, 0.8, "a"], [4, 14, 56, 24, "s", 2]),
+  "announcement:split": wire([0, 2, 64, 6, "a"], [2, 4, 10, 2, "t"], [16, 4, 10, 2, "t"], [30, 4, 10, 2, "t"], [44, 4, 10, 2, "t"], [4, 14, 56, 24, "s", 2]),
+  "announcement:hairline": wire([14, 2, 36, 6, "a", 3], [18, 4, 20, 2, "t"], [4, 14, 56, 24, "s", 2]),
   "marquee:scroll": wire([0, 10, 64, 22, "i"], [3, 18, 13, 4, "t"], [20, 18, 11, 4, "l"], [35, 18, 16, 4, "t"], [56, 19, 4, 4, "a", 4]),
   "marquee:loop": wire([-4, 9, 72, 24, "i"], [0, 17, 12, 4, "t"], [16, 17, 4, 4, "a", 4], [24, 17, 14, 4, "l"], [43, 17, 4, 4, "a", 4], [51, 17, 15, 4, "t"]),
-  "about:simple": wire([4, 5, 10, 2, "a"], [4, 10, 30, 4, "t"], [4, 18, 24, 1.5, "l"], [4, 22, 20, 1.5, "l"], [38, 8, 22, 28, "s", 2]),
-  "about:portrait": wire([4, 6, 22, 32, "s", 2], [32, 10, 26, 4, "t"], [32, 18, 22, 1.5, "l"], [32, 22, 18, 1.5, "l"]),
-  "about:manifesto": wire([8, 9, 48, 5, "t"], [13, 17, 38, 5, "t"], [18, 30, 10, 7, "s", 1], [36, 30, 10, 7, "s", 1]),
-  "about:ledger": wire([4, 7, 56, 3, "l"], [4, 14, 56, 3, "l"], [4, 21, 56, 3, "l"], [4, 28, 56, 3, "l"], [4, 7, 4, 3, "a"]),
-  "locations:switcher": wire([4, 6, 36, 32, "s", 2], [46, 8, 14, 3, "l"], [46, 15, 14, 3, "l"], [46, 22, 14, 3, "a"], [46, 29, 14, 3, "l"]),
-  "locations:cards": wire([4, 8, 28, 28, "s", 2], [35, 8, 25, 28, "s", 2], [7, 29, 12, 2, "t"], [38, 29, 12, 2, "t"]),
-  "locations:atlas": wire([4, 6, 34, 32, "s", 2], [14, 14, 3, 3, "a", 3], [24, 24, 3, 3, "a", 3], [44, 10, 16, 3, "l"], [44, 18, 16, 3, "l"], [44, 26, 16, 3, "l"]),
+  "about:manifesto": wire([0, 0, 64, 44, "i"], [13, 8, 38, 2, "l"], [8, 14, 48, 5, "t"], [12, 21, 40, 5, "t"], [11, 32, 9, 6, "a", 1], [22, 32, 9, 6, "s", 1], [33, 32, 9, 6, "s", 1], [44, 32, 9, 6, "s", 1]),
+  "about:editorial": wire([4, 5, 56, 1, "l"], [4, 9, 36, 7, "t"], [4, 19, 31, 6, "l"], [41, 19, 19, 6, "t"], [4, 28, 56, 8, "s", 2], [4, 39, 56, 1, "l"]),
+  "about:sticky": wire([4, 7, 23, 9, "t"], [4, 20, 12, 2, "a"], [34, 6, 1, 31, "a"], [38, 8, 22, 4, "l"], [38, 17, 22, 4, "l"], [38, 26, 22, 8, "s", 2], [38, 37, 22, 1, "l"]),
+  "services:feature": wire([4, 5, 25, 34, "s", 2], [7, 31, 13, 3, "t"], [7, 35, 8, 2, "a", 2], [34, 5, 18, 4, "t"], [34, 13, 26, 2, "l"], [34, 19, 26, 2, "l"], [34, 25, 26, 2, "l"], [34, 31, 26, 2, "l"], [56, 13, 4, 2, "a"]),
+  "services:bento": wire([0, 0, 64, 44, "i"], [4, 5, 28, 5, "t"], [4, 14, 10, 7, "a", 1], [17, 15, 1, 5, "l"], [21, 15, 30, 4, "t"], [54, 15, 6, 4, "l"], [4, 24, 12, 8, "s", 1], [19, 26, 1, 5, "l"], [23, 26, 27, 4, "t"], [54, 26, 6, 4, "a"], [48, 37, 12, 3, "l"]),
+  "services:grid": wire([4, 5, 26, 15, "s", 2], [7, 8, 13, 3, "t"], [7, 14, 20, 1.5, "l"], [34, 5, 26, 21, "s", 2], [37, 8, 14, 3, "t"], [37, 14, 20, 1.5, "l"], [37, 19, 20, 1.5, "l"], [4, 24, 26, 15, "s", 2], [7, 27, 12, 3, "t"], [7, 33, 20, 1.5, "l"], [34, 30, 26, 9, "s", 2]),
+  "locations:showcase": wire([4, 6, 28, 4, "l"], [4, 12, 28, 4, "l"], [4, 18, 28, 4, "a"], [4, 25, 28, 12, "s"], [36, 6, 24, 31, "s", 2]),
+  "locations:cards": wire([4, 6, 30, 20, "s", 2], [4, 28, 17, 5, "t"], [36, 6, 11, 9, "s", 2], [36, 17, 11, 7, "t"], [49, 6, 14, 17, "s", 2], [36, 26, 11, 7, "s", 2], [49, 25, 14, 8, "s", 2]),
+  "locations:panorama": wire([0, 8, 64, 26, "s"], [6, 26, 16, 3, "t"], [50, 10, 8, 2, "a", 1]),
+  "locations:atlas": wire([4, 5, 11, 3, "t"], [18, 5, 11, 3, "t"], [32, 5, 11, 3, "t"], [4, 11, 36, 26, "s", 2], [43, 11, 17, 26, "s"], [46, 15, 11, 2, "l"], [46, 21, 11, 2, "l"], [46, 27, 11, 2, "a"]),
   "gallery:carousel": wire([2, 10, 25, 24, "s", 2], [30, 10, 25, 24, "s", 2], [58, 10, 6, 24, "s", 2], [28, 38, 3, 2, "a", 2]),
   "gallery:masonry": wire([4, 6, 17, 20, "s", 2], [4, 28, 17, 10, "s", 2], [23, 6, 17, 12, "s", 2], [23, 20, 17, 18, "s", 2], [42, 6, 18, 24, "s", 2], [42, 32, 18, 6, "s", 2]),
   "gallery:bento": wire([4, 6, 20, 18, "s", 2], [26, 6, 16, 8, "s", 2], [26, 16, 16, 8, "s", 2], [44, 6, 16, 18, "s", 2], [4, 26, 38, 12, "s", 2], [44, 26, 16, 12, "s", 2]),
@@ -483,17 +510,16 @@ const ATELIER_WIREFRAMES: Readonly<Record<string, readonly AtelierWireBlock[]>> 
   "gallery:fan": wire([12, 10, 20, 26, "s", 2, -14], [22, 8, 20, 27, "s", 2, -2], [32, 10, 20, 26, "s", 2, 10]),
   "team:portraits": wire([4, 8, 17, 28, "s", 2], [23, 8, 17, 28, "s", 2], [42, 8, 17, 28, "s", 2]),
   "team:roster": wire([4, 7, 6, 6, "s", 3], [13, 8, 26, 3, "l"], [4, 18, 6, 6, "s", 3], [13, 19, 22, 3, "l"], [4, 29, 6, 6, "s", 3], [13, 30, 24, 3, "l"]),
+  "team:columns": wire([4, 4, 7, 3, "a", 3], [13, 4, 9, 3, "s", 3], [24, 4, 9, 3, "s", 3], [4, 10, 26, 28, "s", 2], [7, 30, 12, 2.5, "t"], [7, 34, 8, 1.5, "l"], [33, 10, 8, 28, "s", 2], [43, 10, 8, 28, "s", 2], [53, 10, 8, 28, "s", 2]),
+  "team:carousel": wire([4, 4, 7, 4, "t"], [14, 6, 46, 1, "l"], [2, 12, 9, 22, "s", 2], [15, 9, 22, 29, "s", 2], [18, 32, 11, 2.5, "t"], [40, 12, 15, 22, "s", 2], [58, 12, 4, 22, "s", 2], [29, 41, 4, 1.5, "a", 2]),
   "testimonials:default": wire([10, 10, 44, 5, "t"], [14, 19, 36, 3, "l"], [24, 30, 3, 3, "a", 3], [30, 30, 3, 3, "a", 3], [36, 30, 3, 3, "a", 3]),
   "testimonials:wall": wire([4, 6, 27, 15, "s", 2], [33, 6, 27, 15, "s", 2], [4, 23, 27, 15, "s", 2], [33, 23, 27, 15, "s", 2]),
   "testimonials:marquee": wire([2, 10, 18, 8, "s", 2], [24, 10, 22, 8, "s", 2], [50, 10, 14, 8, "s", 2], [-2, 26, 16, 8, "s", 2], [18, 26, 20, 8, "s", 2], [42, 26, 20, 8, "s", 2]),
   "testimonials:spotlight": wire([16, 8, 32, 26, "s", 2], [22, 14, 20, 2.5, "l"], [22, 20, 16, 2.5, "l"], [28, 38, 8, 2, "a", 1]),
   "testimonials:deck": wire([20, 14, 28, 22, "s", 2, 6], [17, 11, 28, 22, "s", 2, 2], [14, 9, 28, 22, "s", 2, -3]),
-  "faq:accordion": wire([4, 7, 50, 3, "l"], [56, 7, 3, 3, "t"], [4, 15, 50, 3, "l"], [56, 15, 3, 3, "t"], [4, 23, 50, 3, "a"], [4, 30, 40, 2, "l"]),
-  "faq:list": wire([4, 7, 50, 3, "l"], [56, 7, 3, 3, "t"], [4, 15, 50, 3, "l"], [56, 15, 3, 3, "t"], [4, 23, 50, 3, "a"], [4, 30, 40, 2, "l"]),
-  "faq:split": wire([4, 8, 18, 5, "t"], [4, 16, 12, 2, "a"], [30, 6, 30, 3, "l"], [30, 14, 30, 3, "l"], [30, 22, 30, 3, "l"], [30, 30, 30, 3, "l"]),
-  "faq:chips": wire([4, 8, 16, 5, "s", 3], [22, 8, 20, 5, "s", 3], [44, 8, 14, 5, "s", 3], [4, 16, 22, 5, "s", 3], [28, 16, 16, 5, "a", 3], [4, 26, 52, 2, "l"], [4, 31, 44, 2, "l"]),
   "faq:grid": wire([4, 6, 27, 15, "s", 2], [33, 6, 27, 15, "s", 2], [4, 23, 27, 15, "s", 2], [33, 23, 27, 15, "s", 2]),
-  "faq:index": wire([4, 7, 3, 3, "a"], [10, 7, 44, 3, "l"], [4, 15, 3, 3, "t"], [10, 15, 40, 3, "l"], [4, 23, 3, 3, "t"], [10, 23, 46, 3, "l"], [4, 31, 3, 3, "t"], [10, 31, 38, 3, "l"]),
+  "faq:accordion": wire([4, 7, 50, 3, "l"], [56, 7, 3, 3, "t"], [4, 15, 50, 3, "l"], [56, 15, 3, 3, "t"], [4, 23, 50, 3, "a"], [4, 30, 40, 2, "l"]),
+  "faq:index": wire([4, 5, 35, 1.5, "a"], [4, 10, 31, 3, "t"], [36, 9, 4, 4, "a", 3], [4, 18, 28, 3, "l"], [36, 17, 4, 4, "s", 3], [4, 26, 32, 3, "l"], [36, 25, 4, 4, "s", 3], [45, 5, 14, 1.5, "a"], [45, 11, 15, 8, "l"], [45, 24, 5, 5, "s", 3], [52, 25, 8, 2, "t"]),
   "footer:editorial": wire([4, 6, 14, 2, "l"], [24, 6, 14, 2, "l"], [44, 6, 14, 2, "l"], [4, 26, 44, 10, "t"]),
   "footer:directory": wire([4, 6, 16, 3, "t"], [46, 6, 16, 2, "l"], [4, 13, 58, 1, "a"], [4, 20, 12, 2, "t"], [4, 25, 10, 1.5, "l"], [4, 29, 10, 1.5, "l"], [22, 20, 12, 2, "t"], [22, 25, 10, 1.5, "l"], [40, 20, 12, 2, "t"], [40, 25, 10, 1.5, "l"], [48, 32, 14, 4, "a", 3]),
   "footer:signature": wire([6, 7, 52, 12, "t"], [6, 22, 52, 1, "l"], [6, 28, 15, 2.5, "t"], [6, 33, 20, 2, "l"], [6, 38, 9, 3.5, "a"], [32, 28, 12, 2, "t"], [32, 33, 15, 1.5, "l"], [48, 28, 12, 2, "t"], [48, 33, 14, 1.5, "l"]),

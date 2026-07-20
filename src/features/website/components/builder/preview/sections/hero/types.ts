@@ -17,8 +17,7 @@ export interface HeroContent {
   ctaLabel: string;
 }
 
-/** What the free base's mode parts (CoverPlate / Drenched) render against: the content bundle plus the
- *  render context + refs the Default variant owns. */
+/** What the free base's Drenched treatment renders against: content plus the Default variant's refs. */
 export type HeroModeProps = HeroContent & {
   data: PreviewData;
   t: T;

@@ -2,8 +2,8 @@
    the showcase + spotlight, the circular prev/next arrow, and the reduced-motion settle. Per-variant layout
    lives in variants/<name>.css. Adapted from `Web app/microsite.css` .lb-rv-* — themed to --mc-*, vw→cqw. */
 
-/* Section head — numbered kicker + display heading, with an optional lede and a trailing block (the wall
-   rating chip). Row by default (heading left, trailing right); centred column for marquee/deck. */
+/* Section head — display heading with an optional trailing block (the wall rating chip). Row by default
+   (heading left, trailing right); centred column for marquee/deck. */
 .mc-rv-head {
   display: flex;
   flex-wrap: wrap;
@@ -13,11 +13,10 @@
   margin-bottom: clamp(26px, 4cqw, 50px);
 }
 .mc-rv-head--center { flex-direction: column; align-items: center; text-align: center; }
+.mc-rv-head--summary-only .mc-rv-line { margin-top: 0; }
 .mc-rv-head-main { min-width: 0; }
 .mc-rv-head--center .mc-rv-head-main { max-width: 720px; }
 .mc-rv-h2 { margin: 0; font-family: var(--mc-display); font-weight: var(--mc-display-weight); letter-spacing: var(--mc-display-tracking); font-size: clamp(32px, 6cqw, 62px); line-height: 0.98; color: var(--mc-fg); text-wrap: balance; }
-.mc-rv-lede { margin-top: clamp(12px, 2cqw, 18px); max-width: 460px; font-size: clamp(14px, 1.7cqw, 16px); line-height: 1.55; color: var(--mc-muted); }
-.mc-rv-head--center .mc-rv-lede { margin-inline: auto; }
 
 /* One slide — quote (masked per-word rise) + meta. `data-shown` flips the entrance via CSS *transitions*,
    which stay live even where the embedded preview idles @keyframes/rAF clocks. Reused by showcase + spotlight. */

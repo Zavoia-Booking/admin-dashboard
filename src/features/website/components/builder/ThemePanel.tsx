@@ -11,6 +11,14 @@ import {
 } from "../../../../shared/components/ui/popover";
 import { RadioGroup, RadioGroupItem } from "../../../../shared/components/ui/radio-group";
 import {
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "../../../../shared/components/ui/drawer";
+import {
   Sheet,
   SheetClose,
   SheetContent,
@@ -19,6 +27,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "../../../../shared/components/ui/sheet";
+import { useIsMobile } from "../../../../shared/hooks/use-mobile";
 import type { WebsiteThemeAssetCatalogItem } from "../../types";
 import { FONT_CATALOG, FONT_OPTIONS, type FontOption } from "./theme";
 
@@ -28,7 +37,7 @@ interface ThemePanelProps {
   disabled?: boolean;
   /** The Atelier shell uses one quiet typeface row, with choices in a popover. */
   variant?: "default" | "atelier";
-  /** At Atelier's 920px compact boundary, the typeface list becomes a bottom drawer. */
+  /** At Atelier's 920px compact boundary, the typeface list becomes a bottom surface. */
   compact?: boolean;
   /** Authoritative Website catalog entries. Only Atelier consumes paid theme assets. */
   themeAssets?: WebsiteThemeAssetCatalogItem[];
@@ -43,6 +52,8 @@ interface ThemePanelProps {
   effectiveFontKey?: string;
   /** Routes every authoritative Atelier choice through the workspace ownership flow. */
   onThemeAssetSelect?: (asset: WebsiteThemeAssetCatalogItem) => void;
+  /** Structured draft blocker for the persisted font key. */
+  error?: string | null;
 }
 
 interface AtelierFontChoice {
@@ -96,14 +107,27 @@ export function ThemePanel({
   premiumSelectionReady = true,
   effectiveFontKey,
   onThemeAssetSelect,
+  error,
 }: ThemePanelProps) {
   const { t } = useTranslation("website");
   const { formatPrice } = useFormatPrice();
+  const isMobile = useIsMobile();
   const [atelierPickerOpen, setAtelierPickerOpen] = useState(false);
   const [atelierAnnouncement, setAtelierAnnouncement] = useState("");
   const atelierTriggerRef = useRef<HTMLButtonElement | null>(null);
   const [atelierPopoverAlignOffset, setAtelierPopoverAlignOffset] = useState(0);
   const fontGroupId = useId();
+  const errorId = "font-control-error";
+  const errorMessage = error ? (
+    <p
+      id={errorId}
+      className="flex items-start gap-1.5 text-[11px] leading-[1.45] text-destructive"
+      role="alert"
+    >
+      <AlertTriangle className="mt-0.5 size-3 shrink-0" strokeWidth={1.9} aria-hidden />
+      <span>{error}</span>
+    </p>
+  ) : null;
   const usesAuthoritativeCatalog =
     variant === "atelier" &&
     (themeAssets !== undefined ||
@@ -397,9 +421,12 @@ export function ThemePanel({
     };
     const trigger = (
       <button
+        id="font-control"
         ref={atelierTriggerRef}
         type="button"
         disabled={disabled}
+        aria-invalid={!!error}
+        aria-describedby={error ? errorId : undefined}
         aria-label={t("businessPage.theme.assetStatus.triggerAria", {
           label: atelierLabel,
           name: activeName,
@@ -415,6 +442,7 @@ export function ThemePanel({
         }
         className={cn(
           "group/brand-control atelier-brand-control website-atelier-focus website-atelier-press",
+          error && "!border-destructive bg-error-bg",
           disabled && "cursor-not-allowed opacity-60",
         )}
       >
@@ -442,78 +470,127 @@ export function ThemePanel({
 
     if (compact) {
       return (
-        <Sheet open={atelierPickerOpen} onOpenChange={handleAtelierPickerOpenChange}>
-          <SheetTrigger asChild>{trigger}</SheetTrigger>
-          <SheetContent
-            side="bottom"
-            onOpenAutoFocus={handlePickerOpenAutoFocus}
-            portalContainer={typeof document === "undefined" ? null : document.getElementById("website-builder-main")}
-            overlayClassName="!absolute z-50 bg-black/40"
-            showCloseButton={false}
-            className="website-atelier atelier-brand-drawer z-50 !absolute !flex !max-h-[84dvh] flex-col overflow-hidden rounded-t-[18px] border-x-0 border-b-0 border-[var(--atelier-border)] bg-[var(--atelier-canvas)] px-[18px] pb-[calc(1.875rem+env(safe-area-inset-bottom))] pt-2 text-[var(--atelier-ink)] data-[state=closed]:duration-200 data-[state=open]:duration-200"
-          >
-            <span className="atelier-sheet-grab" aria-hidden />
-            <SheetHeader className="mb-4 flex-row items-center justify-between gap-3 p-0 text-left">
-              <SheetTitle className="text-[16px] tracking-[-0.01em]">
-                {atelierLabel}
-              </SheetTitle>
-              <SheetDescription className="sr-only">
-                {atelierLabel}
-              </SheetDescription>
-              <SheetClose
-                aria-label={t("common:aria.close")}
-                className="atelier-drawer-close website-atelier-focus website-atelier-press"
+        <div className="space-y-1.5">
+          {isMobile ? (
+            <Drawer
+              open={atelierPickerOpen}
+              onOpenChange={handleAtelierPickerOpenChange}
+              autoFocus
+              handleOnly
+              repositionInputs={false}
+            >
+              <DrawerTrigger asChild>{trigger}</DrawerTrigger>
+              <DrawerContent
+                onOpenAutoFocus={handlePickerOpenAutoFocus}
+                overlayClassName="!z-[70] bg-black/40"
+                className="website-atelier atelier-brand-drawer !z-[71] !max-h-[84dvh] overflow-hidden rounded-t-[18px] border-x-0 border-b-0 border-[var(--atelier-border)] !bg-[var(--atelier-canvas)] px-[18px] pb-[calc(1.875rem+env(safe-area-inset-bottom))] text-[var(--atelier-ink)] outline-none"
               >
-                <X className="size-[15px]" strokeWidth={2} aria-hidden />
-              </SheetClose>
-            </SheetHeader>
-            <div className="atelier-brand-picker-scroll website-atelier-scrollbar">{pickerOptions}</div>
-          </SheetContent>
-        </Sheet>
+                <DrawerHeader className="mb-4 shrink-0 p-0 pt-4 !text-left">
+                  <DrawerTitle className="text-left text-[16px] tracking-[-0.01em]">
+                    {atelierLabel}
+                  </DrawerTitle>
+                  <DrawerDescription className="sr-only">
+                    {atelierLabel}
+                  </DrawerDescription>
+                </DrawerHeader>
+                <div
+                  data-vaul-no-drag=""
+                  className="atelier-brand-picker-scroll website-atelier-scrollbar"
+                >
+                  {pickerOptions}
+                </div>
+              </DrawerContent>
+            </Drawer>
+          ) : (
+            <Sheet open={atelierPickerOpen} onOpenChange={handleAtelierPickerOpenChange}>
+              <SheetTrigger asChild>{trigger}</SheetTrigger>
+              <SheetContent
+                side="bottom"
+                onOpenAutoFocus={handlePickerOpenAutoFocus}
+                portalContainer={
+                  typeof document === "undefined"
+                    ? null
+                    : document.getElementById("website-builder-main")
+                }
+                overlayClassName="!absolute z-50 bg-black/40"
+                showCloseButton={false}
+                className="website-atelier atelier-brand-drawer z-50 !absolute !flex !max-h-[84dvh] flex-col overflow-hidden rounded-t-[18px] border-x-0 border-b-0 border-[var(--atelier-border)] bg-[var(--atelier-canvas)] px-[18px] pb-[calc(1.875rem+env(safe-area-inset-bottom))] pt-4 text-[var(--atelier-ink)]"
+              >
+                <SheetHeader className="mb-4 flex-row items-center justify-between gap-3 p-0 text-left">
+                  <SheetTitle className="text-[16px] tracking-[-0.01em]">
+                    {atelierLabel}
+                  </SheetTitle>
+                  <SheetDescription className="sr-only">
+                    {atelierLabel}
+                  </SheetDescription>
+                  <SheetClose
+                    aria-label={t("common:aria.close")}
+                    className="atelier-drawer-close website-atelier-focus website-atelier-press"
+                  >
+                    <X className="size-[15px]" strokeWidth={2} aria-hidden />
+                  </SheetClose>
+                </SheetHeader>
+                <div className="atelier-brand-picker-scroll website-atelier-scrollbar">
+                  {pickerOptions}
+                </div>
+              </SheetContent>
+            </Sheet>
+          )}
+          {errorMessage}
+        </div>
       );
     }
 
     return (
-      <Popover open={atelierPickerOpen} onOpenChange={handleAtelierPickerOpenChange}>
-        <PopoverTrigger asChild>
-          {trigger}
-        </PopoverTrigger>
-        <PopoverContent
-          side="right"
-          onOpenAutoFocus={handlePickerOpenAutoFocus}
-          align="start"
-          alignOffset={atelierPopoverAlignOffset}
-          sideOffset={28}
-          collisionPadding={12}
-          className="website-atelier atelier-brand-popover atelier-brand-popover--font z-50 flex max-h-[calc(100dvh-130px)] w-[min(278px,calc(100vw-2rem))] flex-col overflow-hidden rounded-[14px] border-[var(--atelier-border)] bg-[var(--atelier-surface-strong)] p-[13px] text-[var(--atelier-ink)]"
-        >
-          <div className="atelier-brand-popover-header">
-            <h3>{atelierLabel}</h3>
-            <button
-              type="button"
-              onClick={() => setAtelierPickerOpen(false)}
-              aria-label={t("common:close")}
-              className="atelier-brand-popover-close website-atelier-focus website-atelier-press"
-            >
-              <X className="size-[11px]" strokeWidth={2} aria-hidden />
-            </button>
-          </div>
-          <div className="atelier-brand-picker-scroll atelier-brand-picker-scroll--font website-atelier-scrollbar">
-            {pickerOptions}
-          </div>
-          {hasPremiumChoices && (
-            <div className="atelier-brand-popover-footer">
-              <Lock strokeWidth={2.2} aria-hidden />
-              <span>{t("businessPage.theme.assetStatus.premiumUnlockOnce")}</span>
+      <div className="space-y-1.5">
+        <Popover open={atelierPickerOpen} onOpenChange={handleAtelierPickerOpenChange}>
+          <PopoverTrigger asChild>
+            {trigger}
+          </PopoverTrigger>
+          <PopoverContent
+            side="right"
+            onOpenAutoFocus={handlePickerOpenAutoFocus}
+            align="start"
+            alignOffset={atelierPopoverAlignOffset}
+            sideOffset={28}
+            collisionPadding={12}
+            className="website-atelier atelier-brand-popover atelier-brand-popover--font z-50 flex max-h-[calc(100dvh-130px)] w-[min(278px,calc(100vw-2rem))] flex-col overflow-hidden rounded-[14px] border-[var(--atelier-border)] bg-[var(--atelier-surface-strong)] p-[13px] text-[var(--atelier-ink)]"
+          >
+            <div className="atelier-brand-popover-header">
+              <h3>{atelierLabel}</h3>
+              <button
+                type="button"
+                onClick={() => setAtelierPickerOpen(false)}
+                aria-label={t("common:close")}
+                className="atelier-brand-popover-close website-atelier-focus website-atelier-press"
+              >
+                <X className="size-[11px]" strokeWidth={2} aria-hidden />
+              </button>
             </div>
-          )}
-        </PopoverContent>
-      </Popover>
+            <div className="atelier-brand-picker-scroll atelier-brand-picker-scroll--font website-atelier-scrollbar">
+              {pickerOptions}
+            </div>
+            {hasPremiumChoices && (
+              <div className="atelier-brand-popover-footer">
+                <Lock strokeWidth={2.2} aria-hidden />
+                <span>{t("businessPage.theme.assetStatus.premiumUnlockOnce")}</span>
+              </div>
+            )}
+          </PopoverContent>
+        </Popover>
+        {errorMessage}
+      </div>
     );
   }
 
   return (
-    <div className="space-y-2.5">
+    <div
+      id="font-control"
+      tabIndex={-1}
+      aria-invalid={!!error}
+      aria-describedby={error ? errorId : undefined}
+      className="space-y-2.5 outline-none focus-visible:ring-2 focus-visible:ring-focus"
+    >
       <span id="website-font-group-label" className="text-[11px] font-semibold uppercase text-foreground-3">
         {t("businessPage.theme.fontLabel")}
       </span>
@@ -562,6 +639,7 @@ export function ThemePanel({
           })}
         </div>
       </div>
+      {errorMessage}
     </div>
   );
 }

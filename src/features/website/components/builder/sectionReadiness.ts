@@ -1,11 +1,11 @@
 import type {
+  AboutConfig,
   AnnouncementContent,
   FaqItem,
   GalleryConfig,
-  LocationWithAssignments,
+  WebsiteBuilderLocation,
   PageLayout,
 } from "../../types";
-import { aboutHeadline } from "./aboutContent";
 import { MIN_GALLERY_IMAGES, resolveGalleryImages } from "./gallerySelection";
 import { MARQUEE_MIN_ITEMS, marqueeItems } from "./preview/sections/marquee/model";
 import {
@@ -14,8 +14,11 @@ import {
   reviewCount,
   teamMemberCount,
 } from "./sectionDataRequirements";
+import { splitAboutContent } from "./aboutContent";
+import { heroVariantRequiresCoverImage } from "./heroCoverRequirement";
 
 export type WebsiteReadinessSectionType =
+  | "hero"
   | "announcement"
   | "about"
   | "marquee"
@@ -29,7 +32,7 @@ export interface WebsiteReadinessIssue {
   current?: number;
   required?: number;
   /** The exact editor control that needs attention when a section has more than one requirement. */
-  field?: "message" | "cta-url" | "question" | "answer";
+  field?: "cover" | "message" | "cta-label" | "cta-url" | "headline" | "story" | "question" | "answer";
   /** FAQ content is bilingual; retain the locale so Review never opens the wrong field. */
   locale?: "en" | "ro";
   itemIndex?: number;
@@ -43,10 +46,11 @@ export interface FaqReadinessTarget {
 
 export interface WebsiteReadinessInput {
   layout: PageLayout;
+  heroImageUrl: string | null | undefined;
   aboutContent: string | null | undefined;
   announcementContent: AnnouncementContent | null | undefined;
   faqItems: FaqItem[] | null | undefined;
-  locations: LocationWithAssignments[];
+  locations: WebsiteBuilderLocation[];
   /** Prefer the language the owner is currently editing when more than one FAQ pair is incomplete. */
   locale?: "en" | "ro";
   /** Optional loaded review rows keep the editor gate aligned when denormalized totals lag behind. */
@@ -105,6 +109,7 @@ export function completeFaqCount(items: FaqItem[] | null | undefined): number {
  */
 export function getWebsiteReadinessIssues({
   layout,
+  heroImageUrl,
   aboutContent,
   announcementContent,
   faqItems,
@@ -119,12 +124,27 @@ export function getWebsiteReadinessIssues({
     if (!entry.visible || seen.has(entry.type as WebsiteReadinessSectionType)) continue;
 
     switch (entry.type) {
-      case "about":
-        if (!aboutHeadline(aboutContent ?? "")) {
-          issues.push({ type: "about" });
+      case "hero":
+        if (heroVariantRequiresCoverImage(entry.variant) && !hasText(heroImageUrl)) {
+          issues.push({ type: "hero", field: "cover", current: 0, required: 1 });
+          seen.add("hero");
+        }
+        break;
+
+      case "about": {
+        const config = (entry.config ?? {}) as AboutConfig;
+        if (config.headlineHidden === true) {
+          issues.push({ type: "about", field: "headline" });
+          seen.add("about");
+          break;
+        }
+        const { body } = splitAboutContent(aboutContent ?? "");
+        if (!hasText(body)) {
+          issues.push({ type: "about", field: "story" });
           seen.add("about");
         }
         break;
+      }
 
       case "announcement":
         if (
@@ -136,7 +156,10 @@ export function getWebsiteReadinessIssues({
         } else {
           const cta = announcementContent?.cta;
           const hasButtonLabel = hasText(cta?.label.en) || hasText(cta?.label.ro);
-          if (cta?.enabled && hasButtonLabel && !hasText(cta.url)) {
+          if (cta?.enabled && !hasButtonLabel) {
+            issues.push({ type: "announcement", field: "cta-label" });
+            seen.add("announcement");
+          } else if (cta?.enabled && !hasText(cta.url)) {
             issues.push({ type: "announcement", field: "cta-url" });
             seen.add("announcement");
           }

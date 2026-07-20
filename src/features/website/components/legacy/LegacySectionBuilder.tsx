@@ -43,14 +43,14 @@ import type {
   Business,
   SectionEntry,
   GalleryConfig,
-  LocationWithAssignments,
+  WebsiteBuilderLocation,
   FaqItem,
   AnnouncementContent,
   WebsiteVariantCatalogEntry,
   WebsiteSectionCatalogEntry,
 } from "../../types";
 import { SECTION_META, isKnownSectionType, PINNED_TYPES, REQUIRED_TYPES } from "../builder/sectionCatalog";
-import { SectionCard, type SectionCardStatus } from "../builder/SectionCard";
+import { SectionCard } from "../builder/SectionCard";
 import { VariantPurchaseDialog } from "../builder/VariantPurchaseDialog";
 import { variantPriceLabel } from "../builder/pricing";
 import { SectionStylePicker, VariantPickerSkeleton, EASE, type WebsiteT, type SectionStyleOption } from "../builder/SectionStylePicker";
@@ -58,14 +58,20 @@ import { SettingsPanel } from "../builder/SettingsPanel";
 import { LivePreview, marqueeItems, MARQUEE_MIN_ITEMS, UNNUMBERED, type PreviewData, type PreviewReview, type RatingBars } from "../builder/LivePreview";
 import { AutoHeight } from "../builder/AutoHeight";
 import { useLocationTagDictionaries } from "../../../marketplace/hooks/useLocationTagDictionaries";
-import { aboutHeadline } from "../builder/aboutContent";
-import { MIN_GALLERY_IMAGES, isGallerySelectionIncomplete, resolveGalleryImages } from "../builder/gallerySelection";
+import { isGallerySelectionIncomplete } from "../builder/gallerySelection";
 import {
   MIN_TEAM_MEMBERS,
   MIN_TESTIMONIAL_REVIEWS,
   reviewCount,
   teamMemberCount,
 } from "../builder/sectionDataRequirements";
+import { resolvePreviewLocations } from "../builder/locationSelection";
+import {
+  buildSectionRowInfo,
+  filterOfferedSections,
+  sectionSummaryWithVariant,
+} from "../builder/sectionBuilderModel";
+import { heroVariantRequiresCoverImage } from "../builder/heroCoverRequirement";
 
 const SECTION_PREVIEW_PREF_KEY = "zavoia:business-page-section-preview";
 const PREVIEW_DEVICE_PREF_KEY = "zavoia:website-builder-preview-device";
@@ -74,21 +80,12 @@ type PreviewScope = "page" | "section";
 type PreviewDevice = "desktop" | "tablet" | "mobile";
 type WorkspacePane = "editor" | "preview";
 
-interface SectionRowInfo {
-  summary: string;
-  status?: SectionCardStatus;
-  noData?: boolean;
-}
-
 interface UndoToastOptions {
   title: string;
   description?: string;
   undoLabel: string;
   onUndo: () => void;
 }
-
-const firstLocaleText = (value: { en?: string; ro?: string } | undefined, locale: "en" | "ro") =>
-  value?.[locale]?.trim() || value?.en?.trim() || value?.ro?.trim() || "";
 
 const showUndoToast = ({ title, description, undoLabel, onUndo }: UndoToastOptions) => {
   toast.custom(
@@ -139,6 +136,9 @@ interface LegacySectionBuilderProps {
   setAnnouncementContent: (value: AnnouncementContent) => void;
   aboutContent: string;
   setAboutContent: (value: string) => void;
+  establishedYear: number | null;
+  setEstablishedYear: (value: number | null) => void;
+  establishedYearError?: string | null;
   /** The Brand column (logo / color / tagline / typeface / cover / link) rendered to the right of the list. */
   brandPanel: ReactNode;
   /** Pending-unlocks trigger (sheet) rendered with the workspace controls below xl. */
@@ -147,7 +147,7 @@ interface LegacySectionBuilderProps {
   unlockTray?: ReactNode;
   // Preview inputs (read from the live form + listing data)
   business: Business | null;
-  locations: LocationWithAssignments[];
+  locations: WebsiteBuilderLocation[];
   heroImageUrl: string | null;
   tagline: string;
   setTagline: (value: string) => void;
@@ -219,6 +219,13 @@ export function LegacySectionBuilder(props: LegacySectionBuilderProps) {
   const [workspacePane, setWorkspacePane] = useState<WorkspacePane>("editor");
   // Sections are edited and previewed in the owner's app language (no language toggle).
   const locale: "en" | "ro" = i18n.language?.toLowerCase().startsWith("ro") ? "ro" : "en";
+  const serviceLocations = useMemo(
+    () => resolvePreviewLocations(props.layout, props.locations),
+    [props.layout, props.locations],
+  );
+  const [previewSelectedLocationId, setPreviewSelectedLocationId] = useState<
+    number | null | undefined
+  >(undefined);
   const [device, setDevice] = useState<PreviewDevice>(() => {
     if (typeof window === "undefined") return "desktop";
     const saved = window.localStorage.getItem(PREVIEW_DEVICE_PREF_KEY);
@@ -424,10 +431,13 @@ export function LegacySectionBuilder(props: LegacySectionBuilderProps) {
   const previewData: PreviewData = useMemo(
     () => ({
       businessName: props.business?.name ?? "",
+      businessTimezone: props.business?.timezone?.trim() || "UTC",
       logo: props.business?.logo ?? null,
       heroImageUrl: props.heroImageUrl,
       tagline: props.tagline,
       aboutContent: props.aboutContent,
+      establishedYear: props.establishedYear,
+      businessCurrency: props.business?.businessCurrency?.trim().toUpperCase() || "EUR",
       email: props.useBusinessEmail ? props.business?.email ?? "" : props.email,
       phone: props.useBusinessPhone ? props.business?.phone ?? "" : props.phone,
       social: {
@@ -453,6 +463,7 @@ export function LegacySectionBuilder(props: LegacySectionBuilderProps) {
       props.heroImageUrl,
       props.tagline,
       props.aboutContent,
+      props.establishedYear,
       props.useBusinessEmail,
       props.email,
       props.useBusinessPhone,
@@ -560,181 +571,30 @@ export function LegacySectionBuilder(props: LegacySectionBuilderProps) {
     [props.layout, isSectionOffered],
   );
 
-  const rowInfoFor = (entry: SectionEntry): SectionRowInfo => {
-      if (!isKnownSectionType(entry.type)) {
-        return {
-          summary: t("businessPage.builder.summary.newerVersion"),
-          status: { label: t("businessPage.builder.summary.newerVersion"), tone: "muted" },
-        };
-      }
-      const fixed = REQUIRED_TYPES.has(entry.type);
-      const sectionCatalogEntry = sectionCatalogByType.get(entry.type);
-      const sectionLocked =
-        !!sectionCatalogEntry && sectionCatalogEntry.priceMinor > 0 && !sectionCatalogEntry.owned;
-      const activeVariantCatalogEntry = catalogByKey.get(`${entry.type}:${entry.variant}`);
-      const variantLocked =
-        !!activeVariantCatalogEntry &&
-        activeVariantCatalogEntry.priceMinor > 0 &&
-        !activeVariantCatalogEntry.owned;
-      const premiumStatus: SectionCardStatus | undefined =
-        entry.visible && (sectionLocked || variantLocked)
-          ? { label: t("businessPage.paidVariants.lockedBadge"), tone: "warning" }
-          : undefined;
-      const hiddenStatus: SectionCardStatus | undefined = !entry.visible
-        ? { label: t("businessPage.builder.summary.hidden"), tone: "muted" }
-        : undefined;
-      const fixedStatus: SectionCardStatus | undefined = fixed
-        ? { label: t("businessPage.builder.summary.fixed"), tone: "neutral" }
-        : undefined;
+  const summaryLayout = filterOfferedSections(layoutWithPreviewVariants, isSectionOffered);
 
-      const noDataStatus: SectionCardStatus = {
-        label: t("businessPage.builder.summary.noData"),
-        tone: "warning",
-      };
-      const needsContentStatus: SectionCardStatus = {
-        label: t("businessPage.builder.summary.needsContent"),
-        tone: "danger",
-      };
-
-      const withStatus = (
-        summary: string,
-        status?: SectionCardStatus,
-        noData = false,
-      ): SectionRowInfo => ({
-        summary,
-        status: hiddenStatus ?? status ?? premiumStatus ?? fixedStatus,
-        noData,
-      });
-
-      switch (entry.type) {
-        case "announcement": {
-          const message = firstLocaleText(props.announcementContent.message, locale);
-          const needsContent = entry.visible && !!props.announcementError;
-          return withStatus(
-            message || t("businessPage.builder.summary.noMessage"),
-            needsContent ? needsContentStatus : undefined,
-            !message,
-          );
-        }
-        case "nav":
-          return withStatus(t("businessPage.builder.summary.logoLinksBooking"));
-        case "hero": {
-          const hasCover = !!props.heroImageUrl;
-          const hasSubtitle = props.tagline.trim().length > 0;
-          return withStatus(
-            hasCover
-              ? t("businessPage.builder.summary.coverSet")
-              : hasSubtitle
-                ? t("businessPage.builder.summary.subtitleSet")
-                : t("businessPage.builder.summary.addSubtitle"),
-            props.taglineError ? needsContentStatus : undefined,
-          );
-        }
-        case "marquee": {
-          const count = marqueeItems(props.locations).length;
-          return withStatus(
-            count < MARQUEE_MIN_ITEMS
-              ? t("businessPage.builder.summary.servicesProgress", {
-                  count,
-                  required: MARQUEE_MIN_ITEMS,
-                })
-              : count > 0
-              ? t("businessPage.builder.summary.services", { count })
-              : t("businessPage.builder.summary.servicesEmpty"),
-            count < MARQUEE_MIN_ITEMS ? noDataStatus : undefined,
-            count === 0,
-          );
-        }
-        case "about": {
-          const headline = aboutHeadline(props.aboutContent);
-          const needsContent = entry.visible && !!props.aboutError;
-          return withStatus(
-            headline || t("businessPage.builder.summary.noHeadline"),
-            needsContent ? needsContentStatus : undefined,
-            !headline,
-          );
-        }
-        case "locations": {
-          const hiddenIds = (entry.config?.hiddenLocationIds as number[] | undefined) ?? [];
-          const total = props.locations.length;
-          const visible = props.locations.filter((location) => !hiddenIds.includes(location.id)).length;
-          return withStatus(
-            total > 0
-              ? t("businessPage.builder.summary.locationsShown", { shown: visible, total })
-              : t("businessPage.builder.summary.locationsEmpty"),
-            total === 0 || visible === 0 ? noDataStatus : undefined,
-            total === 0 || visible === 0,
-          );
-        }
-        case "gallery": {
-          const count = resolveGalleryImages((entry.config ?? {}) as GalleryConfig, props.locations).length;
-          const needsContent = entry.visible && count < MIN_GALLERY_IMAGES;
-          return withStatus(
-            needsContent
-              ? t("businessPage.builder.summary.photosProgress", {
-                  count,
-                  required: MIN_GALLERY_IMAGES,
-                })
-              : count > 0
-                ? t("businessPage.builder.summary.photos", { count })
-                : t("businessPage.builder.summary.photosEmpty"),
-            needsContent ? needsContentStatus : count === 0 ? noDataStatus : undefined,
-            count === 0,
-          );
-        }
-        case "team": {
-          const count = teamMemberCount(props.locations);
-          return withStatus(
-            count < MIN_TEAM_MEMBERS
-              ? t("businessPage.builder.summary.membersProgress", {
-                  count,
-                  required: MIN_TEAM_MEMBERS,
-                })
-              : count > 0
-              ? t("businessPage.builder.summary.members", { count })
-              : t("businessPage.builder.summary.membersEmpty"),
-            count < MIN_TEAM_MEMBERS ? noDataStatus : undefined,
-            count === 0,
-          );
-        }
-        case "testimonials": {
-          const count = reviewCount(props.locations, props.reviews);
-          return withStatus(
-            count < MIN_TESTIMONIAL_REVIEWS
-              ? t("businessPage.builder.summary.reviewsProgress", {
-                  count,
-                  required: MIN_TESTIMONIAL_REVIEWS,
-                })
-              : count > 0
-              ? t("businessPage.builder.summary.reviews", { count })
-              : t("businessPage.builder.summary.reviewsEmpty"),
-            count < MIN_TESTIMONIAL_REVIEWS ? noDataStatus : undefined,
-            count === 0,
-          );
-        }
-        case "faq": {
-          // A just-added blank row isn't a question yet — readiness counts real content only.
-          const count = props.faqItems.filter(
-            (item) =>
-              (item.q.en?.trim() ?? "") !== "" ||
-              (item.q.ro?.trim() ?? "") !== "" ||
-              (item.a.en?.trim() ?? "") !== "" ||
-              (item.a.ro?.trim() ?? "") !== "",
-          ).length;
-          return withStatus(
-            count > 0
-              ? t("businessPage.builder.summary.questions", { count })
-              : t("businessPage.builder.summary.questionsEmpty"),
-            count === 0 ? noDataStatus : undefined,
-            count === 0,
-          );
-        }
-        case "footer":
-          return withStatus(t("businessPage.builder.summary.footerContent"));
-        default:
-          return withStatus(t("businessPage.builder.summary.generated"));
-      }
-  };
+  const rowInfoFor = (entry: SectionEntry) =>
+    buildSectionRowInfo(entry, {
+      t,
+      locale,
+      layout: summaryLayout,
+      business: props.business,
+      selectedLocationId: previewSelectedLocationId,
+      announcementContent: props.announcementContent,
+      announcementError: props.announcementError,
+      heroImageUrl: props.heroImageUrl,
+      tagline: props.tagline,
+      taglineError: props.taglineError,
+      aboutContent: props.aboutContent,
+      aboutError: props.aboutError,
+      locations: props.locations,
+      serviceLocations,
+      marqueeItemCount,
+      reviews: props.reviews,
+      faqItems: props.faqItems,
+      sectionCatalogByType,
+      variantCatalogByKey: catalogByKey,
+    });
 
   /**
    * Show/hide with an Undo toast. Everything is keyed by section type — never by index — so
@@ -828,9 +688,9 @@ export function LegacySectionBuilder(props: LegacySectionBuilderProps) {
     return () => window.cancelAnimationFrame(frame);
   }, [device, openType, workspacePane]);
 
-  const focusHeroCoverRecommendation = useCallback(() => {
+  const focusHeroCoverUpload = useCallback(() => {
     const reveal = () => {
-      const target = document.getElementById("hero-cover-recommendation");
+      const target = document.getElementById("hero-cover-upload");
       if (!target) return;
       const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
       target.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "center" });
@@ -914,17 +774,17 @@ export function LegacySectionBuilder(props: LegacySectionBuilderProps) {
               selectedVariantId={previewVariantId}
               disabled={!entry.visible || !props.canWrite || dataLocked}
               onSelect={(option) => {
-                const revealCoverRecommendation =
+                const revealCoverRequirement =
                   entry.type === "hero" &&
                   !props.heroImageUrl &&
-                  (option.variant.id === "cinematic" || option.variant.id === "portal");
+                  heroVariantRequiresCoverImage(option.variant.id);
                 if (option.locked && option.catalogEntry) {
                   setPreviewVariantByType((current) => ({
                     ...current,
                     [entry.type]: option.variant.id,
                   }));
                   if (!sectionPreviewOpen) setPreviewTrayOpen(true);
-                  if (revealCoverRecommendation) focusHeroCoverRecommendation();
+                  if (revealCoverRequirement) focusHeroCoverUpload();
                   return;
                 }
                 setPreviewVariantByType((current) => {
@@ -934,7 +794,7 @@ export function LegacySectionBuilder(props: LegacySectionBuilderProps) {
                   return next;
                 });
                 props.setSectionVariant(index, option.variant.id);
-                if (revealCoverRecommendation) focusHeroCoverRecommendation();
+                if (revealCoverRequirement) focusHeroCoverUpload();
               }}
               t={t}
               isNative={props.isNative}
@@ -996,9 +856,13 @@ export function LegacySectionBuilder(props: LegacySectionBuilderProps) {
             entry={entry}
             index={index}
             locations={props.locations}
+            serviceLocations={serviceLocations}
             faqItems={props.faqItems}
             announcementContent={props.announcementContent}
             aboutContent={props.aboutContent}
+            businessDescription={props.business?.description ?? null}
+            establishedYear={props.establishedYear}
+            establishedYearError={props.establishedYearError}
             tagline={props.tagline}
             taglineError={props.taglineError}
             heroImageUrl={props.heroImageUrl}
@@ -1012,7 +876,10 @@ export function LegacySectionBuilder(props: LegacySectionBuilderProps) {
             onFaqChange={props.setFaqItems}
             onAnnouncementChange={props.setAnnouncementContent}
             onAboutChange={props.setAboutContent}
+            onEstablishedYearChange={props.setEstablishedYear}
             onTaglineChange={props.setTagline}
+            selectedPreviewLocationId={previewSelectedLocationId}
+            onPreviewLocationSelect={setPreviewSelectedLocationId}
             previewVariant={previewVariantId}
           />
         </fieldset>
@@ -1075,6 +942,9 @@ export function LegacySectionBuilder(props: LegacySectionBuilderProps) {
                         data={previewData}
                         chrome={false}
                         startNumber={previewNumber}
+                        selectedLocationId={previewSelectedLocationId}
+                        onSelectedLocationChange={setPreviewSelectedLocationId}
+                        locationScope={serviceLocations}
                       />
                     </div>
                   </div>
@@ -1176,7 +1046,9 @@ export function LegacySectionBuilder(props: LegacySectionBuilderProps) {
                       // interaction (expand, toggle) opens the unlock purchase dialog instead.
                       const paidLocked = lockedSectionEntry(entry.type);
                       const open = openType === entry.type && !paidLocked && !readOnly;
-                      const rowInfo = rowInfoFor(entry);
+                      const previewEntry = layoutWithPreviewVariants[index] ?? entry;
+                      const rowInfo = rowInfoFor(previewEntry);
+                      const rowSummary = sectionSummaryWithVariant(previewEntry, rowInfo.summary, t);
                       const dataLocked = dataLockedTypes.has(entry.type);
                       return (
                         <Collapsible
@@ -1199,15 +1071,19 @@ export function LegacySectionBuilder(props: LegacySectionBuilderProps) {
                           )}
                         >
                           <SectionCard
-                            entry={entry}
+                            entry={previewEntry}
                             meta={isKnownSectionType(entry.type) ? SECTION_META[entry.type] : null}
-                            summary={rowInfo.summary}
+                            summary={rowSummary}
                             status={rowInfo.status}
                             expanded={open}
+                            previewOnlyPremium={previewVariantByType[entry.type] != null}
                             locked={PINNED_TYPES.has(entry.type)}
                             readOnly={readOnly}
                             required={REQUIRED_TYPES.has(entry.type)}
                             needsAttention={
+                              (entry.type === "hero" &&
+                                heroVariantRequiresCoverImage(previewEntry.variant) &&
+                                !props.heroImageUrl) ||
                               (entry.type === "about" && !!props.aboutError) ||
                               (entry.type === "announcement" && !!props.announcementError) ||
                               (entry.type === "gallery" &&
@@ -1272,11 +1148,7 @@ export function LegacySectionBuilder(props: LegacySectionBuilderProps) {
                               open={open}
                               onOpenChange={(next) => setOpenType(next ? entry.type : null)}
                               title={isKnownSectionType(entry.type) ? t(SECTION_META[entry.type].labelKey) : entry.type}
-                              description={
-                                rowInfo.status
-                                  ? `${rowInfo.status.label} · ${rowInfo.summary}`
-                                  : rowInfo.summary
-                              }
+                              description={rowSummary}
                             >
                               {renderSettings(entry, index)}
                             </MobileSectionEditorSheet>
@@ -1369,6 +1241,8 @@ export function LegacySectionBuilder(props: LegacySectionBuilderProps) {
                   layout={workspaceLayout}
                   data={previewData}
                   focusType={openType ?? undefined}
+                  selectedLocationId={previewSelectedLocationId}
+                  onSelectedLocationChange={setPreviewSelectedLocationId}
                 />
               </div>
             </div>
@@ -1448,6 +1322,9 @@ export function LegacySectionBuilder(props: LegacySectionBuilderProps) {
                 chrome={modalChrome}
                 startNumber={modalStartNumber}
                 focusType={modalChrome ? previewFocusType ?? undefined : undefined}
+                selectedLocationId={previewSelectedLocationId}
+                onSelectedLocationChange={setPreviewSelectedLocationId}
+                locationScope={modalChrome ? undefined : serviceLocations}
               />
             </div>
           </div>

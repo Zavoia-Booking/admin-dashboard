@@ -1,0 +1,80 @@
+/* Locations · Atlas — the executable design is a tab-fed photo stage + visit sheet. The shadcn/Radix
+   wrappers are reset here to the microsite geometry while retaining their keyboard/ARIA behavior. */
+.mc-atlas { display: block; gap: 0; }
+.mc-atlas .mc-cta-tabs { display: flex; width: 100%; height: auto; flex-wrap: wrap; align-items: stretch; justify-content: flex-start; gap: 0; overflow: visible; border-bottom: 1px solid var(--mc-line); border-radius: 0; background: transparent; padding: 0; color: inherit; animation: mcAtlasReveal 900ms var(--ease-out-strong) both; }
+.mc-atlas .mc-cta-tab { position: relative; display: flex; width: auto; height: auto; flex: none; flex-direction: column; align-items: flex-start; justify-content: flex-start; gap: 3px; margin-right: clamp(8px, 1.6cqw, 22px); border: 0 !important; border-radius: 0; background: none !important; padding: 6px clamp(18px, 2.6cqw, 34px) 15px 0; color: inherit; font-family: inherit; font-size: inherit; font-weight: inherit; text-align: left; white-space: normal; box-shadow: none !important; cursor: pointer; }
+.mc-atlas .mc-cta-tab::after { content: ""; position: absolute; right: 100%; bottom: -1px; left: 0; height: 2px; background: var(--mc-accent); transition: right 400ms var(--ease-out-strong); }
+.mc-atlas .mc-cta-tab[data-on="1"]::after { right: clamp(18px, 2.6cqw, 34px); }
+.mc-atlas .mc-cta-tab-nm { color: color-mix(in oklch, var(--mc-fg) 55%, var(--mc-bg)); font-family: var(--mc-display); font-size: clamp(18px, 2cqw, 25px); font-weight: var(--mc-display-weight); letter-spacing: var(--mc-display-tracking); line-height: 1.15; transition: color 300ms; }
+.mc-atlas .mc-cta-tab[data-on="1"] .mc-cta-tab-nm,
+.mc-atlas .mc-cta-tab:hover .mc-cta-tab-nm { color: var(--mc-fg); }
+.mc-atlas .mc-cta-tab-area { color: var(--mc-muted); font-size: 12px; }
+.mc-atlas .mc-cta-tab:focus-visible { outline: 2px solid var(--mc-accent); outline-offset: 3px; box-shadow: none !important; }
+.mc-atlas .mc-atlas-content { display: block; flex: none; outline: none; }
+.mc-atlas .mc-atlas-content[data-state="inactive"] { display: none; }
+.mc-atlas .mc-atlas-content:focus-visible { outline: 2px solid var(--mc-accent); outline-offset: 4px; }
+
+.mc-atlas .mc-loca { display: grid; grid-template-columns: minmax(0, 1.22fr) minmax(0, 0.78fr); align-items: stretch; gap: clamp(16px, 2.4cqw, 32px); margin-top: clamp(22px, 3cqw, 36px); }
+.mc-atlas .mc-loca-fig { position: relative; overflow: hidden; min-height: clamp(380px, calc(var(--mc-vph, 760px) * 0.54), 620px); border-radius: 14px; background: var(--mc-line); }
+.mc-atlas .mc-loca-fig img { width: 100%; height: 100%; object-fit: cover; }
+.mc-atlas .mc-loca-fallback { position: absolute; inset: 0; background: var(--mc-accent-field); }
+.mc-atlas .mc-loca-scrim { pointer-events: none; position: absolute; inset: 0; background: linear-gradient(to top, rgba(12, 10, 9, 0.62) 0%, rgba(12, 10, 9, 0.12) 42%, rgba(12, 10, 9, 0) 66%); }
+.mc-atlas .mc-loca-cap { position: absolute; right: 0; bottom: 0; left: 0; padding: clamp(18px, 2.6cqw, 34px); color: #fff; }
+.mc-atlas .mc-loca-fig[data-photo="0"] .mc-loca-cap,
+.mc-atlas .mc-loca-fig[data-photo="0"] .mc-loca-cap-blurb { color: var(--mc-on-accent); }
+.mc-atlas .mc-loca-cap-nm { color: inherit; font-family: var(--mc-display); font-size: clamp(30px, 3.6cqw, 50px); font-weight: var(--mc-display-weight); letter-spacing: var(--mc-display-tracking); line-height: 0.96; text-wrap: balance; }
+.mc-atlas .mc-loca-cap-blurb { max-width: 48ch; margin: 10px 0 0; color: rgba(255, 255, 255, 0.88); font-size: 14px; line-height: 1.5; text-wrap: pretty; }
+
+.mc-atlas .mc-loca-sheet { display: flex; flex-direction: column; gap: 18px; border-radius: 14px; background: var(--mc-card, #fff); padding: clamp(20px, 2.4cqw, 32px); box-shadow: 0 6px 16px rgba(28, 28, 26, 0.08), 0 18px 40px rgba(28, 28, 26, 0.12); }
+.mc-atlas .mc-loca-fade { display: flex; flex: 1; flex-direction: column; gap: 16px; opacity: 0; transform: translateY(10px); transition: opacity 500ms var(--ease-out-strong), transform 500ms var(--ease-out-strong); }
+.mc-atlas .mc-loca-fade[data-shown="1"] { opacity: 1; transform: none; }
+.mc-atlas .mc-contact-h { margin-bottom: 8px; color: var(--mc-muted); font-family: var(--mc-mono); font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; }
+.mc-atlas .mc-loca-rows { display: flex; flex-direction: column; gap: 2px; }
+.mc-atlas .mc-contact-row { display: block; color: var(--mc-fg); font-size: 15px; line-height: 1.8; overflow-wrap: anywhere; }
+.mc-atlas .mc-hours-row { display: flex; justify-content: space-between; gap: 18px; padding: 4px 0; color: var(--mc-fg); font-size: 14px; }
+.mc-atlas .mc-hours-row span:last-child { color: var(--mc-muted); font-family: var(--mc-mono); font-size: 12.5px; font-variant-numeric: tabular-nums; text-align: right; }
+
+/* Fixed icon-row amenities renderer in Atlas' unframed sheet position. */
+.mc-atlas .mc-loc-amen { border-top: 0; padding: 0; }
+.mc-atlas .mc-loc-amen-label { display: inline-flex; align-items: center; margin-bottom: 14px; color: var(--mc-muted); font-family: var(--mc-mono); font-size: 10.5px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; }
+.mc-atlas .mc-loc-amen-list { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.mc-atlas .mc-loc-amen-item { display: inline-flex; max-width: 100%; align-items: center; gap: 7px; border: 1px solid var(--mc-line); border-radius: 999px; padding: 7px 12px 7px 10px; color: var(--mc-fg); font-size: 12.5px; line-height: 1.15; transition: border-color 250ms, background-color 250ms; }
+.mc-atlas .mc-loc-amen-item svg { flex: none; color: var(--mc-accent); }
+.mc-atlas .mc-loc-amen-item span { min-width: 0; overflow-wrap: anywhere; }
+.mc-atlas .mc-loc-amen-item:hover { border-color: color-mix(in oklch, var(--mc-accent) 50%, var(--mc-line)); background: color-mix(in oklch, var(--mc-accent) 5%, transparent); }
+
+.mc-atlas .mc-loca-book { width: 100%; margin-top: auto; }
+.mc-atlas .mc-loca-book-action { justify-content: center; width: 100%; border-radius: 999px; padding: 16px 30px; background: var(--mc-accent-field); color: var(--mc-on-accent); font-size: 15.5px; font-weight: 600; transition: filter 300ms var(--ease-out-strong), box-shadow 350ms var(--ease-out-strong); }
+.mc-atlas .mc-loca-book-action:hover { filter: brightness(0.94); box-shadow: 0 4px 16px color-mix(in oklch, var(--mc-accent) 22%, transparent); }
+
+@keyframes mcAtlasImage { from { opacity: 0; transform: scale(1.07); } to { opacity: 1; transform: scale(1); } }
+@keyframes mcAtlasRise { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes mcAtlasReveal { from { opacity: 0; transform: translateY(38px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes mcAtlasSheet { from { opacity: 0; transform: translateY(38px); } to { opacity: 1; transform: translateY(0); } }
+.mc-atlas .mc-locx-img { animation: mcAtlasImage 850ms var(--ease-out-strong) both; }
+.mc-atlas .mc-loca-rise { animation: mcAtlasRise 600ms var(--ease-out-strong) both; }
+.mc-atlas .mc-loca-sheet-in { animation: mcAtlasSheet 900ms var(--ease-out-strong) 80ms both; }
+
+@container (max-width: 880px) {
+  .mc-atlas .mc-loca { grid-template-columns: 1fr; }
+  .mc-atlas .mc-loca-fig { min-height: clamp(300px, 60cqw, 440px); }
+}
+
+@container (max-width: 720px) {
+  .mc-atlas .mc-cta-tabs { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; -webkit-mask-image: linear-gradient(to right, #000 86%, transparent); mask-image: linear-gradient(to right, #000 86%, transparent); }
+  .mc-atlas .mc-cta-tabs::-webkit-scrollbar { display: none; }
+  .mc-atlas .mc-cta-tab { flex: none; }
+}
+
+@container (max-width: 600px) {
+  .mc-atlas .mc-loca-book > span { padding: 14px 24px; font-size: 14.5px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mc-atlas .mc-cta-tabs,
+  .mc-atlas .mc-locx-img,
+  .mc-atlas .mc-loca-rise,
+  .mc-atlas .mc-loca-sheet-in { animation: none !important; }
+  .mc-atlas .mc-cta-tab::after { transition: none; }
+  .mc-atlas .mc-loca-fade { opacity: 1; transform: none; transition: none; }
+}

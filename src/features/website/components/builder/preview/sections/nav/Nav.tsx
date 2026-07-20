@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { sectionLinkLabelKey } from "../../shared/sectionLinks";
 import { findScrollParent, prefersReducedMotion } from "../../shared/util";
 import type { NavVariantProps } from "./types";
 import type { NavLinkItem, NavStyleKey, NavVariantViewProps } from "./parts";
@@ -12,14 +13,6 @@ import { Underlay } from "./variants/Underlay";
 
 /** Nav frost over the hero: scroll distance to full blur. LivePreview drives the frost `progress` off this. */
 export const FROST_DIST = 240;
-
-const NAV_LABELS: Record<string, string> = {
-  about: "businessPage.builder.preview.kicker.about",
-  locations: "businessPage.builder.preview.kicker.locations",
-  gallery: "businessPage.builder.preview.kicker.gallery",
-  team: "businessPage.builder.preview.kicker.team",
-  testimonials: "businessPage.builder.preview.kicker.reviews",
-};
 
 /** `default` is the persisted catalog id for Editorial. Retired source ids remain safe renderer aliases. */
 export function normalizeNavStyle(value: string | undefined): NavStyleKey {
@@ -44,9 +37,12 @@ export function Nav(props: NavVariantProps) {
   const name = props.data.businessName || props.t("businessPage.builder.preview.businessNamePlaceholder");
   const mark = name.trim().charAt(0).toUpperCase() || "•";
   const links = useMemo<NavLinkItem[]>(
-    () => props.layout
-      .filter((section) => section.visible && NAV_LABELS[section.type])
-      .map((section) => ({ type: section.type, label: props.t(NAV_LABELS[section.type]) })),
+    () => props.layout.flatMap((section) => {
+      const labelKey = sectionLinkLabelKey(section.type);
+      return section.visible && labelKey
+        ? [{ type: section.type, label: props.t(labelKey) }]
+        : [];
+    }),
     [props.layout, props.t],
   );
   const [activeType, setActiveType] = useState(links[0]?.type ?? "");

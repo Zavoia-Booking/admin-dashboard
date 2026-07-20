@@ -15,10 +15,12 @@ import { Card, CardContent, CardHeader } from "../../../../shared/components/ui/
 import { cn } from "../../../../shared/lib/utils";
 import type { FaqConfig, FaqItem } from "../../types";
 import { hasUnsafeWebsiteCopyCharacters } from "../../../../shared/utils/validation";
-import { CopyOverride } from "./CopyOverride";
+import { OptionalCopyOverride } from "./OptionalCopyOverride";
+import { localeCopyIsHidden, setLocaleCopyHidden } from "./copyBlankState";
 import { AutoHeight } from "./AutoHeight";
 import { validateFaqItemLocale } from "./faqValidation";
 import { completeFaqCount } from "./sectionReadiness";
+import type { WebsiteDraftIssue } from "./draftValidation";
 
 const MAX_ITEMS = 7;
 const MAX_ANSWER = 600;
@@ -31,6 +33,8 @@ interface FaqEditorProps {
   locale: "en" | "ro";
   config: FaqConfig;
   onConfigChange: (patch: Partial<FaqConfig>) => void;
+  showHeading?: boolean;
+  blockingIssues?: WebsiteDraftIssue[];
 }
 
 /** Edits the dashboard locale while preserving content already entered in the other locale. */
@@ -40,11 +44,17 @@ export function FaqEditor({
   locale,
   config,
   onConfigChange,
+  showHeading = true,
+  blockingIssues = [],
 }: FaqEditorProps) {
   const { t } = useTranslation(["website", "common"]);
   const [blurredFields, setBlurredFields] = useState<Set<string>>(() => new Set());
   const [addBlockedFields, setAddBlockedFields] = useState<Set<string>>(() => new Set());
   const [openItemIndex, setOpenItemIndex] = useState<number | null>(0);
+  const issueFor = (controlId: string) => blockingIssues.find(
+    (issue) => issue.controlId === controlId && (!issue.locale || issue.locale === locale),
+  )?.message;
+  const headingError = issueFor("faq-heading");
   const editorItems = items.length > 0 ? items : [emptyItem()];
   const completeItemCount = items.reduce((count, item, index) => {
     const question = item.q[locale].trim();
@@ -74,6 +84,9 @@ export function FaqEditor({
     const hasOverride = next.en.trim() !== "" || next.ro.trim() !== "";
     onConfigChange({ heading: hasOverride ? next : undefined });
   };
+  const setHeadingBlank = (blank: boolean) => onConfigChange({
+    headingHidden: setLocaleCopyHidden(config.headingHidden, locale, blank),
+  });
 
   const update = (index: number, field: "q" | "a", value: string) => {
     onChange(
@@ -137,16 +150,21 @@ export function FaqEditor({
   return (
     <div className="atelier-faq-editor space-y-3">
       <div className="space-y-4 pb-2">
-        <CopyOverride
-          idBase="faq-heading"
-          locale={locale}
-          label={t("businessPage.builder.settings.headingLabel")}
-          defaultText={t("businessPage.builder.preview.subhead.faq")}
-          value={config.heading?.[locale] ?? ""}
-          onChange={setHeading}
-          maxLength={80}
-          rows={2}
-        />
+        {showHeading || headingError ? (
+          <OptionalCopyOverride
+            idBase="faq-heading"
+            locale={locale}
+            label={t("businessPage.builder.settings.headingLabel")}
+            defaultText={t("businessPage.builder.preview.subhead.faq")}
+            value={config.heading?.[locale] ?? ""}
+            blank={localeCopyIsHidden(config.headingHidden, locale)}
+            onChange={setHeading}
+            onBlankChange={setHeadingBlank}
+            maxLength={80}
+            rows={2}
+            externalError={headingError}
+          />
+        ) : null}
         <p className="text-[12px] leading-5 text-foreground-3">
           {t("businessPage.builder.settings.faqHint")}
         </p>
@@ -185,12 +203,14 @@ export function FaqEditor({
       <div className="border-t border-border-subtle pt-5" />
 
       {editorItems.map((item, i) => {
-        const isOpen = openItemIndex === i;
         const answerLen = item.a[locale].length;
         const near = answerLen >= MAX_ANSWER * 0.9;
         const number = i + 1;
         const questionId = `faq-question-${i}`;
         const answerId = `faq-answer-${i}`;
+        const externalQuestionError = issueFor(questionId);
+        const externalAnswerError = issueFor(answerId);
+        const isOpen = openItemIndex === i || !!externalQuestionError || !!externalAnswerError;
         const questionKey = `${locale}:${i}:question`;
         const answerKey = `${locale}:${i}:answer`;
         const validation = validateFaqItemLocale(item, locale, t, number);
@@ -198,16 +218,18 @@ export function FaqEditor({
           blurredFields.has(questionKey);
         const showAnswerError = hasUnsafeWebsiteCopyCharacters(item.a[locale]) ||
           blurredFields.has(answerKey);
-        const questionError = showQuestionError
+        const localQuestionError = showQuestionError
           ? addBlockedFields.has(questionKey) && item.q[locale].trim() === ""
             ? t("businessPage.builder.faq.questionRequiredBeforeAdd")
             : validation.question
           : undefined;
-        const answerError = showAnswerError
+        const localAnswerError = showAnswerError
           ? addBlockedFields.has(answerKey) && item.a[locale].trim() === ""
             ? t("businessPage.builder.faq.answerRequiredBeforeAdd")
             : validation.answer
           : undefined;
+        const questionError = externalQuestionError ?? localQuestionError;
+        const answerError = externalAnswerError ?? localAnswerError;
         return (
           <Collapsible
             key={i}

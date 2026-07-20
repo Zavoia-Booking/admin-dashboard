@@ -101,10 +101,17 @@ export interface IndustryTag {
   slug?: string;
 }
 
-// Minimal bundle shape for marketplace catalog (from assignment tables)
+// Location-scoped bundle shape used by the marketplace and Website Builder service menu.
 export interface MarketplaceBundle {
   id: number;
+  uuid?: string;
   name: string;
+  /** Additive rich fields are optional so a rolling/cached legacy `{id,name}` response stays safe. */
+  description?: string | null;
+  price_amount_minor?: number | null;
+  duration?: number;
+  services?: Array<{ id: number; name: string }>;
+  includes?: string[];
 }
 
 // Location with assignments (read from actual assignment tables)

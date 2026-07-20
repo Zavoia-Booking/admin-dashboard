@@ -3,6 +3,7 @@ import { mapHref, telHref } from "../../../shared/contact";
 import { FootSocials } from "../parts/FootSocials";
 import { FooterLegal } from "../parts/FooterLegal";
 import { useFitMark } from "../parts/useFitMark";
+import { socialLinks } from "../parts/socials";
 import type { FooterViewProps } from "../types";
 
 import "./masthead.css";
@@ -33,6 +34,11 @@ export function Masthead({ data, t, footerRef, links, selectedLocationId, onNavi
   const website = data.social.website?.trim();
   const websiteHref = website ? absoluteUrl(website) : null;
   const websiteLabel = website?.replace(/^https?:\/\//i, "").replace(/\/$/, "");
+  const socials = socialLinks(data.social);
+  const columnCount = Number(links.length > 0)
+    + Number(data.locations.length > 0)
+    + 1
+    + Number(socials.length > 0);
   const locationsLabel = data.locations.length > 1
     ? t("businessPage.builder.preview.kicker.locations")
     : t("businessPage.builder.preview.footerWhere");
@@ -44,7 +50,7 @@ export function Masthead({ data, t, footerRef, links, selectedLocationId, onNavi
 
   return (
     <footer ref={footerRef} className="mc-footer mc-footer--masthead" data-preview-section="footer">
-      <div className="mc-fmh">
+      <div className="mc-fmh" data-columns={columnCount}>
         <div className="mc-fmh-rules" aria-hidden />
 
         <div className="mc-fmh-cols">
@@ -64,27 +70,29 @@ export function Masthead({ data, t, footerRef, links, selectedLocationId, onNavi
             </nav>
           )}
 
-          <nav className="mc-fmh-col" aria-label={locationsLabel}>
-            <div className="mc-fmh-h">{locationsLabel}</div>
-            {data.locations.map((location) => {
-              const href = mapHref(location);
-              return href ? (
-                <a
-                  key={location.id}
-                  className="mc-fmh-link"
-                  href={href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  {location.name}
-                </a>
-              ) : (
-                <span key={location.id} className="mc-fmh-link mc-fmh-link--static">
-                  {location.name}
-                </span>
-              );
-            })}
-          </nav>
+          {data.locations.length > 0 && (
+            <nav className="mc-fmh-col" aria-label={locationsLabel}>
+              <div className="mc-fmh-h">{locationsLabel}</div>
+              {data.locations.map((location) => {
+                const href = mapHref(location);
+                return href ? (
+                  <a
+                    key={location.id}
+                    className="mc-fmh-link"
+                    href={href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {location.name}
+                  </a>
+                ) : (
+                  <span key={location.id} className="mc-fmh-link mc-fmh-link--static">
+                    {location.name}
+                  </span>
+                );
+              })}
+            </nav>
+          )}
 
           <nav className="mc-fmh-col mc-fmh-contact" aria-label={t("businessPage.builder.preview.contactReach")}>
             <div className="mc-fmh-h">{t("businessPage.builder.preview.contactReach")}</div>
@@ -105,14 +113,16 @@ export function Masthead({ data, t, footerRef, links, selectedLocationId, onNavi
             </span>
           </nav>
 
-          <div
-            className="mc-fmh-col mc-fmh-connect"
-            role="group"
-            aria-label={t("businessPage.builder.preview.footerStayConnected")}
-          >
-            <div className="mc-fmh-h">{t("businessPage.builder.preview.footerStayConnected")}</div>
-            <FootSocials social={data.social} />
-          </div>
+          {socials.length > 0 && (
+            <div
+              className="mc-fmh-col mc-fmh-connect"
+              role="group"
+              aria-label={t("businessPage.builder.preview.footerStayConnected")}
+            >
+              <div className="mc-fmh-h">{t("businessPage.builder.preview.footerStayConnected")}</div>
+              <FootSocials social={data.social} />
+            </div>
+          )}
         </div>
 
         <div className="mc-fmh-base"><FooterLegal data={data} t={t} /></div>

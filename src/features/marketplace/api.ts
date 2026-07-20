@@ -1,5 +1,47 @@
-import type { MarketplaceListingResponse, PublishMarketplaceListingPayload, BookingSettings, UpdateBookingSettingsPayload, PortfolioImageData } from "./types";
+import type {
+  MarketplaceListingResponse,
+  PublishMarketplaceListingPayload,
+  BookingSettings,
+  UpdateBookingSettingsPayload,
+  PortfolioImageData,
+  LocationWithAssignments,
+} from "./types";
 import { apiClient } from "../../shared/lib/http";
+
+type MarketplaceLocationWire = Omit<
+  LocationWithAssignments,
+  "averageRating" | "totalReviews"
+> & {
+  averageRating?: number | string | null;
+  totalReviews?: number | string | null;
+};
+
+type MarketplaceListingWireResponse = Omit<
+  MarketplaceListingResponse,
+  "locationCatalog"
+> & {
+  locationCatalog?: MarketplaceLocationWire[] | null;
+};
+
+function finiteNumber(value: unknown): number | null {
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : null;
+  }
+
+  if (typeof value !== "string" || value.trim() === "") {
+    return null;
+  }
+
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function reviewCount(value: unknown): number {
+  const parsed = finiteNumber(value);
+  return parsed !== null && Number.isSafeInteger(parsed) && parsed >= 0
+    ? parsed
+    : 0;
+}
 
 export interface LocationPortfolioMutationResponse {
   url?: string;
@@ -11,9 +53,21 @@ export interface LocationPortfolioMutationResponse {
 }
 
 export const getMarketplaceListingApi = async (): Promise<MarketplaceListingResponse> => {
-  const { data } = await apiClient().get<MarketplaceListingResponse>('/marketplace-listing');
-  return data;
-}
+  const { data } = await apiClient().get<MarketplaceListingWireResponse>(
+    "/marketplace-listing",
+  );
+
+  return {
+    ...data,
+    locationCatalog: (
+      Array.isArray(data.locationCatalog) ? data.locationCatalog : []
+    ).map((location) => ({
+      ...location,
+      averageRating: finiteNumber(location.averageRating),
+      totalReviews: reviewCount(location.totalReviews),
+    })),
+  };
+};
 
 export const uploadMarketplaceImageApi = async (
   locationId: number,

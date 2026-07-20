@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
+import { FOOTER_SCOPED_SAMPLE_TYPES, sectionLinkLabelKey } from "../../shared/sectionLinks";
 import { findScrollParent, prefersReducedMotion } from "../../shared/util";
 import type { FooterConfig, FooterLinkItem, FooterStyleKey, FooterVariantProps, FooterViewProps } from "./types";
 import { Directory } from "./variants/Directory";
@@ -8,16 +9,6 @@ import { Masthead } from "./variants/Masthead";
 import { Marque } from "./variants/Marque";
 
 import "./base.css";
-
-const FOOTER_LABELS: Record<string, string> = {
-  about: "businessPage.builder.preview.kicker.about",
-  locations: "businessPage.builder.preview.kicker.locations",
-  gallery: "businessPage.builder.preview.kicker.gallery",
-  team: "businessPage.builder.preview.kicker.team",
-  testimonials: "businessPage.builder.preview.kicker.reviews",
-};
-
-const SCOPED_SAMPLE_TYPES = ["about", "locations", "gallery"];
 
 /** The live design identities are authoritative. Every retired footer id deliberately falls back to the new
  * included Directory design until the accompanying SQL/layout migration has been applied. */
@@ -41,12 +32,18 @@ export function Footer({ data, t, footerRef, layout, selectedLocationId, variant
   const View = VARIANTS[style];
   const footerConfig = (layout.find((section) => section.type === "footer")?.config ?? {}) as FooterConfig;
   const showLogo = footerConfig.showLogo !== false;
+  const headline = footerConfig.headline?.[data.locale]?.trim() || "";
+  const headlineHidden = footerConfig.headlineHidden?.[data.locale] === true;
+  const description = footerConfig.description?.[data.locale]?.trim() || "";
   const scopedSample = layout.length === 1 && layout[0]?.type === "footer";
   const links = useMemo<FooterLinkItem[]>(() => {
     const types = scopedSample
-      ? SCOPED_SAMPLE_TYPES
-      : layout.filter((section) => section.visible && FOOTER_LABELS[section.type]).map((section) => section.type);
-    return types.map((type) => ({ type, label: t(FOOTER_LABELS[type]) }));
+      ? FOOTER_SCOPED_SAMPLE_TYPES
+      : layout.filter((section) => section.visible && sectionLinkLabelKey(section.type)).map((section) => section.type);
+    return types.flatMap((type) => {
+      const labelKey = sectionLinkLabelKey(type);
+      return labelKey ? [{ type, label: t(labelKey) }] : [];
+    });
   }, [layout, scopedSample, t]);
 
   const [footerNode, setFooterNode] = useState<HTMLElement | null>(null);
@@ -85,6 +82,9 @@ export function Footer({ data, t, footerRef, layout, selectedLocationId, variant
       links={links}
       selectedLocationId={selectedLocationId}
       showLogo={showLogo}
+      headline={headline}
+      headlineHidden={headlineHidden}
+      description={description}
       onNavigate={onNavigate}
     />
   );

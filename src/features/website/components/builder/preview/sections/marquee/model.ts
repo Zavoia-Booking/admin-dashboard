@@ -1,4 +1,4 @@
-import type { LocationWithAssignments } from "../../../../../types";
+import type { WebsiteBuilderLocation } from "../../../../../types";
 
 /** Fewest items the marquee needs to read as an intentional band rather than a stray label or two. */
 export const MARQUEE_MIN_ITEMS = 3;
@@ -7,7 +7,7 @@ export const MARQUEE_MIN_ITEMS = 3;
  * The strip's content for a business: deduplicated service names, falling back to broader categories
  * when only a couple of services are listed. The cap keeps service-heavy businesses visually calm.
  */
-export function marqueeItems(locations: LocationWithAssignments[]): string[] {
+export function marqueeItems(locations: WebsiteBuilderLocation[]): string[] {
   const svcSeen = new Set<string>();
   const services: string[] = [];
   const catSeen = new Set<string>();

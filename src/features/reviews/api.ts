@@ -9,10 +9,11 @@ import type {
 
 export const getBusinessReviewsApi = async (
   params: FetchBusinessReviewsPayload = {},
+  options: { signal?: AbortSignal } = {},
 ): Promise<BusinessReviewsResponse> => {
   const { data } = await apiClient().get<BusinessReviewsResponse>(
     "/review/business-reviews",
-    { params },
+    { params, signal: options.signal },
   );
   return data;
 };
@@ -27,7 +28,11 @@ export const getTeamMemberReviewsApi = async (
   return data;
 };
 
-export const getReviewStatsApi = async (): Promise<ReviewStatsResponse> => {
-  const { data } = await apiClient().get<ReviewStatsResponse>("/review/stats");
+export const getReviewStatsApi = async (
+  options: { signal?: AbortSignal } = {},
+): Promise<ReviewStatsResponse> => {
+  const { data } = await apiClient().get<ReviewStatsResponse>("/review/stats", {
+    signal: options.signal,
+  });
   return data;
 };

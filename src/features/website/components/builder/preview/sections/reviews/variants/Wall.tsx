@@ -10,11 +10,11 @@ import "./wall.css";
 /** Wall — the included base. A compact rating chip pinned to the header (the board itself is the proof), over
  *  a CSS-columns pinboard of verified quote cards that rise on mount with a small stagger and lift on hover.
  *  Mirrors the source `RvWall`. */
-export function Wall({ quotes, rating, count, dist, distTotal, heading, sublede, kicker, no, t }: ReviewsViewProps) {
+export function Wall({ quotes, rating, count, dist, distTotal, showHeading, heading, kicker, no, t }: ReviewsViewProps) {
   const fiveShare = dist && distTotal > 0 ? Math.round((dist["5" as keyof RatingBars] / distTotal) * 100) : 0;
   return (
     <>
-      <RvHead no={no} kicker={kicker} heading={heading} sublede={sublede}>
+      <RvHead no={no} kicker={kicker} heading={heading} showHeading={showHeading}>
         {count > 0 && (
           <div className="mc-rv-hrate">
             <span className="mc-rv-hrate-n">

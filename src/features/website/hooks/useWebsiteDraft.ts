@@ -11,7 +11,7 @@ import type {
   WebsiteDraftConflict,
   WebsiteSaveFailure,
   WebsiteThemeAssetCatalogItem,
-  LocationWithAssignments,
+  WebsiteBuilderLocation,
 } from "../types";
 import type { SaveWebsiteDraftRequest, PublishWebsiteRequest } from "../actions";
 import {
@@ -24,23 +24,31 @@ import {
   SECTION_META,
 } from "../components/builder/sectionCatalog";
 import { BRAND_ACCENT_CATALOG } from "../components/builder/theme";
-import { validateUrlField, validateWebsiteCopy } from "../../../shared/utils/validation";
-import { firstFaqSaveBlockingError } from "../components/builder/faqValidation";
-import { splitAboutContent } from "../components/builder/aboutContent";
-import { getWebsiteReadinessIssues } from "../components/builder/sectionReadiness";
+import { hasUnsafeWebsiteCopyCharacters } from "../../../shared/utils/validation";
+import { joinAboutContent } from "../components/builder/aboutContent";
+import { canonicalizeAboutConfigForSave } from "../components/builder/aboutImageSelection";
 import { canonicalizeGalleryConfigForSave } from "../components/builder/gallerySelection";
+import { canonicalizeLocationsConfigForSave } from "../components/builder/locationSelection";
+import { canonicalizeServicesConfigForSave } from "../components/builder/servicesFeatureImageSelection";
+import { getWebsiteReadinessIssues } from "../components/builder/sectionReadiness";
+import {
+  collectWebsiteDraftIssues,
+  type WebsiteDraftIssue,
+} from "../components/builder/draftValidation";
 import type { ReconciledCheckoutIntent } from "../checkoutIntent";
 
 interface UseWebsiteDraftProps {
   /** The saved baseline from GET /website-builder (Redux). Null while loading. */
   draft: WebsiteDraft | null;
+  /** Canonical Business Profile description, copied once into a genuinely new Website Story. */
+  defaultAboutStory?: string | null;
   /** The request identity returned by the reducer after a successful save. */
   lastSavedRequestId: string | null;
   onSave: (request: SaveWebsiteDraftRequest) => void;
   /** Save-then-publish entry point; optional so read-only embeds can omit it. */
   onPublish?: (request: PublishWebsiteRequest) => void;
   /** Current owner-scoped locations drive publish readiness and stale-reference cleanup. */
-  locations: LocationWithAssignments[];
+  locations: WebsiteBuilderLocation[];
   /** Draft saving is capability-gated; read-only users keep the same local presentation. */
   saveEnabled: boolean;
   /** True only while the serialized lane is executing a draft PUT. */
@@ -73,26 +81,7 @@ function normalizeLocaleText(value: unknown): { en: string; ro: string } {
   };
 }
 
-const WEBSITE_COPY_FIELDS_BY_SECTION: Record<
-  string,
-  ReadonlyArray<{ key: "heading" | "sublede" | "eyebrow"; maxLength: number }>
-> = {
-  hero: [{ key: "eyebrow", maxLength: 80 }],
-  locations: [
-    { key: "heading", maxLength: 80 },
-    { key: "sublede", maxLength: 220 },
-  ],
-  team: [
-    { key: "heading", maxLength: 80 },
-    { key: "sublede", maxLength: 220 },
-  ],
-  gallery: [{ key: "heading", maxLength: 80 }],
-  testimonials: [
-    { key: "heading", maxLength: 80 },
-    { key: "sublede", maxLength: 220 },
-  ],
-  faq: [{ key: "heading", maxLength: 80 }],
-};
+const ABOUT_STORY_MAX_LENGTH = 1800;
 
 /** Fill a saved/empty announcement to the full working shape, migrating the legacy `link` and the
  *  older `cta.target` shape into the flat `cta.url` + opt-in `cta.enabled`. */
@@ -106,8 +95,17 @@ function normalizeAnnouncement(raw?: AnnouncementContent | null): AnnouncementCo
   const legacyTargetUrl = target.type === "url" ? stringValue(target.url) : "";
   const url = normalizeHttpUrl(stringValue(cta.url) || legacyTargetUrl || legacyLink);
   const rawSchedule = isPlainRecord(source.schedule) ? source.schedule : null;
+  const scheduleStart =
+    typeof rawSchedule?.start === "string" ? rawSchedule.start.trim() || null : null;
+  const scheduleEnd =
+    typeof rawSchedule?.end === "string" ? rawSchedule.end.trim() || null : null;
+  const scheduleTimezone =
+    typeof rawSchedule?.timezone === "string" ? rawSchedule.timezone.trim() || null : null;
+  const scheduleShowCountdown =
+    typeof rawSchedule?.showCountdown === "boolean" ? rawSchedule.showCountdown : true;
   return {
     message: normalizeLocaleText(source.message),
+    details: normalizeLocaleText(source.details),
     cta: {
       enabled: typeof cta.enabled === "boolean" ? cta.enabled : url !== "",
       label: normalizeLocaleText(cta.label),
@@ -115,20 +113,14 @@ function normalizeAnnouncement(raw?: AnnouncementContent | null): AnnouncementCo
       newTab: typeof cta.newTab === "boolean" ? cta.newTab : false,
       showArrow: typeof cta.showArrow === "boolean" ? cta.showArrow : true,
     },
-    schedule: rawSchedule
+    // Empty schedule objects from older/default API payloads mean scheduling is off. A partial
+    // window remains open in the editor so the owner can complete its now-required second date.
+    schedule: rawSchedule && (scheduleStart || scheduleEnd)
       ? {
-          start:
-            typeof rawSchedule.start === "string" || rawSchedule.start === null
-              ? rawSchedule.start
-              : null,
-          end:
-            typeof rawSchedule.end === "string" || rawSchedule.end === null
-              ? rawSchedule.end
-              : null,
-          timezone:
-            typeof rawSchedule.timezone === "string" || rawSchedule.timezone === null
-              ? rawSchedule.timezone
-              : null,
+          start: scheduleStart,
+          end: scheduleEnd,
+          timezone: scheduleTimezone,
+          showCountdown: scheduleShowCountdown,
         }
       : null,
   };
@@ -154,6 +146,7 @@ const initialFontKey = (theme?: PageTheme | null): string => {
 interface DraftValues {
   tagline: string;
   aboutContent: string;
+  establishedYear: number | null;
   brandColorHex: string;
   brandColorKey: string;
   layout: SectionEntry[];
@@ -172,6 +165,7 @@ function cloneValues(values: DraftValues): DraftValues {
   return {
     tagline: values.tagline,
     aboutContent: values.aboutContent,
+    establishedYear: values.establishedYear,
     brandColorHex: values.brandColorHex,
     brandColorKey: values.brandColorKey,
     layout: JSON.parse(JSON.stringify(values.layout)),
@@ -201,10 +195,28 @@ function canonicalJson(value: unknown): string {
   return JSON.stringify(normalize(value));
 }
 
-function valuesFromDraft(draft: WebsiteDraft | null): DraftValues {
+function initialAboutContent(
+  draft: WebsiteDraft | null,
+  defaultAboutStory?: string | null,
+): string {
+  const stored = typeof draft?.aboutContent === "string" ? draft.aboutContent : "";
+  if ((draft?.version ?? 0) !== 0 || stored.trim()) return stored;
+  const story = defaultAboutStory?.trim() ?? "";
+  const canSeed =
+    story.length >= 2 &&
+    story.length <= ABOUT_STORY_MAX_LENGTH &&
+    !hasUnsafeWebsiteCopyCharacters(story);
+  return canSeed ? joinAboutContent("", story) : "";
+}
+
+function valuesFromDraft(
+  draft: WebsiteDraft | null,
+  defaultAboutStory?: string | null,
+): DraftValues {
   return {
     tagline: draft?.tagline ?? "",
-    aboutContent: draft?.aboutContent ?? "",
+    aboutContent: initialAboutContent(draft, defaultAboutStory),
+    establishedYear: draft?.establishedYear ?? null,
     brandColorHex: draft?.brandColorHex ?? "",
     brandColorKey: draft?.brandColorKey ?? draft?.pageTheme?.brandColorKey ?? "",
     layout: buildInitialLayout(draft?.pageLayout),
@@ -214,8 +226,11 @@ function valuesFromDraft(draft: WebsiteDraft | null): DraftValues {
   };
 }
 
-function baselineFromDraft(draft: WebsiteDraft | null): DraftBaseline {
-  const values = valuesFromDraft(draft);
+function baselineFromDraft(
+  draft: WebsiteDraft | null,
+  defaultAboutStory?: string | null,
+): DraftBaseline {
+  const values = valuesFromDraft(draft, defaultAboutStory);
   return {
     values,
     version: draft?.version ?? 0,
@@ -240,39 +255,30 @@ type ReconciledOwnedSelections = Pick<
  * waiting for React state setters or accidentally including a later unrelated edit. */
 function draftBodyFromValues(
   values: DraftValues,
-  locations: LocationWithAssignments[],
+  locations: WebsiteBuilderLocation[],
 ): UpdateWebsiteDraftBody {
   const brandColor = values.brandColorHex.trim() || null;
   const announcement = normalizeAnnouncement(values.announcementContent);
-  const allowedLocationIdSet = new Set(locations.map((location) => location.id));
 
   return {
     tagline: values.tagline || null,
     aboutContent: values.aboutContent || null,
+    establishedYear: values.establishedYear,
     brandColorHex: brandColor,
     brandColorKey: values.brandColorKey.trim() || null,
     pageLayout: values.layout.map((section) => {
       if (!isKnownSectionType(section.type)) {
-        // Unknown entries are opaque JSON records. Never reconstruct them from the subset
-        // this build understands because doing so would erase forward-compatible data.
+        // Preserve section records this build does not edit instead of reconstructing them from a
+        // partial shape and accidentally deleting data.
         return JSON.parse(JSON.stringify(section)) as SectionEntry;
       }
 
       let config = { ...(section.config ?? {}) };
-      if (section.type === "locations") {
-        const hiddenIds = Array.isArray(config.hiddenLocationIds)
-          ? config.hiddenLocationIds.filter(
-              (id): id is number =>
-                Number.isInteger(id) &&
-                id > 0 &&
-                allowedLocationIdSet.has(id),
-            )
-          : [];
-        config.hiddenLocationIds = [...new Set(hiddenIds)];
-      }
-      if (section.type === "gallery") {
-        config = canonicalizeGalleryConfigForSave(config, locations);
-      }
+      if (section.type === "about") config = canonicalizeAboutConfigForSave(config, locations);
+      if (section.type === "locations") config = canonicalizeLocationsConfigForSave(config, locations);
+      if (section.type === "gallery") config = canonicalizeGalleryConfigForSave(config, locations);
+      if (section.type === "services") config = canonicalizeServicesConfigForSave(config, locations);
+      if (section.type === "testimonials") delete config.sublede;
 
       return {
         type: section.type,
@@ -283,7 +289,7 @@ function draftBodyFromValues(
       };
     }),
     // The catalog identity is top-level. PageThemeDto accepts presentation values only.
-    pageTheme: { brandColor, fontKey: values.fontKey },
+    pageTheme: { brandColor, fontKey: values.fontKey.trim() },
     faq: values.faqItems,
     announcement,
     layoutVersion: LAYOUT_SCHEMA_VERSION,
@@ -328,6 +334,7 @@ function reorderLayout(prev: SectionEntry[], from: number, to: number): SectionE
  */
 export function useWebsiteDraft({
   draft,
+  defaultAboutStory,
   lastSavedRequestId,
   onSave,
   onPublish,
@@ -339,10 +346,16 @@ export function useWebsiteDraft({
   saveFailure,
 }: UseWebsiteDraftProps) {
   const { t, i18n } = useTranslation("website");
-  const [baseline, setBaseline] = useState<DraftBaseline>(() => baselineFromDraft(draft));
+  const [initialAboutStory] = useState(() => defaultAboutStory?.trim() || null);
+  const [baseline, setBaseline] = useState<DraftBaseline>(() =>
+    baselineFromDraft(draft, initialAboutStory),
+  );
   const baselineRef = useRef<DraftBaseline>(baseline);
   const [tagline, setTagline] = useState<string>(baseline.values.tagline);
   const [aboutContent, setAboutContent] = useState<string>(baseline.values.aboutContent);
+  const [establishedYear, setEstablishedYear] = useState<number | null>(
+    baseline.values.establishedYear,
+  );
   const [brandColorHex, setBrandColorHexState] = useState<string>(baseline.values.brandColorHex);
   const [brandColorKey, setBrandColorKey] = useState<string>(baseline.values.brandColorKey);
   const [layout, setLayout] = useState<SectionEntry[]>(() => cloneValues(baseline.values).layout);
@@ -361,8 +374,28 @@ export function useWebsiteDraft({
   }, []);
 
   const workingValues = useMemo<DraftValues>(
-    () => ({ tagline, aboutContent, brandColorHex, brandColorKey, layout, fontKey, faqItems, announcementContent }),
-    [tagline, aboutContent, brandColorHex, brandColorKey, layout, fontKey, faqItems, announcementContent],
+    () => ({
+      tagline,
+      aboutContent,
+      establishedYear,
+      brandColorHex,
+      brandColorKey,
+      layout,
+      fontKey,
+      faqItems,
+      announcementContent,
+    }),
+    [
+      tagline,
+      aboutContent,
+      establishedYear,
+      brandColorHex,
+      brandColorKey,
+      layout,
+      fontKey,
+      faqItems,
+      announcementContent,
+    ],
   );
   const workingSignature = useMemo(() => serializeValues(workingValues), [workingValues]);
   const pendingSaveRef = useRef<SaveWebsiteDraftRequest | null>(null);
@@ -392,6 +425,7 @@ export function useWebsiteDraft({
     const next = cloneValues(values);
     setTagline(next.tagline);
     setAboutContent(next.aboutContent);
+    setEstablishedYear(next.establishedYear);
     setBrandColorHexState(next.brandColorHex);
     setBrandColorKey(next.brandColorKey);
     setLayout(next.layout);
@@ -409,7 +443,7 @@ export function useWebsiteDraft({
     applyWorkingValues(baselineRef.current.values);
   }, [applyWorkingValues]);
 
-  const serverBaseline = baselineFromDraft(draft);
+  const serverBaseline = baselineFromDraft(draft, initialAboutStory);
   const serverSignature = `${serverBaseline.version}:${serverBaseline.contentSignature}`;
   const processedServerSignatureRef = useRef(serverSignature);
 
@@ -466,77 +500,57 @@ export function useWebsiteDraft({
     }
   }, [conflict, saveFailure]);
 
-  // ----- Save-blocking validation (structural constraints + visitor-facing copy policy) -----
-  const taglineError = useMemo(
-    () => validateWebsiteCopy(tagline, t, {
-      fieldLabel: t("businessPage.branding.tagline.label"),
-      maxLength: 200,
+  // ----- Save-blocking validation (structured, actionable, and state-aware) -----
+  const blockingIssues = useMemo<WebsiteDraftIssue[]>(
+    () => collectWebsiteDraftIssues({
+      tagline,
+      aboutContent,
+      establishedYear,
+      brandColorHex,
+      brandColorKey,
+      fontKey,
+      layout,
+      faqItems,
+      announcementContent,
+      baseline: baseline.values,
+      t,
     }),
-    [tagline, t],
+    [
+      aboutContent,
+      announcementContent,
+      baseline.values,
+      brandColorHex,
+      brandColorKey,
+      establishedYear,
+      faqItems,
+      fontKey,
+      layout,
+      t,
+      tagline,
+    ],
   );
-  const aboutCopyError = useMemo(() => {
-    const { title, body } = splitAboutContent(aboutContent);
-    return validateWebsiteCopy(title, t, {
-      fieldLabel: t("businessPage.about.titleLabel"),
-      maxLength: 200,
-    }) ?? validateWebsiteCopy(body, t, {
-      fieldLabel: t("businessPage.about.bodyLabel"),
-      maxLength: 1800,
-    });
-  }, [aboutContent, t]);
-  const announcementCopyError = useMemo(() => {
-    for (const locale of ["en", "ro"] as const) {
-      const messageError = validateWebsiteCopy(announcementContent.message[locale], t, {
-        fieldLabel: t("businessPage.builder.announcement.messageLabel"),
-        maxLength: 140,
-      });
-      if (messageError) return messageError;
-
-      const labelError = validateWebsiteCopy(announcementContent.cta.label[locale], t, {
-        fieldLabel: t("businessPage.builder.announcement.cta.labelLabel"),
-        maxLength: 40,
-      });
-      if (labelError) return labelError;
-    }
-    return null;
-  }, [announcementContent.cta.label, announcementContent.message, t]);
-  const sectionCopyError = useMemo(() => {
-    for (const entry of layout) {
-      const fields = WEBSITE_COPY_FIELDS_BY_SECTION[entry.type];
-      if (!fields) continue;
-      const config: Record<string, unknown> = isPlainRecord(entry.config) ? entry.config : {};
-
-      for (const field of fields) {
-        const rawCopy = config[field.key];
-        const localizedCopy: Record<string, unknown> = isPlainRecord(rawCopy) ? rawCopy : {};
-        const fieldLabel = field.key === "heading"
-          ? t("businessPage.builder.settings.headingLabel")
-          : field.key === "eyebrow"
-            ? t("businessPage.builder.hero.eyebrowCopyLabel")
-            : t("businessPage.builder.settings.subledeLabel");
-
-        for (const locale of ["en", "ro"] as const) {
-          const error = validateWebsiteCopy(stringValue(localizedCopy[locale]), t, {
-            fieldLabel,
-            maxLength: field.maxLength,
-          });
-          if (error) return error;
-        }
-      }
-    }
-    return null;
-  }, [layout, t]);
-  const faqSaveBlockingError = useMemo(
-    () => firstFaqSaveBlockingError(faqItems, t),
-    [faqItems, t],
+  const issueMessage = (predicate: (issue: WebsiteDraftIssue) => boolean) =>
+    blockingIssues.find(predicate)?.message ?? null;
+  // Keep the named errors during the component migration; every value now comes from the same issue
+  // collection, so legacy consumers cannot disagree with the header or section markers.
+  const taglineError = issueMessage((issue) => issue.id === "hero:tagline");
+  const aboutCopyError = issueMessage(
+    (issue) => issue.type === "about" && (issue.field === "headline" || issue.field === "story"),
   );
-  const brandColorError = useMemo(
-    () =>
-      brandColorHex && !/^#[0-9a-fA-F]{6}$/.test(brandColorHex)
-        ? t("businessPage.errors.brandColorInvalid")
-        : null,
-    [brandColorHex, t],
+  const establishedYearError = issueMessage((issue) => issue.id === "about:established-year");
+  const announcementCopyError = issueMessage(
+    (issue) => issue.type === "announcement" &&
+      (issue.field === "message" || issue.field === "details" || issue.field === "cta-label"),
   );
+  const sectionCopyError = issueMessage(
+    (issue) => issue.surface === "section" &&
+      !["tagline", "story", "establishedYear", "message", "details", "cta-label", "cta-url", "schedule", "question", "answer"].includes(issue.field),
+  );
+  const faqSaveBlockingError = issueMessage(
+    (issue) => issue.type === "faq" && (issue.field === "question" || issue.field === "answer"),
+  );
+  const brandColorError = issueMessage((issue) => issue.controlId === "brand-color-control");
+  const fontKeyError = issueMessage((issue) => issue.controlId === "font-control");
 
   const announcementVisible = useMemo(
     () => layout.some((s) => s.type === "announcement" && s.visible),
@@ -546,24 +560,14 @@ export function useWebsiteDraft({
   // CTA URL shape is structural: every non-empty value must be a valid HTTP(S) URL because it is
   // persisted regardless of visibility. A missing destination for an otherwise configured button
   // is content readiness instead, so the owner can save the draft and finish it before publishing.
-  const announcementUrlError = useMemo(() => {
-    const cta = announcementContent.cta;
-    if (cta.url.trim() !== "") return validateUrlField(cta.url, t);
-    return null;
-  }, [announcementContent.cta, t]);
+  const announcementUrlError = issueMessage((issue) => issue.id === "announcement:cta-url");
 
-  // Schedule order — structural (the server rejects start > end regardless of visibility).
-  // Date-only YYYY-MM-DD keys compare correctly as strings, exactly as the server compares them.
-  const announcementScheduleError = useMemo(() => {
-    const schedule = announcementContent.schedule;
-    if (!schedule?.start || !schedule?.end) return null;
-    return schedule.start > schedule.end
-      ? t("businessPage.builder.announcement.schedule.orderError")
-      : null;
-  }, [announcementContent.schedule, t]);
+  // An enabled display period is a complete window: both dates are structural requirements,
+  // regardless of section visibility. Date-only keys compare correctly as YYYY-MM-DD strings.
+  const announcementScheduleError = issueMessage((issue) => issue.id === "announcement:schedule");
 
-  // Unknown future sections are opaque records. Their schema belongs to the newer client, so
-  // requiring today's variant/visible/config shape would prevent unrelated edits from saving.
+  // Layout structure is normalized before it enters controlled state; current editable fields are
+  // represented by the structured issue collection above.
   const layoutError: string | null = null;
 
   // ----- Readiness (publish-only — never blocks a draft save) -----
@@ -574,22 +578,15 @@ export function useWebsiteDraft({
     if (!hasMessage) return t("businessPage.builder.announcement.messageRequiredHint");
     const cta = announcementContent.cta;
     const hasLabel = cta.label.en.trim() !== "" || cta.label.ro.trim() !== "";
-    return cta.enabled && hasLabel && cta.url.trim() === ""
+    if (cta.enabled && !hasLabel) {
+      return t("businessPage.builder.announcement.cta.labelRequiredHint");
+    }
+    return cta.enabled && cta.url.trim() === ""
       ? t("businessPage.builder.announcement.cta.urlRequiredHint")
       : null;
   }, [announcementContent, announcementVisible, t]);
 
-  const hasBlockingErrors = !!(
-    taglineError ||
-    aboutCopyError ||
-    announcementCopyError ||
-    sectionCopyError ||
-    faqSaveBlockingError ||
-    brandColorError ||
-    announcementUrlError ||
-    announcementScheduleError ||
-    layoutError
-  );
+  const hasBlockingErrors = blockingIssues.length > 0 || !!layoutError;
 
   // Publishing has stricter content-completeness requirements than saving a draft. Keep this
   // separate from structural validation so owners can safely save incomplete work and return to it.
@@ -597,13 +594,14 @@ export function useWebsiteDraft({
     () =>
       getWebsiteReadinessIssues({
         layout,
+        heroImageUrl: draft?.heroImageUrl,
         aboutContent,
         announcementContent,
         faqItems,
         locations,
         locale: i18n.language?.toLowerCase().startsWith("ro") ? "ro" : "en",
       }),
-    [aboutContent, announcementContent, faqItems, i18n.language, layout, locations],
+    [aboutContent, announcementContent, draft?.heroImageUrl, faqItems, i18n.language, layout, locations],
   );
   const hasPublishReadinessIssues = publishReadinessIssues.length > 0;
 
@@ -715,20 +713,25 @@ export function useWebsiteDraft({
       const variantByType = new Map(
         selections.variantSelections.map((selection) => [
           selection.sectionType,
-          selection.variantKey,
+          selection,
         ]),
       );
       next.layout = next.layout.map((entry) => {
-        const variantKey = variantByType.get(entry.type);
+        const selection = variantByType.get(entry.type);
         if (
-          !variantKey ||
-          variantKey === entry.variant ||
+          !selection ||
           !isKnownSectionType(entry.type) ||
-          !SECTION_META[entry.type].variants.some((variant) => variant.id === variantKey)
+          !SECTION_META[entry.type].variants.some(
+            (variant) => variant.id === selection.variantKey,
+          )
         ) {
           return entry;
         }
-        return { ...entry, variant: variantKey };
+        const visible = selection.enableSection ? true : entry.visible;
+        if (selection.variantKey === entry.variant && visible === entry.visible) {
+          return entry;
+        }
+        return { ...entry, variant: selection.variantKey, visible };
       });
 
       for (const selection of selections.themeSelections) {
@@ -1007,6 +1010,7 @@ export function useWebsiteDraft({
     // Content state
     tagline,
     aboutContent,
+    establishedYear,
     brandColorHex,
     brandColorKey,
     layout,
@@ -1016,13 +1020,16 @@ export function useWebsiteDraft({
     // Structural errors (block save)
     taglineError,
     aboutCopyError,
+    establishedYearError,
     announcementCopyError,
     sectionCopyError,
     faqContentError: faqSaveBlockingError,
     brandColorError,
+    fontKeyError,
     announcementUrlError,
     announcementScheduleError,
     layoutError,
+    blockingIssues,
     hasBlockingErrors,
     publishReadinessIssues,
     hasPublishReadinessIssues,
@@ -1036,6 +1043,7 @@ export function useWebsiteDraft({
     // Setters + layout operations
     setTagline,
     setAboutContent,
+    setEstablishedYear,
     setBrandColorHex,
     setBrandColorKey,
     setFontKey,

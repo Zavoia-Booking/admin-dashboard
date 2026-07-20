@@ -2,7 +2,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { ImageOff } from "lucide-react";
 import type { GalleryConfig, SectionEntry } from "../../../../../types";
 import { useInView } from "../../shared/hooks";
-import { Kicker, Placeholder } from "../../shared/primitives";
+import { Placeholder } from "../../shared/primitives";
 import type { PreviewData, T } from "../../shared/types";
 import { Bento } from "./variants/Bento";
 import { Carousel } from "./variants/Carousel";
@@ -27,7 +27,6 @@ export function Gallery({
   entry,
   data,
   t,
-  no,
 }: {
   entry: SectionEntry;
   data: PreviewData;
@@ -35,6 +34,7 @@ export function Gallery({
   no: string;
 }) {
   const config = (entry.config ?? {}) as GalleryConfig;
+  const showHeading = config.headingHidden?.[data.locale] !== true;
   const heading = config.heading?.[data.locale]?.trim() || t("businessPage.builder.preview.galleryHeading");
   const images: GalleryImage[] = resolveGalleryImages(config, data.locations).map((image) => ({
     id: image.id,
@@ -66,20 +66,24 @@ export function Gallery({
       className="mc-gallery-section"
       data-gallery={variant}
       data-revealed={revealed ? "1" : "0"}
-      aria-labelledby={headingId}
+      {...(showHeading
+        ? { "aria-labelledby": headingId }
+        : { "aria-label": t("businessPage.builder.preview.galleryHeading") })}
     >
       <div className="mc-gallery-wrap">
-        <header className="mc-gallery-head">
-          <Kicker no={no}>{t("businessPage.builder.preview.kicker.gallery")}</Kicker>
-          <h2 id={headingId} className="mc-gallery-title" aria-label={heading}>
-            {headingWords.map((word, index) => (
-              <span key={`${word}-${index}`} className="mc-gallery-title-word" aria-hidden="true">
-                <span style={{ animationDelay: `${index * 42}ms` }}>{word}</span>
-                {index < headingWords.length - 1 ? "\u00a0" : null}
-              </span>
-            ))}
-          </h2>
-        </header>
+        {showHeading ? (
+          <header className="mc-gallery-head">
+            {/* The source's numbered eyebrow kicker is an intentional no-op (SecKicker returns null). */}
+            <h2 id={headingId} className="mc-gallery-title" aria-label={heading}>
+              {headingWords.map((word, index) => (
+                <span key={`${word}-${index}`} className="mc-gallery-title-word" aria-hidden="true">
+                  <span style={{ animationDelay: `${index * 42}ms` }}>{word}</span>
+                  {index < headingWords.length - 1 ? "\u00a0" : null}
+                </span>
+              ))}
+            </h2>
+          </header>
+        ) : null}
 
         {images.length === 0 ? (
           <Placeholder icon={<ImageOff className="size-4" strokeWidth={1.6} />}>

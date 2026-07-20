@@ -1,6 +1,6 @@
-/* Reviews · Deck — a physical, draggable deck of dark testimonial cards (drag / flick / wheel / arrow keys
-   via useGalleryFan). The live card leads with a pulled serif headline beside the full quote; spent cards
-   peek behind it; a dash pager tracks position. Height-locked so it never resizes. Source .lb-rvx. */
+/* Reviews · Deck — a physical, draggable deck of dark testimonial cards. Its restrained one-card gesture
+   and arrow controls are variant-owned; the live card leads with a pulled serif headline beside the full
+   quote, spent cards peek behind it, and a dash pager tracks position. Height-locked. Source .lb-rvx. */
 .mc-rvx { max-width: 1040px; margin: 0 auto; }
 .mc-rvx-deck { position: relative; margin-bottom: clamp(58px, 7.5cqw, 94px); cursor: grab; touch-action: pan-y; outline: none; perspective: 1700px; perspective-origin: 50% 42%; }
 .mc-rvx-deck[data-drag="1"] { cursor: grabbing; }
@@ -44,7 +44,54 @@
   .mc-rvx-pull { font-size: clamp(27px, 6.8cqw, 40px); }
 }
 @container (max-width: 720px) {
-  .mc-rvx-card { padding-left: clamp(20px, 5.5cqw, 30px); padding-right: clamp(20px, 5.5cqw, 30px); }
+  /* One logical viewport, with a taller card and bounded copy. The full review stays in the DOM for
+     assistive technology while the visible card remains stable for unusually long testimonials. */
+  .mc-reviews[data-reviews="deck"] > section {
+    min-height: var(--mc-vph, 100svh);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding-block: clamp(24px, 7cqw, 36px);
+  }
+  .mc-reviews[data-reviews="deck"] > section > div { width: 100%; }
+  .mc-reviews[data-reviews="deck"] .mc-rv-head { margin-bottom: clamp(22px, 6cqw, 30px); }
+  .mc-reviews[data-reviews="deck"] .mc-rv-h2 { font-size: clamp(28px, 7.6cqw, 30px); }
+  .mc-rvx-deck { margin-bottom: clamp(36px, 10cqw, 48px); }
+  .mc-rvx-sizer > .mc-rvx-card {
+    min-height: clamp(440px, calc(var(--mc-vph, 800px) * 0.6), 700px);
+  }
+  .mc-rvx-card {
+    padding: clamp(28px, 7.2cqw, 32px) clamp(20px, 5.5cqw, 30px);
+  }
+  .mc-rvx-top { gap: 12px; padding-bottom: 18px; }
+  .mc-rvx-av { width: 46px; height: 46px; font-size: 18px; }
+  .mc-rvx-sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .mc-rvx-cols {
+    min-height: 0;
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: 16px;
+    padding-top: 18px;
+    overflow: hidden;
+  }
+  .mc-rvx-pull {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    font-size: clamp(22px, 6.2cqw, 26px);
+    line-height: 1.08;
+    overflow-wrap: anywhere;
+  }
+  .mc-rvx-rt { min-height: 0; overflow: hidden; }
+  .mc-rvx-text {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 6;
+    font-size: clamp(14px, 3.8cqw, 15px);
+    line-height: 1.58;
+    overflow-wrap: anywhere;
+  }
   .mc-rvx-foot { display: flex; justify-content: center; }
   .mc-rvx-foot > span, .mc-rvx-pager { display: none; }
 }

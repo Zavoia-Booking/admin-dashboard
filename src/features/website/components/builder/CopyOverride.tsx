@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import TextareaField from "../../../../shared/components/forms/fields/TextareaField";
+import { Badge } from "../../../../shared/components/ui/badge";
 import { cn } from "../../../../shared/lib/utils";
 import {
   hasUnsafeWebsiteCopyCharacters,
@@ -25,6 +26,7 @@ export function CopyOverride({
   maxLength,
   rows,
   locale,
+  externalError,
 }: {
   idBase: string;
   label: string;
@@ -35,6 +37,8 @@ export function CopyOverride({
   rows: number;
   /** Active content locale. Edit state never crosses from one locale into the other. */
   locale: "en" | "ro";
+  /** Save-blocking validation is already authoritative and must not wait for local blur state. */
+  externalError?: string;
 }) {
   const { t } = useTranslation(["website", "common"]);
   const [editState, setEditState] = useState<{
@@ -56,13 +60,14 @@ export function CopyOverride({
     : null;
   // Minimum-length guidance waits until blur so the first keystroke is not immediately treated as an
   // error. Markup delimiters are actionable immediately and should never appear valid while typing.
-  const error = validationError && (
+  const localError = validationError && (
     !activeEdit ||
     !activeEdit.changed ||
     hasUnsafeWebsiteCopyCharacters(candidate)
   )
     ? validationError
     : undefined;
+  const error = externalError ?? localError;
 
   const handleFocus = () => {
     if (activeEdit) return;
@@ -99,19 +104,23 @@ export function CopyOverride({
     <TextareaField
       id={idBase}
       label={label}
-      labelMeta={(
-        <span
+      hint={(
+        <Badge
+          variant="secondary"
           className={cn(
-            "atelier-copy-source-badge rounded-full border px-1.5 py-0.5 font-mono text-[9px] font-semibold leading-none tracking-[0.08em] transition-[color,background-color,border-color] duration-150",
+            "self-start shrink-0 rounded-full font-medium",
             custom
-              ? "border-primary/25 bg-primary/10 text-primary"
-              : "border-border-subtle bg-surface-hover text-foreground-3",
+              ? "gap-1.5 border-purple-200 bg-purple-50 px-2 py-0.5 text-xs hover:bg-purple-50"
+              : "border-border bg-info/20 px-2.5 py-0.5 text-[11px] text-foreground-3 hover:bg-info/20 dark:border-border-subtle dark:bg-info/60 dark:hover:bg-info/60",
           )}
         >
-          {custom
-            ? t("businessPage.builder.settings.copyCustomBadge")
-            : t("businessPage.builder.settings.copyDefaultBadge")}
-        </span>
+          {custom ? <span className="size-2 rounded-full bg-purple-500" aria-hidden /> : null}
+          <span className={custom ? "text-neutral-900" : undefined}>
+            {custom
+              ? t("businessPage.builder.settings.copyCustomBadge")
+              : t("businessPage.builder.settings.copyDefaultBadge")}
+          </span>
+        </Badge>
       )}
       labelAction={custom ? (
         <button
@@ -130,6 +139,7 @@ export function CopyOverride({
       placeholder={defaultText}
       rows={rows}
       maxLength={maxLength}
+      showCharacterCount
       error={error}
       className="!pt-0"
       textareaClassName={cn(

@@ -131,6 +131,29 @@ export const WebsiteReducer: Reducer<WebsiteState, any> = (state: WebsiteState =
         conflict: null,
       };
 
+    case getType(actions.enterWebsiteBuilderAction):
+      return {
+        ...state,
+        isLoading: true,
+        error: null,
+        identity: null,
+        draft: null,
+        locations: [],
+        access: null,
+        publish: null,
+        publishFailure: null,
+        saveFailure: null,
+        conflict: null,
+        publishLockedItems: null,
+        lastSavedRequestId: null,
+        variantCatalog: [],
+        sectionCatalog: [],
+        themeAssetCatalog: [],
+        isLoadingCatalog: false,
+        catalogError: null,
+        catalogLoaded: false,
+      };
+
     case getType(actions.fetchWebsiteBuilderAction.request):
       return { ...state, isLoading: true, error: null, publishFailure: null };
 

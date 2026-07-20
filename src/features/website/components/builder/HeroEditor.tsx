@@ -5,10 +5,12 @@ import TextField from "../../../../shared/components/forms/fields/TextField";
 import { Switch } from "../../../../shared/components/ui/switch";
 import { HeroImageUpload } from "../HeroImageUpload";
 import { cn } from "../../../../shared/lib/utils";
-import type { HeroConfig, LocationWithAssignments } from "../../types";
+import type { HeroConfig, WebsiteBuilderLocation } from "../../types";
 import { CopyOverride } from "./CopyOverride";
 import { defaultHeroEyebrow } from "./heroEyebrow";
 import { hasUnsafeWebsiteCopyCharacters } from "../../../../shared/utils/validation";
+import { heroVariantRequiresCoverImage } from "./heroCoverRequirement";
+import type { WebsiteDraftIssue } from "./draftValidation";
 
 const GROUP_LABEL = "text-[11px] font-medium uppercase tracking-[0.14em] text-foreground-3";
 
@@ -20,7 +22,7 @@ interface HeroEditorProps {
   canWrite: boolean;
   config: HeroConfig;
   onConfigChange: (patch: Partial<HeroConfig>) => void;
-  locations: LocationWithAssignments[];
+  locations: WebsiteBuilderLocation[];
   locale: "en" | "ro";
   /** Whether the business has any reviews yet — the rating toggle only appears when it does. */
   hasReviews: boolean;
@@ -28,6 +30,7 @@ interface HeroEditorProps {
   variant?: "default" | "atelier";
   /** Style currently shown in the preview, including an unsaved premium preview. */
   previewVariant?: string;
+  blockingIssues?: WebsiteDraftIssue[];
 }
 
 /**
@@ -49,21 +52,27 @@ export function HeroEditor({
   hasReviews,
   variant = "default",
   previewVariant,
+  blockingIssues = [],
 }: HeroEditorProps) {
   const { t } = useTranslation("website");
   const [taglineBlurred, setTaglineBlurred] = useState(false);
   const showEyebrow = config.showEyebrow !== false;
   const showRating = config.showRating !== false;
   const inheritedEyebrow = defaultHeroEyebrow(locations, t);
-  const coverRecommended =
-    !heroImageUrl && (previewVariant === "cinematic" || previewVariant === "portal");
-  const visibleTaglineError = taglineError && (
-    taglineBlurred ||
-    tagline.length > 200 ||
-    hasUnsafeWebsiteCopyCharacters(tagline)
-  )
-    ? taglineError
-    : undefined;
+  const coverRequired = heroVariantRequiresCoverImage(previewVariant);
+  const issueFor = (controlId: string) => blockingIssues.find(
+    (issue) => issue.controlId === controlId && (!issue.locale || issue.locale === locale),
+  )?.message;
+  const eyebrowError = issueFor("hero-eyebrow");
+  const visibleTaglineError = issueFor("business-page-tagline") ?? (
+    taglineError && (
+      taglineBlurred ||
+      tagline.length > 200 ||
+      hasUnsafeWebsiteCopyCharacters(tagline)
+    )
+      ? taglineError
+      : undefined
+  );
   const setEyebrow = (value: string) => {
     const current = config.eyebrow ?? { en: "", ro: "" };
     const next = { ...current, [locale]: value };
@@ -89,23 +98,21 @@ export function HeroEditor({
         className={cn("!pt-0", variant === "atelier" && "atelier-hero-tagline-field")}
       />
 
-      {coverRecommended ? (
-        <div
-          id="hero-cover-recommendation"
-          role="note"
-          tabIndex={-1}
-          className="rounded-xl border border-primary/40 bg-surface px-4 py-3 shadow-xs outline-none"
-        >
-          <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.13em] text-primary">
-            {t("businessPage.builder.hero.coverRecommendationEyebrow")}
-          </p>
-          <p className="mt-1 text-[12px] font-medium leading-[1.55] text-foreground-1">
-            {t("businessPage.builder.hero.coverRecommendation")}
-          </p>
+      {coverRequired ? (
+        <div id="hero-cover-upload" tabIndex={-1} className="outline-none focus-visible:ring-2 focus-visible:ring-focus">
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <span className={GROUP_LABEL}>{t("businessPage.branding.hero.label")}</span>
+            <span className="font-mono text-[9px] font-semibold uppercase tracking-[0.12em] text-destructive">
+              {t("businessPage.builder.hero.coverRequired")}
+            </span>
+          </div>
+          <HeroImageUpload
+            heroImageUrl={heroImageUrl}
+            canWrite={canWrite}
+            variant={variant}
+          />
         </div>
       ) : null}
-
-      <HeroImageUpload heroImageUrl={heroImageUrl} canWrite={canWrite} variant={variant} />
 
       {/* Intro line (eyebrow) — show/hide; the line itself is auto-built from the locations. */}
       <div className="flex items-start justify-between gap-3 border-t border-border pt-4">
@@ -122,7 +129,7 @@ export function HeroEditor({
         />
       </div>
 
-      {showEyebrow && (inheritedEyebrow || config.eyebrow?.[locale]?.trim()) ? (
+      {(eyebrowError || (showEyebrow && (inheritedEyebrow || config.eyebrow?.[locale]?.trim()))) ? (
         <CopyOverride
           idBase="hero-eyebrow"
           locale={locale}
@@ -132,6 +139,7 @@ export function HeroEditor({
           onChange={setEyebrow}
           maxLength={80}
           rows={2}
+          externalError={eyebrowError}
         />
       ) : null}
 

@@ -1,14 +1,14 @@
 import { Clock } from "lucide-react";
-import type { LocationWithAssignments } from "../../../../../../types";
+import type { WebsiteBuilderLocation } from "../../../../../../types";
 import { MONO } from "../../../shared/constants";
-import { DAY_KEYS, type DayKey } from "../../../shared/contact";
+import { DAY_KEYS, locationClock, type DayKey } from "../../../shared/contact";
 import type { T } from "../../../shared/types";
 
 /** Opening-hours list for the stage — consecutive days with identical hours collapse into ranges
  *  (Mon–Wed), today highlighted, closed days in accent (mirrors the design .lb-locx-hours). */
-export function StageHours({ loc, t }: { loc: LocationWithAssignments; t: T }) {
+export function StageHours({ loc, t }: { loc: WebsiteBuilderLocation; t: T }) {
   const wh = (loc.workingHours ?? {}) as Partial<Record<DayKey, { open?: string; close?: string; isOpen?: boolean }>>;
-  const todayIdx = (new Date().getDay() + 6) % 7;
+  const todayIdx = locationClock(loc).dayIndex;
   const closedLabel = t("businessPage.builder.preview.contactClosed");
 
   const dayValue = (d: DayKey): string => {

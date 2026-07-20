@@ -45,7 +45,7 @@ export function Mosaic({ images, t }: GalleryVariantProps) {
   const [full, setFull] = useState(false);
 
   const mobile = rootWidth <= 760;
-  const pageSize = rootWidth <= 640 ? 4 : rootWidth <= 1024 ? 5 : 7;
+  const pageSize = rootWidth <= 640 ? 3 : rootWidth <= 1024 ? 4 : 6;
   const pages = Math.max(1, Math.ceil(images.length / pageSize));
   const gap = mobile ? 8 : 10;
   const unit = (paneWidth || 1) + gap;

@@ -10,7 +10,7 @@ const absoluteUrl = (value: string) => /^https?:\/\//i.test(value) ? value : `ht
 
 /** Directory — the included dark sitemap footer. Its links are derived from the visible builder layout;
  * external contact/location destinations stay real while the booking treatment remains decorative. */
-export function Directory({ data, t, footerRef, links, selectedLocationId, showLogo, onNavigate }: FooterViewProps) {
+export function Directory({ data, t, footerRef, links, selectedLocationId, showLogo, description, onNavigate }: FooterViewProps) {
   const name = data.businessName || t("businessPage.builder.preview.businessNamePlaceholder");
   const initial = name.trim().charAt(0) || "•";
   const longName = name.trim().length > 24;
@@ -20,6 +20,11 @@ export function Directory({ data, t, footerRef, links, selectedLocationId, showL
   const website = data.social.website?.trim();
   const websiteHref = website ? absoluteUrl(website) : null;
   const websiteLabel = website?.replace(/^https?:\/\//i, "").replace(/\/$/, "");
+  const hasContact = !!(email || phone || (websiteHref && websiteLabel));
+  const columnCount = Number(links.length > 0)
+    + Number(data.locations.length > 0)
+    + Number(hasContact)
+    + 1;
   const locationsLabel = data.locations.length > 1
     ? t("businessPage.builder.preview.kicker.locations")
     : t("businessPage.builder.preview.footerWhere");
@@ -54,12 +59,12 @@ export function Directory({ data, t, footerRef, links, selectedLocationId, showL
               </>
             )}
           </a>
-          {data.tagline?.trim() && <p className="mc-fdir-statement">{data.tagline}</p>}
+          {description && <p className="mc-fdir-statement">{description}</p>}
         </div>
 
         <div className="mc-fdir-rule" aria-hidden />
 
-        <div className="mc-fdir-main">
+        <div className="mc-fdir-main" data-columns={columnCount}>
           {links.length > 0 && (
             <nav className="mc-fdir-col" aria-label={t("businessPage.builder.preview.footerExplore")}>
               <div className="mc-fdir-h">{t("businessPage.builder.preview.footerExplore")}</div>
@@ -76,43 +81,47 @@ export function Directory({ data, t, footerRef, links, selectedLocationId, showL
             </nav>
           )}
 
-          <nav className="mc-fdir-col" aria-label={locationsLabel}>
-            <div className="mc-fdir-h">{locationsLabel}</div>
-            {data.locations.map((location) => {
-              const href = mapHref(location);
-              return href ? (
+          {data.locations.length > 0 && (
+            <nav className="mc-fdir-col" aria-label={locationsLabel}>
+              <div className="mc-fdir-h">{locationsLabel}</div>
+              {data.locations.map((location) => {
+                const href = mapHref(location);
+                return href ? (
+                  <a
+                    key={location.id}
+                    className="mc-fdir-link"
+                    href={href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {location.name}
+                  </a>
+                ) : (
+                  <span key={location.id} className="mc-fdir-link mc-fdir-link--static">
+                    {location.name}
+                  </span>
+                );
+              })}
+            </nav>
+          )}
+
+          {hasContact && (
+            <nav className="mc-fdir-col" aria-label={t("businessPage.builder.preview.contactReach")}>
+              <div className="mc-fdir-h">{t("businessPage.builder.preview.contactReach")}</div>
+              {email && <a className="mc-fdir-link" href={`mailto:${email}`}>{email}</a>}
+              {phone && <a className="mc-fdir-link" href={telHref(phone)}>{phone}</a>}
+              {websiteHref && websiteLabel && (
                 <a
-                  key={location.id}
                   className="mc-fdir-link"
-                  href={href}
+                  href={websiteHref}
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  {location.name}
+                  {websiteLabel}
                 </a>
-              ) : (
-                <span key={location.id} className="mc-fdir-link mc-fdir-link--static">
-                  {location.name}
-                </span>
-              );
-            })}
-          </nav>
-
-          <nav className="mc-fdir-col" aria-label={t("businessPage.builder.preview.contactReach")}>
-            <div className="mc-fdir-h">{t("businessPage.builder.preview.contactReach")}</div>
-            {email && <a className="mc-fdir-link" href={`mailto:${email}`}>{email}</a>}
-            {phone && <a className="mc-fdir-link" href={telHref(phone)}>{phone}</a>}
-            {websiteHref && websiteLabel && (
-              <a
-                className="mc-fdir-link"
-                href={websiteHref}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                {websiteLabel}
-              </a>
-            )}
-          </nav>
+              )}
+            </nav>
+          )}
 
           <div className="mc-fdir-util">
             <div className="mc-fdir-util-row">

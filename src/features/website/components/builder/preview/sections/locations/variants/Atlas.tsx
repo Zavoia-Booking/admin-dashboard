@@ -1,84 +1,168 @@
-import { useMemo } from "react";
-import { MapPin } from "lucide-react";
-import { MONO } from "../../../shared/constants";
-import { locationArea, locationPhoto, prettyAddress } from "../../../shared/contact";
-import { BookButton } from "../../../shared/primitives";
+import { useEffect, useState, type ReactNode } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../../../../../../../shared/components/ui/tabs";
+import type { WebsiteBuilderLocation } from "../../../../../../types";
+import {
+  DAY_KEYS,
+  hasOpeningHours,
+  locationArea,
+  locationClock,
+  locationPhoto,
+  locationPostalAddress,
+  type DayKey,
+} from "../../../shared/contact";
+import type { T } from "../../../shared/types";
+import { LocationAmenities } from "../parts/LocationAmenities";
+import { LocationBookAction } from "../parts/LocationBookAction";
 import { StagePhoto } from "../parts/StagePhoto";
-import { StageHours } from "../parts/StageHours";
-import { LocationTags } from "../parts/LocationTags";
-import { OpenStatus } from "../parts/OpenStatus";
-import { buildLocationTagGroups } from "../util";
 import type { LocationsVariantProps } from "../types";
+import "./atlas.css";
 
-/** Atlas — a tab strip over a wide photo stage + a detail sheet (visit / hours / amenities / book). The tabs
- *  drive the same selected-location state; the stage photo crossfades on switch (StagePhoto). Mirrors the
- *  source LocAtlas; the transit "station" line is dropped (no field). */
+function AtlasFade({ swapKey, children }: { swapKey: number; children: ReactNode }) {
+  const [shown, setShown] = useState(false);
+  useEffect(() => {
+    setShown(false);
+    const timer = window.setTimeout(() => setShown(true), 20);
+    return () => window.clearTimeout(timer);
+  }, [swapKey]);
+  return (
+    <div className="mc-loca-fade" data-shown={shown ? "1" : "0"}>
+      {children}
+    </div>
+  );
+}
+
+function atlasHours(loc: WebsiteBuilderLocation, t: T) {
+  const hours = (loc.workingHours ?? {}) as Partial<
+    Record<DayKey, { open?: string; close?: string; isOpen?: boolean }>
+  >;
+  const closed = t("businessPage.builder.preview.contactClosed");
+  const todayIndex = locationClock(loc).dayIndex;
+  const dayValue = (day: DayKey) => {
+    if (loc.open247) return t("businessPage.builder.preview.contactOpen247");
+    const value = hours[day];
+    return value?.isOpen && value.open && value.close ? `${value.open} – ${value.close}` : closed;
+  };
+  const rows: { start: number; end: number; value: string }[] = [];
+  DAY_KEYS.forEach((day, i) => {
+    const value = dayValue(day);
+    const previous = rows[rows.length - 1];
+    if (previous?.value === value) previous.end = i;
+    else rows.push({ start: i, end: i, value });
+  });
+  return rows.map((row) => ({
+    ...row,
+    closed: row.value === closed,
+    today: todayIndex >= row.start && todayIndex <= row.end,
+    label:
+      row.start === row.end
+        ? t(`businessPage.builder.preview.daysFull.${DAY_KEYS[row.start]}`)
+        : `${t(`businessPage.builder.preview.days.${DAY_KEYS[row.start]}`)}–${t(
+            `businessPage.builder.preview.days.${DAY_KEYS[row.end]}`,
+          )}`,
+  }));
+}
+
+/** Atlas — accessible location tabs over a wide photo stage and the design-source visit/detail sheet. */
 export function Atlas({ shown, idx, loc, onSelect, dict, t }: LocationsVariantProps) {
   const photo = locationPhoto(loc);
   const blurb = loc.description?.trim();
-  const addr = prettyAddress(loc);
-  const tagGroups = useMemo(() => buildLocationTagGroups(loc, dict), [loc, dict]);
+  const address = locationPostalAddress(loc) || t("businessPage.builder.preview.noAddress");
+  const showHours = hasOpeningHours(loc, true);
+  const hours = showHours ? atlasHours(loc, t) : [];
+  const value = String(loc.id);
+
   return (
-    <>
-      <div className="mc-cta-tabs" role="tablist">
-        {shown.map((l, i) => {
-          const area = locationArea(l);
+    <Tabs
+      value={value}
+      onValueChange={(nextValue) => {
+        const next = shown.findIndex((location) => String(location.id) === nextValue);
+        if (next >= 0) onSelect(next);
+      }}
+      className="mc-atlas"
+    >
+      <TabsList
+        className="mc-cta-tabs"
+        aria-label={t("businessPage.builder.preview.locationsTitle")}
+      >
+        {shown.map((location, i) => {
+          const area = locationArea(location);
           return (
-            <button
-              key={l.id}
-              type="button"
-              role="tab"
-              aria-selected={i === idx}
+            <TabsTrigger
+              key={location.id}
+              value={String(location.id)}
               className="mc-cta-tab"
               data-on={i === idx ? "1" : "0"}
-              onClick={() => onSelect(i)}
             >
-              <span className="mc-cta-tab-nm">{l.name}</span>
+              <span className="mc-cta-tab-nm">{location.name}</span>
               {area && <span className="mc-cta-tab-area">{area}</span>}
-            </button>
+            </TabsTrigger>
           );
         })}
-      </div>
-      <div className="mc-loca">
-        <div className="mc-loca-fig">
-          {photo ? (
-            <StagePhoto src={photo} alt={loc.name} />
-          ) : (
-            <div className="absolute inset-0" style={{ background: "var(--mc-accent-field)" }} />
-          )}
-          <div className="mc-loca-scrim" />
-          <div key={`cap-${loc.id}`} className="mc-loca-cap">
-            <div className="mc-loca-cap-nm mc-locx-rise">{loc.name}</div>
-            {blurb && (
-              <p className="mc-loca-cap-blurb mc-locx-rise" style={{ animationDelay: "80ms" }}>
-                {blurb}
-              </p>
+      </TabsList>
+
+      {shown.map((location) => (
+        <TabsContent
+          key={location.id}
+          value={String(location.id)}
+          forceMount
+          className="mc-atlas-content"
+        >
+          {location.id === loc.id ? <div className="mc-loca">
+          <div className="mc-loca-fig mc-mask-in" data-photo={photo ? "1" : "0"}>
+            {photo ? (
+              <StagePhoto src={photo} alt={loc.name} />
+            ) : (
+              <div className="mc-loca-fallback" aria-hidden />
             )}
-          </div>
-        </div>
-        <div key={`sheet-${loc.id}`} className="mc-loca-sheet mc-locx-fade">
-          <div>
-            <div className="mb-2 inline-flex items-center gap-2 text-[10.5px] font-semibold uppercase" style={{ ...MONO, letterSpacing: "0.12em", color: "var(--mc-muted)" }}>
-              <MapPin className="h-3.5 w-3.5" strokeWidth={1.6} />
-              {t("businessPage.builder.preview.locVisit")}
+            {photo && <div className="mc-loca-scrim" aria-hidden />}
+            <div key={`cap-${loc.id}`} className="mc-loca-cap">
+              <div className="mc-loca-cap-nm mc-loca-rise" style={{ animationDelay: "60ms" }}>
+                {loc.name}
+              </div>
+              {blurb && (
+                <p className="mc-loca-cap-blurb mc-loca-rise" style={{ animationDelay: "140ms" }}>
+                  {blurb}
+                </p>
+              )}
             </div>
-            {addr && <p className="text-[13.5px] leading-snug" style={{ color: "var(--mc-fg)" }}>{addr}</p>}
-            <div className="mt-2.5">
-              <OpenStatus loc={loc} t={t} />
-            </div>
           </div>
-          <StageHours loc={loc} t={t} />
-          {tagGroups.length > 0 && <LocationTags groups={tagGroups} />}
-          {loc.allowOnlineBooking && (
-            <BookButton
-              label={t("businessPage.builder.preview.bookAt", { name: loc.name })}
-              tone="accent"
-              size="lg"
-              styleOverride={{ width: "100%", justifyContent: "center", marginTop: "auto" }}
-            />
-          )}
-        </div>
-      </div>
-    </>
+
+          <div className="mc-loca-sheet mc-loca-sheet-in">
+            <AtlasFade swapKey={loc.id}>
+              <div>
+                <div className="mc-contact-h">{t("businessPage.builder.preview.locVisit")}</div>
+                <div className="mc-loca-rows">
+                  <span className="mc-contact-row">{address}</span>
+                </div>
+              </div>
+
+              {showHours && (
+                <div>
+                  <div className="mc-contact-h">{t("businessPage.builder.preview.contactHours")}</div>
+                  {hours.map((row) => (
+                    <div key={row.start} className="mc-hours-row" data-today={row.today ? "1" : "0"}>
+                      <span>{row.label}</span>
+                      <span style={{ opacity: row.closed ? 0.5 : 1 }}>{row.value}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <LocationAmenities key={`amen-${loc.id}`} loc={loc} dict={dict} t={t} />
+
+              {loc.allowOnlineBooking && (
+                <div className="mc-loca-book">
+                  <LocationBookAction
+                    label={t("businessPage.builder.preview.bookAt", { name: loc.name })}
+                    className="mc-loca-book-action"
+                  />
+                </div>
+              )}
+            </AtlasFade>
+          </div>
+          </div> : null}
+        </TabsContent>
+      ))}
+    </Tabs>
   );
 }

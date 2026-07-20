@@ -12,9 +12,18 @@
   grid-template-columns: minmax(0, 1fr);
 }
 .mc-content--nav-overlay > .mc-site-nav,
+.mc-content--nav-overlay > .mc-anno-pill-layer,
 .mc-content--nav-overlay > .mc-page-flow {
   grid-area: 1 / 1;
   align-self: start;
+}
+.mc-content--nav-overlay > .mc-anno-pill-layer {
+  position: sticky;
+  top: 0;
+  z-index: 91;
+  height: 0;
+  overflow: visible;
+  pointer-events: none;
 }
 .mc-page-flow {
   position: relative;

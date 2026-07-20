@@ -35,6 +35,8 @@ interface WebsiteAtelierHeaderProps {
   saveDisabled?: boolean;
   saveDisabledReason?: string | null;
   saveBusy?: boolean;
+  blockingIssueCount?: number;
+  onReviewBlockingIssues?: () => void;
   onPublish?: () => void;
   publishLabel?: string;
   publishHint?: string | null;
@@ -61,12 +63,29 @@ const saveStatusKey: Record<AtelierSaveStatus, string> = {
   conflict: "page.save.conflict",
 };
 
-function SaveStatus({ status }: { status: AtelierSaveStatus }) {
+function SaveStatus({
+  status,
+  blockingIssueCount = 0,
+  onReviewBlockingIssues,
+}: {
+  status: AtelierSaveStatus;
+  blockingIssueCount?: number;
+  onReviewBlockingIssues?: () => void;
+}) {
   const { t } = useTranslation("website");
   const previousStatus = useRef(status);
   const [showSavedFlash, setShowSavedFlash] = useState(false);
   const isWarning = status === "invalid" || status === "offline" || status === "failed" || status === "conflict";
   const isVisible = status !== "saved" || showSavedFlash;
+  const statusLabel =
+    status === "invalid" && blockingIssueCount > 0
+      ? t(
+          onReviewBlockingIssues
+            ? "page.save.invalidCount"
+            : "page.save.invalidReadOnlyCount",
+          { count: blockingIssueCount },
+        )
+      : t(saveStatusKey[status]);
 
   useEffect(() => {
     const previous = previousStatus.current;
@@ -80,33 +99,53 @@ function SaveStatus({ status }: { status: AtelierSaveStatus }) {
     return () => window.clearTimeout(timeout);
   }, [status]);
 
+  const content = isVisible ? (
+    <>
+      {status === "saving" || status === "queued" ? (
+        <span className="size-1.5 rounded-full bg-[var(--atelier-warning)] motion-safe:animate-pulse" aria-hidden />
+      ) : status === "saved" ? (
+        <Check className="size-3" strokeWidth={2.2} aria-hidden />
+      ) : isWarning ? (
+        <CircleAlert className="size-3" strokeWidth={2} aria-hidden />
+      ) : (
+        <span className="size-1.5 rounded-full bg-[var(--atelier-warning)]" aria-hidden />
+      )}
+      <span className="truncate">{statusLabel}</span>
+    </>
+  ) : null;
+  const sharedStyle = {
+    color: isWarning
+      ? "var(--atelier-warning)"
+      : status === "saved"
+        ? "var(--atelier-success)"
+        : "var(--atelier-muted)",
+  };
+
+  if (status === "invalid" && onReviewBlockingIssues) {
+    return (
+      <button
+        type="button"
+        onClick={onReviewBlockingIssues}
+        className="website-atelier-focus inline-flex min-w-0 items-center gap-1.5 rounded-[5px] text-[11px] underline decoration-current/35 underline-offset-[3px] hover:decoration-current"
+        style={sharedStyle}
+        aria-live="polite"
+        aria-atomic="true"
+      >
+        {content}
+      </button>
+    );
+  }
+
   return (
     <span
       className="inline-flex min-w-0 items-center gap-1.5 text-[11px]"
       style={{
-        color: isWarning
-          ? "var(--atelier-warning)"
-          : status === "saved"
-            ? "var(--atelier-success)"
-            : "var(--atelier-muted)",
+        ...sharedStyle,
       }}
       aria-live="polite"
       aria-atomic="true"
     >
-      {isVisible ? (
-        <>
-          {status === "saving" || status === "queued" ? (
-            <span className="size-1.5 rounded-full bg-[var(--atelier-warning)] motion-safe:animate-pulse" aria-hidden />
-          ) : status === "saved" ? (
-            <Check className="size-3" strokeWidth={2.2} aria-hidden />
-          ) : isWarning ? (
-            <CircleAlert className="size-3" strokeWidth={2} aria-hidden />
-          ) : (
-            <span className="size-1.5 rounded-full bg-[var(--atelier-warning)]" aria-hidden />
-          )}
-          <span className="truncate">{t(saveStatusKey[status])}</span>
-        </>
-      ) : null}
+      {content}
     </span>
   );
 }
@@ -172,6 +211,8 @@ export function WebsiteAtelierHeader({
   saveDisabled = false,
   saveDisabledReason,
   saveBusy = false,
+  blockingIssueCount = 0,
+  onReviewBlockingIssues,
   onPublish,
   publishLabel,
   publishHint,
@@ -196,9 +237,16 @@ export function WebsiteAtelierHeader({
         ? t("page.status.draftAheadOfLive")
         : t("page.status.notPublishedYet");
   const mobileStatusLabel =
-    saveStatus === "saving" || saveStatus === "queued" || isSaveWarning
-      ? t(saveStatusKey[saveStatus])
-      : mobilePublicationSummary;
+    saveStatus === "invalid" && blockingIssueCount > 0
+      ? t(
+          onReviewBlockingIssues
+            ? "page.save.invalidCount"
+            : "page.save.invalidReadOnlyCount",
+          { count: blockingIssueCount },
+        )
+      : saveStatus === "saving" || saveStatus === "queued" || isSaveWarning
+        ? t(saveStatusKey[saveStatus])
+        : mobilePublicationSummary;
   const saveActionLabel = saveLabel ?? t("page.actions.saveChanges");
   const desktopPublishLabel = publishLabel ?? (publishSavesChanges
     ? t("page.actions.savePublish")
@@ -214,6 +262,11 @@ export function WebsiteAtelierHeader({
       : t("page.actions.publish"));
   const publishActionReason = publishDisabledReason ?? publishHint;
   const isCurrentLive = publishStatus === "live" && publishDisabled;
+  const mobileSaveTone = isSaveWarning
+    ? "text-[var(--atelier-warning)]"
+    : saveStatus === "saved"
+      ? "text-[var(--atelier-success)]"
+      : "text-[var(--atelier-ink)]";
   const publishAriaLabel = (label: string) =>
     publishBusy
       ? t("page.status.publishing")
@@ -258,9 +311,20 @@ export function WebsiteAtelierHeader({
               aria-hidden
             />
           </div>
-          <p className="mt-0.5 truncate text-[10.5px] text-[var(--atelier-muted)]" aria-live="polite">
-            {mobileStatusLabel}
-          </p>
+          {saveStatus === "invalid" && onReviewBlockingIssues ? (
+            <button
+              type="button"
+              onClick={onReviewBlockingIssues}
+              className="website-atelier-focus mt-0.5 block max-w-full truncate rounded-[4px] text-left text-[10.5px] text-[var(--atelier-warning)] underline decoration-current/35 underline-offset-2 hover:decoration-current"
+              aria-live="polite"
+            >
+              {mobileStatusLabel}
+            </button>
+          ) : (
+            <p className="mt-0.5 truncate text-[10.5px] text-[var(--atelier-muted)]" aria-live="polite">
+              {mobileStatusLabel}
+            </p>
+          )}
         </div>
         {onPreview ? (
           <button
@@ -286,10 +350,18 @@ export function WebsiteAtelierHeader({
                     ? `${saveActionLabel}: ${saveDisabledReason}`
                     : saveActionLabel
                 }
-                className="website-atelier-focus website-atelier-press relative grid size-[34px] shrink-0 place-items-center rounded-[9px] border border-[var(--atelier-border)] bg-[var(--atelier-surface-strong)] text-[var(--atelier-ink)] after:absolute after:-inset-[5px] after:content-[''] hover:border-[color-mix(in_srgb,var(--atelier-ink)_28%,transparent)] aria-disabled:cursor-not-allowed aria-disabled:opacity-45"
+                className={`website-atelier-focus website-atelier-press relative grid size-[34px] shrink-0 place-items-center rounded-[9px] border border-[var(--atelier-border)] bg-[var(--atelier-surface-strong)] after:absolute after:-inset-[5px] after:content-[''] hover:border-[color-mix(in_srgb,var(--atelier-ink)_28%,transparent)] aria-disabled:cursor-not-allowed ${
+                  saveStatus === "saved" || isSaveWarning
+                    ? "aria-disabled:opacity-100"
+                    : "aria-disabled:opacity-45"
+                } ${mobileSaveTone}`}
               >
-                {saveBusy ? (
+                {saveBusy || saveStatus === "saving" || saveStatus === "queued" ? (
                   <LoaderCircle className="size-3.5 animate-spin motion-reduce:animate-none" aria-hidden />
+                ) : saveStatus === "saved" ? (
+                  <Check className="size-3.5" strokeWidth={2} aria-hidden />
+                ) : isSaveWarning ? (
+                  <CircleAlert className="size-3.5" strokeWidth={1.9} aria-hidden />
                 ) : (
                   <SaveIcon className="size-3.5" strokeWidth={1.8} aria-hidden />
                 )}
@@ -312,7 +384,7 @@ export function WebsiteAtelierHeader({
                 aria-busy={publishBusy}
                 aria-describedby={publishActionReason ? publishReasonId : undefined}
                 aria-label={publishAriaLabel(mobilePublishLabel)}
-                className={`website-atelier-focus website-atelier-press relative flex h-8 min-w-[72px] shrink-0 items-center justify-center whitespace-nowrap rounded-[9px] px-3 text-[12px] font-semibold after:absolute after:-inset-y-1.5 after:inset-x-0 after:content-[''] aria-disabled:cursor-not-allowed aria-disabled:opacity-45 ${
+                className={`website-atelier-focus website-atelier-press relative flex h-8 min-w-[72px] shrink-0 items-center justify-center whitespace-nowrap rounded-[9px] px-3 text-[12px] font-semibold after:absolute after:-inset-y-1.5 after:inset-x-0 after:content-[''] aria-disabled:cursor-not-allowed aria-disabled:opacity-45 max-[767px]:hidden ${
                   isCurrentLive
                     ? "cursor-default bg-[var(--atelier-field)] text-[var(--atelier-muted)] hover:opacity-100"
                     : "bg-[var(--atelier-ink)] text-[var(--atelier-canvas)] hover:opacity-90"
@@ -355,7 +427,11 @@ export function WebsiteAtelierHeader({
       </div>
       <span className="h-[18px] w-px shrink-0 bg-[var(--atelier-border)]" aria-hidden />
       <PublishPill status={publishStatus} />
-      <SaveStatus status={saveStatus} />
+      <SaveStatus
+        status={saveStatus}
+        blockingIssueCount={blockingIssueCount}
+        onReviewBlockingIssues={onReviewBlockingIssues}
+      />
       <div className="min-w-0 flex-1" />
       {pendingControl}
       {onSave ? (

@@ -1,0 +1,211 @@
+/* Services · shared section/header/atoms. Source sec-services + microsite.css, adapted for the builder's
+   logical preview surface: vw→cqw, vh→--mc-vph and media queries→container queries. */
+.mc-services {
+  box-sizing: border-box;
+  width: 100%;
+  overflow: clip;
+  padding: clamp(40px, calc(var(--mc-vph, 760px) * 0.06), 84px) 0
+    clamp(64px, calc(var(--mc-vph, 760px) * 0.1), 140px);
+  color: var(--mc-fg);
+  background: var(--mc-bg);
+}
+
+.mc-services-wrap {
+  width: 100%;
+  max-width: 1320px;
+  margin-inline: auto;
+  padding-inline: clamp(18px, 4cqw, 56px);
+}
+
+.mc-services-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: clamp(28px, 4cqw, 52px);
+}
+
+.mc-services-title {
+  margin: 10px 0 0;
+  font-family: var(--mc-display);
+  font-size: clamp(34px, 5.2cqw, 72px);
+  font-weight: var(--mc-display-weight);
+  letter-spacing: var(--mc-display-tracking);
+  line-height: 0.98;
+  text-wrap: balance;
+}
+
+.mc-services-title-word { display: inline-block; overflow: hidden; vertical-align: bottom; }
+.mc-services-title-word > span {
+  display: inline-block;
+  opacity: 0;
+  transform: translate3d(0, 112%, 0);
+  transition: opacity 620ms var(--ease-out-strong), transform 720ms var(--ease-out-strong);
+}
+.mc-services[data-revealed="1"] .mc-services-title-word > span { opacity: 1; transform: none; }
+
+.mc-services-sublede {
+  max-width: 480px;
+  margin: 14px 0 0;
+  color: var(--mc-muted);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.mc-services-location-wrap { align-self: end; }
+.mc-services-locations { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+.mc-services-location {
+  padding: 8px 14px;
+  border: 1px solid var(--mc-line);
+  border-radius: 999px;
+  background: none;
+  color: var(--mc-muted);
+  font-family: var(--mc-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color 250ms, border-color 250ms, background-color 250ms;
+}
+.mc-services-location:hover { color: var(--mc-fg); border-color: color-mix(in oklch, var(--mc-fg) 32%, transparent); }
+.mc-services-location[data-on="1"] { color: var(--mc-on-accent); background: var(--mc-accent-field); border-color: var(--mc-accent-field); }
+
+.mc-service-dots {
+  min-width: 24px;
+  align-self: start;
+  margin-top: 0.72em;
+  border-bottom: 1.5px dotted color-mix(in oklch, var(--mc-fg) 26%, transparent);
+}
+.mc-service-row {
+  display: grid;
+  grid-template-columns: minmax(0, max-content) minmax(24px, 1fr) max-content 16px;
+  min-width: 0;
+  width: 100%;
+  align-items: start;
+  column-gap: clamp(12px, 1.4cqw, 20px);
+  row-gap: 5px;
+  margin: 0;
+  padding: 15px 10px 15px 4px;
+  border: 0;
+  border-bottom: 1px solid var(--mc-line);
+  border-radius: 0;
+  background: none;
+  color: var(--mc-fg);
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 300ms var(--ease-out-strong);
+}
+.mc-service-row:hover { background: var(--mc-soft); }
+.mc-service-row-title {
+  display: flex;
+  grid-column: 1;
+  grid-row: 1;
+  min-width: 0;
+  max-width: 100%;
+  align-items: baseline;
+  font-family: var(--mc-display);
+  font-size: clamp(16px, 1.4cqw, 18.5px);
+  font-weight: var(--mc-display-weight);
+  letter-spacing: var(--mc-display-tracking);
+  line-height: 1.25;
+}
+.mc-service-row-title-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mc-service-row-description {
+  display: -webkit-box;
+  grid-column: 1 / 3;
+  grid-row: 2;
+  width: 100%;
+  min-width: 0;
+  max-width: 72ch;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  color: var(--mc-muted);
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+.mc-service-row-meta {
+  display: flex;
+  grid-column: 3;
+  grid-row: 1;
+  min-width: 0;
+  align-items: flex-end;
+  flex-direction: column;
+  gap: 3px;
+}
+.mc-service-row-duration {
+  color: var(--mc-muted);
+  font-family: var(--mc-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-align: right;
+  white-space: nowrap;
+}
+.mc-service-row-price {
+  width: max-content;
+  min-width: clamp(58px, 7cqw, 104px);
+  font-family: var(--mc-display);
+  font-size: clamp(16px, 1.4cqw, 19px);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--mc-display-weight);
+  text-align: right;
+  white-space: nowrap;
+  transition: color 250ms;
+}
+.mc-service-row-arrow {
+  display: inline-flex;
+  grid-column: 4;
+  grid-row: 1;
+  width: 16px;
+  height: 16px;
+  align-items: center;
+  align-self: start;
+  margin-top: 3px;
+  color: var(--mc-accent);
+  opacity: 0;
+  transform: translateX(-8px);
+  transition: opacity 300ms var(--ease-out-strong), transform 300ms var(--ease-out-strong);
+}
+.mc-service-row:hover .mc-service-row-price { color: var(--mc-accent); }
+.mc-service-row:hover .mc-service-row-arrow { opacity: 1; transform: none; }
+
+.mc-services[data-revealed="0"] .mc-mask-in,
+.mc-services[data-revealed="0"] .mc-locx-rowin { animation-play-state: paused; }
+.mc-services button:focus-visible { outline: 2px solid var(--mc-accent); outline-offset: 3px; }
+
+@container (max-width: 880px) {
+  .mc-services-location-wrap { align-self: start; }
+  .mc-services-locations { justify-content: flex-start; }
+  .mc-service-row-arrow { display: none; }
+  .mc-service-row {
+    grid-template-columns: minmax(0, max-content) minmax(14px, 1fr) max-content;
+    column-gap: clamp(10px, 1.6cqw, 14px);
+  }
+  .mc-service-dots { min-width: 14px; }
+}
+
+@container (max-width: 560px) {
+  .mc-service-row {
+    grid-template-columns: minmax(0, max-content) minmax(12px, 1fr) max-content;
+    column-gap: 10px;
+  }
+  .mc-service-dots { min-width: 12px; }
+  .mc-service-row-price { min-width: 0; }
+}
+
+@media (hover: none), (pointer: coarse) {
+  .mc-service-row-arrow { display: none; }
+  .mc-service-row:active { background: var(--mc-soft); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mc-services-title-word > span { opacity: 1; transform: none; transition: none; }
+}

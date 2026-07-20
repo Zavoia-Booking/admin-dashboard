@@ -1,5 +1,35 @@
 import i18n from "../lib/i18n";
 
+type GlobalHttpErrorToastReason = "subscription_required";
+
+const globallyHandledHttpErrorToasts = new WeakMap<
+  object,
+  Set<GlobalHttpErrorToastReason>
+>();
+
+/**
+ * Records that the shared HTTP boundary already explained an error to the user.
+ * Feature-level catches should still update their state, but can use the paired
+ * predicate to avoid presenting the same failure twice.
+ */
+export function markGlobalHttpErrorToastHandled(
+  error: unknown,
+  reason: GlobalHttpErrorToastReason,
+): void {
+  if (typeof error !== "object" || error === null) return;
+  const handled = globallyHandledHttpErrorToasts.get(error) ?? new Set<GlobalHttpErrorToastReason>();
+  handled.add(reason);
+  globallyHandledHttpErrorToasts.set(error, handled);
+}
+
+export function wasGlobalHttpErrorToastHandled(
+  error: unknown,
+  reason: GlobalHttpErrorToastReason,
+): boolean {
+  if (typeof error !== "object" || error === null) return false;
+  return globallyHandledHttpErrorToasts.get(error)?.has(reason) === true;
+}
+
 /**
  * Pattern for message codes: DOMAIN.CODE (e.g., 'AUTH.E12', 'CATEGORY.S01')
  */

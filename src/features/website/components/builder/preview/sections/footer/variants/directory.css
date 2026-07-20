@@ -60,6 +60,10 @@
   gap: 30px clamp(24px, 3cqw, 56px);
 }
 
+.mc-fdir-main[data-columns="1"] { grid-template-columns: minmax(0, 1fr); }
+.mc-fdir-main[data-columns="2"] { grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); }
+.mc-fdir-main[data-columns="3"] { grid-template-columns: repeat(2, minmax(0, 1fr)) minmax(0, 1.3fr); }
+
 .mc-fdir-col {
   display: flex;
   min-width: 0;
@@ -235,6 +239,10 @@
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
+  .mc-fdir-main[data-columns="1"],
+  .mc-fdir-main[data-columns="2"] { grid-template-columns: minmax(0, 1fr); }
+  .mc-fdir-main[data-columns="3"] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
   .mc-fdir-util {
     grid-column: 1 / -1;
     flex-direction: row;
@@ -262,6 +270,10 @@
   .mc-fdir-main {
     grid-template-columns: minmax(0, 1fr);
     gap: clamp(26px, 6cqw, 34px);
+  }
+
+  .mc-fdir-main[data-columns] {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .mc-fdir-util {

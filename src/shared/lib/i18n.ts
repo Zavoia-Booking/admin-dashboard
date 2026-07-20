@@ -128,7 +128,9 @@ i18n
   .init({
     resources,
     fallbackLng: 'en',
-    debug: process.env.NODE_ENV === 'development',
+    // Keep development consoles actionable. Set VITE_I18N_DEBUG=true only while
+    // investigating translations instead of logging every initialization and fallback.
+    debug: config.IS_DEV && import.meta.env.VITE_I18N_DEBUG === 'true',
     
     interpolation: {
       escapeValue: false, // React already does escaping

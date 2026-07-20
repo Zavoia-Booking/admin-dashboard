@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { cn } from "../../../../../../../../shared/lib/utils";
+import { LocationImage } from "./LocationImage";
 
 /** Crossfading featured photo — the outgoing image stays beneath while the new one fades/zooms in over it. */
 export function StagePhoto({ src, alt }: { src: string; alt: string }) {
@@ -20,12 +21,11 @@ export function StagePhoto({ src, alt }: { src: string; alt: string }) {
   return (
     <div className="absolute inset-0">
       {stack.map((it, i) => (
-        <img
+        <LocationImage
           key={it.k}
           src={it.src}
           alt={i === stack.length - 1 ? alt : ""}
-          loading="lazy"
-          decoding="async"
+          fallbackLabel={i === stack.length - 1 ? alt : ""}
           className={cn("absolute inset-0 h-full w-full object-cover", i === stack.length - 1 && "mc-locx-img")}
         />
       ))}

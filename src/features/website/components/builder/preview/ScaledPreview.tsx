@@ -12,8 +12,11 @@ interface ScaledPreviewProps {
   /** Keeps the compact Atelier peek aligned with the section selected in the editor. The
    *  supplied design drives its embedded preview to the selected section as soon as a row opens. */
   focusType?: string;
+  selectedLocationId?: number | null;
+  onSelectedLocationChange?: (locationId: number | null) => void;
   /** Desktop width the preview renders at before scaling down — must clear every section's container-query
-   *  collapse point (the widest is Team at 900px) so a thumbnail always shows the desktop arrangement. */
+   *  collapse point (the widest are the 1024px tablet rules in about/gallery-fan/hero-tumble/locations-panorama/
+   *  footer-masthead/team-carousel) so a thumbnail always shows the desktop arrangement. */
   virtualWidth?: number;
   /** Fade the bottom edge when the scaled content is taller than the clip box, so a crop reads as
    *  intentional rather than cut off. Opt-in: callers with their own fade (the locked-view teaser) skip it. */
@@ -35,7 +38,9 @@ export function ScaledPreview({
   chrome = true,
   startNumber = 1,
   focusType,
-  virtualWidth = 1000,
+  selectedLocationId,
+  onSelectedLocationChange,
+  virtualWidth = 1040,
   fadeOverflow = false,
   className,
 }: ScaledPreviewProps) {
@@ -128,11 +133,14 @@ export function ScaledPreview({
       {mounted && (
         <div
           ref={innerRef}
-          className="absolute left-0 top-0 origin-top-left"
+          className={cn(
+            "absolute left-0 top-0 origin-top-left",
+            focusType &&
+              "transition-transform duration-[420ms] ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:transition-none",
+          )}
           style={{
             width: virtualWidth,
-            top: -focusOffset * scale,
-            transform: `scale(${scale})`,
+            transform: `scale(${scale}) translate3d(0, ${-focusOffset}px, 0)`,
           }}
         >
           <LivePreview
@@ -141,6 +149,8 @@ export function ScaledPreview({
             chrome={chrome}
             startNumber={startNumber}
             focusType={focusType}
+            selectedLocationId={selectedLocationId}
+            onSelectedLocationChange={onSelectedLocationChange}
           />
         </div>
       )}

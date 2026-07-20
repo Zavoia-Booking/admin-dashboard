@@ -41,6 +41,15 @@ export const fetchWebsiteBuilderAction = createAsyncAction(
   'website/FETCH_BUILDER_FAILURE',
 )<void, ScopedWebsiteResult<WebsiteBuilderResponse>, ScopedWebsiteError>();
 
+/**
+ * Route-entry refresh for `/website`. Unlike an in-workspace refetch, this revokes retained
+ * primary, catalog, and review-preview authority before loading, so cached owner data can never
+ * initialize a new editor mount. It shares the primary fetch worker and result actions above.
+ */
+export const enterWebsiteBuilderAction = createAction(
+  'website/ENTER_BUILDER',
+)();
+
 /** Versioned draft save. A 409 carries the conflict metadata instead of a plain message. */
 export const saveWebsiteDraftAction = createAsyncAction(
   'website/SAVE_DRAFT_REQUEST',

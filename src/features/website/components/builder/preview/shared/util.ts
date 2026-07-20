@@ -1,11 +1,11 @@
-import type { LocationWithAssignments } from "../../../../types";
+import type { WebsiteBuilderLocation } from "../../../../types";
 
 /** Localized string accessor with EN→RO fallback; empty string when the value is absent. */
 export const localized = (v: { en: string; ro: string } | undefined, locale: "en" | "ro") =>
   (v ? v[locale] || v.en || v.ro : "") || "";
 
 /** Weighted average rating + total count across rated locations (mirrors the microsite aggregate). */
-export function aggregateReviews(locations: LocationWithAssignments[]) {
+export function aggregateReviews(locations: WebsiteBuilderLocation[]) {
   const rated = locations.filter((l) => (l.totalReviews ?? 0) > 0);
   const count = rated.reduce((s, l) => s + (l.totalReviews ?? 0), 0);
   const rating =

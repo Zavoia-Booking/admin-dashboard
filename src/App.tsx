@@ -11,6 +11,7 @@ import { SubscriptionBlocker } from './shared/components/common/subscription/Sub
 import PushListenersBootstrap from './features/push-notifications/PushListenersBootstrap'
 import SplashGate from './shared/components/splash/SplashGate'
 import { Spinner } from './shared/components/ui/spinner'
+import { Toaster } from './shared/components/ui/sonner'
 
 // Lazy-loaded pages (each route becomes a separate chunk)
 const SetupWizardPage = lazy(() => import('./features/setupWizard/pages/SetupWizard'))
@@ -60,6 +61,9 @@ function RouteFallback() {
  * single unit; the account/seat/subscription modals ride along on every route.
  */
 function RootLayout() {
+  const location = useLocation()
+  const isWebsiteBuilder = location.pathname === '/website'
+
   return (
     <>
       <div className="splash-app-root">
@@ -75,6 +79,12 @@ function RootLayout() {
       <SubscriptionBlocker />
       <PushListenersBootstrap />
       <SplashGate />
+      <Toaster
+        position="top-right"
+        expand={isWebsiteBuilder}
+        visibleToasts={isWebsiteBuilder ? 3 : undefined}
+        gap={isWebsiteBuilder ? 8 : undefined}
+      />
     </>
   )
 }

@@ -1,6 +1,6 @@
 import type {
   SectionEntry,
-  LocationWithAssignments,
+  WebsiteBuilderLocation,
   FaqItem,
   AnnouncementContent,
 } from "../../../../types";
@@ -18,10 +18,14 @@ export interface PreviewReview {
 
 export interface PreviewData {
   businessName: string;
+  businessTimezone: string;
   logo: string | null;
   heroImageUrl: string | null;
   tagline: string;
   aboutContent: string;
+  establishedYear: number | null;
+  /** Customer-facing ISO 4217 currency for the location service menu. */
+  businessCurrency: string;
   email: string;
   phone: string;
   social: {
@@ -31,7 +35,7 @@ export interface PreviewData {
     website?: string | null;
     pinterest?: string | null;
   };
-  locations: LocationWithAssignments[];
+  locations: WebsiteBuilderLocation[];
   faq: FaqItem[];
   announcement: AnnouncementContent;
   brandColor: string;
@@ -67,6 +71,12 @@ export interface LivePreviewProps {
   startNumber?: number;
   /** Optional section type the host wants to scroll to or identify in the preview. */
   focusType?: string;
+  /** Optional host-controlled location shared between the editor and full preview surfaces. */
+  selectedLocationId?: number | null;
+  /** Reports location changes made inside the preview so mounted preview surfaces stay in sync. */
+  onSelectedLocationChange?: (locationId: number | null) => void;
+  /** Optional website-wide location scope for a one-section preview whose trimmed layout omits Locations. */
+  locationScope?: WebsiteBuilderLocation[];
 }
 
 export type T = (k: string, o?: Record<string, unknown>) => string;

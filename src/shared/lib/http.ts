@@ -11,6 +11,7 @@ import type { AuthState } from "../../features/auth/types";
 import config, { isNativeApp } from "../../app/config/env";
 import { tokenStorage } from "./tokenStorage";
 import i18n from "./i18n";
+import { markGlobalHttpErrorToastHandled } from "../utils/error";
 
 // ---- CONFIG ----
 const API_BASE_URL = config.API_URL;
@@ -89,7 +90,12 @@ export function createApiClient(store: Store<{ auth: AuthState } & any>): AxiosI
       // (deep link, race, manual API call). Show a neutral toast and reject.
       if (status === 402 && code === "subscription_required") {
         const message = i18n.t("common:limitedUsage.blockedMessage");
-        toast.error(message);
+        markGlobalHttpErrorToastHandled(error, "subscription_required");
+        toast.error(message, {
+          id: "subscription-required",
+          closeButton: true,
+          duration: 7000,
+        });
         return Promise.reject(error);
       }
 

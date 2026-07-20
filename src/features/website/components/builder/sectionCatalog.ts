@@ -8,11 +8,17 @@ import {
   Quote,
   HelpCircle,
   Type,
+  Rows3,
   PanelTop,
   PanelBottom,
   type LucideIcon,
 } from "lucide-react";
 import type { SectionEntry, SectionType } from "../../types";
+import {
+  DEFAULT_STRIP_SEPARATOR,
+  DEFAULT_STRIP_SEPARATOR_SIZE,
+  DEFAULT_STRIP_TEXT_SIZE,
+} from "./stripSeparator";
 
 /**
  * Section catalog — the single source of truth for the Website Builder's data layer.
@@ -43,10 +49,11 @@ export interface SectionMeta {
   descriptionKey: string;
   /**
    * Variant keys with an implemented component, NOT the offering. The backend catalog
-   * (GET /website-variants/catalog) decides what surfaces in the builder: its isBase row is the
-   * section's free default, the other offered keys render locked/owned by price + purchase state,
-   * and catalog keys with no component here are ignored. `variants[0]` is only the fallback base
-   * while the catalog is missing or names no (implemented) base for the section.
+   * (GET /website-variants/catalog) decides what surfaces in the builder: an optional isBase row is
+   * the section's included default, paid-only sections may intentionally have no base, and every
+   * offered key renders from its price + ownership state. Catalog keys with no component here are
+   * ignored. `variants[0]` is only the local renderer fallback while the catalog is unavailable or
+   * names no implemented base; it does not imply that the style is included.
    * Shipping a new variant = implement the component, register its key here, add the catalog row.
    */
   variants: SectionVariant[];
@@ -66,12 +73,16 @@ const v = (id: string): SectionVariant => ({
 export const SECTION_META: Record<SectionType, SectionMeta> = {
   announcement: {
     type: "announcement",
-    // Sticky ribbon pinned above the nav — position is fixed (see PINNED_TYPES), but the layout (bar /
-    // split / hairline) and tone are selectable.
+    // Persisted keys stay stable for drafts/entitlements while their design identities follow the source:
+    // bar → Ribbon, split → Ticker, hairline → Pill. The backend offering intentionally has no free base.
     icon: Megaphone,
     labelKey: "businessPage.sections.announcement.label",
     descriptionKey: "businessPage.sections.announcement.description",
-    variants: [v("bar"), v("split"), v("hairline")],
+    variants: [
+      { id: "bar", labelKey: "businessPage.sections.variants.ribbon" },
+      { id: "split", labelKey: "businessPage.sections.variants.ticker" },
+      { id: "hairline", labelKey: "businessPage.sections.variants.pill" },
+    ],
     netNew: true,
     defaultConfig: {},
     defaultHidden: true,
@@ -97,8 +108,8 @@ export const SECTION_META: Record<SectionType, SectionMeta> = {
     icon: LayoutTemplate,
     labelKey: "businessPage.sections.hero.label",
     descriptionKey: "businessPage.sections.hero.description",
-    // Free base `default` adapts to the cover photo: none ⇒ the drenched accent field; a cover ⇒ the
-    // text panel over it. The five premium designs are photo-forward (cinematic), typographic (poster),
+    // Free base `default` uses the drenched text-panel treatment. The five premium designs are
+    // photo-forward (cinematic), typographic (poster),
     // scroll-jacked (portal), an aurora field (drift), and falling ink glyphs (tumble). `default`'s label
     // is overridden to "Text panel"; the rest map one-to-one to their variant components + catalog rows.
     variants: [
@@ -117,11 +128,17 @@ export const SECTION_META: Record<SectionType, SectionMeta> = {
     icon: Type,
     labelKey: "businessPage.sections.marquee.label",
     descriptionKey: "businessPage.sections.marquee.description",
-    // Motion mode: "scroll" glides the band with page scroll (default — the editorial source's behaviour);
-    // "loop" runs an always-on auto drift. First entry is the default for a fresh layout.
+    // Paid-only Strip motion styles over the same source-faithful visual treatment. `scroll` moves
+    // exclusively with page movement; `loop` runs a calm automatic pass. The catalog
+    // intentionally has no base row: both implemented keys are premium choices.
     variants: [v("scroll"), v("loop")],
     netNew: false,
-    defaultConfig: {},
+    defaultConfig: {
+      separatorStyle: DEFAULT_STRIP_SEPARATOR,
+      separatorSize: DEFAULT_STRIP_SEPARATOR_SIZE,
+      textSize: DEFAULT_STRIP_TEXT_SIZE,
+      useBrandColorBackground: false,
+    },
     // Decorative band derived from existing data — opt-in so a fresh page isn't busy.
     defaultHidden: true,
   },
@@ -130,10 +147,24 @@ export const SECTION_META: Record<SectionType, SectionMeta> = {
     icon: AlignLeft,
     labelKey: "businessPage.sections.about.label",
     descriptionKey: "businessPage.sections.about.description",
-    // Layouts over the same lede/body + derived stat cells: the editorial split (simple, base), a centred
-    // manifesto with a counter band, a photo portrait with a 2-up stat grid, and a numbered stats ledger.
-    // (sticky lands in a later pass.)
-    variants: [v("simple"), v("manifesto"), v("portrait"), v("ledger")],
+    // Exact design-source set. Manifesto leads because variants[0] is the safe local fallback and must
+    // match the Included/base catalog row; `sticky` is the persisted key for customer-facing Story.
+    variants: [v("manifesto"), v("editorial"), { id: "sticky", labelKey: "businessPage.sections.variants.sticky" }],
+    netNew: false,
+    defaultConfig: {},
+  },
+  services: {
+    type: "services",
+    icon: Rows3,
+    labelKey: "businessPage.sections.services.label",
+    descriptionKey: "businessPage.sections.services.description",
+    // Exact design-source set. Feature is the Included/base menu; `grid` is the persisted
+    // design key for the customer-facing Cards treatment.
+    variants: [
+      v("feature"),
+      v("bento"),
+      { id: "grid", labelKey: "businessPage.sections.variants.cards" },
+    ],
     netNew: false,
     defaultConfig: {},
   },
@@ -142,11 +173,11 @@ export const SECTION_META: Record<SectionType, SectionMeta> = {
     icon: MapPin,
     labelKey: "businessPage.sections.locations.label",
     descriptionKey: "businessPage.sections.locations.description",
-    // Editorial "switcher" (index + featured stage, base), a "cards" shelf, or an "atlas" (tab strip over a
-    // wide stage + detail sheet); all drive the same selected-location state. A single location collapses.
-    variants: [v("switcher"), v("cards"), v("atlas")],
+    // Exact design-source set. Panorama is first because the first implemented key is the safe local
+    // fallback and must match the Included/base catalog row. `cards` is the persisted key for Bento.
+    variants: [v("panorama"), v("showcase"), { id: "cards", labelKey: "businessPage.sections.variants.bento" }, v("atlas")],
     netNew: false,
-    // Owner picks which locations to hide; empty = show all.
+    // Owner picks which locations to hide; amenity-capable layouts own their fixed icon-row treatment.
     defaultConfig: { hiddenLocationIds: [] as number[] },
   },
   gallery: {
@@ -171,9 +202,10 @@ export const SECTION_META: Record<SectionType, SectionMeta> = {
     icon: Users,
     labelKey: "businessPage.sections.team.label",
     descriptionKey: "businessPage.sections.team.description",
-    // "portraits" = tall photo cards with a location pin + hover "find at" CTA (default, the source's
-    // lookbook grid); "roster" = a numbered editorial list. Legacy grid/list saves migrate on read.
-    variants: [v("portraits"), v("roster")],
+    // "portraits" = the free lookbook grid of photo cards (default); "roster" = a numbered editorial list;
+    // "columns" = a row of expanding per-location doors; "carousel" = a centre-stage drag rail. Legacy
+    // grid/list saves migrate on read.
+    variants: [v("portraits"), v("roster"), v("columns"), v("carousel")],
     netNew: false,
     defaultConfig: {},
   },
@@ -185,16 +217,24 @@ export const SECTION_META: Record<SectionType, SectionMeta> = {
     // deck. Wall leads — it's the free fallback base; legacy cards/quote saves collapse to it on read.
     labelKey: "businessPage.sections.testimonials.label",
     descriptionKey: "businessPage.sections.testimonials.description",
-    variants: [v("wall"), v("default"), v("marquee"), v("spotlight"), v("deck")],
+    variants: [
+      v("wall"),
+      { id: "default", labelKey: "businessPage.sections.variants.showcase" },
+      v("marquee"),
+      v("spotlight"),
+      v("deck"),
+    ],
     netNew: false,
     defaultConfig: {},
   },
   faq: {
     type: "faq",
+    // Exact design-source set. Grid leads because variants[0] is the safe local fallback and must match
+    // the Included/base catalog row; Accordion and Index are paid treatments.
     icon: HelpCircle,
     labelKey: "businessPage.sections.faq.label",
     descriptionKey: "businessPage.sections.faq.description",
-    variants: [v("accordion"), v("split"), v("list"), v("chips"), v("grid"), v("index")],
+    variants: [v("grid"), v("accordion"), v("index")],
     netNew: true,
     defaultConfig: {},
   },
@@ -211,13 +251,19 @@ export const SECTION_META: Record<SectionType, SectionMeta> = {
   },
 };
 
-/** Sections locked into fixed positions: non-reorderable (the drag grip becomes a pin). The announcement
- *  is the sticky ribbon (always first); the hero always sits second. The builder disables their drag and
- *  `buildInitialLayout` enforces their order on read. */
-export const PINNED_TYPES: ReadonlySet<string> = new Set<SectionType>(["announcement", "nav", "hero", "footer"]);
+/** Sections locked into fixed positions: non-reorderable (the drag grip becomes a pin). Announcement,
+ *  nav, hero and Strip form the fixed opening sequence; footer closes the page. The builder disables
+ *  their drag and `buildInitialLayout` enforces their order on read. */
+export const PINNED_TYPES: ReadonlySet<string> = new Set<SectionType>([
+  "announcement",
+  "nav",
+  "hero",
+  "marquee",
+  "footer",
+]);
 
 /** Sections that are always shown — their visibility can't be toggled off (every page needs a header, a
- *  hero, and a footer). A subset of PINNED_TYPES; the announcement is pinned but stays optional. */
+ *  hero, and a footer). A subset of PINNED_TYPES; Announcement and Strip are pinned but stay optional. */
 export const REQUIRED_TYPES: ReadonlySet<string> = new Set<SectionType>(["nav", "hero", "footer"]);
 
 /** Catalog order used for a fresh default layout. */
@@ -227,6 +273,7 @@ export const SECTION_TYPES: SectionType[] = [
   "hero",
   "marquee",
   "about",
+  "services",
   "locations",
   "gallery",
   "team",
@@ -357,6 +404,14 @@ export function buildInitialLayout(saved?: SectionEntry[] | null): SectionEntry[
     const navIndex = result[0]?.type === "announcement" ? 1 : 0;
     result.splice(navIndex, 0, nav);
   }
+  // Strip is attached directly to the hero in the design source. It remains optional/hidden-capable,
+  // but its slot is fixed so no other section can split the hero from its kinetic service band.
+  const mi = result.findIndex((s) => s.type === "marquee");
+  if (mi !== -1) {
+    const [marquee] = result.splice(mi, 1);
+    const heroIndex = result.findIndex((s) => s.type === "hero");
+    result.splice(heroIndex + 1, 0, marquee);
+  }
   // Footer is pinned to the very end and not reorderable — enforce its slot on read.
   const fi = result.findIndex((s) => s.type === "footer");
   if (fi !== -1) {
@@ -365,24 +420,40 @@ export function buildInitialLayout(saved?: SectionEntry[] | null): SectionEntry[
   }
   // Marquee gained a motion choice (scroll-driven default vs auto-loop). Migrate only its
   // former explicit key; do not collapse a key introduced by a newer client.
-  const mi = result.findIndex((s) => s.type === "marquee");
-  if (mi !== -1 && result[mi].variant === "default") {
-    result[mi] = { ...result[mi], variant: SECTION_META.marquee.variants[0].id };
+  const marqueeIndex = result.findIndex((s) => s.type === "marquee");
+  if (marqueeIndex !== -1 && result[marqueeIndex].variant === "default") {
+    result[marqueeIndex] = { ...result[marqueeIndex], variant: SECTION_META.marquee.variants[0].id };
   }
-  // Locations previously exposed a `list` key. `cards` is a current implemented style; all
-  // other unknown keys are retained as possible newer-client data.
+  // Retired Locations bases (`switcher`, and its older `list` predecessor) land on the new Included
+  // Panorama treatment. Existing `cards` and `atlas` identities remain valid but render the rebuilt designs.
   const li = result.findIndex((s) => s.type === "locations");
-  if (li !== -1 && result[li].variant === "list") {
-    result[li] = { ...result[li], variant: SECTION_META.locations.variants[0].id };
+  if (li !== -1) {
+    const entry = result[li];
+    const config = { ...entry.config };
+    delete config.heading;
+    delete config.sublede;
+    delete config.amenitiesStyle;
+    result[li] = {
+      ...entry,
+      variant: ["switcher", "list"].includes(entry.variant)
+        ? SECTION_META.locations.variants[0].id
+        : entry.variant,
+      config,
+    };
   }
   // Team renamed its layout choice (grid/list → portraits/roster); Gallery retired Editorial and its
   // design-source `grid` key now means Bento. Map only documented legacy ids. Unknown keys
   // round-trip unchanged so this client cannot erase a future catalogue selection.
   const LEGACY_VARIANTS: Partial<Record<SectionType, Record<string, string>>> = {
+    // Retired About layouts collapse to the new Included Manifesto. Unknown keys remain forward-compatible.
+    about: { simple: "manifesto", portrait: "manifesto", ledger: "manifesto" },
     team: { grid: "portraits", list: "roster" },
     gallery: { editorial: "bento", grid: "bento" },
     // Ancient cards/quote saves land on the new free base (wall); `default` stays a valid paid Showcase key.
     testimonials: { cards: "wall", quote: "wall" },
+    // Split, List, and Chips were real FAQ keys in this client but are absent from the executable design
+    // registry. Existing drafts land on Included Grid. Unknown keys (including undocumented `default`) stay.
+    faq: { split: "grid", list: "grid", chips: "grid" },
     // The former footer designs are intentionally retired. Existing drafts land on the new included
     // Directory treatment so an old paid/unknown id can never bypass the new catalog entitlement model.
     footer: { default: "directory", poster: "directory", minimal: "directory", mega: "directory", index: "directory" },

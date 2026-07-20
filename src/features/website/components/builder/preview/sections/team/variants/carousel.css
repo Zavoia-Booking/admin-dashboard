@@ -1,0 +1,113 @@
+/* Team · Carousel — centre-stage drag rail (mirrors Web app/microsite.css .lb-tmr + the shared .lb-galcar
+   chrome). Self-contained under mc-tmr-* so it never depends on the gallery's carousel css. The portrait card
+   lives in ../base.css; here we scale/desaturate the neighbours and reveal only the centred card. vw→cqw,
+   svh→var(--mc-vph), @media→@container so it responds to the preview surface. */
+
+.mc-tmr { --mc-tmr-radius: 12px; }
+
+/* Head — index counter + progress rail */
+.mc-tmr-head { display: flex; align-items: center; gap: clamp(18px, 3cqw, 40px); margin-bottom: clamp(18px, 2.4cqw, 30px); }
+.mc-tmr-count { display: flex; flex: 0 0 auto; align-items: baseline; gap: 8px; }
+.mc-tmr-count-current { color: var(--mc-fg); font-family: var(--mc-display); font-weight: var(--mc-display-weight); font-size: clamp(34px, 4cqw, 54px); font-variant-numeric: tabular-nums; line-height: 0.9; transition: color 0.4s var(--ease-out-strong); }
+.mc-tmr-count-total { color: var(--mc-muted); font-family: var(--mc-mono); font-size: 13px; letter-spacing: 0.06em; }
+.mc-tmr-rail { position: relative; height: 2px; flex: 1 1 auto; overflow: hidden; background: var(--mc-line); }
+.mc-tmr-rail-fill { position: absolute; inset: 0; background: var(--mc-accent); transform-origin: left center; transition: transform 500ms var(--ease-out-strong); }
+
+/* Rail */
+.mc-tmr-view {
+  margin-inline: calc(-1 * clamp(0px, 2cqw, 40px));
+  overflow: hidden;
+  padding: 6px clamp(0px, 2cqw, 40px) 10px;
+  cursor: grab;
+  touch-action: pan-y;
+  user-select: none;
+}
+.mc-tmr-view[data-drag="1"] { cursor: grabbing; }
+.mc-tmr-view img { pointer-events: none; user-select: none; -webkit-user-drag: none; }
+
+.mc-tmr-track { display: flex; gap: clamp(14px, 1.8cqw, 26px); transition: transform 700ms cubic-bezier(0.34, 1.56, 0.64, 1); will-change: transform; }
+.mc-tmr-track[data-drag="1"] { transition: none; }
+
+.mc-tmr-slide { margin: 0; flex: 0 0 clamp(228px, 34cqw, 360px); cursor: pointer; transition: opacity 0.55s var(--ease-out-strong); }
+.mc-tmr-slide .mc-portrait-inner {
+  transform: scale(0.84);
+  filter: saturate(0.68) brightness(0.9);
+  opacity: 0.6;
+  transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.6s var(--ease-out-strong), opacity 0.6s var(--ease-out-strong);
+}
+.mc-tmr-slide .mc-pfig { box-shadow: none; }
+.mc-tmr-slide[data-active="1"] { cursor: default; }
+.mc-tmr-slide[data-active="1"] .mc-portrait-inner { transform: scale(1); filter: none; opacity: 1; }
+/* only the centred card reveals its scrim + rating + name */
+.mc-tmr-slide .mc-pscrim,
+.mc-tmr-slide .mc-prate,
+.mc-tmr-slide .mc-pcap { opacity: 0; transition: opacity 0.5s var(--ease-out-strong); }
+.mc-tmr-slide[data-active="1"] .mc-pscrim,
+.mc-tmr-slide[data-active="1"] .mc-prate,
+.mc-tmr-slide[data-active="1"] .mc-pcap { opacity: 1; }
+
+/* Controls — dots + arrows */
+.mc-tmr-ctrl { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: clamp(20px, 2.6cqw, 32px); }
+.mc-tmr-dots { display: flex; align-items: center; gap: 10px; }
+.mc-tmr-dot { position: relative; display: inline-flex; width: 22px; height: 22px; align-items: center; justify-content: center; border: 0; padding: 0; background: none; cursor: pointer; }
+.mc-tmr-dot > span { display: block; width: 7px; height: 7px; border-radius: 999px; background: var(--mc-line); transition: width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.3s; }
+.mc-tmr-dot:hover > span { background: var(--mc-muted); }
+.mc-tmr-dot[data-on="1"] > span { width: 22px; background: var(--mc-accent); }
+.mc-tmr-dot:focus-visible { outline: 2px solid var(--mc-accent); outline-offset: 2px; }
+
+.mc-tmr-arrows { display: flex; gap: 10px; }
+.mc-tmr-arr {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  border: 1px solid var(--mc-line);
+  background: var(--mc-bg);
+  color: var(--mc-fg);
+  cursor: pointer;
+  transition: border-color 0.3s var(--ease-out-strong), background-color 0.3s var(--ease-out-strong), color 0.3s var(--ease-out-strong), transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.mc-tmr-arr > svg { transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.mc-tmr-arr:hover:not(:disabled) { border-color: var(--mc-fg); background: var(--mc-fg); color: var(--mc-bg); }
+.mc-tmr-arr:active:not(:disabled) { transform: scale(0.92); }
+.mc-tmr-arr:disabled { opacity: 0.28; cursor: default; }
+.mc-tmr-mcount { display: none; }
+
+/* Tablet + phone: the cards grow tall so the rail fills the surface */
+@container (max-width: 1024px) {
+  .mc-tmr-slide { flex-basis: clamp(300px, 46cqw, 470px); height: clamp(420px, calc(var(--mc-vph, 760px) * 0.6), 720px); }
+  .mc-tmr-slide .mc-portrait-inner { height: 100%; }
+  .mc-tmr-slide .mc-pfig { aspect-ratio: auto; height: 100%; }
+}
+
+@container (max-width: 700px) {
+  .mc-tmr-ctrl { justify-content: center; margin-top: clamp(16px, 5cqw, 26px); }
+  .mc-tmr-dots { display: none; }
+  .mc-tmr-arrows { align-items: center; gap: clamp(18px, 6cqw, 28px); }
+  .mc-tmr-arr { width: 54px; height: 54px; }
+  .mc-tmr-mcount { display: inline-flex; align-items: baseline; justify-content: center; gap: 8px; min-width: 88px; }
+  .mc-tmr-mcount b { color: var(--mc-accent); font-family: var(--mc-display); font-weight: var(--mc-display-weight); letter-spacing: var(--mc-display-tracking); font-size: 30px; line-height: 1; }
+  .mc-tmr-mcount i { color: var(--mc-muted); font-family: var(--mc-mono); font-style: normal; font-size: 12px; letter-spacing: 0.06em; }
+}
+
+@container (max-width: 560px) {
+  .mc-tmr-slide { flex-basis: clamp(240px, 74cqw, 340px); height: clamp(400px, calc(var(--mc-vph, 760px) * 0.58), 640px); }
+}
+
+@media (hover: none) {
+  .mc-tmr-dot::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 44px;
+    height: 44px;
+    transform: translate(-50%, -50%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mc-tmr-track, .mc-tmr-slide .mc-portrait-inner, .mc-tmr-rail-fill { transition: none; }
+}

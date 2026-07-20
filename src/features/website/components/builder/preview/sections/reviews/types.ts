@@ -17,9 +17,10 @@ export type ReviewsViewProps = {
   distTotal: number;
   /** Whether the showcase should render the histogram (real distribution present + not hidden). */
   showDist: boolean;
-  /** Section copy (owner override or default). */
+  /** Whether the locale's section heading should be rendered. */
+  showHeading: boolean;
+  /** Section heading (owner override or default). */
   heading: string;
-  sublede: string;
   /** Numbered eyebrow label ("Reviews") + the section ordinal. */
   kicker: string;
   no: string;

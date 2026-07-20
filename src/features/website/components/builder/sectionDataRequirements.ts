@@ -1,10 +1,14 @@
-import type { LocationWithAssignments } from "../../types";
+import type { WebsiteBuilderLocation } from "../../types";
 
 /** A single owner profile is not enough to present the business as a team. */
 export const MIN_TEAM_MEMBERS = 2;
 
+/** Match the actual Team render budgets so builder summaries never promise hidden cards. */
+export const TEAM_FLAT_MAX = 12;
+export const TEAM_LOCATION_MAX = 6;
+
 /** Count each person once when they are assigned to more than one location. The owner is included. */
-export function teamMemberCount(locations: LocationWithAssignments[]): number {
+export function teamMemberCount(locations: WebsiteBuilderLocation[]): number {
   const ids = new Set<number | string>();
   locations.forEach((location) => {
     location.teamMembers?.forEach((member) => {
@@ -14,14 +18,14 @@ export function teamMemberCount(locations: LocationWithAssignments[]): number {
   return ids.size;
 }
 
-export const isTeamLocked = (locations: LocationWithAssignments[]): boolean =>
+export const isTeamLocked = (locations: WebsiteBuilderLocation[]): boolean =>
   teamMemberCount(locations) < MIN_TEAM_MEMBERS;
 
 /** Reviews need enough customer evidence to form a useful section. */
 export const MIN_TESTIMONIAL_REVIEWS = 3;
 
 export function reviewCount(
-  locations: LocationWithAssignments[],
+  locations: WebsiteBuilderLocation[],
   loadedReviews?: ReadonlyArray<unknown>,
 ): number {
   const aggregate = locations.reduce(
@@ -32,6 +36,6 @@ export function reviewCount(
 }
 
 export const isTestimonialsLocked = (
-  locations: LocationWithAssignments[],
+  locations: WebsiteBuilderLocation[],
   loadedReviews?: ReadonlyArray<unknown>,
 ): boolean => reviewCount(locations, loadedReviews) < MIN_TESTIMONIAL_REVIEWS;

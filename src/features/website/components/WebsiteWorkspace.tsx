@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import {
   AlertTriangle,
@@ -6,6 +6,7 @@ import {
   Check,
   EllipsisVertical,
   Globe,
+  Image as ImageIcon,
   Images,
   LayoutTemplate,
   LoaderCircle,
@@ -22,7 +23,7 @@ import {
   X,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import type { LocationWithAssignments, WebsiteDraft, WebsiteIdentity } from "../types";
+import type { WebsiteBuilderLocation, WebsiteDraft, WebsiteIdentity } from "../types";
 import { useWebsiteBuilderController } from "../hooks/useWebsiteBuilderController";
 import {
   useWebsiteWorkspaceController,
@@ -40,6 +41,7 @@ import {
 import { Button } from "../../../shared/components/ui/button";
 import { Spinner } from "../../../shared/components/ui/spinner";
 import { useFormatPrice } from "../../../shared/hooks/useFormatPrice";
+import { useIsMobile } from "../../../shared/hooks/use-mobile";
 import {
   Dialog,
   DialogContent,
@@ -48,31 +50,186 @@ import {
   DialogHeader,
   DialogTitle,
 } from "../../../shared/components/ui/dialog";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+} from "../../../shared/components/ui/drawer";
 import { WebsiteBuilderCore } from "./WebsiteBuilderCore";
 import { WebsiteAtelierHeader } from "./atelier/WebsiteAtelierHeader";
 import { WebsiteAtelierShell } from "./atelier/WebsiteAtelierShell";
 import {
+  PendingUnlocksReview,
   PendingUnlocksTrigger,
   UnlockSpecimen,
   type UnlockLineItem,
 } from "./builder/PendingUnlocksTray";
+import { WebsiteMobileActionDock } from "./atelier/WebsiteMobileActionDock";
 import { unlockTotalsByCurrency, variantPriceLabel } from "./builder/pricing";
 import { displayFontFor } from "./builder/theme";
 import { useWebsitePreviewFonts } from "../hooks/useWebsitePreviewFonts";
 import type { WebsiteReadinessIssue } from "./builder/sectionReadiness";
+import type { WebsiteDraftIssue } from "./builder/draftValidation";
+import { isKnownSectionType, REQUIRED_TYPES, SECTION_META } from "./builder/sectionCatalog";
 
 interface WebsiteWorkspaceProps {
   identity: WebsiteIdentity;
   draft: WebsiteDraft;
-  locations: LocationWithAssignments[];
+  locations: WebsiteBuilderLocation[];
   businessId: number | string | null;
 }
 
-interface PendingPublishCheckout {
+type CheckoutSource = "publish-review" | "unlock-tray";
+type ReviewMode = "publish" | "purchase";
+
+interface CheckoutTarget {
+  source: CheckoutSource;
   target: string;
+}
+
+interface PendingCheckout extends CheckoutTarget {
   items: UnlockLineItem[];
+  returnContext?: "publish-review";
   requestId: string;
   acknowledgementObserved: boolean;
+}
+
+interface PublishReviewSurfaceProps {
+  phone: boolean;
+  open: boolean;
+  reviewMode: ReviewMode;
+  onOpenChange: (open: boolean) => void;
+  onCloseAutoFocus: (event: Event) => void;
+  children: ReactNode;
+}
+
+/**
+ * The review contents are shared across desktop and phone. Only the phone shell changes to
+ * Vaul so its purchase and publishing paths retain the exact same content and footer behavior.
+ */
+function PublishReviewSurface({
+  phone,
+  open,
+  reviewMode,
+  onOpenChange,
+  onCloseAutoFocus,
+  children,
+}: PublishReviewSurfaceProps) {
+  if (phone) {
+    return (
+      <Drawer
+        open={open}
+        onOpenChange={onOpenChange}
+        autoFocus
+        handleOnly
+        repositionInputs={false}
+      >
+        <DrawerContent
+          data-review-mode={reviewMode}
+          onOpenAutoFocus={(event) => {
+            event.preventDefault();
+            (event.currentTarget as HTMLElement)
+              .querySelector<HTMLElement>("[data-publish-review-title]")
+              ?.focus({ preventScroll: true });
+          }}
+          onCloseAutoFocus={onCloseAutoFocus}
+          overlayClassName="!z-[79] bg-[rgb(23_22_20/45%)] backdrop-blur-[2px]"
+          className="website-atelier atelier-publish-dialog atelier-publish-drawer !z-[80] !max-h-[85dvh] gap-0 overflow-hidden rounded-t-[18px] border-x-0 border-b-0 p-0 outline-none"
+        >
+          {children}
+        </DrawerContent>
+      </Drawer>
+    );
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent
+        data-review-mode={reviewMode}
+        overlayClassName="z-[79] bg-[rgb(23_22_20/45%)] backdrop-blur-[2px]"
+        className="website-atelier atelier-publish-dialog z-[80] w-[min(660px,calc(100%-2rem))] max-w-[660px] gap-0 rounded-[18px] border-0 p-0"
+        onCloseAutoFocus={onCloseAutoFocus}
+      >
+        {children}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function PublishReviewHeader({
+  phone,
+  className,
+  children,
+}: {
+  phone: boolean;
+  className?: string;
+  children: ReactNode;
+}) {
+  return phone ? (
+    <DrawerHeader className={`p-0 ${className ?? ""}`}>{children}</DrawerHeader>
+  ) : (
+    <DialogHeader className={className}>{children}</DialogHeader>
+  );
+}
+
+function PublishReviewTitle({
+  phone,
+  className,
+  children,
+}: {
+  phone: boolean;
+  className?: string;
+  children: ReactNode;
+}) {
+  const props = {
+    "data-publish-review-title": true,
+    tabIndex: phone ? -1 : undefined,
+    className,
+  };
+  return phone ? (
+    <DrawerTitle {...props}>{children}</DrawerTitle>
+  ) : (
+    <DialogTitle {...props}>{children}</DialogTitle>
+  );
+}
+
+function PublishReviewDescription({
+  phone,
+  className,
+  children,
+}: {
+  phone: boolean;
+  className?: string;
+  children: ReactNode;
+}) {
+  return phone ? (
+    <DrawerDescription className={`text-left ${className ?? ""}`}>
+      {children}
+    </DrawerDescription>
+  ) : (
+    <DialogDescription className={className}>{children}</DialogDescription>
+  );
+}
+
+function PublishReviewFooter({
+  phone,
+  className,
+  children,
+}: {
+  phone: boolean;
+  className?: string;
+  children: ReactNode;
+}) {
+  return phone ? (
+    <DrawerFooter data-vaul-no-drag="" className={`p-0 ${className ?? ""}`}>
+      {children}
+    </DrawerFooter>
+  ) : (
+    <DialogFooter className={className}>{children}</DialogFooter>
+  );
 }
 
 /**
@@ -88,18 +245,26 @@ interface PendingPublishCheckout {
 export function WebsiteWorkspace({ identity, draft, locations, businessId }: WebsiteWorkspaceProps) {
   const { t } = useTranslation("website");
   const { formatPrice } = useFormatPrice();
+  const isPhone = useIsMobile();
   const navigate = useNavigate();
   const controller = useWebsiteWorkspaceController({
     draft,
     locations,
+    defaultAboutStory: identity.description,
   });
   const [publishReviewOpen, setPublishReviewOpen] = useState(false);
+  const [reviewMode, setReviewMode] = useState<ReviewMode>("publish");
   const pendingReadinessFocusRef = useRef<WebsiteReadinessIssue | null>(null);
-  const [publishCheckoutTarget, setPublishCheckoutTarget] = useState<string | null>(null);
-  const [pendingPublishCheckout, setPendingPublishCheckout] =
-    useState<PendingPublishCheckout | null>(null);
+  const pendingBlockingFocusRef = useRef<WebsiteDraftIssue | null>(null);
+  const [checkoutTarget, setCheckoutTarget] = useState<CheckoutTarget | null>(null);
+  const [pendingCheckout, setPendingCheckout] = useState<PendingCheckout | null>(null);
+  const checkoutRequestLatchedRef = useRef(false);
   const [discardDialogOpen, setDiscardDialogOpen] = useState(false);
   const { form } = controller;
+  const openReview = (mode: ReviewMode) => {
+    setReviewMode(mode);
+    setPublishReviewOpen(true);
+  };
   const builderController = useWebsiteBuilderController({
     identity,
     businessId,
@@ -108,14 +273,22 @@ export function WebsiteWorkspace({ identity, draft, locations, businessId }: Web
       brandColorHex: form.brandColorHex,
       fontKey: form.fontKey,
     },
+    pageLayout: form.layout,
     onCommitThemeAsset: form.applyThemeAssetSelection,
     checkoutBlocked: form.isDirty,
+    purchaseMutationsBlocked: checkoutTarget != null || pendingCheckout != null,
   });
   const canWrite = controller.permissions.canEdit;
   const monogramFont = displayFontFor(builderController.effectiveFontKey);
   useWebsitePreviewFonts(builderController.effectiveFontKey);
-  const { isSaving, isPublishing, isUnpublishing, publishBusy } =
-    controller.mutations;
+  const {
+    isSaving,
+    isLoading: isWorkspaceLoading,
+    isHeroMutating,
+    isPublishing,
+    isUnpublishing,
+    publishBusy,
+  } = controller.mutations;
   const {
     isPublished,
     isPublishedCurrent,
@@ -138,9 +311,11 @@ export function WebsiteWorkspace({ identity, draft, locations, businessId }: Web
     conflictDialogOpen,
     replaceConflictDialogOpen,
     unpublishDialogOpen,
+    checkoutReturnState,
     checkoutReturnBlocksNewCheckout,
     checkoutReturnResumePublishReview,
     consumeCheckoutReturnPublishReview,
+    retryCheckoutReturn,
     catalogState,
   } = controller;
 
@@ -173,8 +348,8 @@ export function WebsiteWorkspace({ identity, draft, locations, businessId }: Web
       (entry) => entry.sectionType === sectionType && entry.variantKey === variantKey,
     );
     if (
-      !sectionEntry?.visible ||
-      sectionEntry.variant === variantKey ||
+      !sectionEntry ||
+      (sectionEntry.visible && sectionEntry.variant === variantKey) ||
       !variant ||
       variant.priceMinor <= 0 ||
       variant.owned
@@ -262,82 +437,138 @@ export function WebsiteWorkspace({ identity, draft, locations, businessId }: Web
     .map((subtotal) => variantPriceLabel(formatPrice, subtotal))
     .join(" + ");
   const publishUnlockHasMixedCurrencies = publishUnlockTotals.length > 1;
+  const pendingPublishCheckout =
+    pendingCheckout?.source === "publish-review" ? pendingCheckout : null;
+  const pendingUnlockCheckout =
+    pendingCheckout?.source === "unlock-tray" ? pendingCheckout : null;
+  const checkoutWorkspaceMutationBusy =
+    isSaving ||
+    isWorkspaceLoading ||
+    isHeroMutating ||
+    isPublishing ||
+    isUnpublishing ||
+    form.saveStatus === "saving" ||
+    form.saveStatus === "queued";
   const publishPremiumMutationDisabled =
     builderController.isVariantCheckoutLoading ||
     checkoutReturnBlocksNewCheckout ||
     !builderController.catalogPurchasesReady ||
-    draftSave.busy ||
-    pendingPublishCheckout != null;
+    !form.isOnline ||
+    conflict != null ||
+    checkoutWorkspaceMutationBusy ||
+    pendingCheckout != null;
   const publishCheckoutSaveBlocked =
     form.isDirty && draftSave.disabled && !draftSave.busy;
-  const publishUnlockCheckoutDisabled =
+  const checkoutCoordinatorDisabled =
     !controller.permissions.canPurchase ||
     builderController.isNative ||
     publishPremiumMutationDisabled ||
-    publishCheckoutSaveBlocked ||
-    pendingPublishCheckout != null;
+    publishCheckoutSaveBlocked;
+  const publishUnlockCheckoutDisabled = checkoutCoordinatorDisabled;
+  const unlockCheckoutDisabledReason =
+    pendingUnlockCheckout != null
+      ? null
+      : publishCheckoutSaveBlocked
+        ? draftSave.disabledReason
+        : !form.isOnline
+          ? t("page.saveReason.offline")
+          : conflict != null
+            ? t("page.saveReason.conflict")
+            : checkoutWorkspaceMutationBusy || pendingCheckout != null
+              ? t("page.saveReason.busy")
+              : null;
+  const unlockCheckoutDisabled =
+    checkoutCoordinatorDisabled && pendingUnlockCheckout == null;
   const showPublishUnlockSummary =
     controller.permissions.canPurchase &&
     !builderController.isNative &&
     publishUnlockItems.length > 0 &&
     unresolvedPublishBlockers.length === 0;
 
-  const requestPublishCheckout = (target: string, items: UnlockLineItem[]) => {
-    if (publishUnlockCheckoutDisabled || items.length === 0) return;
+  const clearCheckoutCoordinator = () => {
+    checkoutRequestLatchedRef.current = false;
+    setPendingCheckout(null);
+    setCheckoutTarget(null);
+  };
 
-    setPublishCheckoutTarget(target);
+  const startCoordinatedCheckout = (
+    items: UnlockLineItem[],
+    returnContext?: "publish-review",
+  ) => {
+    const started = builderController.handleCheckoutItems(
+      items,
+      returnContext ? { returnContext } : undefined,
+    );
+    if (!started) clearCheckoutCoordinator();
+    return started;
+  };
+
+  const requestCheckout = (
+    source: CheckoutSource,
+    target: string,
+    items: UnlockLineItem[],
+    returnContext?: "publish-review",
+  ) => {
+    if (
+      checkoutCoordinatorDisabled ||
+      checkoutRequestLatchedRef.current ||
+      items.length === 0
+    ) return;
+
+    checkoutRequestLatchedRef.current = true;
+    setCheckoutTarget({ source, target });
     if (!form.isDirty) {
-      builderController.handleCheckoutItems(items, { returnContext: "publish-review" });
+      startCoordinatedCheckout(items, returnContext);
       return;
     }
 
     const requestId = draftSave.saveWithReceipt();
     if (requestId === false) {
-      setPublishCheckoutTarget(null);
+      clearCheckoutCoordinator();
       return;
     }
-    setPendingPublishCheckout({
+    setPendingCheckout({
+      source,
       target,
       items,
+      returnContext,
       requestId,
       acknowledgementObserved: false,
     });
   };
 
   useEffect(() => {
-    if (!pendingPublishCheckout) return;
+    if (!pendingCheckout) return;
 
     if (
       draftSave.conflict ||
-      draftSave.failure?.requestId === pendingPublishCheckout.requestId
+      draftSave.failure?.requestId === pendingCheckout.requestId
     ) {
-      setPendingPublishCheckout(null);
-      setPublishCheckoutTarget(null);
+      clearCheckoutCoordinator();
       return;
     }
 
-    if (draftSave.lastSavedRequestId !== pendingPublishCheckout.requestId) {
+    if (draftSave.lastSavedRequestId !== pendingCheckout.requestId) {
       return;
     }
 
     if (form.saveStatus === "clean" && !form.isDirty) {
-      const items = pendingPublishCheckout.items;
-      setPendingPublishCheckout(null);
-      builderController.handleCheckoutItems(items, { returnContext: "publish-review" });
+      const { items, returnContext } = pendingCheckout;
+      setPendingCheckout(null);
+      startCoordinatedCheckout(items, returnContext);
       return;
     }
 
     // The draft hook adopts the acknowledged server baseline in its own effect. Give that
     // reconciliation one render before treating a remaining dirty state as a newer edit.
-    if (!pendingPublishCheckout.acknowledgementObserved) {
-      setPendingPublishCheckout((current) =>
+    if (!pendingCheckout.acknowledgementObserved) {
+      setPendingCheckout((current) =>
         current ? { ...current, acknowledgementObserved: true } : current,
       );
       return;
     }
 
-    setPendingPublishCheckout(null);
-    setPublishCheckoutTarget(null);
+    clearCheckoutCoordinator();
   }, [
     builderController,
     draftSave.conflict,
@@ -345,11 +576,24 @@ export function WebsiteWorkspace({ identity, draft, locations, businessId }: Web
     draftSave.lastSavedRequestId,
     form.isDirty,
     form.saveStatus,
-    pendingPublishCheckout,
+    pendingCheckout,
   ]);
 
   useEffect(() => {
+    if (
+      checkoutTarget == null ||
+      pendingCheckout != null ||
+      builderController.isVariantCheckoutLoading
+    ) return;
+
+    // A coordinated target with no save receipt and no checkout request has settled without
+    // a redirect (or failed validation synchronously). Release the same-click latch for retry.
+    clearCheckoutCoordinator();
+  }, [builderController.isVariantCheckoutLoading, checkoutTarget, pendingCheckout]);
+
+  useEffect(() => {
     if (!checkoutReturnResumePublishReview) return;
+    setReviewMode("publish");
     setPublishReviewOpen(true);
     consumeCheckoutReturnPublishReview();
   }, [
@@ -357,24 +601,57 @@ export function WebsiteWorkspace({ identity, draft, locations, businessId }: Web
     consumeCheckoutReturnPublishReview,
   ]);
 
-  const handlePublishReviewOpenChange = (open: boolean) => {
+  const handleReviewOpenChange = (open: boolean) => {
     setPublishReviewOpen(open);
-    if (!open && pendingPublishCheckout) {
-      setPendingPublishCheckout(null);
-      setPublishCheckoutTarget(null);
+    const pendingForCurrentMode = reviewMode === "purchase"
+      ? pendingUnlockCheckout
+      : pendingPublishCheckout;
+    if (!open && pendingForCurrentMode) {
+      clearCheckoutCoordinator();
     }
   };
+
+  useEffect(() => {
+    if (!publishReviewOpen || reviewMode !== "purchase") return;
+    if (
+      controller.permissions.canPurchase &&
+      !builderController.isNative &&
+      builderController.cartItems.length > 0
+    ) return;
+    setPublishReviewOpen(false);
+    if (pendingUnlockCheckout) {
+      checkoutRequestLatchedRef.current = false;
+      setPendingCheckout(null);
+      setCheckoutTarget(null);
+    }
+  }, [
+    builderController.cartItems.length,
+    builderController.isNative,
+    controller.permissions.canPurchase,
+    pendingUnlockCheckout,
+    publishReviewOpen,
+    reviewMode,
+  ]);
   const hasLockedBlockers = premiumReviewCount > 0;
   const hasPreviewOnlySelections =
     previewVariantBlockers.length > 0 || previewThemeBlockers.length > 0;
   const workspaceIsPublishedCurrent =
-    isPublishedCurrent && !hasPreviewOnlySelections && premiumReviewCount === 0;
+    isPublishedCurrent &&
+    !hasPreviewOnlySelections &&
+    premiumReviewCount === 0 &&
+    form.blockingIssues.length === 0;
   const workspacePublishStatus =
     publishStatus === "live" && hasPreviewOnlySelections ? "stale" : publishStatus;
   const workspacePublishReviewDisabled =
-    publishReviewGuardDisabled || workspaceIsPublishedCurrent;
+    publishReviewGuardDisabled ||
+    workspaceIsPublishedCurrent ||
+    checkoutTarget != null ||
+    builderController.isVariantCheckoutLoading;
   const workspacePublishReviewDisabledReason =
     publishReviewGuardDisabledReason ??
+    (checkoutTarget != null || builderController.isVariantCheckoutLoading
+      ? t("page.saveReason.busy")
+      : null) ??
     (workspaceIsPublishedCurrent ? publishReviewDisabledReason : null);
   const workspaceDiscardDisabled =
     !!conflict ||
@@ -394,53 +671,6 @@ export function WebsiteWorkspace({ identity, draft, locations, businessId }: Web
     return true;
   };
 
-  const moreControl = workspaceDiscardAction.visible || isPublished || !!conflict ? (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <button
-          type="button"
-          aria-label={t("page.actions.more")}
-          className="website-atelier-focus website-atelier-press grid size-11 shrink-0 place-items-center rounded-[9px] text-[var(--atelier-muted)] hover:bg-[var(--atelier-field)] min-[920px]:size-8"
-        >
-          {isUnpublishing ? (
-            <LoaderCircle className="size-4 animate-spin" aria-hidden />
-          ) : (
-            <EllipsisVertical className="size-4" strokeWidth={1.8} aria-hidden />
-          )}
-        </button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="min-w-48">
-        {workspaceDiscardAction.visible ? (
-          <DropdownMenuItem
-            variant="destructive"
-            disabled={workspaceDiscardAction.disabled}
-            title={workspaceDiscardAction.disabledReason ?? undefined}
-            onSelect={() => setDiscardDialogOpen(true)}
-          >
-            <Undo2 className="size-4" strokeWidth={1.8} aria-hidden />
-            {t("page.actions.discardChanges")}
-          </DropdownMenuItem>
-        ) : null}
-        {conflict ? (
-          <DropdownMenuItem onSelect={controller.reloadLatest}>
-            <RotateCcw className="size-4" strokeWidth={1.8} aria-hidden />
-            {t("page.actions.reload")}
-          </DropdownMenuItem>
-        ) : null}
-        {isPublished ? (
-          <DropdownMenuItem
-            variant="destructive"
-            disabled={!controller.permissions.canPublish || publishBusy}
-            onSelect={() => controller.setUnpublishDialogOpen(true)}
-          >
-            <Globe className="size-4" strokeWidth={1.8} aria-hidden />
-            {t("page.actions.unpublish")}
-          </DropdownMenuItem>
-        ) : null}
-      </DropdownMenuContent>
-    </DropdownMenu>
-  ) : null;
-
   const pendingUnlocksControl =
     controller.permissions.canPurchase && !builderController.isNative ? (
       <PendingUnlocksTrigger
@@ -451,23 +681,33 @@ export function WebsiteWorkspace({ identity, draft, locations, businessId }: Web
           controller.checkoutReturnBlocksNewCheckout ||
           !builderController.catalogPurchasesReady
         }
-        checkoutBlocked={builderController.checkoutBlocked}
+        checkoutRequiresSave={form.isDirty}
+        checkoutRetrySave={draftSave.mode === "retry"}
+        isSavingBeforeCheckout={pendingUnlockCheckout != null}
+        checkoutDisabled={unlockCheckoutDisabled}
+        checkoutDisabledReason={unlockCheckoutDisabledReason}
         onRemove={builderController.handleRemoveCartItem}
         onClear={builderController.handleClearCart}
-        onCheckout={builderController.handleCheckoutCart}
+        onCheckout={() => {
+          requestCheckout("unlock-tray", "cart", builderController.cartItems);
+        }}
+        onReview={() => openReview("purchase")}
       />
     ) : null;
 
   const catalogReviewChecking = catalogState.loading || (!catalogState.loaded && !catalogState.error);
   const catalogReviewFailed = !!catalogState.error;
+  const blockingIssues = form.blockingIssues;
   const contentReadinessIssues = form.publishReadinessIssues;
   const publishReviewBlocked =
     catalogReviewChecking ||
     catalogReviewFailed ||
+    blockingIssues.length > 0 ||
     hasLockedBlockers ||
     contentReadinessIssues.length > 0;
   const publishNeedsPreparation =
     catalogReviewFailed ||
+    blockingIssues.length > 0 ||
     hasLockedBlockers ||
     contentReadinessIssues.length > 0;
   const publishActionLabel = workspaceIsPublishedCurrent
@@ -485,9 +725,150 @@ export function WebsiteWorkspace({ identity, draft, locations, businessId }: Web
     ? publishFailure.message || t("page.toasts.publishFailed")
     : null;
   const visibleSectionCount = form.layout.filter((entry) => entry.visible).length;
+  const checkoutReturnIsBusy =
+    checkoutReturnState === "idle" ||
+    checkoutReturnState === "pending" ||
+    checkoutReturnState === "reconciling";
+  const checkoutReturnCanRetry =
+    checkoutReturnState === "timeout" || checkoutReturnState === "unavailable";
+  const checkoutReturnMessage = checkoutReturnBlocksNewCheckout
+    ? t(
+        checkoutReturnState === "business-mismatch"
+          ? "page.checkoutReturn.businessMismatch"
+          : checkoutReturnState === "reconciling"
+            ? "page.checkoutReturn.reconciling"
+            : checkoutReturnState === "timeout"
+              ? "page.checkoutReturn.timeout"
+              : checkoutReturnState === "unavailable"
+                ? "page.checkoutReturn.unavailable"
+                : "page.checkoutReturn.pending",
+      )
+    : null;
+  const publishAttentionCount =
+    blockingIssues.length +
+    contentReadinessIssues.length +
+    premiumReviewCount +
+    (catalogReviewFailed ? 1 : 0);
+  const mobilePublishSummary = publishFailureHint
+    ? publishFailureHint
+    : publishRetryPending
+      ? t("page.actions.retryPublish")
+    : publishNeedsPreparation
+      ? t("page.mobileActions.needsAttention", {
+          count: Math.max(1, publishAttentionCount),
+        })
+      : form.isDirty
+        ? t("page.mobileActions.unsavedDraft")
+        : workspacePublishStatus === "stale"
+          ? t("page.mobileActions.changesReady")
+          : t("page.mobileActions.ready");
+  const purchaseReviewBlocked =
+    builderController.isVariantCheckoutLoading ||
+    checkoutReturnBlocksNewCheckout ||
+    !builderController.catalogPurchasesReady;
+  const purchaseReviewDisabledReason = builderController.isVariantCheckoutLoading
+    ? t("businessPage.paidVariants.processing")
+    : checkoutReturnMessage
+      ? checkoutReturnMessage
+      : !builderController.catalogPurchasesReady
+        ? t(
+            catalogReviewFailed
+              ? "page.publishReview.catalogErrorDescription"
+              : "page.publishReview.catalogCheckingDescription",
+          )
+        : null;
+  const showMobilePurchaseAction =
+    controller.permissions.canPurchase &&
+    !builderController.isNative &&
+    builderController.cartItems.length > 0;
+  const showMobilePublishAction =
+    controller.permissions.canPublish && !workspaceIsPublishedCurrent;
+
+  const renderMoreControl = (includePublishReview: boolean) => {
+    const showPublishReviewItem =
+      includePublishReview &&
+      controller.permissions.canPublish &&
+      !workspaceIsPublishedCurrent;
+    if (
+      !showPublishReviewItem &&
+      !workspaceDiscardAction.visible &&
+      !isPublished &&
+      !conflict
+    ) return null;
+
+    return (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button
+            type="button"
+            aria-label={t("page.actions.more")}
+            className="website-atelier-focus website-atelier-press grid size-11 shrink-0 place-items-center rounded-[9px] text-[var(--atelier-muted)] hover:bg-[var(--atelier-field)] min-[920px]:size-8"
+          >
+            {isUnpublishing ? (
+              <LoaderCircle className="size-4 animate-spin motion-reduce:animate-none" aria-hidden />
+            ) : (
+              <EllipsisVertical className="size-4" strokeWidth={1.8} aria-hidden />
+            )}
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="min-w-48">
+          {showPublishReviewItem ? (
+            <DropdownMenuItem
+              disabled={workspacePublishReviewDisabled}
+              title={workspacePublishReviewDisabledReason ?? undefined}
+              onSelect={() => openReview("publish")}
+            >
+              <Globe className="size-4" strokeWidth={1.8} aria-hidden />
+              {publishActionLabel}
+            </DropdownMenuItem>
+          ) : null}
+          {workspaceDiscardAction.visible ? (
+            <DropdownMenuItem
+              variant="destructive"
+              disabled={workspaceDiscardAction.disabled}
+              title={workspaceDiscardAction.disabledReason ?? undefined}
+              onSelect={() => setDiscardDialogOpen(true)}
+            >
+              <Undo2 className="size-4" strokeWidth={1.8} aria-hidden />
+              {t("page.actions.discardChanges")}
+            </DropdownMenuItem>
+          ) : null}
+          {conflict ? (
+            <DropdownMenuItem onSelect={controller.reloadLatest}>
+              <RotateCcw className="size-4" strokeWidth={1.8} aria-hidden />
+              {t("page.actions.reload")}
+            </DropdownMenuItem>
+          ) : null}
+          {isPublished ? (
+            <DropdownMenuItem
+              variant="destructive"
+              disabled={!controller.permissions.canPublish || publishBusy}
+              onSelect={() => controller.setUnpublishDialogOpen(true)}
+            >
+              <Globe className="size-4" strokeWidth={1.8} aria-hidden />
+              {t("page.actions.unpublish")}
+            </DropdownMenuItem>
+          ) : null}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    );
+  };
+  const desktopMoreControl = renderMoreControl(false);
+  const mobileMoreControl = renderMoreControl(isPhone);
+
+  const blockingIssueLabel = (issue: WebsiteDraftIssue) => {
+    const sectionLabel = issue.surface === "brand"
+      ? t("businessPage.branding.kitLabel")
+      : isKnownSectionType(issue.type)
+        ? t(SECTION_META[issue.type].labelKey)
+        : issue.type;
+    return `${sectionLabel} · ${issue.fieldLabel}`;
+  };
 
   const readinessSectionLabel = (type: (typeof contentReadinessIssues)[number]["type"]) => {
     switch (type) {
+      case "hero":
+        return t("businessPage.sections.hero.label");
       case "announcement":
         return t("page.publishReview.readinessSections.announcement");
       case "about":
@@ -507,14 +888,22 @@ export function WebsiteWorkspace({ identity, draft, locations, businessId }: Web
 
   const readinessIssueDetail = (issue: (typeof contentReadinessIssues)[number]) => {
     switch (issue.type) {
+      case "hero":
+        return t("businessPage.builder.settings.readiness.hero.title");
       case "announcement":
         return t(
-          issue.field === "cta-url"
-            ? "businessPage.builder.settings.readiness.announcement.urlTitle"
-            : "businessPage.builder.settings.readiness.announcement.title",
+          issue.field === "cta-label"
+            ? "businessPage.builder.settings.readiness.announcement.labelTitle"
+            : issue.field === "cta-url"
+              ? "businessPage.builder.settings.readiness.announcement.urlTitle"
+              : "businessPage.builder.settings.readiness.announcement.title",
         );
       case "about":
-        return t("businessPage.builder.settings.readiness.about.title");
+        return t(
+          issue.field === "headline"
+            ? "businessPage.builder.settings.readiness.about.headlineTitle"
+            : "businessPage.builder.settings.readiness.about.title",
+        );
       case "gallery":
         return t("businessPage.builder.settings.readiness.gallery.title", {
           count: issue.required,
@@ -541,6 +930,8 @@ export function WebsiteWorkspace({ identity, draft, locations, businessId }: Web
 
   const readinessIssueIcon = (type: (typeof contentReadinessIssues)[number]["type"]) => {
     switch (type) {
+      case "hero":
+        return <ImageIcon className="size-[18px]" strokeWidth={1.7} />;
       case "announcement":
         return <Megaphone className="size-[18px]" strokeWidth={1.7} />;
       case "about":
@@ -560,14 +951,22 @@ export function WebsiteWorkspace({ identity, draft, locations, businessId }: Web
 
   const readinessIssueAction = (issue: (typeof contentReadinessIssues)[number]) => {
     switch (issue.type) {
+      case "hero":
+        return t("businessPage.builder.settings.readiness.hero.action");
       case "announcement":
         return t(
-          issue.field === "cta-url"
-            ? "businessPage.builder.settings.readiness.announcement.urlAction"
-            : "businessPage.builder.settings.readiness.announcement.action",
+          issue.field === "cta-label"
+            ? "businessPage.builder.settings.readiness.announcement.labelAction"
+            : issue.field === "cta-url"
+              ? "businessPage.builder.settings.readiness.announcement.urlAction"
+              : "businessPage.builder.settings.readiness.announcement.action",
         );
       case "about":
-        return t("businessPage.builder.settings.readiness.about.action");
+        return t(
+          issue.field === "headline"
+            ? "businessPage.builder.settings.readiness.about.headlineAction"
+            : "businessPage.builder.settings.readiness.about.action",
+        );
       case "gallery":
         return t("businessPage.builder.settings.readiness.gallery.action");
       case "faq":
@@ -579,14 +978,33 @@ export function WebsiteWorkspace({ identity, draft, locations, businessId }: Web
 
   const reviewBlocker = (issue: (typeof contentReadinessIssues)[number]) => {
     pendingReadinessFocusRef.current = issue;
-    handlePublishReviewOpenChange(false);
+    handleReviewOpenChange(false);
   };
 
-  const selectIncludedVariant = (type: string, baseVariantKey?: string) => {
-    if (!baseVariantKey) return;
+  const reviewBlockingIssue = (issue: WebsiteDraftIssue) => {
+    pendingBlockingFocusRef.current = issue;
+    handleReviewOpenChange(false);
+  };
+
+  const removePremiumVariantSelection = (type: string, baseVariantKey?: string) => {
     builderController.clearPreviewOnlyVariant(type);
+    const currentEntry = form.layout.find((entry) => entry.type === type);
+    const currentCatalogEntry = currentEntry
+      ? builderController.variantCatalog.find(
+          (entry) => entry.sectionType === type && entry.variantKey === currentEntry.variant,
+        )
+      : undefined;
+    const fallbackVariantKey = baseVariantKey
+      ?? (currentCatalogEntry?.owned ? currentCatalogEntry.variantKey : undefined)
+      ?? builderController.variantCatalog.find(
+        (entry) => entry.sectionType === type && entry.owned,
+      )?.variantKey;
+    if (!fallbackVariantKey) {
+      if (!REQUIRED_TYPES.has(type)) form.setSectionVisibleByType(type, false);
+      return;
+    }
     const index = form.layout.findIndex((entry) => entry.type === type);
-    if (index >= 0) form.setSectionVariant(index, baseVariantKey);
+    if (index >= 0) form.setSectionVariant(index, fallbackVariantKey);
   };
 
   const selectIncludedTheme = (kind: "color" | "font") => {
@@ -617,7 +1035,7 @@ export function WebsiteWorkspace({ identity, draft, locations, businessId }: Web
         const baseVariantKey = builderController.variantCatalog.find(
           (entry) => entry.sectionType === variant.sectionType && entry.isBase,
         )?.variantKey;
-        selectIncludedVariant(variant.sectionType, baseVariantKey);
+        removePremiumVariantSelection(variant.sectionType, baseVariantKey);
       }
       return;
     }
@@ -653,10 +1071,14 @@ export function WebsiteWorkspace({ identity, draft, locations, businessId }: Web
       return;
     }
     if (blocker.kind === "variant") {
+      if (blocker.previewOnly) {
+        builderController.clearPreviewOnlyVariant(blocker.type);
+        return;
+      }
       const baseVariantKey = blocker.baseVariantKey ?? builderController.variantCatalog.find(
         (entry) => entry.sectionType === blocker.type && entry.isBase,
       )?.variantKey;
-      selectIncludedVariant(blocker.type, baseVariantKey);
+      removePremiumVariantSelection(blocker.type, baseVariantKey);
       return;
     }
     form.setSectionVisibleByType(blocker.type, false);
@@ -678,7 +1100,13 @@ export function WebsiteWorkspace({ identity, draft, locations, businessId }: Web
           saveDisabled={draftSave.disabled}
           saveDisabledReason={draftSave.disabledReason}
           saveBusy={draftSave.busy}
-          onPublish={() => setPublishReviewOpen(true)}
+          blockingIssueCount={blockingIssues.length}
+          onReviewBlockingIssues={
+            canWrite && checkoutTarget == null && !builderController.isVariantCheckoutLoading
+              ? () => openReview("publish")
+              : undefined
+          }
+          onPublish={() => openReview("publish")}
           publishLabel={publishActionLabel}
           publishHint={publishFailureHint}
           publishSavesChanges={form.isDirty}
@@ -686,7 +1114,7 @@ export function WebsiteWorkspace({ identity, draft, locations, businessId }: Web
           publishDisabledReason={workspacePublishReviewDisabledReason}
           publishBusy={isPublishing}
           pendingControl={pendingUnlocksControl}
-          moreControl={moreControl}
+          moreControl={desktopMoreControl}
         />
       }
       mobileHeader={
@@ -704,14 +1132,20 @@ export function WebsiteWorkspace({ identity, draft, locations, businessId }: Web
           saveDisabled={draftSave.disabled}
           saveDisabledReason={draftSave.disabledReason}
           saveBusy={draftSave.busy}
-          onPublish={() => setPublishReviewOpen(true)}
+          blockingIssueCount={blockingIssues.length}
+          onReviewBlockingIssues={
+            canWrite && checkoutTarget == null && !builderController.isVariantCheckoutLoading
+              ? () => openReview("publish")
+              : undefined
+          }
+          onPublish={() => openReview("publish")}
           publishLabel={publishActionLabel}
           publishHint={publishFailureHint}
           publishSavesChanges={form.isDirty}
           publishDisabled={workspacePublishReviewDisabled}
           publishDisabledReason={workspacePublishReviewDisabledReason}
           publishBusy={isPublishing}
-          moreControl={moreControl}
+          moreControl={mobileMoreControl}
         />
       }
     >
@@ -719,6 +1153,42 @@ export function WebsiteWorkspace({ identity, draft, locations, businessId }: Web
         <div className="website-atelier-workspace-banner">
           <LimitedAccessBanner className="!px-0 !pt-0" />
         </div>
+
+        {checkoutReturnMessage ? (
+          <div className="atelier-checkout-return-banner">
+            <div
+              className="atelier-checkout-return-notice"
+              data-tone={
+                checkoutReturnCanRetry || checkoutReturnState === "business-mismatch"
+                  ? "warning"
+                  : "status"
+              }
+              role="status"
+              aria-live="polite"
+              aria-atomic="true"
+            >
+              <span className="atelier-checkout-return-icon" aria-hidden>
+                {checkoutReturnIsBusy ? (
+                  <LoaderCircle className="size-4 animate-spin motion-reduce:animate-none" />
+                ) : (
+                  <AlertTriangle className="size-4" strokeWidth={1.8} />
+                )}
+              </span>
+              <p className="atelier-checkout-return-copy">{checkoutReturnMessage}</p>
+              {checkoutReturnCanRetry ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={retryCheckoutReturn}
+                  className="atelier-checkout-return-action"
+                >
+                  <RotateCcw className="size-3.5" aria-hidden />
+                  {t("page.checkoutReturn.retry")}
+                </Button>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
 
         <WebsiteBuilderCore
           identity={identity}
@@ -734,41 +1204,200 @@ export function WebsiteWorkspace({ identity, draft, locations, businessId }: Web
             checkoutReturnBlocksNewCheckout
           }
         />
+        <WebsiteMobileActionDock
+          purchase={
+            showMobilePurchaseAction
+              ? {
+                  entries: builderController.cartItems,
+                  disabled: purchaseReviewBlocked,
+                  disabledReason: purchaseReviewDisabledReason,
+                  busy: builderController.isVariantCheckoutLoading,
+                  onReview: () => openReview("purchase"),
+                }
+              : null
+          }
+          publish={
+            showMobilePublishAction
+              ? {
+                  summary: mobilePublishSummary,
+                  disabled: workspacePublishReviewDisabled,
+                  disabledReason: workspacePublishReviewDisabledReason,
+                  busy: isPublishing,
+                  onReview: () => openReview("publish"),
+                }
+              : null
+          }
+        />
       </div>
 
-      <Dialog open={publishReviewOpen} onOpenChange={handlePublishReviewOpenChange}>
-        <DialogContent
-          overlayClassName="z-50 bg-[rgb(23_22_20/45%)] backdrop-blur-[2px]"
-          className="website-atelier atelier-publish-dialog z-50 w-[min(660px,calc(100%-2rem))] max-w-[660px] gap-0 rounded-[18px] border-0 p-0"
-          onCloseAutoFocus={(event) => {
+      <PublishReviewSurface
+        phone={isPhone}
+        open={publishReviewOpen}
+        reviewMode={reviewMode}
+        onOpenChange={handleReviewOpenChange}
+        onCloseAutoFocus={(event) => {
+            const blockingIssue = pendingBlockingFocusRef.current;
+            if (blockingIssue) {
+              event.preventDefault();
+              pendingBlockingFocusRef.current = null;
+              controller.focusBlockingIssue(blockingIssue);
+              return;
+            }
             const issue = pendingReadinessFocusRef.current;
             if (!issue) return;
             event.preventDefault();
             pendingReadinessFocusRef.current = null;
             controller.focusPublishBlocker(issue.type, issue);
-          }}
-        >
-          <div className="atelier-publish-dialog-scroll website-atelier-scrollbar">
-            <DialogHeader className="pr-8 text-left">
-            <DialogTitle className="text-[22px] leading-[1.2] tracking-[-0.025em]">
-              {catalogReviewChecking
+        }}
+      >
+          {reviewMode === "purchase" ? (
+            <div
+              className="atelier-publish-dialog-scroll website-atelier-scrollbar"
+              data-vaul-no-drag={isPhone ? "" : undefined}
+            >
+              <PublishReviewHeader
+                phone={isPhone}
+                className={isPhone ? undefined : "pr-8 text-left"}
+              >
+                <PublishReviewTitle
+                  phone={isPhone}
+                  className="text-[22px] leading-[1.2] tracking-[-0.025em]"
+                >
+                  {t("businessPage.paidVariants.unlocks.dialogTitle", {
+                    count: builderController.cartItems.length,
+                  })}
+                </PublishReviewTitle>
+                <PublishReviewDescription
+                  phone={isPhone}
+                  className="max-w-[56ch] pt-1.5 text-[13.5px] leading-[1.55]"
+                >
+                  {t("businessPage.paidVariants.unlocks.popoverHint")}
+                </PublishReviewDescription>
+              </PublishReviewHeader>
+              <PendingUnlocksReview
+                entries={builderController.cartItems}
+                isLoading={builderController.isVariantCheckoutLoading}
+                isBlocked={purchaseReviewBlocked}
+                checkoutRequiresSave={form.isDirty}
+                checkoutRetrySave={draftSave.mode === "retry"}
+                isSavingBeforeCheckout={pendingUnlockCheckout != null}
+                checkoutDisabled={unlockCheckoutDisabled}
+                checkoutDisabledReason={unlockCheckoutDisabledReason}
+                onRemove={builderController.handleRemoveCartItem}
+                onClear={builderController.handleClearCart}
+                onCheckout={() => {
+                  requestCheckout("unlock-tray", "cart", builderController.cartItems);
+                }}
+              />
+            </div>
+          ) : (
+            <>
+          <div
+            className="atelier-publish-dialog-scroll website-atelier-scrollbar"
+            data-vaul-no-drag={isPhone ? "" : undefined}
+          >
+            <PublishReviewHeader
+              phone={isPhone}
+              className={isPhone ? undefined : "pr-8 text-left"}
+            >
+            <PublishReviewTitle
+              phone={isPhone}
+              className="text-[22px] leading-[1.2] tracking-[-0.025em]"
+            >
+              {blockingIssues.length > 0
+                ? t("page.publishReview.blockedTitle")
+                : catalogReviewChecking
                 ? t("page.publishReview.catalogCheckingTitle")
                 : catalogReviewFailed
                   ? t("page.publishReview.catalogErrorTitle")
                   : publishReviewBlocked
                     ? t("page.publishReview.blockedTitle")
                     : t("page.publishReview.readyTitle")}
-            </DialogTitle>
-            <DialogDescription className="max-w-[56ch] pt-1.5 text-[13.5px] leading-[1.55]">
-              {catalogReviewChecking
+            </PublishReviewTitle>
+            <PublishReviewDescription
+              phone={isPhone}
+              className="max-w-[56ch] pt-1.5 text-[13.5px] leading-[1.55]"
+            >
+              {blockingIssues.length > 0
+                ? t(
+                    canWrite
+                      ? "page.publishReview.blockedDescription"
+                      : "page.publishReview.blockedReadOnlyDescription",
+                  )
+                : catalogReviewChecking
                 ? t("page.publishReview.catalogCheckingDescription")
                 : catalogReviewFailed
                   ? t("page.publishReview.catalogErrorDescription")
                   : publishReviewBlocked
                     ? t("page.publishReview.blockedDescription")
                     : t("page.publishReview.readyDescription")}
-            </DialogDescription>
-            </DialogHeader>
+            </PublishReviewDescription>
+            </PublishReviewHeader>
+
+          {blockingIssues.length > 0 ? (
+            <div className="atelier-publish-checks">
+              <section className="atelier-publish-check-group">
+                <div className="atelier-publish-check-heading">
+                  <div>
+                    <p className="atelier-publish-check-label">
+                      {t("page.publishReview.validationRequirements")}
+                      <span> · {blockingIssues.length}</span>
+                    </p>
+                    <p className="atelier-publish-check-helper">
+                      {t(
+                        canWrite
+                          ? "page.publishReview.validationRequirementsDescription"
+                          : "page.publishReview.validationRequirementsReadOnlyDescription",
+                      )}
+                    </p>
+                  </div>
+                </div>
+                <div className="atelier-publish-check-list">
+                  {blockingIssues.map((issue) => (
+                    <div
+                      key={issue.id}
+                      className="atelier-publish-check-row atelier-publish-check-row--required"
+                    >
+                      <span className="atelier-publish-check-icon" aria-hidden>
+                        <AlertTriangle className="size-[18px]" strokeWidth={1.7} />
+                      </span>
+                      <div className="atelier-publish-check-body">
+                        <p>{blockingIssueLabel(issue)}</p>
+                        <span>{issue.message}</span>
+                        {issue.locale ? (
+                          <span>
+                            {t("page.publishReview.issueLanguage", {
+                              language: t(`page.publishReview.languages.${issue.locale}`),
+                            })}
+                          </span>
+                        ) : null}
+                      </div>
+                      <div className="atelier-publish-check-actions">
+                        {canWrite ? (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            onClick={() => reviewBlockingIssue(issue)}
+                            aria-label={`${t("page.publishReview.fixField")}: ${blockingIssueLabel(issue)}${
+                              issue.locale
+                                ? ` · ${t("page.publishReview.issueLanguage", {
+                                    language: t(`page.publishReview.languages.${issue.locale}`),
+                                  })}`
+                                : ""
+                            }`}
+                            className="atelier-publish-row-action"
+                          >
+                            {t("page.publishReview.fixField")}
+                            <ArrowRight className="size-3.5" aria-hidden />
+                          </Button>
+                        ) : null}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            </div>
+          ) : null}
 
           {catalogReviewChecking ? (
             <div className="my-5 flex min-h-20 items-center justify-center gap-2.5 rounded-[12px] border border-[var(--atelier-border)] bg-[var(--atelier-surface-strong)] px-4 text-[12.5px] text-[var(--atelier-muted)]" role="status">
@@ -788,7 +1417,7 @@ export function WebsiteWorkspace({ identity, draft, locations, businessId }: Web
                 {t("page.publishReview.retryCatalog")}
               </Button>
             </div>
-          ) : publishReviewBlocked ? (
+          ) : hasLockedBlockers || contentReadinessIssues.length > 0 ? (
             <div className="atelier-publish-checks">
               {contentReadinessIssues.length > 0 ? (
                 <section className="atelier-publish-check-group">
@@ -817,15 +1446,18 @@ export function WebsiteWorkspace({ identity, draft, locations, businessId }: Web
                           <span>{readinessIssueDetail(issue)}</span>
                         </div>
                         <div className="atelier-publish-check-actions">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            onClick={() => reviewBlocker(issue)}
-                            className="atelier-publish-row-action"
-                          >
-                            {readinessIssueAction(issue)}
-                            <ArrowRight className="size-3.5" aria-hidden />
-                          </Button>
+                          {canWrite ? (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              onClick={() => reviewBlocker(issue)}
+                              aria-label={`${readinessIssueAction(issue)}: ${readinessSectionLabel(issue.type)}`}
+                              className="atelier-publish-row-action"
+                            >
+                              {readinessIssueAction(issue)}
+                              <ArrowRight className="size-3.5" aria-hidden />
+                            </Button>
+                          ) : null}
                         </div>
                       </div>
                     ))}
@@ -952,7 +1584,7 @@ export function WebsiteWorkspace({ identity, draft, locations, businessId }: Web
                 </section>
               ) : null}
             </div>
-          ) : (
+          ) : blockingIssues.length === 0 ? (
             <div className="atelier-publish-summary">
               <div>
                 <span>{t("page.publishReview.sectionsLabel")}</span>
@@ -971,11 +1603,14 @@ export function WebsiteWorkspace({ identity, draft, locations, businessId }: Web
                 </strong>
               </div>
             </div>
-          )}
+          ) : null}
           </div>
 
           {!catalogReviewChecking && !catalogReviewFailed && showPublishUnlockSummary ? (
-            <div className="atelier-publish-unlock-summary">
+            <div
+              className="atelier-publish-unlock-summary"
+              data-vaul-no-drag={isPhone ? "" : undefined}
+            >
               {form.isDirty ? (
                 <p
                   id="publish-review-checkout-note"
@@ -1000,16 +1635,23 @@ export function WebsiteWorkspace({ identity, draft, locations, businessId }: Web
                 disabled={publishUnlockCheckoutDisabled || publishUnlockHasMixedCurrencies}
                 aria-describedby={form.isDirty ? "publish-review-checkout-note" : undefined}
                 aria-busy={
-                  publishCheckoutTarget === "all" &&
+                  checkoutTarget?.source === "publish-review" &&
+                  checkoutTarget.target === "all" &&
                   (builderController.isVariantCheckoutLoading ||
                     pendingPublishCheckout != null)
                 }
                 onClick={() => {
-                  requestPublishCheckout("all", publishUnlockItems);
+                  requestCheckout(
+                    "publish-review",
+                    "all",
+                    publishUnlockItems,
+                    "publish-review",
+                  );
                 }}
                 className="atelier-publish-unlock-all"
               >
-                {publishCheckoutTarget === "all" &&
+                {checkoutTarget?.source === "publish-review" &&
+                checkoutTarget.target === "all" &&
                 (builderController.isVariantCheckoutLoading ||
                   pendingPublishCheckout != null) ? (
                   <Spinner size="sm" color="white" />
@@ -1030,7 +1672,10 @@ export function WebsiteWorkspace({ identity, draft, locations, businessId }: Web
           ) : null}
 
           {!publishReviewBlocked ? (
-            <DialogFooter className="atelier-publish-footer flex-row items-center justify-between sm:justify-between">
+            <PublishReviewFooter
+              phone={isPhone}
+              className="atelier-publish-footer flex-row items-center justify-between sm:justify-between"
+            >
               <Button
                 type="button"
                 variant="ghost"
@@ -1060,10 +1705,11 @@ export function WebsiteWorkspace({ identity, draft, locations, businessId }: Web
                     ? t("page.actions.retryPublish")
                     : t("page.publishReview.publishWebsite")}
               </Button>
-            </DialogFooter>
+            </PublishReviewFooter>
           ) : null}
-        </DialogContent>
-      </Dialog>
+            </>
+          )}
+      </PublishReviewSurface>
 
       {/* Save keeps the blocked destination pending until the versioned PUT is acknowledged. */}
       <UnsavedWebsiteChangesDialog
@@ -1087,6 +1733,7 @@ export function WebsiteWorkspace({ identity, draft, locations, businessId }: Web
               ? draftSave.disabledReason
               : t("page.unsaved.updateInProgress")
         }
+        saveFeedbackTone={form.canRetrySave ? "error" : "status"}
         discardDisabled={workspaceDiscardAction.disabled}
       />
 

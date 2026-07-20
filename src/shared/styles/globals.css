@@ -914,11 +914,11 @@ textarea {
   animation-timing-function: linear !important;
 }
 
-/* Backdrop (overlay) uses opacity *transition*, not animation. Match the
- * panel timing so they finish together. */
-[data-vaul-overlay][data-state="closed"] {
-  transition-duration: 250ms !important;
-  transition-timing-function: linear !important;
+/* Vaul's no-snap backdrop also closes with a keyframe animation. Match the
+ * panel timing so the surface and dimming finish together. */
+[data-vaul-overlay][data-vaul-snap-points="false"][data-state="closed"] {
+  animation-duration: 250ms !important;
+  animation-timing-function: linear !important;
 }
 
 /* Mobile: hide scrollbar but keep scrolling working */

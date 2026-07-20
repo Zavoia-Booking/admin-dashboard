@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
-import type { LocationWithAssignments } from "../../../../../../types";
+import type { WebsiteBuilderLocation } from "../../../../../../types";
 import { DAY_KEYS, prettyAddress, hasOpeningHours, telHref, mapHref, type DayKey } from "../../../shared/contact";
 import { prefersReducedMotion } from "../../../shared/util";
 import type { T } from "../../../shared/types";
 
 /** Editorial's selected-location detail. The parent keys it by location so the restrained row entrance
  * replays on every selection, exactly like the executable design. */
-export function FootDetail({ loc, t }: { loc: LocationWithAssignments; t: T }) {
+export function FootDetail({ loc, t }: { loc: WebsiteBuilderLocation; t: T }) {
   const [entering, setEntering] = useState(() => !prefersReducedMotion());
   useEffect(() => {
     if (!entering) return;

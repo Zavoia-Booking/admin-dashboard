@@ -1,19 +1,45 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { buildZonedDateFromDateKey } from "../../../../../../../calendar/timezone";
 import type { T } from "../../../shared/types";
 
-/** Countdown chip from the announcement's schedule end (a `YYYY-MM-DD` key, read as end-of-day local — the
- *  public page enforces the real timezone window). Computed once per render (the preview re-renders on edits);
- *  renders nothing when there's no end date or it's already past. Mirrors the source `AnnoCountdown`. */
-export function AnnoCountdown({ end, t }: { end: string | null; t: T }) {
-  const [renderedAt] = useState(() => Date.now());
-  if (!end) return null;
-  const target = new Date(`${end}T23:59:59`);
-  if (Number.isNaN(target.getTime())) return null;
-  const ms = target.getTime() - renderedAt;
+export function AnnoCountdown({
+  end,
+  timezone,
+  t,
+}: {
+  end: string | null;
+  timezone: string | null;
+  t: T;
+}) {
+  const target = useMemo(() => {
+    if (!end) return null;
+    const localTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+    try {
+      const lastMinute = buildZonedDateFromDateKey(end, "23:59", timezone || localTimezone);
+      const value = lastMinute.getTime() + 59_999;
+      return Number.isFinite(value) ? value : null;
+    } catch {
+      return null;
+    }
+  }, [end, timezone]);
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    if (!target) return;
+    const interval = window.setInterval(() => setNow(Date.now()), 30_000);
+    return () => window.clearInterval(interval);
+  }, [target]);
+
+  if (!target) return null;
+  const ms = target - now;
   if (ms <= 0) return null;
   const d = Math.floor(ms / 86_400_000);
   const h = Math.floor((ms % 86_400_000) / 3_600_000);
   const m = Math.floor((ms % 3_600_000) / 60_000);
   const time = d > 0 ? `${d}d ${h}h` : h > 0 ? `${h}h ${m}m` : `${m}m`;
-  return <span className="mc-anno-count">{t("businessPage.builder.announcement.endsIn", { time })}</span>;
+  return (
+    <span className="mc-anno-details-count">
+      {t("businessPage.builder.announcement.endsIn", { time })}
+    </span>
+  );
 }

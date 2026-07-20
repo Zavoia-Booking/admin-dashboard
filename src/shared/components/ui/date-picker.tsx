@@ -9,6 +9,10 @@ import { getCalendarLocale } from '../../../features/calendar/timezone';
 interface DatePickerProps {
   value?: Date | null;
   onChange: (date: Date) => void;
+  /** Optional trigger semantics for forms that associate labels and validation with the picker. */
+  triggerId?: string;
+  invalid?: boolean;
+  describedBy?: string;
   className?: string;
   placeholder?: string;
   viewMode?: 'day' | 'week' | 'month';
@@ -30,6 +34,9 @@ interface DatePickerProps {
 const DatePicker: React.FC<DatePickerProps> = ({
   value = null,
   onChange,
+  triggerId,
+  invalid = false,
+  describedBy,
   className,
   placeholder = 'Select date',
   viewMode = 'day',
@@ -291,6 +298,9 @@ const DatePicker: React.FC<DatePickerProps> = ({
     <Popover open={isOpen} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
         <Button
+          id={triggerId}
+          aria-invalid={invalid || undefined}
+          aria-describedby={describedBy}
           variant="outline"
           className={cn(
             "h-12 w-full bg-white border border-border text-sm font-medium text-foreground justify-start",
@@ -492,4 +502,4 @@ const DatePicker: React.FC<DatePickerProps> = ({
   );
 };
 
-export default DatePicker; 
+export default DatePicker;

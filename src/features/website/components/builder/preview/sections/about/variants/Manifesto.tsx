@@ -1,42 +1,51 @@
-import { splitAboutContent } from "../../../../aboutContent";
-import { Kicker, CountUp } from "../../../shared/primitives";
+import { useRef, type CSSProperties } from "react";
+import { AboutStatValue, ManifestoWords } from "../parts";
+import { useAboutReveal } from "../motion";
 import type { AboutVariantProps } from "../types";
-import { computeAboutStats } from "../util";
+import { aboutCopy, aboutStatLabel, computeAboutStats } from "../util";
+import "./manifesto.css";
 
-/** Manifesto — a centred statement closed by a counter band (mirrors the source `AboutManifesto`). Same
- *  lede/body split as the editorial default, centred; up to three real stat cells fill the bordered band. */
-export function Manifesto({ data, t, no }: AboutVariantProps) {
-  const body = data.aboutContent?.trim() ?? "";
-  const empty = !body;
-  const { title, body: rest } = splitAboutContent(body);
-  const lede = title.trim();
-  const stats = computeAboutStats(data);
+export function Manifesto({ data, t, showStats, headlineHidden }: AboutVariantProps) {
+  const rootRef = useRef<HTMLDivElement>(null);
+  useAboutReveal(rootRef);
+  const copy = aboutCopy(data, t, headlineHidden);
+  const stats = showStats ? computeAboutStats(data) : [];
+  const kicker = data.establishedYear === null
+    ? t("businessPage.builder.preview.aboutStory")
+    : t("businessPage.builder.preview.aboutSince", { year: data.establishedYear });
 
   return (
-    <div className="mc-abm">
-      <div className="mc-abm-kick">
-        <Kicker no={no}>{t("businessPage.builder.preview.kicker.about")}</Kicker>
-      </div>
-      <p className={`mc-abm-lede${empty ? " mc-about-ghost" : ""}`} aria-hidden={empty || undefined}>
-        {empty ? t("businessPage.builder.preview.aboutGhostLede") : lede}
-      </p>
-      {(empty || rest.trim()) && (
-        <p className={`mc-abm-body${empty ? " mc-about-ghost" : ""}`} aria-hidden={empty || undefined}>
-          {empty ? t("businessPage.builder.preview.aboutGhostBody") : rest.trim()}
-        </p>
-      )}
-      {stats.length > 0 && (
-        <div className="mc-abm-band">
-          {stats.map((s, i) => (
-            <div key={i} className="mc-abm-cell">
-              <span className="mc-abm-n">
-                <CountUp value={s.n} decimals={s.dec} delayMs={i * 80} />
-              </span>
-              <span className="mc-abm-l">{t(s.labelKey)}</span>
+    <section
+      className="mc-about-section mc-about-manifesto"
+      data-about="manifesto"
+      aria-label={copy.lede || t("businessPage.builder.preview.kicker.about")}
+    >
+      <div className="mc-about-wrap" ref={rootRef}>
+        <div className="mc-abm">
+          <p className="mc-abm-kicker" data-about-reveal><span>{kicker}</span></p>
+          {copy.lede ? <ManifestoWords text={copy.lede} ghost={copy.ledeGhost} /> : null}
+          {(copy.body || copy.bodyGhost) && (
+            <p
+              className={`mc-abm-body${copy.bodyGhost ? " mc-about-ghost" : ""}`}
+              data-about-reveal
+              aria-hidden={copy.bodyGhost || undefined}
+              style={{ "--about-delay": "120ms" } as CSSProperties}
+            >
+              {copy.body}
+            </p>
+          )}
+          {stats.length > 0 && (
+            <div className="mc-abm-signature" data-about-reveal>
+              {stats.map((stat, index) => (
+                <div className="mc-abm-cell" key={stat.labelKey}>
+                  <span className="mc-abm-number"><AboutStatValue stat={stat} index={index} /></span>
+                  <span className="mc-abm-label">{aboutStatLabel(stat, t)}</span>
+                </div>
+              ))}
             </div>
-          ))}
+          )}
         </div>
-      )}
-    </div>
+      </div>
+    </section>
   );
 }

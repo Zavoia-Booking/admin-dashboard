@@ -3,6 +3,7 @@ import {
   actionChannel,
   all,
   call,
+  cancelled,
   flush,
   put,
   select,
@@ -11,6 +12,7 @@ import {
 } from "redux-saga/effects";
 import {
   fetchWebsiteBuilderAction,
+  enterWebsiteBuilderAction,
   saveWebsiteDraftAction,
   uploadWebsiteHeroAction,
   deleteWebsiteHeroAction,
@@ -46,9 +48,12 @@ import type {
   UpdateWebsiteDraftPayload,
 } from "./types";
 import { createAction, getType, type ActionType } from "typesafe-actions";
-import { toast } from "sonner";
 import i18n from "../../shared/lib/i18n";
-import { getErrorMessage } from "../../shared/utils/error";
+import { websiteToast as toast } from "./websiteToast";
+import {
+  getErrorMessage,
+  wasGlobalHttpErrorToastHandled,
+} from "../../shared/utils/error";
 import { isNativeApp } from "../../app/config/env";
 import type { RootState } from "../../app/providers/store";
 import { BRAND_ACCENT_CATALOG, FONT_CATALOG } from "./components/builder/theme";
@@ -111,6 +116,14 @@ const isAmbiguousMutationFailure = (error: unknown): boolean => {
 const browserIsOffline = (): boolean =>
   typeof navigator !== "undefined" && navigator.onLine === false;
 
+const shouldShowFeatureErrorToast = (error: unknown): boolean =>
+  !wasGlobalHttpErrorToastHandled(error, "subscription_required");
+
+const showDraftConflictToast = () =>
+  toast.warning(i18n.t("website:page.toasts.draftConflict"), {
+    id: "website-draft-conflict",
+  });
+
 function canonicalJson(value: unknown): string {
   const normalize = (entry: unknown): unknown => {
     if (Array.isArray(entry)) return entry.map(normalize);
@@ -151,6 +164,7 @@ function draftMatchesSavePayload(
   return canonicalJson({
     tagline: draft.tagline ?? null,
     aboutContent: draft.aboutContent ?? null,
+    establishedYear: draft.establishedYear ?? null,
     brandColorHex: normalizeThemeHex(draft.brandColorHex),
     ...(compareBrandColorKey ? { brandColorKey: draftBrandColorKey } : {}),
     pageLayout: draft.pageLayout ?? [],
@@ -165,6 +179,7 @@ function draftMatchesSavePayload(
   }) === canonicalJson({
     tagline: payload.tagline,
     aboutContent: payload.aboutContent,
+    establishedYear: payload.establishedYear,
     brandColorHex: normalizeThemeHex(payload.brandColorHex),
     ...(compareBrandColorKey ? { brandColorKey: payloadBrandColorKey } : {}),
     pageLayout: payload.pageLayout,
@@ -209,15 +224,24 @@ type SaveAttemptResult =
 
 function* handleFetchWebsiteBuilder() {
   const scope = yield* getWebsiteScope();
+  const abortController = new AbortController();
   try {
-    const response: WebsiteBuilderResponse = yield call(getWebsiteBuilderApi);
+    const response: WebsiteBuilderResponse = yield call(getWebsiteBuilderApi, {
+      signal: abortController.signal,
+    });
     if (!(yield* isCurrentWebsiteScope(scope))) return;
     yield put(fetchWebsiteBuilderAction.success({ ...response, ...scope }));
   } catch (error: unknown) {
     if (!(yield* isCurrentWebsiteScope(scope))) return;
     const message = getErrorMessage(error);
-    toast.error(message || i18n.t('website:page.toasts.loadFailed'));
+    if (shouldShowFeatureErrorToast(error)) {
+      toast.error(message || i18n.t('website:page.toasts.loadFailed'), {
+        id: "website-load-failed",
+      });
+    }
     yield put(fetchWebsiteBuilderAction.failure({ message, ...scope }));
+  } finally {
+    if (yield cancelled()) abortController.abort();
   }
 }
 
@@ -276,7 +300,7 @@ function* performSaveWebsiteDraft(
             updatedAt: current.draft.updatedAt,
           },
         };
-        toast.error(i18n.t("website:page.toasts.draftConflict"));
+        showDraftConflictToast();
         yield* putSaveFailure(request, scope, result);
         return result;
       }
@@ -324,7 +348,9 @@ function* performSaveWebsiteDraft(
           updatedAt: details?.updatedAt ?? null,
         },
       };
-      toast.error(i18n.t("website:page.toasts.draftConflict"));
+      if (shouldShowFeatureErrorToast(error)) {
+        showDraftConflictToast();
+      }
       yield* putSaveFailure(request, scope, result);
       return result;
     }
@@ -401,7 +427,9 @@ function* performSaveWebsiteDraft(
               updatedAt: current.draft.updatedAt,
             },
           };
-          toast.error(i18n.t("website:page.toasts.draftConflict"));
+          if (shouldShowFeatureErrorToast(error)) {
+            showDraftConflictToast();
+          }
           yield* putSaveFailure(request, scope, result);
           return result;
         }
@@ -424,12 +452,16 @@ function* performSaveWebsiteDraft(
       failureKind,
       lockedItems,
     };
-    if (failureKind === "failed") {
-      toast.error(
-        themeOwnershipDrift
-          ? i18n.t("website:page.toasts.themeAccessChanged")
-          : message || i18n.t("website:page.toasts.draftSaveFailed"),
-      );
+    if (failureKind === "failed" && shouldShowFeatureErrorToast(error)) {
+      if (themeOwnershipDrift) {
+        toast.warning(i18n.t("website:page.toasts.themeAccessChanged"), {
+          id: "website-theme-access-changed",
+        });
+      } else {
+        toast.error(message || i18n.t("website:page.toasts.draftSaveFailed"), {
+          id: "website-save-failed",
+        });
+      }
     }
     yield* putSaveFailure(request, scope, result);
     return result;
@@ -452,7 +484,9 @@ function* heroMutationFailure(
   const message = getErrorMessage(error);
   if (extractErrorCodes(error).includes('WEBSITE_BUILDER.E02')) {
     const details = (error as { response?: { data?: { details?: WebsiteDraftConflict } } })?.response?.data?.details;
-    toast.error(i18n.t('website:page.toasts.draftConflict'));
+    if (shouldShowFeatureErrorToast(error)) {
+      showDraftConflictToast();
+    }
     if (isUpload) {
       yield put(
         uploadWebsiteHeroAction.failure({
@@ -508,7 +542,9 @@ function* heroMutationFailure(
           currentVersion: current.draft.version,
           updatedAt: current.draft.updatedAt,
         };
-        toast.error(i18n.t("website:page.toasts.draftConflict"));
+        if (shouldShowFeatureErrorToast(error)) {
+          showDraftConflictToast();
+        }
         if (isUpload) {
           yield put(uploadWebsiteHeroAction.failure({ message, ...scope, conflict }));
         } else {
@@ -521,7 +557,11 @@ function* heroMutationFailure(
     }
   }
 
-  toast.error(message || i18n.t('website:page.toasts.draftSaveFailed'));
+  if (shouldShowFeatureErrorToast(error)) {
+    toast.error(message || i18n.t('website:page.toasts.draftSaveFailed'), {
+      id: "website-hero-update-failed",
+    });
+  }
   if (isUpload) {
     yield put(uploadWebsiteHeroAction.failure({ message, ...scope }));
   } else {
@@ -603,7 +643,9 @@ function* handlePublishWebsite(
     const response: { publish: WebsitePublishState } = yield call(publishWebsiteApi, expectedVersion);
     if (!(yield* isCurrentWebsiteMutationScope(scope))) return;
     yield put(publishWebsiteAction.success({ publish: response.publish, ...scope }));
-    toast.success(i18n.t('website:page.toasts.published'));
+    toast.success(i18n.t('website:page.toasts.published'), {
+      id: "website-published",
+    });
   } catch (error: unknown) {
     if (!(yield* isCurrentWebsiteMutationScope(scope))) return;
     const message = getErrorMessage(error);
@@ -632,7 +674,9 @@ function* handlePublishWebsite(
             currentVersion: current.draft.version,
             updatedAt: current.draft.updatedAt,
           };
-          toast.error(i18n.t("website:page.toasts.draftConflict"));
+          if (shouldShowFeatureErrorToast(error)) {
+            showDraftConflictToast();
+          }
           yield put(
             publishWebsiteAction.failure({
               message,
@@ -650,7 +694,9 @@ function* handlePublishWebsite(
 
     if (codes.includes('WEBSITE_BUILDER.E02')) {
       const details = (error as { response?: { data?: { details?: WebsiteDraftConflict } } })?.response?.data?.details;
-      toast.error(i18n.t('website:page.toasts.draftConflict'));
+      if (shouldShowFeatureErrorToast(error)) {
+        showDraftConflictToast();
+      }
       yield put(
         publishWebsiteAction.failure({
           message,
@@ -672,9 +718,12 @@ function* handlePublishWebsite(
         ...(details?.unownedSections ?? []).map((s) => s.name),
         ...(details?.unownedThemeAssets ?? []).map((asset) => asset.name),
       ];
-      toast.error(i18n.t('website:page.toasts.publishLockedItems'), {
-        description: lockedNames.length > 0 ? lockedNames.join(' · ') : undefined,
-      });
+      if (shouldShowFeatureErrorToast(error)) {
+        toast.warning(i18n.t('website:page.toasts.publishLockedItems'), {
+          id: "website-publish-locked-items",
+          description: lockedNames.length > 0 ? lockedNames.join(' · ') : undefined,
+        });
+      }
       // Ownership drifted (refund/admin change) — refresh so lock states re-render truthfully.
       yield put(fetchWebsiteVariantCatalogAction.request());
       yield put(
@@ -687,7 +736,11 @@ function* handlePublishWebsite(
       );
       return;
     }
-    toast.error(message || i18n.t('website:page.toasts.publishFailed'));
+    if (shouldShowFeatureErrorToast(error)) {
+      toast.error(message || i18n.t('website:page.toasts.publishFailed'), {
+        id: "website-publish-failed",
+      });
+    }
     yield put(
       publishWebsiteAction.failure({
         message,
@@ -703,11 +756,17 @@ function* handleUnpublishWebsite(scope: WebsiteMutationScope) {
     const response: { publish: WebsitePublishState } = yield call(unpublishWebsiteApi);
     if (!(yield* isCurrentWebsiteMutationScope(scope))) return;
     yield put(unpublishWebsiteAction.success({ publish: response.publish, ...scope }));
-    toast.success(i18n.t('website:page.toasts.unpublished'));
+    toast.success(i18n.t('website:page.toasts.unpublished'), {
+      id: "website-unpublished",
+    });
   } catch (error: unknown) {
     if (!(yield* isCurrentWebsiteMutationScope(scope))) return;
     const message = getErrorMessage(error);
-    toast.error(message || i18n.t('website:page.toasts.unpublishFailed'));
+    if (shouldShowFeatureErrorToast(error)) {
+      toast.error(message || i18n.t('website:page.toasts.unpublishFailed'), {
+        id: "website-unpublish-failed",
+      });
+    }
     yield put(unpublishWebsiteAction.failure({ message, ...scope }));
   }
 }
@@ -717,10 +776,16 @@ function* handleUnpublishWebsite(scope: WebsiteMutationScope) {
  * the builder falls back to its code-side defaults and the server still enforces ownership
  * at publish/delivery.
  */
-function* handleFetchWebsiteVariantCatalog() {
+function* handleFetchWebsiteVariantCatalog(action: { type: string }) {
+  // ENTER is part of this takeLatest lane only to invalidate/suppress an older same-business
+  // catalog request. The fresh workspace starts the replacement read after primary access loads.
+  if (action.type === getType(enterWebsiteBuilderAction)) return;
   const scope = yield* getWebsiteScope();
+  const abortController = new AbortController();
   try {
-    const catalog: WebsiteCatalogResponse = yield call(getWebsiteVariantCatalogApi);
+    const catalog: WebsiteCatalogResponse = yield call(getWebsiteVariantCatalogApi, {
+      signal: abortController.signal,
+    });
     if (!(yield* isCurrentWebsiteScope(scope))) return;
     yield put(fetchWebsiteVariantCatalogAction.success({ ...catalog, ...scope }));
   } catch (error: unknown) {
@@ -729,6 +794,8 @@ function* handleFetchWebsiteVariantCatalog() {
       message: getErrorMessage(error),
       ...scope,
     }));
+  } finally {
+    if (yield cancelled()) abortController.abort();
   }
 }
 
@@ -756,7 +823,7 @@ function* handleCreateWebsiteVariantCheckout(action: ActionType<typeof createWeb
     const redirectUrl = usableCheckoutRedirectUrl(response.url);
     if (!redirectUrl) {
       const message = i18n.t('website:page.toasts.checkoutFailed');
-      toast.error(message);
+      toast.error(message, { id: "website-checkout-start-failed" });
       yield put(createWebsiteVariantCheckoutAction.failure({ message, ...scope }));
       return;
     }
@@ -769,7 +836,11 @@ function* handleCreateWebsiteVariantCheckout(action: ActionType<typeof createWeb
     // WEBSITE_VARIANTS / WEBSITE_SECTIONS codes (not found/inactive, free, already
     // owned, needs the Plus plan) translate to specific copy via the `messages` namespace.
     const message = getErrorMessage(error);
-    toast.error(message || i18n.t('website:page.toasts.checkoutFailed'));
+    if (shouldShowFeatureErrorToast(error)) {
+      toast.error(message || i18n.t('website:page.toasts.checkoutFailed'), {
+        id: "website-checkout-start-failed",
+      });
+    }
     // Already owned / no longer purchasable — refresh ownership so the UI corrects itself.
     const codes = extractErrorCodes(error);
     const staleOwnershipCodes = [
@@ -1027,10 +1098,16 @@ function* handleWebsiteMutationQueue(): Generator<any, void, any> {
 
 export function* websiteSaga(): Generator<any, void, any> {
   yield all([
-    takeLatest(fetchWebsiteBuilderAction.request, handleFetchWebsiteBuilder),
+    takeLatest(
+      [fetchWebsiteBuilderAction.request, enterWebsiteBuilderAction],
+      handleFetchWebsiteBuilder,
+    ),
     call(captureWebsiteMutationEvents),
     call(handleWebsiteMutationQueue),
-    takeLatest(fetchWebsiteVariantCatalogAction.request, handleFetchWebsiteVariantCatalog),
+    takeLatest(
+      [fetchWebsiteVariantCatalogAction.request, enterWebsiteBuilderAction],
+      handleFetchWebsiteVariantCatalog,
+    ),
     takeLatest(createWebsiteVariantCheckoutAction.request, handleCreateWebsiteVariantCheckout),
   ]);
 }

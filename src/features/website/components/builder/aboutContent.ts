@@ -20,7 +20,7 @@ export function joinAboutContent(title: string, body: string): string {
   return body ? `${title}\n\n${body}` : title;
 }
 
-/** The headline alone (first paragraph), trimmed — used for the shown-section readiness hint. */
+/** The headline alone (first paragraph), trimmed — used for the section-list summary. */
 export function aboutHeadline(s: string): string {
   return splitAboutContent(s).title.trim();
 }

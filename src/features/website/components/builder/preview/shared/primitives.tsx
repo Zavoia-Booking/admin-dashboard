@@ -1,7 +1,7 @@
 import { useEffect, useState, type CSSProperties } from "react";
 import { Star, ArrowRight } from "lucide-react";
 import { cn } from "../../../../../../shared/lib/utils";
-import { DISPLAY, MONO } from "./constants";
+import { DISPLAY } from "./constants";
 
 /** Count-up that re-runs on mount — eases 0→value with a cubic ease-out (mirrors the microsite RollNum). */
 export function CountUp({ value, decimals = 0, durationMs = 760, delayMs = 0 }: { value: number; decimals?: number; durationMs?: number; delayMs?: number }) {
@@ -44,28 +44,17 @@ export function Section({ children, soft, narrow }: { children: React.ReactNode;
   );
 }
 
-export function Kicker({ no, children }: { no?: string; children: React.ReactNode }) {
-  return (
-    <div className="mb-4 inline-flex items-center gap-2 text-[10.5px] font-semibold uppercase" style={{ ...MONO, letterSpacing: "0.16em", color: "var(--mc-ink)" }}>
-      <span aria-hidden className="h-1.5 w-1.5 rounded-full" style={{ background: "currentColor" }} />
-      {no && <span>{no}</span>}
-      {no && <span aria-hidden>—</span>}
-      <span>{children}</span>
-    </div>
-  );
-}
-
 /**
- * Section header — numbered kicker + display heading on the left, an optional muted sublede on the
- * right. Mirrors the microsite's `.mc-shead`; shared by Locations, Gallery, Team, FAQ, and Reviews.
- * `stacked` switches to the design's single-column variant (kicker → large heading → sublede below),
- * used by Locations (`#locations .mc-shead` / `.lb-locx-sublede`).
+ * Section header — display heading on the left, an optional muted sublede on the right. Mirrors the
+ * microsite's `.mc-shead` / `.mc-h2`. The design retired the numbered "0N —" eyebrow kickers (its
+ * `SecKicker` is an intentional no-op), so `no`/`kicker` are accepted for call-site compatibility but
+ * never rendered. `stacked` switches to the design's single-column variant (large heading → sublede
+ * below), used by Locations (`#locations .mc-shead` / `.lb-locx-sublede`).
  */
-export function SectionHead({ no, kicker, heading, sublede, stacked }: { no?: string; kicker: string; heading: string; sublede?: string; stacked?: boolean }) {
+export function SectionHead({ heading, sublede, stacked }: { no?: string; kicker?: string; heading: string; sublede?: string; stacked?: boolean }) {
   if (stacked) {
     return (
       <div className="mb-[clamp(24px,4.5cqw,52px)]">
-        <Kicker no={no}>{kicker}</Kicker>
         <h2 className="text-balance" style={{ ...DISPLAY, fontSize: "clamp(34px,7cqw,68px)", lineHeight: 0.98 }}>
           {heading}
         </h2>
@@ -78,13 +67,8 @@ export function SectionHead({ no, kicker, heading, sublede, stacked }: { no?: st
     );
   }
   return (
-    <div className="mb-[clamp(20px,4cqw,44px)] flex flex-wrap items-end justify-between gap-x-[clamp(16px,3cqw,40px)] gap-y-3">
-      <div className="max-w-[22ch]">
-        <Kicker no={no}>{kicker}</Kicker>
-        <h2 className="text-balance" style={{ ...DISPLAY, fontSize: "clamp(26px,6cqw,52px)", lineHeight: 0.98 }}>
-          {heading}
-        </h2>
-      </div>
+    <div className="mb-[clamp(28px,4cqw,52px)] flex flex-wrap items-end justify-between gap-x-[clamp(16px,3cqw,40px)] gap-y-3">
+      <h2 style={{ ...DISPLAY, fontSize: "clamp(34px,5.2cqw,72px)", lineHeight: 0.98, marginTop: 10 }}>{heading}</h2>
       {sublede && (
         <p className="max-w-[300px] text-[14px] leading-relaxed" style={{ color: "var(--mc-muted)" }}>
           {sublede}

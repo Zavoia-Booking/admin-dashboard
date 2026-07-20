@@ -212,8 +212,8 @@
       "locations": "locations",
       "teamMember": "team member",
       "teamMembers": "team members",
-      "websiteGalleryPhoto": "photo used by the published Website Gallery",
-      "websiteGalleryPhotos": "photos used by the published Website Gallery",
+      "websiteGalleryPhoto": "photo used on the published website",
+      "websiteGalleryPhotos": "photos used on the published website",
       "cancelInvitationHint": "Cancel the invitation{{plural}} before removing this {{resourceType}}"
     },
     "resourceTypes": {

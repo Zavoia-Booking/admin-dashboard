@@ -188,7 +188,7 @@
       "loadFailed": "Portofoliul nu a putut fi încărcat.",
       "uploadFailed": "Nu am putut încărca {{name}}.",
       "deleteFailed": "Nu am putut șterge imaginea.",
-      "publishedGalleryImage": "Elimină fotografia din Galeria publicată a site-ului înainte de a o șterge.",
+      "publishedGalleryImage": "Această fotografie este folosită pe site-ul publicat. Înlocuiește-o sau elimin-o din editorul site-ului înainte de a o șterge.",
       "updateFeaturedFailed": "Nu am putut actualiza imaginea principală.",
       "waitForUpload": "Așteaptă finalizarea încărcării imaginii.",
       "noLocationSelected": "Selectează mai întâi o locație."

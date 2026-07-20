@@ -5,7 +5,7 @@ import { ArrowRight, Eye, Lock, Palette, Sparkles } from "lucide-react";
 import { Button } from "../../../shared/components/ui/button";
 import { usePlatform } from "../../../shared/hooks/usePlatform";
 import { cn } from "../../../shared/lib/utils";
-import type { Business, LocationWithAssignments } from "../types";
+import type { Business, WebsiteBuilderLocation } from "../types";
 import type { PreviewData } from "./builder/LivePreview";
 import { ScaledPreview } from "./builder/preview/ScaledPreview";
 import { DEFAULT_LAYOUT, DEFAULT_FONT_KEY } from "./builder/sectionCatalog";
@@ -13,7 +13,7 @@ import { FALLBACK_BRAND } from "./builder/theme";
 
 interface WebsiteBuilderLockedViewProps {
   business: Business | null;
-  locations: LocationWithAssignments[];
+  locations: WebsiteBuilderLocation[];
   heroImageUrl: string | null;
   tagline?: string;
   brandColorHex?: string;
@@ -55,10 +55,13 @@ export function WebsiteBuilderLockedView({
   const teaserData = useMemo<PreviewData>(
     () => ({
       businessName: business?.name?.trim() || t("page.identity.fallbackName"),
+      businessTimezone: business?.timezone?.trim() || "UTC",
       logo: business?.logo ?? null,
       heroImageUrl,
       tagline: tagline ?? "",
       aboutContent: "",
+      establishedYear: null,
+      businessCurrency: business?.businessCurrency?.trim().toUpperCase() || "EUR",
       email: business?.email ?? "",
       phone: business?.phone ?? "",
       social: {
@@ -72,6 +75,7 @@ export function WebsiteBuilderLockedView({
       faq: [],
       announcement: {
         message: { en: "", ro: "" },
+        details: { en: "", ro: "" },
         cta: { enabled: false, label: { en: "", ro: "" }, url: "", newTab: false, showArrow: true },
         schedule: null,
       },

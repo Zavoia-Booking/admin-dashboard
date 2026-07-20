@@ -8,22 +8,120 @@
 // (expectedVersion → 409 on a stale tab). Website saves never publish, rename, retag, or
 // remap the Marketplace listing.
 
-import type { LocationWithAssignments } from '../marketplace/types';
+// Business identity remains canonical shared account data. Location content has a dedicated
+// Website projection below so Marketplace management fields never become part of this API.
+export type { Business } from '../marketplace/types';
 
-// Cross-feature data models the Website renderer consumes (the location preview projection
-// and canonical business shape are owned by the marketplace read API and shared types).
-export type {
-  Business,
-  LocationWithAssignments,
-  TeamMember,
-  PortfolioImageData,
-  MarketplaceBundle,
-} from '../marketplace/types';
+export type WebsiteBuilderDayKey =
+  | 'monday'
+  | 'tuesday'
+  | 'wednesday'
+  | 'thursday'
+  | 'friday'
+  | 'saturday'
+  | 'sunday';
+
+export interface WebsiteBuilderWorkingDay {
+  open?: string | null;
+  close?: string | null;
+  isOpen?: boolean | null;
+}
+
+export type WebsiteBuilderWorkingHours = Partial<
+  Record<WebsiteBuilderDayKey, WebsiteBuilderWorkingDay | null>
+>;
+
+export interface WebsiteBuilderAddressComponents {
+  street?: string | null;
+  streetNumber?: string | null;
+  city?: string | null;
+  postalCode?: string | null;
+  country?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+}
+
+export interface WebsiteBuilderPortfolioImage {
+  url: string;
+  key: string;
+  originalName?: string | null;
+}
+
+export interface WebsiteBuilderTeamMember {
+  id: number;
+  firstName: string;
+  lastName: string;
+  profileImage: string | null;
+  /** Kept during the response-contract rollout for older Team previews. */
+  role?: 'owner' | 'team_member';
+}
+
+export interface WebsiteBuilderServiceCategory {
+  id: number;
+  name: string;
+  displayOrder: number | null;
+}
+
+export interface WebsiteBuilderService {
+  id: number;
+  name: string | null;
+  description: string | null;
+  duration: number;
+  price_amount_minor: number;
+  categoryId: number | null;
+  category: WebsiteBuilderServiceCategory | null;
+}
+
+export interface WebsiteBuilderBundle {
+  id: number;
+  name: string;
+  /** Optional only for a rolling response from the pre-projection API. */
+  description?: string | null;
+  price_amount_minor?: number | null;
+  duration?: number;
+  services?: Array<{ name: string | null }>;
+  /** Tolerates the former additive bundle shape while rolling API responses expire. */
+  includes?: string[];
+}
+
+/** Exact GET /website-builder location projection; collections are normalized by the API. */
+export interface WebsiteBuilderLocation {
+  id: number;
+  name: string;
+  description: string | null;
+  phone: string | null;
+  email: string | null;
+  address: string | null;
+  addressComponents: WebsiteBuilderAddressComponents | null;
+  timezone: string | null;
+  workingHours: WebsiteBuilderWorkingHours | null;
+  open247: boolean;
+  allowOnlineBooking: boolean;
+  portfolioImages: WebsiteBuilderPortfolioImage[];
+  featuredImage: string | null;
+  averageRating: number | null;
+  totalReviews: number;
+  amenityTagIds: number[];
+  audienceTagIds: number[];
+  valueTagIds: number[];
+  accessibilityTagIds: number[];
+  paymentMethodTagIds: number[];
+  languageTagIds: number[];
+  services: WebsiteBuilderService[];
+  bundles: WebsiteBuilderBundle[];
+  teamMembers: WebsiteBuilderTeamMember[];
+}
 
 /** Bilingual text for the two net-new content sections (FAQ + Announcement). */
 export interface LocaleText {
   en: string;
   ro: string;
+}
+
+/** Locale-specific explicit blank state for inherited Website Builder copy. Missing/false keeps the default. */
+export interface LocaleCopyHidden {
+  en?: boolean;
+  ro?: boolean;
 }
 
 export type SectionType =
@@ -32,6 +130,7 @@ export type SectionType =
   | 'hero'
   | 'marquee'
   | 'about'
+  | 'services'
   | 'locations'
   | 'gallery'
   | 'team'
@@ -63,14 +162,20 @@ export interface HeroConfig {
   eyebrow?: LocaleText;
 }
 
-/** Footer display toggles. Directory is currently the only design-file variant that renders an uploaded
- * business logo; absent/true preserves the existing logo-first treatment. */
+/** Footer-owned presentation copy and display toggles. Directory is currently the only design-file variant
+ * that renders an uploaded business logo; absent/true preserves the existing logo-first treatment. */
 export interface FooterConfig {
+  /** Optional bilingual closing headline used only by Editorial. */
+  headline?: LocaleText;
+  /** Explicitly suppress Editorial's inherited closing headline in one locale. */
+  headlineHidden?: LocaleCopyHidden;
+  /** Optional bilingual description used by Directory and Editorial; blank means omitted. */
+  description?: LocaleText;
   showLogo?: boolean;
 }
 
-/** Announcement tone — an independent axis layered under the layout variant; colours the whole ribbon. */
-export type AnnouncementTone = "neutral" | "offer" | "alert";
+/** Design-source announcement tone — an independent axis shared by every layout. */
+export type AnnouncementTone = "neutral" | "offer";
 
 /** Typed view of an announcement section's `config`. The layout is the section `variant`; the tone (colour)
  *  is config, so it composes with any layout. */
@@ -78,34 +183,58 @@ export interface AnnouncementConfig {
   tone?: AnnouncementTone;
 }
 
-/**
- * Typed view of a locations section's `config`: which locations to hide, plus optional bilingual copy
- * overrides for the section heading + sub-lede. Blank/absent copy falls back to the default editorial
- * strings (the dashboard preview uses the active interface locale; future delivery can choose per visitor).
- */
+/** Decorative mark rendered between service names in the Strip section. */
+export type StripSeparatorStyle = "pearl" | "diamond" | "slash" | "sparkle" | "ring";
+
+/** Strip appearance controls. Motion remains the section variant (`scroll` or `loop`). */
+export interface StripConfig {
+  separatorStyle?: StripSeparatorStyle;
+  /** Separator scale as a percentage. */
+  separatorSize?: number;
+  /** Service-name scale as a percentage of the responsive Strip typography. */
+  textSize?: number;
+  /** Use the website's selected brand color as the Strip field. */
+  useBrandColorBackground?: boolean;
+}
+
+/** Design-source Locations controls. The layout itself is the section `variant`. */
 export interface LocationsConfig {
   /** Owner-hidden location IDs; empty/absent = show all. */
   hiddenLocationIds?: number[];
-  /** Heading override per locale; a blank/missing locale uses the default copy. */
-  heading?: LocaleText;
-  /** Sub-lede override per locale; a blank/missing locale uses the default copy. */
-  sublede?: LocaleText;
+  /** Owner-defined display order; empty/absent preserves the API's stable location order. */
+  orderedLocationIds?: number[];
 }
 
 /**
- * Optional bilingual heading + sub-lede overrides shared by the view sections (Team / Gallery / Reviews /
- * Contact). Blank/absent copy falls back to the default editorial string; stored per locale for the
- * dashboard preview and future delivery. Mirrors `LocationsConfig`'s copy fields.
+ * Bilingual heading/subtitle controls shared by Services and Team. Services inherits both defaults; Team
+ * inherits its heading while its subtitle is plain optional copy. Explicit per-locale blank states live
+ * beside inherited overrides so deleting visible text cannot be confused with an untouched legacy draft.
  */
 export interface SectionCopyConfig {
   heading?: LocaleText;
   sublede?: LocaleText;
+  /** Explicitly suppress the inherited heading in one locale. */
+  headingHidden?: LocaleCopyHidden;
+  /** Explicitly suppress the inherited subtitle in one locale. */
+  subledeHidden?: LocaleCopyHidden;
 }
 
 export type TeamConfig = SectionCopyConfig;
 
+/** Services presentation controls. Service data itself remains owned by the Services module. */
+export interface ServicesConfig extends SectionCopyConfig {
+  /** Optional Feature-photo overrides, with at most one owned portfolio image per location. */
+  featureImageRefs?: GalleryImageRef[];
+  /** Descriptions are shown by default. */
+  hideDescriptions?: boolean;
+  /** Durations are shown by default. */
+  hideDurations?: boolean;
+  /** Bundles are shown by default in their dedicated group. */
+  hideBundles?: boolean;
+}
+
 /** FAQ questions remain in the dedicated FAQ payload; only its section heading lives in layout config. */
-export type FaqConfig = Pick<SectionCopyConfig, "heading">;
+export type FaqConfig = Pick<SectionCopyConfig, "heading" | "headingHidden">;
 
 /** Stable reference to an existing per-location portfolio image. URLs are resolved at render time. */
 export interface GalleryImageRef {
@@ -113,16 +242,28 @@ export interface GalleryImageRef {
   imageKey: string;
 }
 
+/** About photography is sourced from an owned location portfolio. Missing = automatic selection. */
+export interface AboutConfig {
+  /** One shared photo used by every About style; absent lets the builder choose a recommended photo. */
+  imageRef?: GalleryImageRef;
+  /** Show the real-data statistics strip; absent keeps it visible for existing drafts. */
+  showStats?: boolean;
+  /** Draft-only explicit blank headline state; a visible About cannot publish until it is restored or replaced. */
+  headlineHidden?: boolean;
+}
+
 /** Curated Gallery selection. Missing `imageRefs` is the legacy auto-fill state; an empty array is explicit. */
-export interface GalleryConfig extends SectionCopyConfig {
+export interface GalleryConfig extends Pick<SectionCopyConfig, "heading" | "headingHidden"> {
   /** Locations available to the Gallery. Missing = every owned location; empty = none. */
   includedLocationIds?: number[];
   /** Ordered images shown by every Gallery variant and its fullscreen viewer. */
   imageRefs?: GalleryImageRef[];
 }
 
-/** Reviews section config: copy overrides + a toggle for the synthetic rating-distribution block. */
-export interface ReviewsConfig extends SectionCopyConfig {
+/** Reviews section config: heading override + a toggle for the synthetic rating-distribution block. */
+export interface ReviewsConfig {
+  heading?: LocaleText;
+  headingHidden?: LocaleCopyHidden;
   /** Hide the 5-star rating-distribution bars (shown by default when there are reviews). */
   hideDistribution?: boolean;
 }
@@ -162,13 +303,19 @@ export interface AnnouncementCta {
  * enforcement belongs to a future customer-delivery surface.
  */
 export interface AnnouncementSchedule {
+  /** Temporarily nullable while the enabled editor window is being completed; both block saving. */
   start?: string | null;
   end?: string | null;
   timezone?: string | null;
+  /** Backward-compatible visual preference: absent means the countdown pill is shown. */
+  showCountdown?: boolean;
 }
 
 export interface AnnouncementContent {
+  /** Compact copy rendered directly in the bar. */
   message: LocaleText;
+  /** Optional long-form explanation opened from the bar's Read more control. */
+  details?: LocaleText | null;
   cta: AnnouncementCta;
   schedule?: AnnouncementSchedule | null;
   /** @deprecated legacy single link — migrated into `cta.url` on read; no longer written. */
@@ -185,6 +332,8 @@ export interface WebsiteIdentity {
   email: string | null;
   phone: string | null;
   description: string | null;
+  /** Customer-facing ISO 4217 currency used by service prices. Additive for rolling API responses. */
+  businessCurrency?: string | null;
   instagramUrl: string | null;
   facebookUrl: string | null;
   tiktokUrl: string | null;
@@ -198,6 +347,8 @@ export interface WebsiteDraft {
   heroImageKey: string | null;
   tagline: string | null;
   aboutContent: string | null;
+  /** Additive Website content field; absent responses from a rolling backend are treated as null. */
+  establishedYear?: number | null;
   brandColorHex: string | null;
   /** Additive during legacy-color migration; absent/null drafts still round-trip by hex. */
   brandColorKey?: string | null;
@@ -250,11 +401,11 @@ export interface WebsiteUnownedPublishItems {
   }>;
 }
 
-/** GET /website-builder response. `locations` reuses the marketplace location projection. */
+/** GET /website-builder response. `locations` is the Website-owned read projection. */
 export interface WebsiteBuilderResponse {
   identity: WebsiteIdentity;
   draft: WebsiteDraft;
-  locations: LocationWithAssignments[];
+  locations: WebsiteBuilderLocation[];
   publish: WebsitePublishState;
   access: WebsiteAccess;
 }
@@ -264,6 +415,7 @@ export interface UpdateWebsiteDraftPayload {
   expectedVersion: number;
   tagline: string | null;
   aboutContent: string | null;
+  establishedYear: number | null;
   brandColorHex: string | null;
   /** Stable catalog identity paired with brandColorHex; optional for legacy drafts. */
   brandColorKey?: string | null;
@@ -335,7 +487,7 @@ export interface WebsiteVariantCatalogEntry {
   /** Integer minor units (cents); 0 = free. */
   priceMinor: number;
   currency: string;
-  /** The section's free default variant — always offered, unlocked. */
+  /** Included default when one exists; a paid-only section may intentionally have no base row. */
   isBase: boolean;
   owned: boolean;
   /** Active in the catalog (purchasable). Owned entries stay usable even when false. */
@@ -450,7 +602,7 @@ export interface WebsiteState {
   /** GET /website-builder view — identity, saved draft, locations, access. */
   identity: WebsiteIdentity | null;
   draft: WebsiteDraft | null;
-  locations: LocationWithAssignments[];
+  locations: WebsiteBuilderLocation[];
   access: WebsiteAccess | null;
   /** Publish state (null until the first fetch lands). */
   publish: WebsitePublishState | null;

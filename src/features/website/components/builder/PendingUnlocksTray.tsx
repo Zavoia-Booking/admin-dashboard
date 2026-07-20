@@ -30,23 +30,34 @@ export interface UnlockLineItem {
   assetKey?: string;
 }
 
-interface PendingUnlocksProps {
+export interface PendingUnlocksProps {
   /** Queued lines already resolved against the catalog (unowned, paid). Empty hides the control. */
   entries: UnlockLineItem[];
   /** Combined checkout session being created (ends with a redirect to Stripe). */
   isLoading: boolean;
   /** Authoritative ownership/catalog reconciliation currently makes the tray read-only. */
   isBlocked?: boolean;
-  /** Checkout redirects away; keep queue management available but require a clean draft first. */
-  checkoutBlocked?: boolean;
+  /** The draft is dirty but can be saved as the first step of this checkout action. */
+  checkoutRequiresSave?: boolean;
+  /** The latest matching draft save failed and the combined action will retry it. */
+  checkoutRetrySave?: boolean;
+  /** The exact save requested by this tray is awaiting acknowledgement. */
+  isSavingBeforeCheckout?: boolean;
+  /** A real save blocker (offline, invalid, conflicted, or another mutation) prevents checkout. */
+  checkoutDisabled?: boolean;
+  checkoutDisabledReason?: string | null;
   onRemove: (item: UnlockLineItem) => void;
   onClear: () => void;
   onCheckout: () => void;
+  /** Closing during the save phase cancels only the automatic checkout continuation. */
+  onOpenChange?: (open: boolean) => void;
 }
 
 interface PendingUnlocksTriggerProps extends PendingUnlocksProps {
   /** Keep the existing workspace trigger by default; Atelier supplies compact desktop/mobile controls. */
   variant?: "default" | "atelier-header" | "atelier-mobile-bar";
+  /** Workspace-owned review dialog. Omit to retain the self-contained legacy dialog. */
+  onReview?: () => void;
 }
 
 interface UnlockListProps extends PendingUnlocksProps {
@@ -88,12 +99,14 @@ export function PendingUnlocksPanel(props: PendingUnlocksProps) {
 }
 
 /**
- * Atelier's premium-selection trigger. The review surface uses one Radix dialog at every
- * viewport so keyboard focus, Escape, backdrop dismissal, and focus restoration stay identical.
- * CSS places it as the supplied top-right tray from 920px up and as a compact floating card
- * above the dashboard mobile navigation below 920px.
+ * Atelier's premium-selection trigger. The current workspace supplies `onReview` and owns one
+ * shared review dialog; callers that omit it retain the self-contained legacy dialog.
  */
-export function PendingUnlocksTrigger({ variant = "default", ...props }: PendingUnlocksTriggerProps) {
+export function PendingUnlocksTrigger({
+  variant = "default",
+  onReview,
+  ...props
+}: PendingUnlocksTriggerProps) {
   const { t } = useTranslation("website");
   const { formatPrice } = useFormatPrice();
   const [trayOpen, setTrayOpen] = useState(false);
@@ -137,6 +150,7 @@ export function PendingUnlocksTrigger({ variant = "default", ...props }: Pending
     <button
       type="button"
       disabled={interactionBlocked}
+      onClick={onReview}
       className={cn(
         "atelier-unlocks-trigger website-atelier-focus website-atelier-press relative flex h-8 shrink-0 items-center gap-[9px] whitespace-nowrap rounded-full border border-[var(--atelier-border)] bg-[var(--atelier-surface-strong)] py-0 pl-[7px] pr-[9px] text-[12px] font-semibold text-[var(--atelier-ink)] after:absolute after:-inset-y-1.5 after:inset-x-0 after:content-[''] hover:border-[color-mix(in_srgb,var(--atelier-ink)_28%,transparent)] disabled:cursor-not-allowed disabled:opacity-60",
         changeAnimating && "atelier-unlocks-trigger--changed",
@@ -168,6 +182,7 @@ export function PendingUnlocksTrigger({ variant = "default", ...props }: Pending
     <button
       type="button"
       disabled={interactionBlocked}
+      onClick={onReview}
       className={cn(
         "atelier-unlocks-trigger atelier-mobile-unlocks website-atelier-focus website-atelier-press disabled:cursor-not-allowed disabled:opacity-60",
         changeAnimating && "atelier-unlocks-trigger--changed",
@@ -194,6 +209,7 @@ export function PendingUnlocksTrigger({ variant = "default", ...props }: Pending
       size="sm"
       rounded="default"
       disabled={interactionBlocked}
+      onClick={onReview}
       className={cn(
         "atelier-unlocks-trigger relative min-h-11 gap-1.5 px-3 text-[12px] font-semibold",
         changeAnimating && "atelier-unlocks-trigger--changed",
@@ -208,11 +224,16 @@ export function PendingUnlocksTrigger({ variant = "default", ...props }: Pending
     </Button>
   );
 
+  if (onReview) return trigger;
+
   return (
     <Dialog
       open={trayOpen}
       onOpenChange={(open) => {
-        if (!interactionBlocked) setTrayOpen(open);
+        if (!interactionBlocked) {
+          setTrayOpen(open);
+          props.onOpenChange?.(open);
+        }
       }}
     >
       <DialogTrigger asChild>{trigger}</DialogTrigger>
@@ -242,11 +263,27 @@ export function PendingUnlocksTrigger({ variant = "default", ...props }: Pending
   );
 }
 
+/** Purchase-mode body for the workspace-owned shared review dialog. */
+export function PendingUnlocksReview(props: PendingUnlocksProps) {
+  return (
+    <UnlockList
+      {...props}
+      showHeading={false}
+      grouped
+      className="atelier-shared-purchase-review p-0 pt-6"
+    />
+  );
+}
+
 function UnlockList({
   entries,
   isLoading,
   isBlocked = false,
-  checkoutBlocked = false,
+  checkoutRequiresSave = false,
+  checkoutRetrySave = false,
+  isSavingBeforeCheckout = false,
+  checkoutDisabled = false,
+  checkoutDisabledReason = null,
   onRemove,
   onClear,
   onCheckout,
@@ -259,6 +296,7 @@ function UnlockList({
   const checkoutNoteId = useId();
   const { formatPrice } = useFormatPrice();
   const interactionBlocked = isLoading || isBlocked;
+  const queueMutationBlocked = interactionBlocked || isSavingBeforeCheckout;
   const mountedRef = useRef(true);
   const [removingKeys, setRemovingKeys] = useState<ReadonlySet<string>>(() => new Set());
 
@@ -291,9 +329,25 @@ function UnlockList({
       ].filter((group) => group.entries.length > 0)
     : [{ key: "all", label: null, entries }];
   const removalInProgress = removingKeys.size > 0;
+  const checkoutNote = hasMixedCurrencies
+    ? t("businessPage.paidVariants.unlocks.mixedCurrency")
+    : checkoutDisabledReason
+      ? checkoutDisabledReason
+      : isSavingBeforeCheckout
+        ? t("businessPage.paidVariants.unlocks.saveAndCheckoutHint")
+        : checkoutRetrySave
+          ? t("businessPage.paidVariants.unlocks.saveFailed")
+          : checkoutRequiresSave
+            ? t("businessPage.paidVariants.unlocks.saveAndCheckoutHint")
+            : null;
+  const checkoutNoteTone = hasMixedCurrencies || checkoutDisabledReason
+    ? "warning"
+    : checkoutRetrySave && !isSavingBeforeCheckout
+      ? "error"
+      : "neutral";
 
   const removeWithAnimation = (entry: UnlockLineItem) => {
-    if (interactionBlocked || removingKeys.has(entry.key)) return;
+    if (queueMutationBlocked || removingKeys.has(entry.key)) return;
     setRemovingKeys((current) => new Set(current).add(entry.key));
     const removalDelay = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 220;
     window.setTimeout(() => {
@@ -325,7 +379,7 @@ function UnlockList({
           <button
             type="button"
             onClick={onClear}
-            disabled={interactionBlocked}
+            disabled={queueMutationBlocked}
             className="min-h-11 shrink-0 px-2 text-[12px] font-medium text-foreground-3 outline-none transition-colors hover:text-foreground-1 focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-50"
           >
             {t("businessPage.paidVariants.unlocks.clear")}
@@ -382,7 +436,7 @@ function UnlockList({
                     <button
                       type="button"
                       onClick={() => removeWithAnimation(entry)}
-                      disabled={interactionBlocked || removing}
+                      disabled={queueMutationBlocked || removing}
                       aria-label={t("businessPage.paidVariants.unlocks.removeAria", { name: entry.name })}
                       className="website-atelier-focus atelier-unlock-remove relative grid size-7 shrink-0 place-items-center rounded-full text-[var(--atelier-muted-soft)] outline-none transition-colors hover:bg-[var(--atelier-field)] hover:text-[var(--atelier-ink)] disabled:cursor-not-allowed disabled:opacity-50"
                     >
@@ -397,14 +451,20 @@ function UnlockList({
       </div>
 
       <div className="atelier-unlock-summary border-t border-[var(--atelier-border-soft)] pt-3">
-        {hasMixedCurrencies ? (
-          <p id="website-unlocks-currency-note" className="mb-2 text-xs leading-5 text-warning" role="status">
-            {t("businessPage.paidVariants.unlocks.mixedCurrency")}
-          </p>
-        ) : null}
-        {checkoutBlocked ? (
-          <p id={checkoutNoteId} className="mb-2 text-xs leading-5 text-warning" role="status">
-            {t("businessPage.paidVariants.saveBeforeCheckout")}
+        {checkoutNote ? (
+          <p
+            id={checkoutNoteId}
+            className={cn(
+              "mb-2 text-pretty text-xs leading-5",
+              checkoutNoteTone === "warning"
+                ? "text-warning"
+                : checkoutNoteTone === "error"
+                  ? "text-destructive"
+                  : "text-[var(--atelier-ink-soft)]",
+            )}
+            role={checkoutNoteTone === "error" ? "alert" : "status"}
+          >
+            {checkoutNote}
           </p>
         ) : null}
         <div className="atelier-unlock-total flex items-baseline justify-between gap-3 px-0.5">
@@ -415,20 +475,41 @@ function UnlockList({
         </div>
         <Button
           type="button"
-          disabled={interactionBlocked || removalInProgress || checkoutBlocked || hasMixedCurrencies}
-          aria-describedby={checkoutBlocked ? checkoutNoteId : hasMixedCurrencies ? "website-unlocks-currency-note" : undefined}
-          aria-busy={isLoading}
+          disabled={
+            interactionBlocked ||
+            removalInProgress ||
+            isSavingBeforeCheckout ||
+            checkoutDisabled ||
+            hasMixedCurrencies
+          }
+          aria-describedby={checkoutNote ? checkoutNoteId : undefined}
+          aria-busy={isLoading || isSavingBeforeCheckout}
           onClick={onCheckout}
           className="atelier-unlock-checkout relative mt-3 w-full before:absolute before:-inset-y-[3px] before:inset-x-0 before:content-['']"
         >
-          {isLoading ? (
-            <Spinner size="sm" color="white" />
+          {isSavingBeforeCheckout ? (
+            <span className="inline-flex items-center gap-2">
+              <Spinner size="sm" color="white" aria-hidden />
+              {t("page.status.saving")}
+            </span>
+          ) : isLoading ? (
+            <span className="inline-flex items-center gap-2">
+              <Spinner size="sm" color="white" aria-hidden />
+              {t("businessPage.paidVariants.processing")}
+            </span>
           ) : (
             <span key={`${entries.length}-${total}`} className="atelier-unlock-value-update">
-              {t("businessPage.paidVariants.unlocks.completeWithTotal", {
-                count: entries.length,
-                total,
-              })}
+              {t(
+                checkoutRetrySave
+                  ? "businessPage.paidVariants.unlocks.retrySaveAndCompleteWithTotal"
+                  : checkoutRequiresSave
+                    ? "businessPage.paidVariants.unlocks.saveAndCompleteWithTotal"
+                    : "businessPage.paidVariants.unlocks.completeWithTotal",
+                {
+                  count: entries.length,
+                  total,
+                },
+              )}
             </span>
           )}
         </Button>

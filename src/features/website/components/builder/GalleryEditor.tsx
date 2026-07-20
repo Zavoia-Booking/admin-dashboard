@@ -31,6 +31,7 @@ import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Badge } from "../../../../shared/components/ui/badge";
 import { Button } from "../../../../shared/components/ui/button";
+import { Progress } from "../../../../shared/components/ui/progress";
 import { Switch } from "../../../../shared/components/ui/switch";
 import {
   DropdownMenu,
@@ -40,7 +41,8 @@ import {
 } from "../../../../shared/components/ui/dropdown-menu";
 import { modalHelperSmall } from "../../../../shared/components/ui/modal-tokens";
 import { cn } from "../../../../shared/lib/utils";
-import { CopyOverride } from "./CopyOverride";
+import { OptionalCopyOverride } from "./OptionalCopyOverride";
+import { localeCopyIsHidden, setLocaleCopyHidden } from "./copyBlankState";
 import {
   autoFillGalleryImageRefs,
   collectGalleryImages,
@@ -48,20 +50,23 @@ import {
   DEFAULT_GALLERY_IMAGES,
   galleryImageRefId,
   MAX_GALLERY_IMAGES,
+  MIN_GALLERY_IMAGES,
   resolveGalleryImages,
   type ResolvedGalleryImage,
 } from "./gallerySelection";
 import type {
   GalleryConfig,
   GalleryImageRef,
-  LocationWithAssignments,
+  WebsiteBuilderLocation,
 } from "../../types";
+import type { WebsiteDraftIssue } from "./draftValidation";
 
 interface GalleryEditorProps {
   config: GalleryConfig;
-  locations: LocationWithAssignments[];
+  locations: WebsiteBuilderLocation[];
   locale: "en" | "ro";
   onConfigChange: (patch: Partial<GalleryConfig>) => void;
+  blockingIssues?: WebsiteDraftIssue[];
 }
 
 const GALLERY_LIBRARY_BENTO_CLASSES = [
@@ -147,7 +152,7 @@ function SortableGalleryImage({
             <MoreHorizontal className="size-4" strokeWidth={1.8} aria-hidden />
           </button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="min-w-44">
+        <DropdownMenuContent align="end" className="z-[72] min-w-44">
           <DropdownMenuItem disabled={index === 0} onSelect={() => onMove(index, index - 1)}>
             <ArrowUp className="size-4" strokeWidth={1.8} aria-hidden />
             {t("businessPage.builder.settings.gallery.moveEarlier")}
@@ -167,7 +172,13 @@ function SortableGalleryImage({
 }
 
 /** Curated website Gallery sourced from the business's per-location portfolio library. */
-export function GalleryEditor({ config, locations, locale, onConfigChange }: GalleryEditorProps) {
+export function GalleryEditor({
+  config,
+  locations,
+  locale,
+  onConfigChange,
+  blockingIssues = [],
+}: GalleryEditorProps) {
   const { t } = useTranslation("website");
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -181,11 +192,18 @@ export function GalleryEditor({ config, locations, locale, onConfigChange }: Gal
   const availableImages = collectGalleryImages(locations, config);
   const autoFillRefs = autoFillGalleryImageRefs(locations, config, DEFAULT_GALLERY_IMAGES);
   const autoFillCount = autoFillRefs.length;
+  const showRecommendation =
+    selectedImages.length >= MIN_GALLERY_IMAGES &&
+    selectedImages.length < DEFAULT_GALLERY_IMAGES &&
+    availableImages.length >= DEFAULT_GALLERY_IMAGES;
   const showLocationPicker =
     locations.length !== 1 || !includedIds.has(locations[0].id);
   const managePhotosPath = locations.length === 1
     ? `/marketplace?tab=locations&locationId=${locations[0].id}`
     : "/marketplace?tab=locations";
+  const headingError = blockingIssues.find(
+    (issue) => issue.controlId === "gallery-heading" && (!issue.locale || issue.locale === locale),
+  )?.message;
 
   const setHeading = (value: string) => {
     const current = config.heading ?? { en: "", ro: "" };
@@ -193,6 +211,9 @@ export function GalleryEditor({ config, locations, locale, onConfigChange }: Gal
     const hasOverride = next.en.trim() !== "" || next.ro.trim() !== "";
     onConfigChange({ heading: hasOverride ? next : undefined });
   };
+  const setHeadingBlank = (blank: boolean) => onConfigChange({
+    headingHidden: setLocaleCopyHidden(config.headingHidden, locale, blank),
+  });
 
   const commitRefs = (refs: GalleryImageRef[]) => onConfigChange({ imageRefs: refs.slice(0, MAX_GALLERY_IMAGES) });
 
@@ -238,16 +259,62 @@ export function GalleryEditor({ config, locations, locale, onConfigChange }: Gal
     <div className="space-y-5">
       <p className={modalHelperSmall}>{t("businessPage.builder.settings.galleryHint")}</p>
 
-      <CopyOverride
+      <OptionalCopyOverride
         idBase="gallery-heading"
         locale={locale}
         label={t("businessPage.builder.settings.headingLabel")}
         defaultText={t("businessPage.builder.preview.galleryHeading")}
         value={config.heading?.[locale] ?? ""}
+        blank={localeCopyIsHidden(config.headingHidden, locale)}
         onChange={setHeading}
+        onBlankChange={setHeadingBlank}
         maxLength={80}
         rows={2}
+        externalError={headingError}
       />
+
+      {showRecommendation ? (
+        <section
+          className="space-y-2.5 rounded-xl border border-border bg-surface-hover/50 px-3.5 py-3"
+          aria-label={t("businessPage.builder.settings.gallery.recommendationAria", {
+            current: selectedImages.length,
+            recommended: DEFAULT_GALLERY_IMAGES,
+          })}
+        >
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0 space-y-1">
+              <p className="font-mono text-[10px] font-semibold uppercase text-foreground-3">
+                {t("businessPage.builder.settings.gallery.recommendationEyebrow")}
+              </p>
+              <h4 className="text-balance text-[13px] font-semibold text-foreground-1">
+                {t("businessPage.builder.settings.gallery.recommendationTitle", {
+                  count: DEFAULT_GALLERY_IMAGES,
+                })}
+              </h4>
+              <p className="text-pretty text-[11.5px] leading-[1.55] text-foreground-3">
+                {t("businessPage.builder.settings.gallery.recommendationBody", {
+                  minimum: MIN_GALLERY_IMAGES,
+                  recommended: DEFAULT_GALLERY_IMAGES,
+                  maximum: MAX_GALLERY_IMAGES,
+                })}
+              </p>
+            </div>
+            <span className="shrink-0 font-mono text-[11px] font-medium tabular-nums text-foreground-2">
+              {selectedImages.length}/{DEFAULT_GALLERY_IMAGES}
+            </span>
+          </div>
+          <Progress
+            value={(selectedImages.length / DEFAULT_GALLERY_IMAGES) * 100}
+            className="h-1 bg-border [&>div]:bg-foreground-2"
+            aria-label={t("businessPage.builder.settings.gallery.recommendationProgress", {
+              current: selectedImages.length,
+              minimum: MIN_GALLERY_IMAGES,
+              recommended: DEFAULT_GALLERY_IMAGES,
+              maximum: MAX_GALLERY_IMAGES,
+            })}
+          />
+        </section>
+      ) : null}
 
       {showLocationPicker ? (
         <section className="space-y-3 border-t border-border-subtle pt-5">
@@ -279,6 +346,7 @@ export function GalleryEditor({ config, locations, locale, onConfigChange }: Gal
                     </span>
                   </span>
                   <Switch
+                    data-gallery-location-source
                     checked={includedIds.has(location.id)}
                     onCheckedChange={(checked) => toggleLocation(location.id, checked)}
                     aria-label={t("businessPage.builder.settings.gallery.includeLocation", { name: location.name })}

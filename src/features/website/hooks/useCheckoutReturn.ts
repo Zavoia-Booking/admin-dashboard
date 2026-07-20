@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useSearchParams } from "react-router-dom";
-import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { getWebsiteCheckoutStatusApi } from "../api";
+import { websiteToast as toast } from "../websiteToast";
 import {
   fetchWebsiteVariantCatalogAction,
   removeSectionFromCartAction,
@@ -27,6 +27,7 @@ import {
   type ReconciledCheckoutIntent,
   type WebsiteCheckoutReturnContext,
 } from "../checkoutIntent";
+import { wasGlobalHttpErrorToastHandled } from "../../../shared/utils/error";
 
 /** Bounded backoff: ~45s total before giving up on webhook delivery. */
 const POLL_DELAYS_MS = [1000, 2000, 3000, 5000, 8000, 12000, 15000];
@@ -134,7 +135,6 @@ export function useCheckoutReturn(options?: {
   const confirmedOwnershipRef = useRef<ConfirmedCheckoutOwnership | null>(null);
   const confirmedResultRef = useRef<"completed" | "partial" | null>(null);
   const catalogReconcileAttemptsRef = useRef(0);
-  const catalogRecoveryAnnouncedRef = useRef(false);
 
   const sessionId = searchParams.get("session_id");
   const checkoutCancelled = searchParams.get("variantPurchase") === "cancelled";
@@ -175,7 +175,6 @@ export function useCheckoutReturn(options?: {
     if (businessId == null || returnBusinessMismatch) return;
 
     catalogReconcileAttemptsRef.current = 0;
-    catalogRecoveryAnnouncedRef.current = false;
     const ownership = confirmedOwnershipRef.current;
     if (ownership) {
       if (ownership.businessId !== String(businessId)) return;
@@ -190,13 +189,6 @@ export function useCheckoutReturn(options?: {
     setState("pending");
     setPollRetryRevision((current) => current + 1);
   }, [businessId, dispatch, returnBusinessMismatch, sessionId]);
-
-  useEffect(() => {
-    if (!returnBusinessMismatch) return;
-    toast.error(t("page.checkoutReturn.businessMismatch"), {
-      id: "website-checkout-return-business-mismatch",
-    });
-  }, [returnBusinessMismatch, t]);
 
   useEffect(() => {
     if (
@@ -219,7 +211,9 @@ export function useCheckoutReturn(options?: {
     // business-scoped intent in that case rather than deleting whichever business happens to be
     // active when the user returns; the cart remains intact and the next checkout replaces it.
     if (returnBusinessId !== null) clearWebsiteCheckoutIntent(businessId);
-    toast.info(t("page.toasts.purchaseCancelled"));
+    toast.info(t("page.toasts.purchaseCancelled"), {
+      id: "website-checkout-cancelled",
+    });
     stripReturnMarker();
   }, [
     businessId,
@@ -257,9 +251,14 @@ export function useCheckoutReturn(options?: {
       ownership.themeAssetIds.forEach((id) => dispatch(removeThemeAssetFromCartAction(id)));
     };
 
-    const finish = (result: CheckoutReturnState, status?: WebsiteCheckoutStatusResponse) => {
+    const finish = (
+      result: CheckoutReturnState,
+      status?: WebsiteCheckoutStatusResponse,
+      options?: { announce?: boolean },
+    ) => {
       if (cancelled || finished) return;
       finished = true;
+      const announce = options?.announce !== false;
       if (result !== "business-mismatch") settledSessionRef.current = sessionId;
       const needsCatalogProof = result === "completed" || result === "partial";
       setState(needsCatalogProof ? "reconciling" : result);
@@ -276,7 +275,6 @@ export function useCheckoutReturn(options?: {
           setConfirmedProofBusinessId(String(businessId));
           confirmedResultRef.current = result;
           catalogReconcileAttemptsRef.current = 0;
-          catalogRecoveryAnnouncedRef.current = false;
         } else if (result === "failed") {
           confirmedOwnershipRef.current = null;
           setConfirmedProofBusinessId(null);
@@ -285,21 +283,24 @@ export function useCheckoutReturn(options?: {
         dispatch(fetchWebsiteVariantCatalogAction.request());
       }
       if (result === "failed") {
-        toast.error(t("page.toasts.purchaseFailed"));
+        if (announce) {
+          toast.error(t("page.toasts.purchaseFailed"), {
+            id: "website-checkout-failed",
+          });
+        }
       } else if (result === "business-mismatch") {
         // Markerless sessions created by the previous frontend cannot reveal their business
         // safely. Keep the session marker and let a business switch re-run this owner-scoped poll.
         return;
       } else if (result === "timeout") {
-        toast.info(t("page.toasts.purchasePending"), {
-          action: {
-            label: t("page.checkoutReturn.retry"),
-            onClick: retry,
-          },
-        });
+        // The workspace keeps this recoverable state and Retry action visible inline.
         return;
       } else if (result === "unavailable") {
-        toast.error(t("page.toasts.purchaseStatusUnavailable"));
+        if (announce) {
+          toast.error(t("page.toasts.purchaseStatusUnavailable"), {
+            id: "website-checkout-status-unavailable",
+          });
+        }
       }
       // Successful/partial returns retain the marker until the refreshed catalog has
       // proved every status-confirmed intended selection. A refresh can then safely retry
@@ -323,6 +324,9 @@ export function useCheckoutReturn(options?: {
         if (cancelled || isRequestCancelled(error)) return;
         if (returnBusinessId === null && isOwnerScopedSessionNotFound(error)) {
           return finish("business-mismatch");
+        }
+        if (wasGlobalHttpErrorToastHandled(error, "subscription_required")) {
+          return finish("unavailable", undefined, { announce: false });
         }
         if (isTerminalStatusError(error)) return finish("unavailable");
         // Network and 5xx failures can race webhook delivery; consume retry budget.
@@ -369,17 +373,8 @@ export function useCheckoutReturn(options?: {
     if (catalogError) {
       if (catalogReconcileAttemptsRef.current >= 3) {
         setState("unavailable");
-        if (!catalogRecoveryAnnouncedRef.current) {
-          catalogRecoveryAnnouncedRef.current = true;
-          toast.error(t("page.toasts.purchaseStatusUnavailable"), {
-            action: {
-              label: t("page.checkoutReturn.retry"),
-              onClick: retry,
-            },
-          });
-        }
         // Keep the confirmed ownership proof and URL markers. retry() performs another
-        // authoritative catalog read; a full reload remains a safe fallback.
+        // authoritative catalog read through the persistent workspace Retry action.
         return;
       }
       catalogReconcileAttemptsRef.current += 1;
@@ -407,14 +402,18 @@ export function useCheckoutReturn(options?: {
       if (returnContext === "publish-review") {
         setResumePublishReview(true);
       }
-      toast.success(
-        t(result === "completed" ? "page.toasts.purchaseCompleted" : "page.toasts.purchasePartial"),
+      const message = t(
+        result === "completed" ? "page.toasts.purchaseCompleted" : "page.toasts.purchasePartial",
       );
+      if (result === "completed") {
+        toast.success(message, { id: "website-checkout-completed" });
+      } else {
+        toast.warning(message, { id: "website-checkout-partial" });
+      }
       confirmedOwnershipRef.current = null;
       confirmedResultRef.current = null;
       setConfirmedProofBusinessId(null);
       catalogReconcileAttemptsRef.current = 0;
-      catalogRecoveryAnnouncedRef.current = false;
       if (preserveReturnMarker) {
         stripReturnContext();
       } else {
@@ -446,7 +445,7 @@ export function useCheckoutReturn(options?: {
     }
     if (!reconciled.hasUnresolvedConfirmedIntent) {
       // A partial status can leave checkout intent that neither proof declares owned. Keep
-      // those rows in the cart plus the normalized v2 intent/URL markers. retry() re-polls
+      // those rows in the cart plus the normalized v3 intent/URL markers. retry() re-polls
       // this session directly; the user can also start a new checkout for the unowned rows.
       settleConfirmedReturn({ preserveReturnMarker: true });
       return;
@@ -456,17 +455,8 @@ export function useCheckoutReturn(options?: {
     // bounded number of authoritative catalog reads before leaving a recoverable pending marker.
     if (catalogReconcileAttemptsRef.current >= 3) {
       setState("timeout");
-      if (!catalogRecoveryAnnouncedRef.current) {
-        catalogRecoveryAnnouncedRef.current = true;
-        toast.info(t("page.toasts.purchasePending"), {
-          action: {
-            label: t("page.checkoutReturn.retry"),
-            onClick: retry,
-          },
-        });
-      }
       // Preserve the proof and URL markers. retry() refetches the catalog immediately;
-      // reload remains a safe fallback.
+      // the workspace keeps that Retry action visible until reconciliation succeeds.
       return;
     }
     catalogReconcileAttemptsRef.current += 1;

@@ -29,6 +29,18 @@
   gap: clamp(24px, 4cqw, 64px);
 }
 
+.mc-fmq-top[data-columns="1"] {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.mc-fmq-top[data-columns="2"] {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.mc-fmq-top[data-columns="2"][data-has-contact="true"] {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr);
+}
+
 .mc-fmq-col {
   display: flex;
   min-width: 0;
@@ -167,6 +179,15 @@
   .mc-fmq-contact {
     grid-column: 1 / -1;
     margin-top: clamp(20px, 4cqw, 34px);
+  }
+
+  .mc-fmq-top[data-columns="1"] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .mc-fmq-top[data-columns="2"] .mc-fmq-contact {
+    grid-column: auto;
+    margin-top: 0;
   }
 }
 

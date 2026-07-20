@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { usePlatform } from "../../../../shared/hooks/usePlatform";
 import type {
   Business,
-  LocationWithAssignments,
+  WebsiteBuilderLocation,
   WebsiteIdentity,
   WebsiteSectionCatalogEntry,
   WebsiteVariantCatalogEntry,
@@ -45,7 +45,6 @@ import {
   type UnlockLineItem,
 } from "../builder/PendingUnlocksTray";
 import { ThemePanel } from "../builder/ThemePanel";
-import { aboutHeadline } from "../builder/aboutContent";
 import {
   localizeWebsiteSectionCatalog,
   localizeWebsiteVariantCatalog,
@@ -56,7 +55,7 @@ interface WebsiteLegacyBuilderCoreProps {
   identity: WebsiteIdentity;
   canWrite: boolean;
   businessId: number | string | null;
-  locations: LocationWithAssignments[];
+  locations: WebsiteBuilderLocation[];
   form: WebsiteDraftForm;
   /** Request from the workspace (publish-blocker chips) to open/scroll to a section. */
   focusSection?: { type: string; nonce: number } | null;
@@ -334,14 +333,11 @@ export function WebsiteLegacyBuilderCore({
     [highlightReviews],
   );
 
-  // Readiness cues (guidance only — a draft with missing copy still saves).
-  const aboutVisible = form.layout.some((s) => s.type === "about" && s.visible);
-  const aboutReadiness =
-    aboutVisible && aboutHeadline(form.aboutContent) === ""
-      ? t("businessPage.errors.aboutHeadlineRequired")
-      : null;
   const announcementCue =
-    form.announcementUrlError || form.announcementScheduleError || form.announcementMessageWarning;
+    form.announcementCopyError ||
+    form.announcementUrlError ||
+    form.announcementScheduleError ||
+    form.announcementMessageWarning;
 
   return (
     <div className="mb-0 md:mb-8">
@@ -366,6 +362,9 @@ export function WebsiteLegacyBuilderCore({
           setAnnouncementContent={form.setAnnouncementContent}
           aboutContent={form.aboutContent}
           setAboutContent={form.setAboutContent}
+          establishedYear={form.establishedYear}
+          setEstablishedYear={form.setEstablishedYear}
+          establishedYearError={form.establishedYearError}
           brandPanel={
             <div className="py-1 sm:py-2">
               <div className="grid min-w-0 gap-5 xl:grid-cols-[minmax(260px,0.82fr)_minmax(0,1.35fr)] xl:items-start">
@@ -423,7 +422,6 @@ export function WebsiteLegacyBuilderCore({
           tagline={form.tagline}
           setTagline={form.setTagline}
           taglineError={form.taglineError || undefined}
-          aboutError={aboutReadiness}
           announcementError={announcementCue}
           canWrite={canWrite}
           brandColorHex={form.brandColorHex}

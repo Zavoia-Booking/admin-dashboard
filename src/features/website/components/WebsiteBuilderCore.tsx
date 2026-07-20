@@ -1,14 +1,11 @@
-import { useTranslation } from "react-i18next";
 import type {
-  LocationWithAssignments,
+  WebsiteBuilderLocation,
   WebsiteIdentity,
 } from "../types";
 import type { WebsiteDraftForm } from "../hooks/useWebsiteDraft";
 import type { WebsiteBuilderController } from "../hooks/useWebsiteBuilderController";
 import type { WebsiteSectionFocusRequest } from "../hooks/useWebsiteWorkspaceController";
 import { SectionBuilder } from "./builder/SectionBuilder";
-import { PendingUnlocksTrigger } from "./builder/PendingUnlocksTray";
-import { aboutHeadline } from "./builder/aboutContent";
 import { AtelierBrandKit } from "./atelier/AtelierBrandKit";
 
 interface WebsiteBuilderCoreProps {
@@ -16,7 +13,7 @@ interface WebsiteBuilderCoreProps {
   canWrite: boolean;
   canPurchase: boolean;
   controller: WebsiteBuilderController;
-  locations: LocationWithAssignments[];
+  locations: WebsiteBuilderLocation[];
   form: WebsiteDraftForm;
   /** Request from the workspace (publish-blocker chips) to open/scroll to a section. */
   focusSection?: WebsiteSectionFocusRequest | null;
@@ -44,7 +41,6 @@ export function WebsiteBuilderCore({
   onPreviewOpenChange,
   checkoutReconciliationBusy = false,
 }: WebsiteBuilderCoreProps) {
-  const { t } = useTranslation("website");
   const {
     isNative,
     previewBusiness,
@@ -58,16 +54,17 @@ export function WebsiteBuilderCore({
     retryCatalog,
     catalogPurchasesReady,
     checkoutBlocked,
+    purchaseMutationsBlocked,
     isVariantCheckoutLoading,
     variantCart,
     sectionCart,
     effectiveBrandColorHex,
     effectiveFontKey,
     hasWebsiteBuilder,
-    cartItems,
     teamRatings,
     ratingDistribution,
     previewReviews,
+    highlightReviewsLoaded,
     previewOnlyVariantSelections,
     handlePreviewOnlyVariantsChange,
     handleBuyVariant,
@@ -75,19 +72,13 @@ export function WebsiteBuilderCore({
     handleToggleCartVariant,
     handleToggleCartSection,
     handleSelectThemeAsset,
-    handleRemoveCartItem,
-    handleClearCart,
-    handleCheckoutCart,
   } = controller;
 
-  // Readiness cues (guidance only — a draft with missing copy still saves).
-  const aboutVisible = form.layout.some((s) => s.type === "about" && s.visible);
-  const aboutReadiness =
-    aboutVisible && aboutHeadline(form.aboutContent) === ""
-      ? t("businessPage.errors.aboutHeadlineRequired")
-      : null;
   const announcementCue =
-    form.announcementUrlError || form.announcementScheduleError || form.announcementMessageWarning;
+    form.announcementCopyError ||
+    form.announcementUrlError ||
+    form.announcementScheduleError ||
+    form.announcementMessageWarning;
 
   return (
     <div className="website-builder-core mb-0 min-h-0">
@@ -112,44 +103,41 @@ export function WebsiteBuilderCore({
           setFaqItems={form.setFaqItems}
           announcementContent={form.announcementContent}
           setAnnouncementContent={form.setAnnouncementContent}
+          blockingIssues={form.blockingIssues}
+          publishReadinessIssues={form.publishReadinessIssues}
           aboutContent={form.aboutContent}
           setAboutContent={form.setAboutContent}
+          establishedYear={form.establishedYear}
+          setEstablishedYear={form.setEstablishedYear}
+          establishedYearError={form.establishedYearError}
           brandPanel={
             <AtelierBrandKit
               business={previewBusiness}
               identity={identity}
-              canWrite={canWrite && !checkoutReconciliationBusy}
+              canWrite={
+                canWrite &&
+                !checkoutReconciliationBusy &&
+                !purchaseMutationsBlocked
+              }
               brandColorHex={form.brandColorHex}
               setBrandColorHex={form.setBrandColorHex}
+              brandColorError={form.brandColorError}
               fontKey={form.fontKey}
               setFontKey={form.setFontKey}
+              fontError={form.fontKeyError}
               themeAssets={themeAssetCatalog}
               catalogReady={catalogLoaded}
               catalogError={catalogError}
               onRetryCatalog={retryCatalog}
               premiumSelectionReady={
-                catalogPurchasesReady && !checkoutReconciliationBusy
+                catalogPurchasesReady &&
+                !checkoutReconciliationBusy &&
+                !purchaseMutationsBlocked
               }
               effectiveBrandColorHex={effectiveBrandColorHex}
               effectiveFontKey={effectiveFontKey}
               onThemeAssetSelect={handleSelectThemeAsset}
             />
-          }
-          cartControl={
-            canPurchase && !isNative ? (
-              <div className="contents min-[920px]:hidden">
-                <PendingUnlocksTrigger
-                  variant="atelier-mobile-bar"
-                  entries={cartItems}
-                  isLoading={isVariantCheckoutLoading}
-                  isBlocked={checkoutReconciliationBusy || !catalogPurchasesReady}
-                  checkoutBlocked={checkoutBlocked}
-                  onRemove={handleRemoveCartItem}
-                  onClear={handleClearCart}
-                  onCheckout={handleCheckoutCart}
-                />
-              </div>
-            ) : null
           }
           business={previewBusiness}
           locations={locations}
@@ -157,7 +145,6 @@ export function WebsiteBuilderCore({
           tagline={form.tagline}
           setTagline={form.setTagline}
           taglineError={form.taglineError || undefined}
-          aboutError={aboutReadiness}
           announcementError={announcementCue}
           canWrite={canWrite}
           canPurchase={canPurchase}
@@ -167,6 +154,7 @@ export function WebsiteBuilderCore({
           useBusinessPhone={true}
           phone={identity.phone ?? ""}
           reviews={previewReviews}
+          reviewsReady={highlightReviewsLoaded}
           teamRatings={teamRatings}
           ratingDistribution={ratingDistribution}
           variantCatalog={variantCatalog}
@@ -175,7 +163,12 @@ export function WebsiteBuilderCore({
           isCatalogLoading={isCatalogLoading}
           catalogLoaded={catalogLoaded}
           isVariantCheckoutLoading={isVariantCheckoutLoading}
-          purchaseActionsReady={catalogPurchasesReady && !checkoutReconciliationBusy}
+          purchaseActionsReady={
+            catalogPurchasesReady &&
+            !checkoutReconciliationBusy &&
+            !purchaseMutationsBlocked
+          }
+          purchaseMutationsBlocked={purchaseMutationsBlocked}
           checkoutBlocked={checkoutBlocked}
           onBuyVariant={canPurchase ? handleBuyVariant : undefined}
           onBuySection={canPurchase ? handleBuySection : undefined}

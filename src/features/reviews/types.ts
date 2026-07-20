@@ -147,5 +147,7 @@ export interface ReviewsState {
    *  so the Reviews tab's own filtered fetch never clobbers the preview's highlight quotes. */
   highlightReviews: BusinessReview[];
   highlightReviewsLoading: boolean;
+  /** True only after the current business's highlight request succeeds, including a valid empty result. */
+  highlightReviewsLoaded: boolean;
   error: string | null;
 }

@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
-import { toast } from "sonner";
 import { usePlatform } from "../../../shared/hooks/usePlatform";
+import { websiteToast as toast } from "../websiteToast";
 import type {
   Business,
   WebsiteIdentity,
+  SectionEntry,
   WebsiteSectionCatalogEntry,
   WebsiteThemeAssetCatalogItem,
   WebsiteThemeAssetKind,
@@ -13,7 +14,11 @@ import type {
   WebsiteVariantCheckoutPayload,
 } from "../types";
 import { fetchReviewStatsAction, fetchHighlightReviewsAction } from "../../reviews/actions";
-import { selectReviewStats, selectHighlightReviews } from "../../reviews/selectors";
+import {
+  selectReviewStats,
+  selectHighlightReviews,
+  selectHighlightReviewsLoaded,
+} from "../../reviews/selectors";
 import {
   fetchWebsiteVariantCatalogAction,
   createWebsiteVariantCheckoutAction,
@@ -63,10 +68,14 @@ interface UseWebsiteBuilderControllerProps {
   checkoutReconciliationBlocked?: boolean;
   /** Stripe leaves the page, so unrelated local draft edits must be saved first. */
   checkoutBlocked?: boolean;
+  /** A coordinated save/checkout owns the current premium selection snapshot. */
+  purchaseMutationsBlocked?: boolean;
   committedTheme: {
     brandColorHex: string;
     fontKey: string;
   };
+  /** Current working layout, including hidden paid-only sections previewed for enablement. */
+  pageLayout: readonly SectionEntry[];
   onCommitThemeAsset: (asset: WebsiteThemeAssetCatalogItem) => void;
 }
 
@@ -91,7 +100,9 @@ export function useWebsiteBuilderController({
   businessId,
   checkoutReconciliationBlocked = false,
   checkoutBlocked = false,
+  purchaseMutationsBlocked = false,
   committedTheme,
+  pageLayout,
   onCommitThemeAsset,
 }: UseWebsiteBuilderControllerProps) {
   const { t } = useTranslation("website");
@@ -99,6 +110,7 @@ export function useWebsiteBuilderController({
   const { isNative } = usePlatform();
   const reviewStats = useSelector(selectReviewStats);
   const highlightReviews = useSelector(selectHighlightReviews);
+  const highlightReviewsLoaded = useSelector(selectHighlightReviewsLoaded);
 
   const rawVariantCatalog = useSelector(selectWebsiteVariantCatalog);
   const rawSectionCatalog = useSelector(selectWebsiteSectionCatalog);
@@ -267,39 +279,6 @@ export function useWebsiteBuilderController({
     [variantCart, variantCatalog],
   );
 
-  useEffect(() => {
-    if (
-      !catalogLoaded ||
-      businessId == null ||
-      cartBusinessId !== String(businessId)
-    ) {
-      return;
-    }
-    const valid = new Set(cartEntries.map((entry) => entry.id));
-    variantCart
-      .filter((id) => !valid.has(id))
-      .forEach((id) => {
-        // Say WHY a queued item vanished when it turned owned (e.g. bought in another tab) —
-        // a silently emptied tray reads as data loss.
-        const entry = variantCatalog.find((catalogEntry) => catalogEntry.id === id);
-        if (entry?.owned) {
-          toast.info(
-            t("businessPage.paidVariants.unlocks.alreadyOwnedRemoved", { name: entry.name }),
-          );
-        }
-        dispatch(removeVariantFromCartAction(id));
-      });
-  }, [
-    businessId,
-    cartBusinessId,
-    cartEntries,
-    catalogLoaded,
-    dispatch,
-    t,
-    variantCart,
-    variantCatalog,
-  ]);
-
   const sectionCartEntries = useMemo(
     () =>
       sectionCart
@@ -310,37 +289,6 @@ export function useWebsiteBuilderController({
         ),
     [sectionCart, sectionCatalog],
   );
-
-  useEffect(() => {
-    if (
-      !catalogLoaded ||
-      businessId == null ||
-      cartBusinessId !== String(businessId)
-    ) {
-      return;
-    }
-    const valid = new Set(sectionCartEntries.map((entry) => entry.id));
-    sectionCart
-      .filter((id) => !valid.has(id))
-      .forEach((id) => {
-        const entry = sectionCatalog.find((catalogEntry) => catalogEntry.id === id);
-        if (entry?.owned) {
-          toast.info(
-            t("businessPage.paidVariants.unlocks.alreadyOwnedRemoved", { name: entry.name }),
-          );
-        }
-        dispatch(removeSectionFromCartAction(id));
-      });
-  }, [
-    businessId,
-    cartBusinessId,
-    catalogLoaded,
-    dispatch,
-    sectionCart,
-    sectionCartEntries,
-    sectionCatalog,
-    t,
-  ]);
 
   const themeAssetCartEntries = useMemo(
     () =>
@@ -416,34 +364,66 @@ export function useWebsiteBuilderController({
 
   useEffect(() => {
     if (!catalogLoaded || businessId == null || cartBusinessId !== String(businessId)) return;
-    const valid = new Set(themeAssetCartEntries.map((entry) => entry.id));
-    themeAssetCart
-      .filter((id) => !valid.has(id))
-      .forEach((id) => {
-        const entry = themeAssetCatalog.find((candidate) => candidate.id === id);
-        if (entry?.owned) {
-          toast.info(t("businessPage.paidVariants.unlocks.alreadyOwnedRemoved", { name: entry.name }));
-        }
-        dispatch(removeThemeAssetFromCartAction(id));
-        if (
-          entry &&
-          previewOnlyThemeSelectionsRef.current[entry.kind] === entry.value
-        ) {
-          const next = { ...previewOnlyThemeSelectionsRef.current };
-          delete next[entry.kind];
-          updatePreviewOnlyThemeSelections(next);
-        }
+
+    const validVariantIds = new Set(cartEntries.map((entry) => entry.id));
+    const validSectionIds = new Set(sectionCartEntries.map((entry) => entry.id));
+    const validThemeAssetIds = new Set(themeAssetCartEntries.map((entry) => entry.id));
+    const staleVariantIds = variantCart.filter((id) => !validVariantIds.has(id));
+    const staleSectionIds = sectionCart.filter((id) => !validSectionIds.has(id));
+    const staleThemeAssetIds = themeAssetCart.filter((id) => !validThemeAssetIds.has(id));
+
+    // Explain ownership reconciliation once per catalog refresh, even when variants,
+    // sections, and brand assets all became owned together. Free, inactive, or removed
+    // catalog rows remain silent, matching the previous behavior.
+    const newlyOwnedNames = [
+      ...staleVariantIds.map((id) => variantCatalog.find((entry) => entry.id === id)),
+      ...staleSectionIds.map((id) => sectionCatalog.find((entry) => entry.id === id)),
+      ...staleThemeAssetIds.map((id) => themeAssetCatalog.find((entry) => entry.id === id)),
+    ].flatMap((entry) => entry?.owned ? [entry.name] : []);
+    if (newlyOwnedNames.length > 0) {
+      toast.info(
+        t("businessPage.paidVariants.unlocks.alreadyOwnedRemoved", {
+          count: newlyOwnedNames.length,
+          name: newlyOwnedNames[0],
+        }),
+        { id: "website-owned-selection-reconciled" },
+      );
+    }
+
+    staleVariantIds.forEach((id) => dispatch(removeVariantFromCartAction(id)));
+    staleSectionIds.forEach((id) => dispatch(removeSectionFromCartAction(id)));
+    staleThemeAssetIds.forEach((id) => dispatch(removeThemeAssetFromCartAction(id)));
+
+    const staleThemeAssets = staleThemeAssetIds
+      .map((id) => themeAssetCatalog.find((entry) => entry.id === id))
+      .filter((entry): entry is WebsiteThemeAssetCatalogItem => !!entry);
+    if (
+      staleThemeAssets.some(
+        (entry) => previewOnlyThemeSelectionsRef.current[entry.kind] === entry.value,
+      )
+    ) {
+      const next = { ...previewOnlyThemeSelectionsRef.current };
+      staleThemeAssets.forEach((entry) => {
+        if (next[entry.kind] === entry.value) delete next[entry.kind];
       });
+      updatePreviewOnlyThemeSelections(next);
+    }
   }, [
     businessId,
     cartBusinessId,
+    cartEntries,
     catalogLoaded,
     dispatch,
+    sectionCart,
+    sectionCartEntries,
+    sectionCatalog,
     t,
     themeAssetCart,
     themeAssetCartEntries,
     themeAssetCatalog,
     updatePreviewOnlyThemeSelections,
+    variantCart,
+    variantCatalog,
   ]);
 
   // One unlock tray for both kinds — sections listed first (an unlock is the bigger decision).
@@ -514,11 +494,12 @@ export function useWebsiteBuilderController({
 
   const handlePreviewOnlyVariantsChange = useCallback(
     (selections: PreviewOnlyVariantSelections) => {
+      if (purchaseMutationsBlocked || isVariantCheckoutLoading) return;
       const next = { ...selections };
       previewOnlyVariantsRef.current = next;
       setPreviewOnlyVariantSelections(next);
     },
-    [],
+    [isVariantCheckoutLoading, purchaseMutationsBlocked],
   );
 
   const handleSelectThemeAsset = useCallback(
@@ -526,6 +507,8 @@ export function useWebsiteBuilderController({
       if (
         !access?.canEdit ||
         checkoutReconciliationBlocked ||
+        purchaseMutationsBlocked ||
+        isVariantCheckoutLoading ||
         (asset.available === false && !asset.owned)
       ) return;
 
@@ -562,6 +545,7 @@ export function useWebsiteBuilderController({
               ? "businessPage.paidVariants.nativeHint"
               : "businessPage.paidVariants.purchaseUnavailable",
           ),
+          { id: "website-premium-purchase-guidance" },
         );
         return;
       }
@@ -574,7 +558,9 @@ export function useWebsiteBuilderController({
       if (!themeAssetCart.includes(asset.id)) {
         dispatch(addThemeAssetToCartAction(asset.id));
       }
-      toast.info(t("businessPage.theme.assetStatus.previewAnnounced", { name: asset.name }));
+      toast.info(t("businessPage.theme.assetStatus.previewAnnounced", { name: asset.name }), {
+        id: `website-premium-preview-${asset.kind}`,
+      });
     },
     [
       access,
@@ -583,7 +569,9 @@ export function useWebsiteBuilderController({
       committedTheme,
       dispatch,
       isNative,
+      isVariantCheckoutLoading,
       onCommitThemeAsset,
+      purchaseMutationsBlocked,
       t,
       themeAssetCart,
       themeAssetCatalog,
@@ -595,10 +583,12 @@ export function useWebsiteBuilderController({
     previewOnlyThemeSelections.color ?? committedTheme.brandColorHex;
   const effectiveFontKey = previewOnlyThemeSelections.font ?? committedTheme.fontKey;
 
-  const startCheckout = (payload: WebsiteVariantCheckoutPayload) => {
+  const startCheckout = (payload: WebsiteVariantCheckoutPayload): boolean => {
     if (checkoutBlocked) {
-      toast.info(t("businessPage.paidVariants.saveBeforeCheckout"));
-      return;
+      toast.info(t("businessPage.paidVariants.saveBeforeCheckout"), {
+        id: "website-save-before-checkout",
+      });
+      return false;
     }
     if (
       businessId == null ||
@@ -607,7 +597,7 @@ export function useWebsiteBuilderController({
       isVariantCheckoutLoading ||
       checkoutReconciliationBlocked ||
       !catalogPurchasesReady
-    ) return;
+    ) return false;
 
     const requestedVariantIds = new Set(
       [payload.variantId, ...(payload.variantIds ?? [])].filter(
@@ -667,8 +657,10 @@ export function useWebsiteBuilderController({
       quotedItems.some((entry) => entry.priceMinor <= 0)
     ) {
       dispatch(fetchWebsiteVariantCatalogAction.request());
-      toast.error(t("page.toasts.checkoutFailed"));
-      return;
+      toast.error(t("page.toasts.checkoutFailed"), {
+        id: "website-checkout-start-failed",
+      });
+      return false;
     }
     const quotedPayload: WebsiteVariantCheckoutPayload = {
       ...payload,
@@ -681,19 +673,21 @@ export function useWebsiteBuilderController({
       payload: quotedPayload,
       previewOnlyVariants: previewOnlyVariantsRef.current,
       previewOnlyThemeSelections: previewOnlyThemeSelectionsRef.current,
+      pageLayout,
       variantCatalog,
       sectionCatalog,
       themeAssetCatalog,
     });
     dispatch(createWebsiteVariantCheckoutAction.request(quotedPayload));
+    return true;
   };
 
   const handleBuyVariant = (variant: WebsiteVariantCatalogEntry) => {
-    startCheckout({ variantId: variant.id, ...checkoutUrls });
+    return startCheckout({ variantId: variant.id, ...checkoutUrls });
   };
 
   const handleBuySection = (section: WebsiteSectionCatalogEntry) => {
-    startCheckout({ sectionIds: [section.id], ...checkoutUrls });
+    return startCheckout({ sectionIds: [section.id], ...checkoutUrls });
   };
 
   const handleToggleCartVariant = (variant: WebsiteVariantCatalogEntry) => {
@@ -701,6 +695,8 @@ export function useWebsiteBuilderController({
       isNative ||
       !access?.canPurchase ||
       checkoutReconciliationBlocked ||
+      purchaseMutationsBlocked ||
+      isVariantCheckoutLoading ||
       !catalogPurchasesReady
     ) return;
     dispatch(
@@ -715,6 +711,8 @@ export function useWebsiteBuilderController({
       isNative ||
       !access?.canPurchase ||
       checkoutReconciliationBlocked ||
+      purchaseMutationsBlocked ||
+      isVariantCheckoutLoading ||
       !catalogPurchasesReady
     ) return;
     dispatch(
@@ -729,6 +727,8 @@ export function useWebsiteBuilderController({
       isNative ||
       !access?.canPurchase ||
       checkoutReconciliationBlocked ||
+      purchaseMutationsBlocked ||
+      isVariantCheckoutLoading ||
       !catalogPurchasesReady ||
       asset.isIncluded ||
       asset.owned ||
@@ -758,7 +758,11 @@ export function useWebsiteBuilderController({
   };
 
   const handleRemoveCartItem = (item: UnlockLineItem) => {
-    if (checkoutReconciliationBlocked) return;
+    if (
+      checkoutReconciliationBlocked ||
+      purchaseMutationsBlocked ||
+      isVariantCheckoutLoading
+    ) return;
     dispatch(
       item.kind === "section"
         ? removeSectionFromCartAction(item.id)
@@ -777,7 +781,11 @@ export function useWebsiteBuilderController({
   };
 
   const handleClearCart = () => {
-    if (checkoutReconciliationBlocked) return;
+    if (
+      checkoutReconciliationBlocked ||
+      purchaseMutationsBlocked ||
+      isVariantCheckoutLoading
+    ) return;
     dispatch(clearVariantCartAction());
     updatePreviewOnlyThemeSelections({});
   };
@@ -786,7 +794,7 @@ export function useWebsiteBuilderController({
     items: UnlockLineItem[],
     options?: { returnContext?: WebsiteCheckoutReturnContext },
   ) => {
-    if (items.length === 0) return;
+    if (items.length === 0) return false;
     const variantIds = [...new Set(
       items.filter((item) => item.kind === "variant").map((item) => item.id),
     )];
@@ -798,7 +806,7 @@ export function useWebsiteBuilderController({
         .filter((item) => item.kind === "color" || item.kind === "font")
         .map((item) => item.id),
     )];
-    startCheckout({
+    return startCheckout({
       ...(variantIds.length > 0 ? { variantIds } : {}),
       ...(sectionIds.length > 0 ? { sectionIds } : {}),
       ...(themeAssetIds.length > 0 ? { themeAssetIds } : {}),
@@ -807,7 +815,7 @@ export function useWebsiteBuilderController({
   };
 
   const handleCheckoutCart = () => {
-    handleCheckoutItems(cartItems);
+    return handleCheckoutItems(cartItems);
   };
 
   // A successful checkout action intentionally stays busy until Stripe owns the tab. If
@@ -890,6 +898,7 @@ export function useWebsiteBuilderController({
     catalogPurchasesReady,
     checkoutReconciliationBlocked,
     checkoutBlocked,
+    purchaseMutationsBlocked,
     isVariantCheckoutLoading,
     variantCart,
     sectionCart,
@@ -903,6 +912,7 @@ export function useWebsiteBuilderController({
     teamRatings,
     ratingDistribution,
     previewReviews,
+    highlightReviewsLoaded,
     resetPreviewOnlySelections,
     clearPreviewOnlyVariant,
     handlePreviewOnlyVariantsChange,

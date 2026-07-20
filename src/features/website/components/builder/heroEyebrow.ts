@@ -1,4 +1,4 @@
-import type { LocationWithAssignments } from "../../types";
+import type { WebsiteBuilderLocation } from "../../types";
 
 type Translate = (key: string, options?: Record<string, unknown>) => string;
 
@@ -7,7 +7,7 @@ type Translate = (key: string, options?: Record<string, unknown>) => string;
  * the editor's Default value and every preview variant resolve exactly the same text.
  */
 export function defaultHeroEyebrow(
-  locations: LocationWithAssignments[],
+  locations: WebsiteBuilderLocation[],
   t: Translate,
 ): string {
   if (locations.length === 1) {

@@ -11,6 +11,9 @@
 }
 
 .mc-galmosaic {
+  --mc-galmosaic-expand-duration: 950ms;
+  --mc-galmosaic-expand-ease: cubic-bezier(0.22, 1, 0.3, 1);
+
   position: relative;
 }
 
@@ -26,6 +29,7 @@
   cursor: default;
   touch-action: auto;
   user-select: none;
+  transition: height var(--mc-galmosaic-expand-duration) var(--mc-galmosaic-expand-ease);
 }
 
 .mc-galmosaic-stage[data-paged="1"][data-full="0"] {
@@ -71,7 +75,7 @@
   gap: 10px;
   overflow: hidden;
   transition:
-    flex-grow 950ms cubic-bezier(0.22, 1, 0.3, 1),
+    flex-grow var(--mc-galmosaic-expand-duration) var(--mc-galmosaic-expand-ease),
     opacity 600ms ease;
 }
 
@@ -90,7 +94,7 @@
   opacity: 1;
   cursor: pointer;
   transition:
-    flex-grow 950ms cubic-bezier(0.22, 1, 0.3, 1),
+    flex-grow var(--mc-galmosaic-expand-duration) var(--mc-galmosaic-expand-ease),
     opacity 600ms ease;
 }
 
@@ -187,6 +191,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .mc-galmosaic-stage,
   .mc-galmosaic-column,
   .mc-galmosaic-tile {
     transition: none;

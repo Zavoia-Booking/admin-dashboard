@@ -1,32 +1,54 @@
-import type { SectionEntry } from "../../../../../types";
-import { Section } from "../../shared/primitives";
+import type { AboutConfig, SectionEntry } from "../../../../../types";
+import { resolveAboutImage } from "../../../aboutImageSelection";
 import type { PreviewData, T } from "../../shared/types";
-import { Default } from "./variants/Default";
+import { Editorial } from "./variants/Editorial";
 import { Manifesto } from "./variants/Manifesto";
-import { Ledger } from "./variants/Ledger";
-import { Portrait } from "./variants/Portrait";
-import type { AboutVariantProps } from "./types";
-import "./about.css";
+import { Story } from "./variants/Story";
+import type { AboutMedia, AboutVariantProps } from "./types";
+import "./base.css";
 
-// About — the serif lede + muted body (split on the first blank line) closed by a band of real, derived
-// stat numbers. The orchestrator owns the <Section> wrapper; each layout renders its own kicker + copy +
-// stats under variants/ (editorial split = base; manifesto = centred + counter band; ledger = numbered rows).
+// About is intentionally not wrapped by the generic preview Section: the design source gives Manifesto a
+// full-bleed ink field and each variant owns its complete composition, spacing and motion in an adjacent CSS
+// file. Manifesto is the Included fallback; Editorial and Story (`sticky`) are the premium designs.
 
-// Layout registry — add a variant by adding its component file + a catalog entry (sectionCatalog). The
-// resolver below maps the saved variant to its component, falling back to the editorial default.
 const VARIANTS: Record<string, React.FC<AboutVariantProps>> = {
-  simple: Default,
   manifesto: Manifesto,
-  portrait: Portrait,
-  ledger: Ledger,
+  editorial: Editorial,
+  sticky: Story,
 };
 
-export function About({ entry, data, t, no }: { entry: SectionEntry; data: PreviewData; t: T; no: string }) {
-  // Variant resolver — renderer seam for future paid variants: a not-entitled variant falls back to the free default here.
-  const View = Object.hasOwn(VARIANTS, entry.variant) ? VARIANTS[entry.variant] : Default;
+function normalizeMedia(
+  image: NonNullable<ReturnType<typeof resolveAboutImage>>,
+  businessName: string,
+): AboutMedia {
+  return {
+    src: image.src,
+    alt: image.alt || image.locationName || businessName,
+  };
+}
+
+export function About({
+  entry,
+  data,
+  t,
+}: {
+  entry: SectionEntry;
+  data: PreviewData;
+  t: T;
+  layout: SectionEntry[];
+}) {
+  const config = (entry.config ?? {}) as AboutConfig;
+  const image = resolveAboutImage(config, data.locations);
+  const media = image ? normalizeMedia(image, data.businessName) : null;
+  const View = Object.hasOwn(VARIANTS, entry.variant) ? VARIANTS[entry.variant] : Manifesto;
+
   return (
-    <Section>
-      <View data={data} t={t} no={no} />
-    </Section>
+    <View
+      data={data}
+      t={t}
+      media={media}
+      showStats={config.showStats !== false}
+      headlineHidden={config.headlineHidden === true}
+    />
   );
 }

@@ -1,14 +1,15 @@
-import type { T } from "../../shared/types";
+import type { ReactNode } from "react";
 
-/** Contract each announcement layout inner renders against. The orchestrator owns the `.mc-anno` root
- *  (tone + layout modifier), the empty/sample resolution, and the trailing dismiss affordance; the variant
- *  renders only the `.mc-anno-in` body. */
-export type AnnouncementInnerProps = {
+export type AnnouncementLayout = "ribbon" | "ticker" | "pill";
+
+/** Shared content contract; every layout owns its own markup and adjacent stylesheet. */
+export type AnnouncementVariantProps = {
   msg: string;
   ctaLabel: string;
+  ctaUrl: string;
+  ctaNewTab: boolean;
   showCta: boolean;
   showArrow: boolean;
-  /** Schedule end key (`YYYY-MM-DD`) for the countdown chip, or null (empty/sample/no end date). */
-  countdownEnd: string | null;
-  t: T;
+  detailsControl: ReactNode;
+  dismissControl: ReactNode;
 };

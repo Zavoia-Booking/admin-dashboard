@@ -20,7 +20,7 @@ export function InfoPulse({ className }: { className?: string }) {
 /**
  * The app's standard "heads-up / required" field cue: the Info glyph beside helper text, rendered
  * under a field (or via a field's `hint` slot). Shared by the builder editors — the announcement CTA link
- * and the About headline — so the markup lives in one place.
+ * and the About Story — so the markup lives in one place.
  */
 export function InfoHint({ children }: { children: ReactNode }) {
   return (

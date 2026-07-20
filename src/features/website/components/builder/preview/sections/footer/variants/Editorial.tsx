@@ -4,8 +4,10 @@ import { FooterBookAction } from "../parts/FooterBookAction";
 import { FootDetail } from "../parts/FootDetail";
 import { FooterLegal } from "../parts/FooterLegal";
 import { FootSocials } from "../parts/FootSocials";
+import { socialLinks } from "../parts/socials";
 import { useFitMark } from "../parts/useFitMark";
 import type { FooterViewProps } from "../types";
+import { footerDefaultHeadlineCopy } from "../../../../footerHeadline";
 
 import "./editorial.css";
 
@@ -13,7 +15,15 @@ type Indicator = { y: number; h: number };
 
 /** Editorial: the design source's cinematic closing footer. Location browsing is deliberately local to the
  * footer so changing the detail panel never reflows the page above it; booking remains decorative in preview. */
-export function Editorial({ data, t, footerRef, selectedLocationId: globalLocationId }: FooterViewProps) {
+export function Editorial({
+  data,
+  t,
+  footerRef,
+  selectedLocationId: globalLocationId,
+  headline: headlineOverride,
+  headlineHidden,
+  description,
+}: FooterViewProps) {
   const name = data.businessName || t("businessPage.builder.preview.businessNamePlaceholder");
   const locations = data.locations;
   const multi = locations.length > 1;
@@ -67,9 +77,17 @@ export function Editorial({ data, t, footerRef, selectedLocationId: globalLocati
   const website = data.social.website?.trim();
   const websiteHref = website ? (/^https?:\/\//i.test(website) ? website : `https://${website}`) : null;
   const websiteText = website?.replace(/^https?:\/\//i, "").replace(/\/$/, "") ?? null;
-  const headline = multi || !globalLocation
-    ? t("businessPage.builder.preview.footerComeFind")
-    : t("businessPage.builder.preview.contactHeadingLoc", { name: globalLocation.name });
+  const email = data.email?.trim();
+  const hasBrandContent = !!description || socialLinks(data.social).length > 0;
+  const hasContact = !!(email || (websiteHref && websiteText));
+  const columnCount = Number(hasBrandContent)
+    + Number(locations.length > 0)
+    + Number(selectedLocation !== null)
+    + Number(hasContact);
+  const defaultHeadline = footerDefaultHeadlineCopy(locations, globalLocationId);
+  const headline = headlineHidden
+    ? ""
+    : headlineOverride || t(defaultHeadline.key, defaultHeadline.options);
   const bookingLabel = selectedLocation
     ? t("businessPage.builder.preview.bookAt", { name: selectedLocation.name })
     : t("businessPage.builder.preview.footerBookVisit");
@@ -81,16 +99,22 @@ export function Editorial({ data, t, footerRef, selectedLocationId: globalLocati
       className="mc-footer mc-footer--editorial"
     >
       <div className="mc-foot-pad">
-        <div className="mc-foot-top">
-          <div className="mc-foot-headline">{headline}</div>
+        <div className={`mc-foot-top${headline ? "" : " mc-foot-top--action-only"}`}>
+          {headline ? <h2 className="mc-foot-headline">{headline}</h2> : null}
           <FooterBookAction label={bookingLabel} />
         </div>
 
-        <div className={`mc-foot-cols${twoColumnLocations ? " mc-foot-cols--wide-locs" : ""}`}>
-          <div className="mc-foot-col mc-foot-brand">
-            {data.tagline?.trim() && <p className="mc-foot-tag mc-foot-tag--lead">{data.tagline}</p>}
-            <FootSocials social={data.social} />
-          </div>
+        <div
+          className={`mc-foot-cols${twoColumnLocations ? " mc-foot-cols--wide-locs" : ""}`}
+          data-columns={columnCount}
+          data-has-brand={hasBrandContent ? "true" : "false"}
+        >
+          {hasBrandContent && (
+            <div className="mc-foot-col mc-foot-brand">
+              {description && <p className="mc-foot-tag mc-foot-tag--lead">{description}</p>}
+              <FootSocials social={data.social} />
+            </div>
+          )}
 
           {locations.length > 0 && (
             <div className="mc-foot-col mc-foot-locations">
@@ -130,12 +154,12 @@ export function Editorial({ data, t, footerRef, selectedLocationId: globalLocati
 
           {selectedLocation && <FootDetail key={selectedLocation.id} loc={selectedLocation} t={t} />}
 
-          {(data.email?.trim() || websiteHref) && (
+          {hasContact && (
             <div className="mc-foot-col mc-foot-contact">
               <div className="mc-foot-label">{t("businessPage.builder.preview.contactReach")}</div>
-              {data.email?.trim() && (
-                <a className="mc-foot-row mc-foot-link" href={`mailto:${data.email.trim()}`}>
-                  {data.email}
+              {email && (
+                <a className="mc-foot-row mc-foot-link" href={`mailto:${email}`}>
+                  {email}
                 </a>
               )}
               {websiteHref && websiteText && (

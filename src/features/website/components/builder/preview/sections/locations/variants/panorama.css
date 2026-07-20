@@ -1,0 +1,386 @@
+.mc-locations[data-locations="panorama"] {
+  overflow: clip;
+}
+
+.mc-locations[data-locations="panorama"] .mc-locp {
+  width: 100%;
+  min-width: 0;
+}
+
+.mc-locations[data-locations="panorama"] .mc-locp-view {
+  overflow: hidden;
+  cursor: grab;
+  touch-action: pan-y;
+  user-select: none;
+}
+
+.mc-locations[data-locations="panorama"] .mc-locp-view[data-drag="1"] {
+  cursor: grabbing;
+}
+
+.mc-locations[data-locations="panorama"] .mc-locp-view:focus-visible {
+  outline: 2px solid var(--mc-accent);
+  outline-offset: 3px;
+}
+
+.mc-locations[data-locations="panorama"] .mc-locp-track {
+  display: flex;
+  gap: clamp(12px, 1.8cqw, 22px);
+  transition: transform 620ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+
+.mc-locations[data-locations="panorama"] .mc-locp-track[data-drag="1"] {
+  transition: none;
+}
+
+.mc-locations[data-locations="panorama"] .mc-locp-panel {
+  position: relative;
+  overflow: hidden;
+  min-width: 0;
+  min-height: 340px;
+  max-height: calc(var(--mc-vph, 760px) * 0.64);
+  flex: 0 0 min(88%, 980px);
+  border-radius: 14px;
+  aspect-ratio: 16 / 9;
+  outline: none;
+}
+
+.mc-locations[data-locations="panorama"] .mc-locp-photo,
+.mc-locations[data-locations="panorama"] .mc-locp-placeholder {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.mc-locations[data-locations="panorama"] .mc-locp-photo {
+  object-fit: cover;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.mc-locations[data-locations="panorama"] .mc-locp-photo.mc-location-image-fallback {
+  display: flex;
+}
+
+.mc-locations[data-locations="panorama"] .mc-locp-placeholder {
+  background:
+    radial-gradient(circle at 74% 18%, color-mix(in oklch, #fff 12%, transparent), transparent 32%),
+    linear-gradient(145deg, color-mix(in oklch, var(--mc-accent) 42%, transparent), transparent 70%),
+    var(--mc-accent-field);
+}
+
+.mc-locations[data-locations="panorama"] .mc-locp-scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(12, 10, 9, 0.84) 0%, rgba(12, 10, 9, 0.3) 46%, rgba(12, 10, 9, 0.06) 74%);
+  pointer-events: none;
+}
+
+.mc-locations[data-locations="panorama"] .mc-locp-chip {
+  position: absolute;
+  top: clamp(14px, 2cqw, 24px);
+  right: clamp(14px, 2cqw, 24px);
+  z-index: 2;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 999px;
+  padding: 6px 12px;
+  background: rgba(20, 18, 16, 0.42);
+  color: #fff;
+  font-family: var(--mc-mono);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  backdrop-filter: blur(8px);
+}
+
+.mc-locations[data-locations="panorama"] .mc-locp-cap {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 14px 26px;
+  padding: clamp(18px, 3cqw, 40px);
+  color: #fff;
+}
+
+.mc-locations[data-locations="panorama"] .mc-locp-copy {
+  min-width: 0;
+}
+
+.mc-locations[data-locations="panorama"] .mc-locp-name {
+  color: #fff;
+  font-family: var(--mc-display);
+  font-size: clamp(28px, 4cqw, 54px);
+  font-weight: var(--mc-display-weight);
+  line-height: 0.96;
+  letter-spacing: var(--mc-display-tracking);
+}
+
+.mc-locations[data-locations="panorama"] .mc-locp-area {
+  display: block;
+  margin-bottom: 10px;
+  color: rgba(255, 255, 255, 0.78);
+  font-family: var(--mc-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.mc-locations[data-locations="panorama"] .mc-locp-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  margin-top: 10px;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 13.5px;
+}
+
+.mc-locations[data-locations="panorama"] .mc-locp-rating {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.mc-locations[data-locations="panorama"] .mc-locp-rating svg {
+  color: inherit;
+}
+
+.mc-locations[data-locations="panorama"] .mc-locp-book {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 42px;
+  border-radius: 999px;
+  padding: 12px 22px;
+  background: #fff;
+  color: var(--mc-accent);
+  font-size: 13.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition:
+    background-color 300ms var(--ease-out-strong),
+    box-shadow 350ms var(--ease-out-strong);
+}
+
+.mc-locations[data-locations="panorama"] .mc-locp-book:hover {
+  background: #f6efe4;
+  box-shadow: 0 4px 16px color-mix(in oklch, var(--mc-accent) 22%, transparent);
+}
+
+.mc-locations[data-locations="panorama"] .mc-locp-book:active {
+  background: color-mix(in oklch, #fff 86%, #000);
+}
+
+.mc-locations[data-locations="panorama"] .mc-locp-controls {
+  display: flex;
+  align-items: center;
+  gap: clamp(16px, 3cqw, 36px);
+  margin-top: clamp(18px, 2.4cqw, 28px);
+}
+
+.mc-locations[data-locations="panorama"] .mc-locp-controls.mc-locx-rowin {
+  animation: mcPanoramaControlsReveal 900ms var(--ease-out-strong) both;
+}
+
+@keyframes mcPanoramaControlsReveal {
+  from { opacity: 0; transform: translateY(38px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.mc-locations[data-locations="panorama"] .mc-locp-count {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.mc-locations[data-locations="panorama"] .mc-locp-count-current {
+  color: var(--mc-fg);
+  font-family: var(--mc-display);
+  font-size: clamp(34px, 4cqw, 54px);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--mc-display-weight);
+  line-height: 0.9;
+}
+
+.mc-locations[data-locations="panorama"] .mc-locp-count-total {
+  color: var(--mc-muted);
+  font-family: var(--mc-mono);
+  font-size: 13px;
+  letter-spacing: 0.06em;
+}
+
+.mc-locations[data-locations="panorama"] .mc-locp-rail {
+  position: relative;
+  overflow: hidden;
+  height: 2px;
+  flex: 1 1 auto;
+  background: var(--mc-line);
+}
+
+.mc-locations[data-locations="panorama"] .mc-locp-rail-fill {
+  position: absolute;
+  inset: 0;
+  background: var(--mc-accent);
+  transform-origin: left center;
+  transition: transform 500ms var(--ease-out-strong);
+}
+
+.mc-locations[data-locations="panorama"] .mc-locp-arrows {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 10px;
+}
+
+.mc-locations[data-locations="panorama"] .mc-locp-arr {
+  display: inline-flex;
+  width: 50px;
+  height: 50px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--mc-line);
+  border-radius: 50%;
+  background: var(--mc-bg);
+  color: var(--mc-fg);
+  cursor: pointer;
+  transition:
+    border-color 300ms var(--ease-out-strong),
+    background-color 300ms var(--ease-out-strong),
+    color 300ms var(--ease-out-strong),
+    transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.mc-locations[data-locations="panorama"] .mc-locp-arr:hover:not(:disabled) {
+  border-color: var(--mc-fg);
+  background: var(--mc-fg);
+  color: var(--mc-bg);
+}
+
+.mc-locations[data-locations="panorama"] .mc-locp-arr:active:not(:disabled) {
+  transform: scale(0.92);
+}
+
+.mc-locations[data-locations="panorama"] .mc-locp-arr:disabled {
+  opacity: 0.28;
+  cursor: default;
+}
+
+.mc-locations[data-locations="panorama"] .mc-locp-arr:focus-visible {
+  outline: 2px solid var(--mc-accent);
+  outline-offset: 3px;
+}
+
+.mc-locations[data-locations="panorama"] .mc-locp-arrow-back {
+  transform: rotate(180deg);
+}
+
+@container (max-width: 1024px) {
+  .mc-locations[data-locations="panorama"] {
+    display: flex;
+    min-height: var(--mc-vph, 100svh);
+    flex-direction: column;
+    padding:
+      clamp(58px, calc(var(--mc-vph, 720px) * 0.08), 88px)
+      0
+      clamp(18px, calc(var(--mc-vph, 720px) * 0.03), 36px);
+  }
+
+  .mc-locations[data-locations="panorama"] .mc-locations-wrap {
+    display: flex;
+    min-height: 0;
+    flex: 1 1 auto;
+    flex-direction: column;
+  }
+
+  .mc-locations[data-locations="panorama"] .mc-locations-head {
+    margin-bottom: clamp(16px, calc(var(--mc-vph, 720px) * 0.024), 30px);
+  }
+
+  .mc-locations[data-locations="panorama"] .mc-locp {
+    display: flex;
+    min-height: 0;
+    flex: 1 1 auto;
+    flex-direction: column;
+  }
+
+  .mc-locations[data-locations="panorama"] .mc-locp-view,
+  .mc-locations[data-locations="panorama"] .mc-locp-track {
+    display: flex;
+    min-height: 0;
+    flex: 1 1 auto;
+    flex-direction: column;
+  }
+
+  .mc-locations[data-locations="panorama"] .mc-locp-track {
+    flex-direction: row;
+  }
+
+  .mc-locations[data-locations="panorama"] .mc-locp-panel {
+    height: auto;
+    min-height: 0;
+    max-height: none;
+    flex-basis: 88%;
+    aspect-ratio: auto;
+  }
+}
+
+@container (max-width: 720px) {
+  .mc-locations[data-locations="panorama"] .mc-locp-panel {
+    height: auto;
+    flex-basis: 88%;
+  }
+
+  .mc-locations[data-locations="panorama"] .mc-locp-cap {
+    padding: clamp(18px, 5cqw, 28px);
+  }
+
+  .mc-locations[data-locations="panorama"] .mc-locp-name {
+    font-size: clamp(26px, 7.4cqw, 32px);
+  }
+
+  .mc-locations[data-locations="panorama"] .mc-locp-meta {
+    gap: 5px 12px;
+    font-size: 12.5px;
+  }
+
+  .mc-locations[data-locations="panorama"] .mc-locp-book {
+    padding: 11px 18px;
+  }
+
+  .mc-locations[data-locations="panorama"] .mc-locp-controls {
+    gap: clamp(12px, 4cqw, 22px);
+  }
+
+  .mc-locations[data-locations="panorama"] .mc-locp-count-current {
+    font-size: clamp(30px, 9cqw, 40px);
+  }
+
+  .mc-locations[data-locations="panorama"] .mc-locp-arr {
+    width: 54px;
+    height: 54px;
+  }
+
+  .mc-locations[data-locations="panorama"] .mc-locp-arrows {
+    gap: clamp(18px, 6cqw, 28px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mc-locations[data-locations="panorama"] .mc-locp-track,
+  .mc-locations[data-locations="panorama"] .mc-locp-rail-fill,
+  .mc-locations[data-locations="panorama"] .mc-locp-arr {
+    transition: none;
+  }
+}

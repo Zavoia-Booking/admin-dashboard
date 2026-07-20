@@ -29,6 +29,9 @@ export type FooterViewProps = {
   links: FooterLinkItem[];
   selectedLocationId: number | null;
   showLogo: boolean;
+  headline: string;
+  headlineHidden: boolean;
+  description: string;
   onNavigate: (type: string) => void;
 };
 

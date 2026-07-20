@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
 import { AlertTriangle, CircleCheck, CircleDashed, EllipsisVertical, Globe, Lock } from "lucide-react";
 import { toast } from "sonner";
-import type { LocationWithAssignments, WebsiteDraft, WebsiteIdentity } from "../../types";
+import type { WebsiteBuilderLocation, WebsiteDraft, WebsiteIdentity } from "../../types";
 import {
   saveWebsiteDraftAction,
   publishWebsiteAction,
@@ -53,7 +53,7 @@ import {
 interface WebsiteLegacyWorkspaceProps {
   identity: WebsiteIdentity;
   draft: WebsiteDraft;
-  locations: LocationWithAssignments[];
+  locations: WebsiteBuilderLocation[];
   businessId: number | string | null;
 }
 
@@ -120,6 +120,7 @@ export function WebsiteLegacyWorkspace({ identity, draft, locations, businessId 
 
   const form = useWebsiteDraft({
     draft,
+    defaultAboutStory: identity.description,
     lastSavedRequestId,
     onSave,
     onPublish,

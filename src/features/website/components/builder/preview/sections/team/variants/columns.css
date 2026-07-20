@@ -1,0 +1,121 @@
+/* Team · Columns — one location's team as a row of doors (mirrors Web app/microsite.css .lb-tmc + .lb-tm-switch).
+   Hovering (or tapping) a door grows its flex and blooms its caption. vw→cqw, vh/svh→var(--mc-vph) (the preview's
+   logical viewport height, as the gallery carousel uses), @media→@container so it responds to the preview surface. */
+
+/* Location switcher */
+.mc-tm-switch { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: clamp(18px, 2.4cqw, 28px); }
+.mc-tm-switch-l { margin-right: 6px; font-family: var(--mc-mono); font-size: 10px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--mc-muted); }
+.mc-tm-chip {
+  padding: 7px 13px;
+  border-radius: 999px;
+  border: 1px solid var(--mc-line);
+  background: transparent;
+  color: var(--mc-muted);
+  cursor: pointer;
+  font-family: var(--mc-mono);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transition: color 0.2s, border-color 0.2s, background-color 0.2s;
+}
+.mc-tm-chip:hover { color: var(--mc-fg); border-color: color-mix(in oklch, var(--mc-fg) 40%, var(--mc-line)); }
+.mc-tm-chip[data-on="1"] { background: var(--mc-fg); border-color: var(--mc-fg); color: var(--mc-bg); }
+
+/* Doors */
+.mc-tmc { display: flex; gap: clamp(8px, 1cqw, 14px); height: clamp(420px, calc(var(--mc-vph, 760px) * 0.58), 620px); }
+.mc-tmc-col {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: 12px;
+  padding: 0;
+  background: var(--mc-line);
+  text-align: left;
+  cursor: pointer;
+  transition: flex 0.65s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.mc-tmc-col[data-on="1"] { flex: 3.1; }
+.mc-tmc-col img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: transform 1s var(--ease-out-strong); }
+.mc-tmc-fallback { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: clamp(30px, 5cqw, 52px); }
+@media (hover: hover) { @container (min-width: 1201px) { .mc-tmc-col:hover img { transform: scale(1.04); } } }
+
+.mc-tmc-scrim { position: absolute; inset: 0; background: linear-gradient(to top, rgba(12, 10, 9, 0.42) 0%, rgba(12, 10, 9, 0.06) 42%, rgba(12, 10, 9, 0) 66%); transition: opacity 0.5s var(--ease-out-strong); }
+.mc-tmc-col[data-on="1"] .mc-tmc-scrim { background: linear-gradient(to top, rgba(12, 10, 9, 0.86) 0%, rgba(12, 10, 9, 0.3) 46%, rgba(12, 10, 9, 0) 72%); }
+
+.mc-tmc-rail {
+  position: absolute;
+  left: clamp(12px, 1.4cqw, 18px);
+  right: clamp(12px, 1.4cqw, 18px);
+  bottom: 16px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis; /* collapsed columns are narrow — clip the name rather than clip/wrap it */
+  font-family: var(--mc-mono);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.92);
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.5);
+  transition: opacity 0.35s var(--ease-out-strong);
+}
+.mc-tmc-col[data-on="1"] .mc-tmc-rail { opacity: 0; }
+
+.mc-tmc-cap {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  min-width: 240px;
+  padding: clamp(16px, 2cqw, 26px);
+  color: #fff;
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity 0.45s var(--ease-out-strong) 0.16s, transform 0.45s var(--ease-out-strong) 0.16s;
+}
+.mc-tmc-col[data-on="1"] .mc-tmc-cap { opacity: 1; transform: none; }
+.mc-tmc-nm { font-family: var(--mc-display); font-weight: var(--mc-display-weight); letter-spacing: var(--mc-display-tracking); font-size: clamp(22px, 2.4cqw, 34px); line-height: 1; white-space: nowrap; }
+.mc-tmc-role { margin-top: 7px; font-size: 12.5px; line-height: 1.45; color: rgba(255, 255, 255, 0.84); }
+.mc-tmc-meta { display: flex; align-items: center; gap: 14px; margin-top: 10px; font-family: var(--mc-mono); font-size: 11px; color: rgba(255, 255, 255, 0.85); }
+.mc-tmc-meta > span { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+.mc-tmc-book {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 14px;
+  padding: 0 0 3px;
+  border-bottom: 1.5px solid rgba(255, 255, 255, 0.5);
+  color: #fff;
+  font-family: var(--mc-mono);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: gap 0.25s, border-color 0.25s;
+}
+.mc-tmc-book:hover { gap: 11px; border-color: #fff; }
+
+/* Tablet (row layout): doors fill the surface height beneath the header */
+@container (min-width: 761px) and (max-width: 1200px) {
+  .mc-tmc { height: calc(var(--mc-vph, 760px) - 320px); }
+}
+
+/* Phone — doors stack vertically; the open one fills the surface */
+@container (max-width: 760px) {
+  .mc-tmc { flex-direction: column; height: auto; }
+  .mc-tmc-col { flex: none; height: 74px; transition: height 0.6s cubic-bezier(0.34, 1.56, 0.64, 1); }
+  .mc-tmc-col[data-on="1"] { flex: none; height: calc(var(--mc-vph, 760px) - 350px); }
+  .mc-tmc-rail { bottom: 50%; transform: translateY(50%); text-shadow: 0 1px 6px rgba(0, 0, 0, 0.85); }
+  /* Collapsed row: the name sits left-of-center over the photo — a left-anchored scrim keeps it legible on any image. */
+  .mc-tmc-col:not([data-on="1"]) .mc-tmc-scrim {
+    background: linear-gradient(to right, rgba(12, 10, 9, 0.74) 0%, rgba(12, 10, 9, 0.48) 44%, rgba(12, 10, 9, 0.08) 78%, rgba(12, 10, 9, 0) 100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mc-tmc-col, .mc-tmc-col img, .mc-tmc-scrim, .mc-tmc-rail, .mc-tmc-cap { transition: none; }
+}

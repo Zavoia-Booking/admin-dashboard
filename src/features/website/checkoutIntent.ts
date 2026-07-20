@@ -1,12 +1,14 @@
 import type {
   WebsiteSectionCatalogEntry,
+  SectionEntry,
   WebsiteThemeAssetCatalogItem,
   WebsiteVariantCatalogEntry,
   WebsiteVariantCheckoutPayload,
 } from "./types";
 
 const LEGACY_CHECKOUT_INTENT_VERSION = 1;
-const CHECKOUT_INTENT_VERSION = 2;
+const THEME_ASSET_CHECKOUT_INTENT_VERSION = 2;
+const CHECKOUT_INTENT_VERSION = 3;
 
 export const WEBSITE_CHECKOUT_CONTEXT_PARAM = "website_checkout_context";
 export type WebsiteCheckoutReturnContext = "publish-review";
@@ -36,6 +38,8 @@ interface CheckoutVariantIntent {
   catalogId: number;
   sectionType: string;
   variantKey: string;
+  /** The locked preview temporarily enabled a section that is still hidden in the draft. */
+  enableSection: boolean;
 }
 
 interface CheckoutSectionIntent {
@@ -55,7 +59,11 @@ interface WebsiteCheckoutIntent {
 }
 
 export interface ReconciledCheckoutIntent {
-  variantSelections: Array<{ sectionType: string; variantKey: string }>;
+  variantSelections: Array<{
+    sectionType: string;
+    variantKey: string;
+    enableSection: boolean;
+  }>;
   themeSelections: ReconciledThemeSelection[];
   hasRemainingIntent: boolean;
   /** Status says owned, but the refreshed catalog has not proved it yet. */
@@ -101,23 +109,33 @@ function parseIntent(value: string, businessId: string): ParsedCheckoutIntent | 
     const record = parsed;
     if (
       (record.version !== LEGACY_CHECKOUT_INTENT_VERSION &&
+        record.version !== THEME_ASSET_CHECKOUT_INTENT_VERSION &&
         record.version !== CHECKOUT_INTENT_VERSION) ||
       record.businessId !== businessId ||
       !Array.isArray(record.variants) ||
       !Array.isArray(record.sections) ||
-      (record.version === CHECKOUT_INTENT_VERSION &&
+      (record.version !== LEGACY_CHECKOUT_INTENT_VERSION &&
         record.themeAssets !== undefined &&
         !Array.isArray(record.themeAssets))
     ) {
       return null;
     }
 
-    const variants = record.variants.filter(
-      (entry): entry is CheckoutVariantIntent =>
+    const variants = record.variants.flatMap(
+      (entry): CheckoutVariantIntent[] =>
         isRecord(entry) &&
         isPositiveInteger(entry.catalogId) &&
         isNonEmptyString(entry.sectionType) &&
-        isNonEmptyString(entry.variantKey),
+        isNonEmptyString(entry.variantKey)
+          ? [{
+              catalogId: entry.catalogId,
+              sectionType: entry.sectionType,
+              variantKey: entry.variantKey,
+              enableSection:
+                record.version === CHECKOUT_INTENT_VERSION &&
+                entry.enableSection === true,
+            }]
+          : [],
     );
     const sections = record.sections.filter(
       (entry): entry is CheckoutSectionIntent =>
@@ -126,7 +144,7 @@ function parseIntent(value: string, businessId: string): ParsedCheckoutIntent | 
         isNonEmptyString(entry.sectionType),
     );
     const rawThemeAssets =
-      record.version === CHECKOUT_INTENT_VERSION && Array.isArray(record.themeAssets)
+      record.version !== LEGACY_CHECKOUT_INTENT_VERSION && Array.isArray(record.themeAssets)
         ? record.themeAssets
         : [];
     const themeAssets = rawThemeAssets.filter(
@@ -147,7 +165,7 @@ function parseIntent(value: string, businessId: string): ParsedCheckoutIntent | 
         sections,
         themeAssets,
       },
-      migrated: record.version === LEGACY_CHECKOUT_INTENT_VERSION,
+      migrated: record.version !== CHECKOUT_INTENT_VERSION,
     };
   } catch {
     return null;
@@ -212,6 +230,7 @@ export function persistWebsiteCheckoutIntent({
   payload,
   previewOnlyVariants,
   previewOnlyThemeSelections,
+  pageLayout = [],
   variantCatalog,
   sectionCatalog,
   themeAssetCatalog = [],
@@ -221,6 +240,8 @@ export function persistWebsiteCheckoutIntent({
   previewOnlyVariants: PreviewOnlyVariantSelections;
   /** The live preview values at checkout time. At most its active color and font are captured. */
   previewOnlyThemeSelections?: PreviewOnlyThemeSelections;
+  /** The working draft layout, used only to preserve an explicit paid-only enablement. */
+  pageLayout?: readonly SectionEntry[];
   variantCatalog: readonly WebsiteVariantCatalogEntry[];
   sectionCatalog: readonly WebsiteSectionCatalogEntry[];
   themeAssetCatalog?: readonly WebsiteThemeAssetCatalogItem[];
@@ -230,6 +251,21 @@ export function persistWebsiteCheckoutIntent({
   const variantIds = requestedVariantIds(payload);
   const sectionIds = requestedSectionIds(payload);
   const themeAssetIds = requestedThemeAssetIds(payload);
+  const variantsBySectionType = new Map<string, WebsiteVariantCatalogEntry[]>();
+  for (const entry of variantCatalog) {
+    const entries = variantsBySectionType.get(entry.sectionType) ?? [];
+    entries.push(entry);
+    variantsBySectionType.set(entry.sectionType, entries);
+  }
+  const paidOnlyVariantSectionTypes = new Set(
+    [...variantsBySectionType]
+      .filter(([, entries]) =>
+        entries.length > 0 &&
+        !entries.some((entry) => entry.isBase) &&
+        entries.every((entry) => entry.priceMinor > 0),
+      )
+      .map(([sectionType]) => sectionType),
+  );
   const currentVariants = Object.entries(previewOnlyVariants).flatMap(
     ([sectionType, variantKey]): CheckoutVariantIntent[] => {
       const catalogEntry = variantCatalog.find(
@@ -241,7 +277,16 @@ export function persistWebsiteCheckoutIntent({
           !entry.owned,
       );
       return catalogEntry
-        ? [{ catalogId: catalogEntry.id, sectionType, variantKey }]
+        ? [{
+            catalogId: catalogEntry.id,
+            sectionType,
+            variantKey,
+            enableSection:
+              paidOnlyVariantSectionTypes.has(sectionType) &&
+              pageLayout.some(
+                (entry) => entry.type === sectionType && entry.visible === false,
+              ),
+          }]
         : [];
     },
   );
@@ -376,6 +421,7 @@ export function reconcileWebsiteCheckoutIntent({
     variantSelections.push({
       sectionType: entry.sectionType,
       variantKey: entry.variantKey,
+      enableSection: entry.enableSection,
     });
     return false;
   });
