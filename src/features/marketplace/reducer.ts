@@ -2,10 +2,22 @@ import * as actions from "./actions";
 import type { MarketplaceState } from "./types";
 import { getType, type ActionType } from "typesafe-actions";
 import type { Reducer } from "redux";
+import {
+  hydrateSessionAction,
+  logoutRequestAction,
+  selectBusinessAction,
+  setAuthUserAction,
+} from "../auth/actions";
 
-type Actions = ActionType<typeof actions>;
+type Actions =
+  | ActionType<typeof actions>
+  | ActionType<typeof hydrateSessionAction>
+  | ActionType<typeof logoutRequestAction>
+  | ActionType<typeof selectBusinessAction>
+  | ActionType<typeof setAuthUserAction>;
 
 const initialState: MarketplaceState = {
+  scopeBusinessId: null,
   isLoading: false,
   error: null,
   business: null,
@@ -19,21 +31,40 @@ const initialState: MarketplaceState = {
   // Booking settings
   bookingSettings: null,
   isSavingBookingSettings: false,
-  // Server-driven website builder offering (sections + variants)
-  variantCatalog: [],
-  sectionCatalog: [],
-  isLoadingVariantCatalog: false,
-  isCreatingVariantCheckout: false,
-  variantCart: [],
-  sectionCart: [],
 };
+
+function normalizeScopeBusinessId(value: number | string | null | undefined): string | null {
+  return value === null || value === undefined ? null : String(value);
+}
+
+function resetForScope(state: MarketplaceState, scopeBusinessId: string | null): MarketplaceState {
+  return state.scopeBusinessId === scopeBusinessId
+    ? state
+    : { ...initialState, scopeBusinessId };
+}
 
 export const MarketplaceReducer: Reducer<MarketplaceState, any> = (state: MarketplaceState = initialState, action: Actions) => {
   switch (action.type) {
+    case getType(setAuthUserAction):
+      return resetForScope(state, normalizeScopeBusinessId(action.payload.user?.businessId));
+
+    case getType(hydrateSessionAction.success):
+      return resetForScope(
+        state,
+        normalizeScopeBusinessId(action.payload.businessId ?? action.payload.user?.businessId),
+      );
+
+    case getType(selectBusinessAction.success):
+      return resetForScope(state, normalizeScopeBusinessId(action.payload.user?.businessId));
+
+    case getType(logoutRequestAction.success):
+      return initialState;
+
     case getType(actions.fetchMarketplaceListingAction.request):
       return { ...state, isLoading: true, error: null };
 
     case getType(actions.fetchMarketplaceListingAction.success):
+      if (action.payload.scopeBusinessId !== state.scopeBusinessId) return state;
       return {
         ...state,
         isLoading: false,
@@ -48,12 +79,14 @@ export const MarketplaceReducer: Reducer<MarketplaceState, any> = (state: Market
       };
 
     case getType(actions.fetchMarketplaceListingAction.failure):
+      if (action.payload.scopeBusinessId !== state.scopeBusinessId) return state;
       return { ...state, isLoading: false, error: action.payload.message };
 
     case getType(actions.publishMarketplaceListingAction.request):
       return { ...state, isPublishing: true, error: null };
 
     case getType(actions.publishMarketplaceListingAction.success):
+      if (action.payload.scopeBusinessId !== state.scopeBusinessId) return state;
       // The POST resolved 200, so the server set isListed=true. Reflect it immediately (the saga
       // also refetches) so the status strip doesn't flash back to the "to go live" checklist with a
       // re-enabled Publish button during the window between success and the refetch landing.
@@ -65,6 +98,7 @@ export const MarketplaceReducer: Reducer<MarketplaceState, any> = (state: Market
       };
 
     case getType(actions.publishMarketplaceListingAction.failure):
+      if (action.payload.scopeBusinessId !== state.scopeBusinessId) return state;
       return { ...state, isPublishing: false, error: action.payload.message };
 
     case getType(actions.updateLocationMarketplaceFlagsAction.request):
@@ -77,6 +111,7 @@ export const MarketplaceReducer: Reducer<MarketplaceState, any> = (state: Market
       };
 
     case getType(actions.updateLocationMarketplaceFlagsAction.success):
+      if (action.payload.scopeBusinessId !== state.scopeBusinessId) return state;
       return {
         ...state,
         updatingLocationFlags: state.updatingLocationFlags.filter((id) => id !== action.payload.locationId),
@@ -102,18 +137,6 @@ export const MarketplaceReducer: Reducer<MarketplaceState, any> = (state: Market
         ),
       };
 
-    case getType(actions.setListingHeroAction):
-      return {
-        ...state,
-        listing: state.listing
-          ? {
-              ...state.listing,
-              heroImageUrl: action.payload.heroImageUrl,
-              heroImageKey: action.payload.heroImageKey,
-            }
-          : state.listing,
-      };
-
     case getType(actions.setBusinessLogoAction):
       return {
         ...state,
@@ -123,6 +146,7 @@ export const MarketplaceReducer: Reducer<MarketplaceState, any> = (state: Market
       };
 
     case getType(actions.updateLocationMarketplaceFlagsAction.failure):
+      if (action.payload.scopeBusinessId !== state.scopeBusinessId) return state;
       return {
         ...state,
         updatingLocationFlags: state.updatingLocationFlags.filter((id) => id !== action.payload.locationId),
@@ -134,68 +158,14 @@ export const MarketplaceReducer: Reducer<MarketplaceState, any> = (state: Market
       return { ...state, isSavingBookingSettings: true, error: null };
 
     case getType(actions.updateBookingSettingsAction.success):
+      if (action.payload.scopeBusinessId !== state.scopeBusinessId) return state;
       return { ...state, isSavingBookingSettings: false, bookingSettings: action.payload, error: null };
 
     case getType(actions.updateBookingSettingsAction.failure):
+      if (action.payload.scopeBusinessId !== state.scopeBusinessId) return state;
       return { ...state, isSavingBookingSettings: false, error: action.payload.message };
-
-    // Paid section variants (website builder). Note: catalog failures don't touch the global
-    // `error` — the catalog is an enhancement (locked/owned pills) and must never trip the
-    // page-level error view; ownership is enforced server-side at publish regardless.
-    case getType(actions.fetchWebsiteVariantCatalogAction.request):
-      return { ...state, isLoadingVariantCatalog: true };
-
-    case getType(actions.fetchWebsiteVariantCatalogAction.success):
-      return {
-        ...state,
-        isLoadingVariantCatalog: false,
-        variantCatalog: action.payload.variants,
-        sectionCatalog: action.payload.sections,
-      };
-
-    case getType(actions.fetchWebsiteVariantCatalogAction.failure):
-      return { ...state, isLoadingVariantCatalog: false };
-
-    case getType(actions.createWebsiteVariantCheckoutAction.request):
-      return { ...state, isCreatingVariantCheckout: true };
-
-    // Stay "in flight" on success — the saga immediately redirects to Stripe, so the buy
-    // button keeps its busy state instead of flashing back to idle before navigation.
-    case getType(actions.createWebsiteVariantCheckoutAction.success):
-      return state;
-
-    case getType(actions.createWebsiteVariantCheckoutAction.failure):
-      return { ...state, isCreatingVariantCheckout: false };
-
-    // Shopping cart (deduplicated ids; localStorage sync lives in the builder tab).
-    // Variants and section unlocks queue separately, check out together.
-    case getType(actions.addVariantToCartAction):
-      return state.variantCart.includes(action.payload)
-        ? state
-        : { ...state, variantCart: [...state.variantCart, action.payload] };
-
-    case getType(actions.removeVariantFromCartAction):
-      return { ...state, variantCart: state.variantCart.filter((id) => id !== action.payload) };
-
-    case getType(actions.addSectionToCartAction):
-      return state.sectionCart.includes(action.payload)
-        ? state
-        : { ...state, sectionCart: [...state.sectionCart, action.payload] };
-
-    case getType(actions.removeSectionFromCartAction):
-      return { ...state, sectionCart: state.sectionCart.filter((id) => id !== action.payload) };
-
-    case getType(actions.clearVariantCartAction):
-      return { ...state, variantCart: [], sectionCart: [] };
-
-    case getType(actions.hydrateVariantCartAction):
-      return { ...state, variantCart: [...new Set(action.payload)] };
-
-    case getType(actions.hydrateSectionCartAction):
-      return { ...state, sectionCart: [...new Set(action.payload)] };
 
     default:
       return state;
   }
 }
-

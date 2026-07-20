@@ -1,0 +1,144 @@
+/* Announcement foundation shared by Ribbon, Ticker, and Pill. Positioning relative to the page lives in
+   Microsite; the variants own their composition in adjacent stylesheets. */
+.mc-anno {
+  position: relative;
+  box-sizing: border-box;
+  background: var(--mc-fg);
+  color: var(--mc-bg);
+}
+.mc-anno-in {
+  display: flex;
+  min-width: 0;
+  max-width: 100%;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 9px 48px;
+  font-size: 12.5px;
+  line-height: 1.35;
+  flex-wrap: wrap;
+}
+.mc-anno-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--mc-accent);
+  flex: none;
+}
+.mc-anno-txt {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  letter-spacing: .01em;
+  text-wrap: pretty;
+}
+.mc-anno-actions {
+  display: inline-flex;
+  min-width: 0;
+  max-width: 100%;
+  flex: none;
+  align-items: center;
+  gap: 14px;
+}
+.mc-anno-link,
+.mc-anno-more {
+  display: inline-flex;
+  min-width: 0;
+  max-width: 100%;
+  align-items: center;
+  gap: 5px;
+  border-bottom: 1.5px solid color-mix(in oklch, var(--mc-bg) 45%, transparent);
+  padding-bottom: 1px;
+  color: var(--mc-bg);
+  font-family: var(--mc-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-decoration: none;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+  transition: border-color 180ms ease-out, opacity 180ms ease-out;
+}
+.mc-anno-more {
+  flex: none;
+  appearance: none;
+  border-top: 0;
+  border-right: 0;
+  border-left: 0;
+  background: transparent;
+  padding: 0 0 1px;
+  cursor: pointer;
+  line-height: inherit;
+  white-space: nowrap;
+}
+.mc-anno-link:hover,
+.mc-anno-more:hover { border-bottom-color: var(--mc-bg); }
+.mc-anno-link:focus-visible,
+.mc-anno-more:focus-visible,
+.mc-anno-x:focus-visible,
+.mc-anno-tick:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
+}
+.mc-anno-arrow { width: 13px; height: 13px; flex: none; }
+.mc-anno-x {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  display: inline-flex;
+  width: 28px;
+  height: 28px;
+  flex: none;
+  transform: translateY(-50%);
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 50%;
+  padding: 0;
+  background: transparent;
+  color: var(--mc-bg);
+  cursor: pointer;
+  opacity: .55;
+  transition: opacity .2s cubic-bezier(.2, .7, .3, 1), background-color .2s cubic-bezier(.2, .7, .3, 1);
+}
+.mc-anno-x:hover {
+  background: color-mix(in oklch, var(--mc-bg) 16%, transparent);
+  opacity: 1;
+}
+.mc-anno-x-icon { width: 15px; height: 15px; }
+
+.mc-anno--offer {
+  background: var(--mc-accent);
+  color: #fff;
+}
+.mc-anno--offer .mc-anno-dot { background: #fff; }
+.mc-anno--offer .mc-anno-link,
+.mc-anno--offer .mc-anno-more,
+.mc-anno--offer .mc-anno-x { color: #fff; }
+.mc-anno--offer .mc-anno-link,
+.mc-anno--offer .mc-anno-more { border-bottom-color: rgba(255, 255, 255, .5); }
+.mc-anno--offer .mc-anno-link:hover,
+.mc-anno--offer .mc-anno-more:hover { border-bottom-color: #fff; }
+.mc-anno--offer .mc-anno-x:hover { background: rgba(255, 255, 255, .18); }
+
+@container (max-width: 560px) {
+  .mc-anno-in {
+    font-size: 12px;
+    line-height: 1.4;
+  }
+  .mc-anno-actions {
+    flex-wrap: wrap;
+    gap: 8px 10px;
+  }
+  .mc-anno-link {
+    line-height: 1.3;
+    white-space: normal;
+  }
+  .mc-anno-x { right: 8px; }
+}
+
+@media (hover: none), (pointer: coarse) {
+  .mc-anno-x::before { content: ""; position: absolute; inset: -8px; }
+  .mc-anno--lay-pill .mc-anno-x { position: relative; }
+  .mc-anno--lay-pill .mc-anno-x::before { inset: -10px; }
+}

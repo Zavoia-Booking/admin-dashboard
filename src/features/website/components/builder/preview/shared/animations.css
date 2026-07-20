@@ -1,0 +1,22 @@
+/* Shared microsite entrance animations used by more than one section (gallery + team mask-in; the
+   locations/footer fade; the locations/team row-in). Copying any single section to the public site must
+   bring this file too. */
+@keyframes mcMaskIn { from { opacity: 0; clip-path: inset(0 0 100% 0); } to { opacity: 1; clip-path: inset(0 0 0 0); } }
+.mc-mask-in { animation: mcMaskIn 760ms var(--ease-out-strong) both; }
+
+@keyframes mcLocxFade { from { opacity: 0; } to { opacity: 1; } }
+.mc-locx-fade { animation: mcLocxFade 500ms var(--ease-out-strong) both; }
+
+@keyframes mcLocxRowIn { from { opacity: 0; transform: translateY(9px); } to { opacity: 1; transform: translateY(0); } }
+.mc-locx-rowin { animation: mcLocxRowIn 500ms var(--ease-out-strong) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .mc-mask-in, .mc-locx-fade, .mc-locx-rowin { animation: none !important; }
+}
+/* The dashboard globally assigns every button a 44px minimum. The microsite is its own
+   design context, just like the reference iframe, so its controls must use section-owned sizes. */
+.mc-root.mc-root button,
+.mc-root.mc-root [role="button"] {
+  min-width: 0;
+  min-height: 0;
+}

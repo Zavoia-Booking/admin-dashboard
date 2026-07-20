@@ -1,0 +1,93 @@
+/* Reviews · Spotlight — the stage goes dark: one voice at a time on a full-width ink panel. Paper-toned
+   serif, accent stars, a giant number ornament, a height-locked slide, and an accent progress hairline
+   along the bottom edge. Source `Web app/microsite.css` .lb-rvst — themed to --mc-*, vw→cqw. */
+.mc-rvst {
+  --st-paper: var(--mc-bg);
+  --st-line: color-mix(in oklch, var(--mc-bg) 17%, transparent);
+  --st-muted: color-mix(in oklch, var(--mc-bg) 58%, transparent);
+  position: relative; overflow: hidden; border-radius: 20px; background: var(--mc-fg); color: var(--st-paper);
+  padding: clamp(32px, 4.4cqw, 60px) clamp(24px, 4.6cqw, 76px) clamp(28px, 3.8cqw, 52px);
+}
+.mc-rvst-orn { position: absolute; top: 50%; right: clamp(16px, 3cqw, 56px); transform: translateY(-52%); z-index: 0; font-family: var(--mc-display); font-weight: var(--mc-display-weight); font-size: clamp(150px, 17cqw, 270px); line-height: 0.8; color: var(--st-paper); opacity: 0.055; pointer-events: none; user-select: none; }
+.mc-rvst-top { position: relative; z-index: 1; display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 10px 24px; padding-bottom: clamp(16px, 2cqw, 24px); margin-bottom: clamp(26px, 3.2cqw, 44px); border-bottom: 1px solid var(--st-line); }
+.mc-rvst-tag { display: inline-flex; align-items: center; gap: 9px; font-family: var(--mc-mono); font-size: 10.5px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--st-muted); }
+.mc-rvst-tag i { width: 5px; height: 5px; border-radius: 50%; background: var(--mc-accent); flex: none; }
+.mc-rvst-agg { font-family: var(--mc-mono); font-size: 11px; letter-spacing: 0.04em; color: var(--st-muted); }
+.mc-rvst-agg b { color: var(--st-paper); font-weight: 600; }
+.mc-rvst-stars { position: relative; z-index: 1; margin-bottom: clamp(18px, 2.2cqw, 28px); }
+.mc-rvst .mc-rv-q { color: var(--st-paper); font-size: clamp(22px, 2.4cqw, 36px); line-height: 1.22; min-height: 0; max-width: 30ch; }
+.mc-rvst .mc-rv-meta { margin-top: clamp(24px, 3cqw, 40px); }
+.mc-rvst .mc-rv-meta-mono { border-color: var(--st-line); color: var(--st-paper); }
+.mc-rvst .mc-rv-meta-nm { color: var(--st-paper); }
+.mc-rvst .mc-rv-meta-sub { color: var(--st-muted); }
+.mc-rvst .mc-rv-vrow { color: var(--st-muted); }
+.mc-rvst .mc-rv-vrow svg { color: var(--st-muted); }
+.mc-rvst-foot { position: relative; z-index: 1; display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-top: clamp(24px, 3.2cqw, 42px); }
+.mc-rvst-count { font-family: var(--mc-mono); font-size: 12px; letter-spacing: 0.08em; color: var(--st-muted); font-variant-numeric: tabular-nums; }
+.mc-rvst-arrows { display: flex; gap: 10px; }
+.mc-rvst-arr { display: inline-flex; align-items: center; justify-content: center; width: 46px; height: 46px; border-radius: 50%; border: 1px solid var(--st-line); background: transparent; color: var(--st-paper); cursor: pointer; transition: background-color 0.25s var(--ease-out-strong), color 0.25s var(--ease-out-strong), border-color 0.25s var(--ease-out-strong), transform 0.2s var(--ease-out-strong); }
+.mc-rvst-arr:hover { background: var(--st-paper); border-color: var(--st-paper); color: var(--mc-fg); }
+.mc-rvst-arr:active { transform: scale(0.92); }
+.mc-rvst-prog { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: color-mix(in oklch, var(--mc-bg) 12%, transparent); }
+.mc-rvst-prog-fill { position: absolute; inset: 0; transform-origin: left center; transform: scaleX(0); background: var(--mc-accent); }
+
+/* Height lock — source .lb-rv-lock. */
+.mc-rv-lock { display: grid; }
+.mc-rv-lock > * { grid-area: 1 / 1; min-width: 0; display: flex; flex-direction: column; }
+.mc-rv-lock .mc-rv-q { flex: 1 0 auto; }
+.mc-rv-ghost { visibility: hidden; pointer-events: none; }
+
+@container (max-width: 720px) {
+  /* The mobile stage fills one logical viewport. Both live and ghost slides share the clamp, so the
+     height lock stays deterministic even when a review is much longer than the rest. */
+  .mc-reviews[data-reviews="spotlight"] > section {
+    min-height: var(--mc-vph, 100svh);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding-block: clamp(24px, 7cqw, 36px);
+  }
+  .mc-reviews[data-reviews="spotlight"] > section > div { width: 100%; }
+  .mc-reviews[data-reviews="spotlight"] .mc-rv-head { margin-bottom: clamp(22px, 6cqw, 30px); }
+  .mc-rvst {
+    min-height: clamp(480px, calc(var(--mc-vph, 800px) * 0.64), 760px);
+    display: flex;
+    flex-direction: column;
+    padding: clamp(26px, 7cqw, 34px) clamp(20px, 6cqw, 28px) clamp(24px, 6cqw, 30px);
+    border-radius: 16px;
+  }
+  .mc-rvst-top { flex: none; margin-bottom: 22px; padding-bottom: 16px; }
+  .mc-rvst-tag {
+    min-width: 0;
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .mc-rvst-stars { margin-bottom: 18px; }
+  .mc-rvst .mc-rv-lock {
+    min-height: 0;
+    flex: 1 1 auto;
+    align-content: center;
+    overflow: hidden;
+  }
+  .mc-rvst .mc-rv-q {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 6;
+    flex: none;
+    min-height: 0;
+    font-size: clamp(20px, 5.6cqw, 24px);
+    line-height: 1.22;
+    overflow-wrap: anywhere;
+  }
+  .mc-rvst .mc-rv-meta { margin-top: 22px; }
+  .mc-rvst .mc-rv-meta-sub {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .mc-rvst-foot { margin-top: auto; padding-top: 24px; }
+}
+@media (prefers-reduced-motion: reduce) { .mc-rvst-prog { display: none !important; } }

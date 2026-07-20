@@ -1,0 +1,53 @@
+/* Free adaptive base hero. No cover ⇒ the drenched accent field; a cover ⇒ the cover plate (text panel).
+   Shared entrance/cue live in base.css. Sizes key off the preview's own width (container-query units). */
+
+/* ── Cover plate — three layers: a drenched accent FIELD on the left (accent flood + ghost monogram +
+   masthead hairline), the cover PHOTO bleeding full-height on the right (warm editorial wash + clip-path
+   reveal + scroll parallax), and a white CARD straddling the seam (the signature overlap). It fills the
+   preview viewport (var(--mc-vph)); the card sits optically centred. On a narrow (phone) preview it becomes
+   a full-height column: the photo grows to fill and the card overlaps its lower edge. ── */
+.mc-plate { position: relative; display: flex; align-items: center; overflow: hidden; min-height: var(--mc-vph, clamp(560px, 80cqw, 800px)); padding-top: clamp(20px, 3cqw, 40px); background: var(--mc-bg); }
+.mc-plate-field { position: absolute; inset: 0 auto 0 0; width: 46%; z-index: 0; overflow: hidden; background: var(--mc-accent-field); }
+/* Photo column: clip-path reveal wipes the whole column (scrim included) in from the top. */
+.mc-plate-photo { position: absolute; inset: 0 0 0 auto; width: 56%; z-index: 0; overflow: hidden;
+  clip-path: inset(0 0 0 0); animation: mcPlateReveal 920ms var(--ease-out-strong) 80ms both; }
+/* Inner track holds the scroll parallax (JS translates it); the img carries the ken-burns scale settle. */
+.mc-plate-track { position: absolute; left: 0; right: 0; top: -14%; height: 128%; will-change: transform; }
+.mc-plate-track img { display: block; width: 100%; height: 100%; object-fit: cover;
+  animation: mcPlateZoom 1200ms var(--ease-out-strong) 80ms both; }
+/* Cover scrim — the same cinematic gradient the full-bleed hero uses (warm charcoal, heavier top + bottom). */
+.mc-plate-photo::after { content: ""; position: absolute; inset: 0; pointer-events: none; background:
+  linear-gradient(180deg, rgba(20, 16, 14, 0.62) 0%, rgba(20, 16, 14, 0.42) 18%, rgba(20, 16, 14, 0.34) 42%, rgba(20, 16, 14, 0.38) 62%, rgba(20, 16, 14, 0.84) 100%); }
+.mc-plate-card { position: relative; z-index: 3; margin-left: clamp(20px, 5cqw, 56px); width: min(520px, 53%);
+  padding: clamp(28px, 4cqw, 48px); border-radius: 6px; background: var(--mc-bg);
+  box-shadow: 0 40px 84px -46px rgba(20, 16, 14, 0.55), 0 6px 18px -10px rgba(20, 16, 14, 0.22); }
+@keyframes mcPlateReveal { from { clip-path: inset(0 0 100% 0); } to { clip-path: inset(0 0 0 0); } }
+@keyframes mcPlateZoom { from { transform: scale(1.06); } to { transform: scale(1); } }
+
+/* ── Drenched — no cover: the hero floods with the brand accent and the type carries the composition. ── */
+.mc-hero-drench { min-height: var(--mc-vph, clamp(360px, 60cqw, 600px)); }
+/* Drenched ghost monogram. Width-driven so on desktop it's a giant letterpress ghost bled off the
+   top-right corner; the phone tier below enlarges + vertically-centres it so it fills the tall field. */
+.mc-hero-mono { top: -9cqw; font-size: 52cqw; }
+
+/* Narrow (phone) preview: the side-by-side field/photo collapses to a full-height column — the cover
+   photo fills the viewport with the card overlapping its lower edge. */
+@container (max-width: 720px) {
+  .mc-plate { display: flex; flex-direction: column; align-items: stretch; min-height: var(--mc-vph, 0); overflow: hidden; padding-top: 0; }
+  .mc-plate-field { display: none; }
+  /* Photo grows to fill the viewport above the card (no side-by-side field on a phone). */
+  .mc-plate-photo { position: relative; inset: auto; width: 100%; flex: 1 1 auto; min-height: 0; animation: none; }
+  .mc-plate-track { top: 0; bottom: auto; height: 100%; }
+  .mc-plate-track img { animation: none; }
+  .mc-plate-card { position: relative; width: auto; margin: -56px clamp(16px, 5cqw, 28px) clamp(16px, 5cqw, 32px); }
+}
+
+/* Phone tier — the drenched field + the cover photo both fill the viewport. */
+@container (max-width: 430px) {
+  .mc-hero-drench { min-height: var(--mc-vph, 560px); }
+  .mc-hero-mono { top: 50%; font-size: 78cqw; transform: translateY(-50%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mc-plate-photo, .mc-plate-track img { animation: none !important; }
+}

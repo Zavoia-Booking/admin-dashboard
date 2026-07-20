@@ -1,0 +1,34 @@
+/* Hero foundation shared by every variant (mirrors Web app/microsite.css). Classes are mc-* scoped to the
+   LivePreview hero; entrance delay/stagger is set inline per element. Per-variant look lives in each
+   variant's own CSS file (variants/*.css). */
+
+/* ── Entrance ── */
+@keyframes mcHeroFade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes mcHeroUp { from { opacity: 0; transform: translateY(38px); } to { opacity: 1; transform: none; } }
+@keyframes mcHeroWord { from { transform: translateY(118%); } to { transform: translateY(0); } }
+/* Variant-swap transition — the scoped preview re-keys on the hero variant/cover, so switching styles
+   scale-fades the new render in (heights are matched, so there's no jump to fight). */
+@keyframes mcHeroSwap { from { opacity: 0; transform: scale(0.97); } to { opacity: 1; transform: none; } }
+
+.mc-rev-fade { animation: mcHeroFade 900ms var(--ease-out-strong) both; }
+.mc-rev-up { animation: mcHeroUp 900ms var(--ease-out-strong) both; }
+.mc-rev-word { display: inline-block; overflow: hidden; vertical-align: top; padding: 0.06em 0.04em 0.26em; margin: -0.06em -0.04em -0.26em; }
+.mc-rev-word > span { display: inline-block; animation: mcHeroWord 920ms var(--ease-out-strong) both; }
+/* Applied by the orchestrator (Microsite) on the hero's section wrapper in the scoped preview, not within Hero. */
+.mc-hero-swap { animation: mcHeroSwap 440ms var(--ease-out-strong) both; }
+
+/* ── Shared rating lockup (paper + on-image tones) — ported from microsite.css .lb-hx-rate*. ── */
+.mc-hx-rate { display: inline-flex; align-items: center; gap: 10px; color: var(--mc-fg); }
+.mc-hx-rate-n { font-family: var(--mc-display); font-weight: var(--mc-display-weight); letter-spacing: var(--mc-display-tracking); font-size: clamp(26px, 2.6cqw, 34px); line-height: 0.85; font-variant-numeric: tabular-nums; }
+.mc-hx-rate-col { display: inline-flex; flex-direction: column; gap: 4px; }
+.mc-hx-rate-cnt { font-family: var(--mc-mono); font-size: 10.5px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--mc-muted); }
+.mc-hx-rate.on-img { color: #fff; }
+.mc-hx-rate.on-img .mc-hx-rate-cnt { color: rgba(255, 255, 255, 0.8); }
+
+/* Placeholder cover for the photo-forward paid heroes (Cinematic · Portal) before a cover is uploaded — a
+   calm neutral gradient so the style still reads in the picker thumbnail + draft preview. */
+.mc-hero-cover-empty { width: 100%; height: 100%; background: linear-gradient(150deg, #2a2622 0%, #3a352f 48%, #201c18 100%); }
+
+@media (prefers-reduced-motion: reduce) {
+  .mc-rev-fade, .mc-rev-up, .mc-rev-word > span, .mc-hero-swap { animation: none !important; }
+}

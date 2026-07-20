@@ -1,0 +1,199 @@
+/* Marque — warm greige, monospace index lists and a colossal fitted nameplate. Viewport-relative source
+   values and breakpoints are adapted to the builder preview's inline-size container. */
+.mc-footer--marque {
+  --fmq-fg: #17130e;
+  --fmq-muted: rgba(23, 19, 14, 0.56);
+  --fmq-line: rgba(23, 19, 14, 0.26);
+  position: static;
+  min-height: 0;
+  padding: 0;
+  overflow: hidden;
+  background: #b7aea0;
+  color: var(--fmq-fg);
+}
+
+.mc-fmq {
+  padding: clamp(22px, 3cqw, 40px) clamp(20px, 4cqw, 56px) clamp(16px, 1.8cqw, 26px);
+}
+
+.mc-fmq-rule {
+  height: 1px;
+  margin-bottom: clamp(40px, calc(var(--mc-vph, 100svh) * 0.06), 84px);
+  background: var(--fmq-line);
+}
+
+.mc-fmq-top {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1.5fr;
+  align-items: start;
+  gap: clamp(24px, 4cqw, 64px);
+}
+
+.mc-fmq-top[data-columns="1"] {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.mc-fmq-top[data-columns="2"] {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.mc-fmq-top[data-columns="2"][data-has-contact="true"] {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr);
+}
+
+.mc-fmq-col {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.mc-fmq-link {
+  display: inline-flex;
+  max-width: 100%;
+  align-items: baseline;
+  gap: 9px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--fmq-fg);
+  cursor: pointer;
+  font-family: var(--mc-mono);
+  font-size: 12.5px;
+  letter-spacing: 0.07em;
+  line-height: 1.2;
+  text-align: left;
+  text-decoration: none;
+  text-transform: uppercase;
+  transition: color 180ms var(--ease-out-strong);
+}
+
+.mc-fmq-link--decorative {
+  cursor: default;
+  user-select: none;
+}
+
+.mc-fmq-box {
+  flex: none;
+  color: var(--fmq-muted);
+  transition: color 180ms var(--ease-out-strong);
+}
+
+.mc-fmq-link:hover,
+.mc-fmq-link:hover .mc-fmq-box {
+  color: var(--mc-accent);
+}
+
+.mc-fmq-contact {
+  display: flex;
+  margin: 0;
+  flex-direction: column;
+  gap: 13px;
+}
+
+.mc-fmq-crow {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr);
+  align-items: start;
+  gap: 16px;
+}
+
+.mc-fmq-crow dt {
+  color: var(--fmq-muted);
+  font-family: var(--mc-mono);
+  font-size: 12.5px;
+  letter-spacing: 0.07em;
+}
+
+.mc-fmq-crow dd {
+  min-width: 0;
+  margin: 0;
+  color: var(--fmq-fg);
+  font-family: var(--mc-mono);
+  font-size: 12.5px;
+  letter-spacing: 0.05em;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  text-transform: uppercase;
+}
+
+.mc-fmq-crow dd a {
+  color: inherit;
+  text-decoration: none;
+  transition: color 180ms var(--ease-out-strong);
+}
+
+.mc-fmq-crow dd a:hover {
+  color: var(--mc-accent);
+}
+
+.mc-fmq-crow dd a.mc-fmq-email {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.mc-fmq-bottom {
+  margin-top: clamp(44px, calc(var(--mc-vph, 100svh) * 0.08), 110px);
+}
+
+.mc-fmq-legal {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: clamp(18px, 2.6cqw, 34px);
+  padding-top: clamp(14px, 1.6cqw, 20px);
+  border-top: 1px solid var(--fmq-line);
+  color: var(--fmq-muted);
+  font-family: var(--mc-mono);
+  font-size: 11px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.mc-fmq-legal > :last-child {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.mc-fmq-mark {
+  margin: 0;
+  color: var(--fmq-fg);
+  font-family: var(--mc-display);
+  font-size: 240px;
+  font-weight: var(--mc-display-weight);
+  letter-spacing: -0.01em;
+  line-height: 0.82;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+@container (max-width: 860px) {
+  .mc-fmq-top {
+    grid-template-columns: 1fr 1fr;
+    gap: clamp(20px, 4cqw, 40px) clamp(20px, 5cqw, 48px);
+  }
+
+  .mc-fmq-contact {
+    grid-column: 1 / -1;
+    margin-top: clamp(20px, 4cqw, 34px);
+  }
+
+  .mc-fmq-top[data-columns="1"] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .mc-fmq-top[data-columns="2"] .mc-fmq-contact {
+    grid-column: auto;
+    margin-top: 0;
+  }
+}
+
+@container (max-width: 480px) {
+  .mc-fmq-legal {
+    flex-direction: column;
+    gap: 6px;
+  }
+}

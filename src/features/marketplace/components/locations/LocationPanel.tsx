@@ -30,8 +30,17 @@ export function LocationPanel({ location }: LocationPanelProps) {
     locationsWithAssignments: [location],
   });
 
-  const rating = location.averageRating ?? null;
-  const totalReviews = location.totalReviews ?? 0;
+  const rating =
+    typeof location.averageRating === "number" &&
+    Number.isFinite(location.averageRating)
+      ? location.averageRating
+      : null;
+  const totalReviews =
+    typeof location.totalReviews === "number" &&
+    Number.isSafeInteger(location.totalReviews) &&
+    location.totalReviews >= 0
+      ? location.totalReviews
+      : 0;
   const roundedRating = rating != null ? Math.round(rating) : 0;
 
   return (

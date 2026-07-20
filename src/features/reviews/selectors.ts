@@ -26,5 +26,7 @@ export const selectHighlightReviews = (state: RootState) =>
   state.reviews.highlightReviews;
 export const selectHighlightReviewsLoading = (state: RootState) =>
   state.reviews.highlightReviewsLoading;
+export const selectHighlightReviewsLoaded = (state: RootState) =>
+  state.reviews.highlightReviewsLoaded;
 
 export const selectReviewsError = (state: RootState) => state.reviews.error;

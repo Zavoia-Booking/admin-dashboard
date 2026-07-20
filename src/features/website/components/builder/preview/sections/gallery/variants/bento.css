@@ -1,0 +1,78 @@
+.mc-bento {
+  display: grid;
+  grid-auto-flow: dense;
+  /* Gallery aggregates every location's portfolio, so the source's hero-sized rows become
+     disproportionately tall as the collection grows. An eight-column rhythm fits more images
+     between each feature while preserving a strong editorial anchor. */
+  grid-auto-rows: clamp(116px, 12cqw, 168px);
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: clamp(8px, 0.9cqw, 14px);
+}
+
+.mc-bento-tile {
+  position: relative;
+  min-height: 0;
+  grid-column: span 2;
+}
+
+.mc-bento-tile.mc-bento-feature {
+  grid-column: span 4;
+  grid-row: span 2;
+}
+
+.mc-bento-tile.mc-bento-wide { grid-column: span 4; }
+
+/* Mirror every second feature block so long galleries do not repeat a left-heavy motif. */
+.mc-bento-tile.mc-bento-feature:nth-child(16n + 9) {
+  grid-column: 5 / span 4;
+}
+
+.mc-bento-image {
+  width: 100%;
+  height: 100%;
+  border-radius: 8px;
+}
+
+.mc-bento-image .mc-gallery-image {
+  transition: opacity 450ms var(--ease-out-strong), transform 1s var(--ease-out-strong);
+}
+
+.mc-bento-image:hover .mc-gallery-image {
+  transform: scale(1.05);
+}
+
+@container (min-width: 721px) and (max-width: 1024px) {
+  .mc-bento {
+    grid-auto-rows: clamp(108px, 16cqw, 148px);
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: clamp(8px, 1.2cqw, 12px);
+  }
+
+  .mc-bento-tile { grid-column: span 2; }
+  .mc-bento-tile.mc-bento-feature { grid-column: span 4; }
+  .mc-bento-tile.mc-bento-wide { grid-column: span 2; }
+  .mc-bento-tile:nth-child(8n + 7),
+  .mc-bento-tile:nth-child(8n + 8) { grid-column: span 3; }
+  .mc-bento-tile.mc-bento-feature:nth-child(16n + 9) {
+    grid-column: 3 / span 4;
+  }
+}
+
+@container (max-width: 720px) {
+  .mc-bento {
+    grid-auto-rows: clamp(96px, 24cqw, 128px);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .mc-bento-tile,
+  .mc-bento-tile:nth-child(8n + 7),
+  .mc-bento-tile:nth-child(8n + 8) { grid-column: span 1; }
+  .mc-bento-tile.mc-bento-feature,
+  .mc-bento-tile.mc-bento-feature:nth-child(16n + 9),
+  .mc-bento-tile.mc-bento-wide { grid-column: span 2; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mc-bento-image .mc-gallery-image { transition: none; }
+}

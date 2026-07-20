@@ -30,6 +30,8 @@ import enCommon from '../../locales/en/common.json';
 import roCommon from '../../locales/ro/common.json';
 import enMarketplace from '../../locales/en/marketplace.json';
 import roMarketplace from '../../locales/ro/marketplace.json';
+import enWebsite from '../../locales/en/website.json';
+import roWebsite from '../../locales/ro/website.json';
 import enMessages from '../../locales/en/messages.json';
 import roMessages from '../../locales/ro/messages.json';
 import enMyAssignments from '../../locales/en/myAssignments.json';
@@ -73,6 +75,7 @@ const resources = {
     assignments: enAssignments,
     common: enCommon,
     marketplace: enMarketplace,
+    website: enWebsite,
     messages: enMessages,
     myAssignments: enMyAssignments,
     advancedSettings: enAdvancedSettings,
@@ -99,6 +102,7 @@ const resources = {
     assignments: roAssignments,
     common: roCommon,
     marketplace: roMarketplace,
+    website: roWebsite,
     messages: roMessages,
     myAssignments: roMyAssignments,
     advancedSettings: roAdvancedSettings,
@@ -124,7 +128,9 @@ i18n
   .init({
     resources,
     fallbackLng: 'en',
-    debug: process.env.NODE_ENV === 'development',
+    // Keep development consoles actionable. Set VITE_I18N_DEBUG=true only while
+    // investigating translations instead of logging every initialization and fallback.
+    debug: config.IS_DEV && import.meta.env.VITE_I18N_DEBUG === 'true',
     
     interpolation: {
       escapeValue: false, // React already does escaping

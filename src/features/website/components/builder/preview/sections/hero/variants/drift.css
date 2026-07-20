@@ -1,0 +1,60 @@
+/* Drift — a grainy aurora curtain (design source: .lb-herodr*). Luminous accent light rises out of
+   near-black, raked with fine light-rays under a slow liquid sheen + heavy film grain, behind a hairline
+   corner-tick frame. Design vw → cqw (width); vh → --dr-vph = the preview's logical viewport height (--mc-vph),
+   so the aurora fills the frame the same on any device; oklch maths kept verbatim. JS drives wander/repulsion. */
+.mc-herodr { --dr-vph: var(--mc-vph, clamp(520px, 96cqw, 900px)); position: relative; min-height: var(--dr-vph); overflow: hidden; display: flex; align-items: center; justify-content: center; text-align: center;
+  padding: clamp(96px, calc(var(--dr-vph) * 0.13), 140px) clamp(18px, 4cqw, 56px) clamp(84px, calc(var(--dr-vph) * 0.12), 132px);
+  background:
+    radial-gradient(125% 116% at 20% 118%, oklch(from var(--mc-accent) 0.36 0.13 calc(h - 6) / 0.82) 0%, transparent 56%),
+    linear-gradient(150deg, oklch(from var(--mc-accent) 0.2 0.09 calc(h - 22)) 0%, oklch(from var(--mc-accent) 0.16 0.1 calc(h - 100)) 52%, oklch(from var(--mc-accent) 0.115 0.075 calc(h - 162)) 100%); }
+/* colour field — each blob is repelled by the cursor / wanders (JS sets its transform). Texture stays put. */
+.mc-herodr-sky { position: absolute; inset: 0; pointer-events: none; z-index: 0; }
+.mc-herodr-par { position: absolute; inset: 0; will-change: transform; }
+.mc-herodr-aurora { position: absolute; border-radius: 50%; filter: blur(clamp(56px, 10cqw, 116px)); will-change: transform; }
+.mc-herodr-a1 { width: 92cqw; height: calc(var(--dr-vph) * 0.6); left: 4cqw; bottom: calc(var(--dr-vph) * -0.24); background: radial-gradient(closest-side, oklch(from var(--mc-accent) 0.64 0.19 calc(h - 6) / 0.56), transparent 72%); animation: mc-dr-in 1400ms var(--ease-out-strong) both, mc-dr-a 29s ease-in-out infinite alternate; }
+.mc-herodr-a2 { width: 66cqw; height: calc(var(--dr-vph) * 0.74); left: -16cqw; top: calc(var(--dr-vph) * -0.24); background: radial-gradient(closest-side, oklch(from var(--mc-accent) 0.48 0.17 calc(h - 92) / 0.6), transparent 70%); animation: mc-dr-in 1600ms var(--ease-out-strong) both, mc-dr-b 37s ease-in-out infinite alternate; }
+.mc-herodr-a3 { width: 58cqw; height: calc(var(--dr-vph) * 0.58); right: -18cqw; top: calc(var(--dr-vph) * -0.08); background: radial-gradient(closest-side, oklch(from var(--mc-accent) 0.54 0.15 calc(h - 152) / 0.54), transparent 70%); animation: mc-dr-in 1800ms var(--ease-out-strong) both, mc-dr-c 44s ease-in-out infinite alternate; }
+@keyframes mc-dr-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes mc-dr-a { from { transform: translate(0, 0) rotate(0deg) scale(1); } to { transform: translate(6cqw, calc(var(--dr-vph) * -0.06)) rotate(9deg) scale(1.14); } }
+@keyframes mc-dr-b { from { transform: translate(0, 0) rotate(0deg) scale(1.06); } to { transform: translate(10cqw, calc(var(--dr-vph) * 0.08)) rotate(-7deg) scale(0.94); } }
+@keyframes mc-dr-c { from { transform: translate(0, 0) rotate(0deg) scale(1); } to { transform: translate(-9cqw, calc(var(--dr-vph) * 0.07)) rotate(8deg) scale(1.16); } }
+/* slow conic sheen — liquid light sweeping through the field */
+.mc-herodr-sheen { position: absolute; inset: -30%; z-index: 0; mix-blend-mode: screen; opacity: 0.42; will-change: transform;
+  background: conic-gradient(from 0deg at 50% 60%, transparent 0deg, oklch(from var(--mc-accent) 0.72 0.16 h / 0.24) 58deg, transparent 150deg, oklch(from var(--mc-accent) 0.62 0.12 calc(h + 30) / 0.16) 258deg, transparent 340deg);
+  filter: blur(44px); animation: mc-dr-spin 52s linear infinite; }
+@keyframes mc-dr-spin { to { transform: rotate(360deg); } }
+/* fine raked light-rays — a curtain texture drifting over the lit zone */
+.mc-herodr-rays { position: absolute; inset: 0; z-index: 1; mix-blend-mode: screen; opacity: 0.3;
+  background: repeating-linear-gradient(96deg, transparent 0 26px, oklch(from var(--mc-accent) 0.92 0.05 h / 0.05) 26px 27px, transparent 27px 42px);
+  -webkit-mask-image: radial-gradient(82% 72% at 50% 80%, #000 0%, transparent 72%); mask-image: radial-gradient(82% 72% at 50% 80%, #000 0%, transparent 72%);
+  animation: mc-dr-rays 26s linear infinite; }
+@keyframes mc-dr-rays { to { background-position: 260px 0; } }
+/* heavy film grain — the premium signature; a faint boil keeps it alive */
+.mc-herodr-grain { position: absolute; inset: -24px; z-index: 3; opacity: 0.12; mix-blend-mode: overlay; background-size: 200px 200px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  animation: mc-dr-grain 3.2s steps(5) infinite; }
+@keyframes mc-dr-grain { 0% { transform: translate(0, 0); } 20% { transform: translate(-6px, 4px); } 40% { transform: translate(4px, -6px); } 60% { transform: translate(-4px, -3px); } 80% { transform: translate(5px, 5px); } 100% { transform: translate(0, 0); } }
+.mc-herodr-vign { position: absolute; inset: 0; z-index: 2; pointer-events: none;
+  background: radial-gradient(120% 100% at 50% 42%, transparent 44%, oklch(from var(--mc-accent) 0.1 0.03 h / 0.64) 82%, #04050a 100%); }
+@media (prefers-reduced-motion: reduce) {
+  .mc-herodr-aurora, .mc-herodr-sheen, .mc-herodr-rays, .mc-herodr-grain { animation: none; }
+}
+/* corner ticks only — no full frame border */
+.mc-herodr-frame { position: absolute; inset: clamp(14px, calc(var(--dr-vph) * 0.021), 28px); z-index: 2; pointer-events: none; }
+.mc-herodr-frame::before, .mc-herodr-frame::after { content: ""; position: absolute; width: 18px; height: 18px; border-color: rgba(255, 255, 255, 0.42); border-style: solid; }
+.mc-herodr-frame::before { top: 0; left: 0; border-width: 1px 0 0 1px; }
+.mc-herodr-frame::after { right: 0; bottom: 0; border-width: 0 1px 1px 0; }
+.mc-herodr-in { position: relative; z-index: 3; max-width: 1080px; display: flex; flex-direction: column; align-items: center; }
+.mc-herodr-title { font-family: var(--mc-display); font-weight: var(--mc-display-weight); font-size: clamp(52px, 13cqw, 168px); line-height: 0.94; letter-spacing: -0.008em; text-transform: uppercase; color: #FCFBF8; margin: 0; max-width: 15ch; text-wrap: balance; }
+/* long business names step the title down so it doesn't dominate the frame */
+.mc-herodr-title.is-long { font-size: clamp(40px, 9.5cqw, 116px); letter-spacing: -0.004em; }
+.mc-herodr-title.is-xlong { font-size: clamp(30px, 6.8cqw, 80px); letter-spacing: 0; line-height: 1; }
+.mc-herodr-tag { margin: clamp(18px, 3cqw, 30px) 0 0; font-size: clamp(15px, 1.9cqw, 20px); line-height: 1.55; color: rgba(255, 255, 255, 0.72); max-width: 46ch; text-wrap: pretty; text-shadow: 0 1px 14px rgba(6, 7, 11, 0.5); }
+.mc-herodr-cta { display: flex; align-items: center; justify-content: center; gap: clamp(18px, 3.5cqw, 34px); flex-wrap: wrap; margin-top: clamp(28px, 4.5cqw, 46px); }
+
+/* Drift is the heaviest screen — drop the rotating conic sheen and cap the blob blur on narrow previews;
+   the drift keyframes + rays + grain carry the look. */
+@container (max-width: 720px) {
+  .mc-herodr-sheen { display: none; }
+  .mc-herodr-aurora { filter: blur(clamp(40px, 11cqw, 60px)); }
+}

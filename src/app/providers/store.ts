@@ -13,6 +13,7 @@ import settingsReducer from "../../features/settings/reducer";
 import { AssignmentsReducer } from "../../features/assignments/reducer.ts";
 import businessReducer from "../../features/business/reducer";
 import { MarketplaceReducer } from "../../features/marketplace/reducer";
+import { WebsiteReducer } from "../../features/website/reducer";
 import { CustomersReducer } from "../../features/customers/reducer";
 import { BundlesReducer } from "../../features/bundles/reducer";
 import { CategoriesReducer } from "../../features/categories/reducer";
@@ -37,6 +38,7 @@ export const store = configureStore({
     settings: settingsReducer,
     business: businessReducer,
     marketplace: MarketplaceReducer,
+    website: WebsiteReducer,
     customers: CustomersReducer,
     bundles: BundlesReducer,
     categories: CategoriesReducer,

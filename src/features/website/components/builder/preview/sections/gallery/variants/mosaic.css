@@ -1,0 +1,199 @@
+.mc-gallery-section[data-gallery="index"] {
+  --mc-bg: #0b0a09;
+  --mc-fg: #fbfaf7;
+  --mc-muted: rgba(251, 250, 247, 0.58);
+  --mc-line: rgba(251, 250, 247, 0.2);
+  --mc-soft: #161311;
+  --mc-ink: var(--mc-fg);
+
+  background: var(--mc-bg);
+  color: var(--mc-fg);
+}
+
+.mc-galmosaic {
+  --mc-galmosaic-expand-duration: 950ms;
+  --mc-galmosaic-expand-ease: cubic-bezier(0.22, 1, 0.3, 1);
+
+  position: relative;
+}
+
+.mc-galmosaic-stage {
+  position: relative;
+  box-sizing: border-box;
+  inline-size: 100cqw;
+  height: clamp(600px, calc(var(--mc-vph, 760px) * 0.86), 980px);
+  margin-inline: calc(50% - 50cqw);
+  overflow: hidden;
+  padding: 12px;
+  background: #0b0a09;
+  cursor: default;
+  touch-action: auto;
+  user-select: none;
+  transition: height var(--mc-galmosaic-expand-duration) var(--mc-galmosaic-expand-ease);
+}
+
+.mc-galmosaic-stage[data-paged="1"][data-full="0"] {
+  height: clamp(540px, calc(var(--mc-vph, 760px) * 0.78), 900px);
+  cursor: grab;
+  touch-action: pan-y;
+}
+
+.mc-galmosaic-stage[data-full="1"] {
+  height: clamp(600px, calc(var(--mc-vph, 760px) * 0.88), 1000px);
+}
+
+.mc-galmosaic-stage[data-drag="1"] {
+  cursor: grabbing;
+}
+
+.mc-galmosaic-box {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.mc-galmosaic-pane {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  will-change: transform;
+}
+
+.mc-galmosaic-grid {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  gap: 10px;
+}
+
+.mc-galmosaic-column {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 0%;
+  flex-direction: column;
+  gap: 10px;
+  overflow: hidden;
+  transition:
+    flex-grow var(--mc-galmosaic-expand-duration) var(--mc-galmosaic-expand-ease),
+    opacity 600ms ease;
+}
+
+.mc-galmosaic-tile {
+  position: relative;
+  display: block;
+  width: 100%;
+  min-height: 0;
+  flex: 1 1 0%;
+  overflow: hidden;
+  border: 0;
+  border-radius: 14px;
+  margin: 0;
+  padding: 0;
+  background: #161311;
+  opacity: 1;
+  cursor: pointer;
+  transition:
+    flex-grow var(--mc-galmosaic-expand-duration) var(--mc-galmosaic-expand-ease),
+    opacity 600ms ease;
+}
+
+.mc-galmosaic-tile[data-focused="1"][data-full="0"] {
+  cursor: zoom-in;
+}
+
+.mc-galmosaic-tile[data-full="1"] {
+  cursor: zoom-out;
+}
+
+.mc-galmosaic-tile[data-suppressed="1"] {
+  opacity: 0;
+}
+
+.mc-galmosaic-tile[aria-disabled="true"] {
+  cursor: default;
+  pointer-events: none;
+}
+
+.mc-galmosaic-tile:focus-visible {
+  z-index: 2;
+  outline: 3px solid var(--mc-accent);
+  outline-offset: -3px;
+}
+
+.mc-galmosaic-tile > .mc-gallery-image,
+.mc-galmosaic-tile > .mc-gallery-image-fallback {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.mc-galmosaic-tile > .mc-gallery-image {
+  object-fit: cover;
+  object-position: center;
+}
+
+.mc-galmosaic-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin-top: clamp(18px, 2.4cqw, 30px);
+}
+
+.mc-galmosaic-count {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  gap: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.mc-galmosaic-count-current {
+  color: var(--mc-accent);
+  font-family: var(--mc-display);
+  font-size: clamp(24px, 3cqw, 40px);
+  font-weight: var(--mc-display-weight);
+  line-height: 1;
+  letter-spacing: var(--mc-display-tracking);
+}
+
+.mc-galmosaic-count-total {
+  color: var(--mc-muted);
+  font-family: var(--mc-mono);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+}
+
+@container (max-width: 760px) {
+  .mc-galmosaic-stage {
+    height: clamp(460px, calc(var(--mc-vph, 720px) * 0.8), 660px);
+    padding: 8px;
+  }
+
+  .mc-galmosaic-stage[data-paged="1"][data-full="0"] {
+    height: clamp(420px, calc(var(--mc-vph, 720px) * 0.72), 600px);
+  }
+
+  .mc-galmosaic-stage[data-full="1"] {
+    height: clamp(460px, calc(var(--mc-vph, 720px) * 0.8), 660px);
+  }
+
+  .mc-galmosaic-grid,
+  .mc-galmosaic-column {
+    gap: 8px;
+  }
+
+  .mc-galmosaic-tile {
+    border-radius: 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mc-galmosaic-stage,
+  .mc-galmosaic-column,
+  .mc-galmosaic-tile {
+    transition: none;
+  }
+}

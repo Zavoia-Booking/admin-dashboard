@@ -1,0 +1,52 @@
+/* FAQ · Grid — every answer open in a scannable two-column card grid. */
+.mc-fqg {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(12px, 1.8cqw, 22px);
+}
+
+.mc-fqg-card {
+  position: relative;
+  border: 1px solid var(--mc-line);
+  border-radius: 14px;
+  padding: clamp(20px, 2.6cqw, 32px);
+  background: var(--mc-soft);
+  transition: border-color 300ms var(--mc-faq-ease-out);
+}
+
+.mc-fqg-card:hover {
+  border-color: color-mix(in oklch, var(--mc-accent) 44%, var(--mc-line));
+}
+
+.mc-fqg-no {
+  color: var(--mc-accent);
+  font-family: var(--mc-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.1em;
+}
+
+.mc-fqg-q {
+  margin: 12px 0 0;
+  font-family: var(--mc-display);
+  font-size: clamp(19px, 2cqw, 26px);
+  font-weight: var(--mc-display-weight);
+  line-height: 1.14;
+  letter-spacing: var(--mc-display-tracking);
+  text-wrap: balance;
+}
+
+.mc-fqg-a {
+  margin: 12px 0 0;
+  color: var(--mc-muted);
+  font-size: 14.5px;
+  line-height: 1.65;
+  text-wrap: pretty;
+}
+
+@container (max-width: 760px) {
+  .mc-fqg { grid-template-columns: 1fr; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mc-fqg-card { transition: none !important; }
+}

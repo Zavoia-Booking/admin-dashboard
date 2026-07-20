@@ -83,6 +83,7 @@ export function DeleteConfirmDialog({
     teamMembersCount,
     activeUsersCount,
     pendingUsersCount,
+    websiteGalleryImagesCount,
   } = (localDeleteResponse || {}) as Partial<DeleteResponse>;
 
   // Build dynamic dependency list
@@ -92,6 +93,7 @@ export function DeleteConfirmDialog({
     isPending?: boolean;
     isTeamMember?: boolean;
     isLocation?: boolean;
+    isWebsite?: boolean;
   }[] = [];
 
   if (usersCount && usersCount > 0) {
@@ -169,6 +171,17 @@ export function DeleteConfirmDialog({
         }`
       ),
       isTeamMember: true,
+    });
+  }
+  if (websiteGalleryImagesCount && websiteGalleryImagesCount > 0) {
+    dependencies.push({
+      count: websiteGalleryImagesCount,
+      label: t(
+        `deleteConfirmDialog.dependencies.${
+          websiteGalleryImagesCount === 1 ? "websiteGalleryPhoto" : "websiteGalleryPhotos"
+        }`
+      ),
+      isWebsite: true,
     });
   }
 
@@ -299,7 +312,9 @@ export function DeleteConfirmDialog({
                           variant="secondary"
                           className={cn(
                             "text-xs px-3 py-1 rounded-full font-medium flex items-center gap-1.5 border",
-                            dep.isTeamMember
+                            dep.isWebsite
+                              ? "bg-warning-bg border-warning-border hover:bg-warning-bg"
+                              : dep.isTeamMember
                               ? "bg-purple-50 border-purple-200 hover:bg-purple-100"
                               : dep.isLocation
                               ? "bg-blue-50 border-blue-200 hover:bg-blue-100"
@@ -309,7 +324,9 @@ export function DeleteConfirmDialog({
                           <div
                             className={cn(
                               "h-2 w-2 rounded-full",
-                              dep.isTeamMember
+                              dep.isWebsite
+                                ? "bg-warning"
+                                : dep.isTeamMember
                                 ? "bg-purple-500"
                                 : dep.isLocation
                                 ? "bg-blue-500"

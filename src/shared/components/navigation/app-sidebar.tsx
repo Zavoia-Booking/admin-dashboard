@@ -1,21 +1,5 @@
 import * as React from "react"
-import {
-  LayoutDashboard,
-  Users,
-  Settings2,
-  ClipboardList,
-  type LucideIcon,
-  Calendar,
-  MapPin,
-  Briefcase,
-  LogOut,
-  MessageCircle,
-  UserCircle,
-  Store,
-  FolderKanban,
-  UserRoundCog,
-} from "lucide-react"
-import { useLocation } from "react-router-dom"
+import { LogOut } from "lucide-react"
 import { useSelector, useDispatch } from "react-redux"
 import { useTranslation } from "react-i18next"
 import type { RootState } from "../../../app/providers/store"
@@ -36,259 +20,25 @@ import {
   SidebarTrigger,
   useSidebar,
 } from "../ui/sidebar"
-import { Permission } from "../../lib/permissions"
 import { usePermissions } from "../../hooks/usePermissions"
-import { usePlatform } from "../../hooks/usePlatform"
 import { NotificationBell } from "../common/NotificationBell"
-
-interface NavSubItem {
-  title: string
-  url: string
-  requiredPermission?: Permission // Optional: if not set, inherits from parent
-}
-
-interface NavItem {
-  title: string
-  url: string
-  icon?: LucideIcon
-  isActive?: boolean
-  requiredPermission: Permission
-  showSeparatorBefore?: boolean
-  items?: NavSubItem[]
-}
-
-// Navigation items structure - titles will be translated in the component
-const getNavItems = (t: (key: string) => string, isNative: boolean): NavItem[] => [
-  {
-    title: t("sidebar.dashboard"),
-    url: "/dashboard",
-    icon: LayoutDashboard,
-    requiredPermission: Permission.ACCESS_DASHBOARD,
-  },
-  {
-    title: t("sidebar.calendar"),
-    url: "/calendar",
-    icon: Calendar,
-    requiredPermission: Permission.ACCESS_CALENDAR,
-  },
-  {
-    title: t("sidebar.customers"),
-    url: "/customers",
-    icon: UserCircle,
-    requiredPermission: Permission.ACCESS_CUSTOMERS,
-  },
-  // =========================================
-  // Team Member Only Routes
-  // =========================================
-  {
-    title: t("sidebar.teamMember.assignments"),
-    url: "/my-assignments",
-    icon: FolderKanban,
-    requiredPermission: Permission.ACCESS_MY_ASSIGNMENTS,
-  },
-  // =========================================
-  // Owner Only Routes
-  // =========================================
-  {
-    title: t("sidebar.assignments"),
-    url: "/assignments",
-    icon: ClipboardList,
-    requiredPermission: Permission.ACCESS_ASSIGNMENTS,
-  },
-  {
-    title: t("sidebar.teamMembers"),
-    url: "/team-members",
-    icon: Users,
-    requiredPermission: Permission.ACCESS_TEAM_MEMBERS,
-  },
-  {
-    title: t("sidebar.services"),
-    url: "/services",
-    icon: Briefcase,
-    requiredPermission: Permission.ACCESS_SERVICES,
-    items: [
-      {
-        title: t("sidebar.subItems.services.allServices"),
-        url: "/services?tab=services",
-      },
-      {
-        title: t("sidebar.subItems.services.bundles"),
-        url: "/services?tab=bundles",
-      },
-    ],
-  },
-  {
-    title: t("sidebar.locations"),
-    url: "/locations",
-    icon: MapPin,
-    requiredPermission: Permission.ACCESS_LOCATIONS,
-  },
-  {
-    title: t("sidebar.marketplace"),
-    url: "/marketplace",
-    icon: Store,
-    requiredPermission: Permission.ACCESS_MARKETPLACE,
-    items: [
-      {
-        title: t("sidebar.subItems.marketplace.business"),
-        url: "/marketplace?tab=business",
-        requiredPermission: Permission.ACCESS_MARKETPLACE_PROFILE,
-      },
-      {
-        title: t("sidebar.subItems.marketplace.website"),
-        url: "/marketplace?tab=website",
-        requiredPermission: Permission.ACCESS_MARKETPLACE_PROFILE,
-      },
-      {
-        title: t("sidebar.subItems.marketplace.locations"),
-        url: "/marketplace?tab=locations",
-        requiredPermission: Permission.ACCESS_MARKETPLACE_PORTFOLIO,
-      },
-      {
-        title: t("sidebar.subItems.marketplace.reviews"),
-        url: "/marketplace?tab=reviews",
-        requiredPermission: Permission.ACCESS_MARKETPLACE_REVIEWS,
-      },
-    ],
-  },
-  // Team Member Marketplace Profile (before Support)
-  {
-    title: t("sidebar.teamMember.profile"),
-    url: "/my-profile",
-    icon: UserRoundCog,
-    requiredPermission: Permission.ACCESS_MY_PROFILE,
-    showSeparatorBefore: true,
-    items: [
-      {
-        title: t("sidebar.subItems.myProfile.profile"),
-        url: "/my-profile?tab=profile",
-        requiredPermission: Permission.ACCESS_MY_PROFILE_INFO,
-      },
-      {
-        title: t("sidebar.subItems.myProfile.portfolio"),
-        url: "/my-profile?tab=portfolio",
-        requiredPermission: Permission.ACCESS_MY_PROFILE_PORTFOLIO,
-      },
-      {
-        title: t("sidebar.subItems.myProfile.reviews"),
-        url: "/my-profile?tab=reviews",
-        requiredPermission: Permission.ACCESS_MY_PROFILE_REVIEWS,
-      },
-    ],
-  },
-  {
-    title: t("sidebar.support"),
-    url: "/support",
-    icon: MessageCircle,
-    requiredPermission: Permission.ACCESS_SUPPORT,
-  },
-  // Team Member Account (after Support)
-  {
-    title: t("sidebar.teamMember.account"),
-    url: "/my-account",
-    icon: Settings2,
-    requiredPermission: Permission.ACCESS_MY_SETTINGS,
-  },
-  // Owner Account
-  {
-    title: t("sidebar.account"),
-    url: "/account",
-    icon: Settings2,
-    requiredPermission: Permission.ACCESS_SETTINGS,
-    items: isNative ? undefined : [
-      {
-        title: t("sidebar.subItems.account.profile"),
-        url: "/account?tab=profile",
-        requiredPermission: Permission.ACCESS_SETTINGS_PROFILE,
-      },
-      {
-        title: t("sidebar.subItems.account.billing"),
-        url: "/account?tab=billing",
-        requiredPermission: Permission.ACCESS_SETTINGS_BILLING,
-      },
-    ],
-  },
-]
+import { useAppNavigation } from "./navigation-model"
+import { requestGuardedUnsavedAction } from "../../hooks/useUnsavedChangesBlocker"
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const location = useLocation()
-  const pathname = location.pathname
-  const search = location.search
   const { t } = useTranslation('navigation')
   const { state } = useSidebar()
   const dispatch = useDispatch()
-  const { hasPermission, user } = usePermissions()
-  const { isNative } = usePlatform()
+  const { user } = usePermissions()
+  const { desktopItems } = useAppNavigation()
 
   // Get user data from Redux store
   const isAuthLoading = useSelector((state: RootState) => state.auth.isLoading)
 
-  // Get translated navigation items
-  const navItems = getNavItems(t, isNative)
-  
   const isCollapsed = state === 'collapsed'
-  
-  // Helper function to check if a URL matches the current location
-  const isUrlActive = (url: string): boolean => {
-    const [urlPath, urlSearch] = url.split('?')
-    if (pathname !== urlPath) return false
-    
-    if (!urlSearch) {
-      // If no query params in URL, check if current location also has no query params
-      return !search || search === ''
-    }
-    
-    // Parse query parameters
-    const urlParams = new URLSearchParams(urlSearch)
-    const currentParams = new URLSearchParams(search)
-    
-    // Check if all URL params match current params
-    for (const [key, value] of urlParams.entries()) {
-      if (currentParams.get(key) !== value) {
-        return false
-      }
-    }
-    
-    return true
-  }
-  
-  // Filter navigation items based on user's permissions
-  const filteredNavItems = navItems
-    .filter(item => {
-      // Check if user has the required permission for this nav item
-      return hasPermission(item.requiredPermission)
-    })
-    .map((item, index) => {
-      // Filter sub-items based on permissions
-      const filteredSubItems = item.items?.filter(subItem => {
-        // Owners that haven't finished the setup wizard have no businessId yet,
-        // so the billing endpoints would 404. Hide the entry for them.
-        if (
-          subItem.url === '/account?tab=billing' &&
-          user?.role === 'owner' &&
-          !user?.wizardCompleted
-        ) {
-          return false
-        }
-        // If sub-item has a specific permission, check it
-        // Otherwise, it inherits access from the parent item
-        if (subItem.requiredPermission) {
-          return hasPermission(subItem.requiredPermission)
-        }
-        return true
-      })
-
-      return {
-        ...item,
-        // Don't show separator on the first visible item (nothing above it to separate from)
-        showSeparatorBefore: index === 0 ? false : item.showSeparatorBefore,
-        items: filteredSubItems,
-        isActive: pathname === item.url || filteredSubItems?.some(subItem => isUrlActive(subItem.url)),
-      }
-    })
 
   const handleLogout = () => {
-    dispatch(logoutRequestAction.request())
+    requestGuardedUnsavedAction(() => dispatch(logoutRequestAction.request()))
   }
 
   // Memoize logo props to prevent unnecessary re-renders
@@ -319,7 +69,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         )}
       </SidebarHeader>
       <SidebarContent className="px-2 py-4">
-        <NavMain items={filteredNavItems} />
+        <NavMain items={desktopItems} />
       </SidebarContent>
       
       {/* Notifications, Language and Dark Mode Controls */}

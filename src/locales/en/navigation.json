@@ -12,12 +12,18 @@
     "teamMembers": "Team Members",
     "customers": "Customers",
     "marketplace": "Marketplace",
+    "website": "Website",
     "support": "Support",
     "account": "Account",
     "home": "Home",
     "detail": "Detail"
   },
   "sidebar": {
+    "navigation": "Main navigation",
+    "notifications": "Notifications",
+    "notificationsUnread_one": "{{count}} unread notification",
+    "notificationsUnread_other": "{{count}} unread notifications",
+    "openSection": "Open {{name}}",
     "dashboard": "Dashboard",
     "calendar": "Calendar",
     "assignments": "Assignments",
@@ -26,6 +32,7 @@
     "locations": "Locations",
     "customers": "Customers",
     "marketplace": "Marketplace",
+    "website": "Website",
     "support": "Support",
     "account": "Account",
     "logOut": "Log Out",
@@ -68,6 +75,7 @@
     }
   },
   "mobileNav": {
+    "navigation": "Mobile navigation",
     "more": "More",
     "assignments": "Assign",
     "marketplace": "Marketplace"
@@ -77,4 +85,3 @@
     "light": "Light"
   }
 }
-

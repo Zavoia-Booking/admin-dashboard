@@ -16,9 +16,6 @@ interface MarketplacePublishStatusStripProps {
   locationImagesOk: boolean;
   /** At least one location has a portfolio image (publishing requires it) */
   hasLocationPhoto: boolean;
-  /** Plan entitlement — without it the builder is locked, so its checklist item is irrelevant */
-  hasWebsiteBuilder: boolean;
-  websiteBuilderOk: boolean;
   locations: LocationWithAssignments[];
   onPublish: () => void;
   /** Invoked instead of onPublish when photos are the blocker — jumps to the upload area */
@@ -60,8 +57,6 @@ export function MarketplacePublishStatusStrip({
   businessDetailsOk,
   locationImagesOk,
   hasLocationPhoto,
-  hasWebsiteBuilder,
-  websiteBuilderOk,
   locations,
   onPublish,
   onPhotosNeeded,
@@ -125,9 +120,6 @@ export function MarketplacePublishStatusStrip({
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
                 <ChecklistItem ok={industryTagOk} label={t("statusStrip.checklist.industryTag")} />
                 <ChecklistItem ok={businessDetailsOk} label={t("statusStrip.checklist.detailsValid")} />
-                {hasWebsiteBuilder && (
-                  <ChecklistItem ok={websiteBuilderOk} label={t("statusStrip.checklist.websiteBuilder")} />
-                )}
                 <ChecklistItem
                   ok={hasLocationPhoto}
                   label={t("statusStrip.checklist.locationPhoto")}

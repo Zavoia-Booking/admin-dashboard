@@ -834,13 +834,27 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
           className="z-[80]"
           overlayClassName="z-[80]"
           secondaryActions={[
-            {
-              label: t("editLocation.assignments.goToAssignments"),
-              onClick: () => {
-                handleCloseDeleteDialog(false);
-                navigate(`/assignments?tab=locations&locationId=${location.id}`);
-              }
-            },
+            ...(deleteResponse?.websiteGalleryImagesCount
+              ? [{
+                  label: t("editLocation.removeLocation.goToWebsiteGallery"),
+                  onClick: () => {
+                    handleCloseDeleteDialog(false);
+                    navigate("/website");
+                  },
+                }]
+              : []),
+            ...(deleteResponse &&
+            ((deleteResponse.activeUsersCount ?? 0) > 0 ||
+              (deleteResponse.pendingUsersCount ?? 0) > 0 ||
+              (deleteResponse.servicesCount ?? 0) > 0)
+              ? [{
+                  label: t("editLocation.assignments.goToAssignments"),
+                  onClick: () => {
+                    handleCloseDeleteDialog(false);
+                    navigate(`/assignments?tab=locations&locationId=${location.id}`);
+                  },
+                }]
+              : []),
           ]}
         />
       )}

@@ -11,130 +11,6 @@ export interface PortfolioImageData {
   size?: number;
 }
 
-// --- Business-page section builder (v1) ---
-// The business page is a themed *arrangement* (a "view") over existing business data. The layout
-// stores only order/visibility/variant + small per-section config refs — never duplicated content.
-// Content for each section is read from its existing model (locations, team, reviews, …); only the
-// FAQ and Announcement sections carry their own (bilingual) content.
-
-/** Bilingual text for the two net-new content sections (FAQ + Announcement). */
-export interface LocaleText {
-  en: string;
-  ro: string;
-}
-
-export type SectionType =
-  | 'announcement'
-  | 'nav'
-  | 'hero'
-  | 'marquee'
-  | 'about'
-  | 'locations'
-  | 'gallery'
-  | 'team'
-  | 'interlude'
-  | 'testimonials'
-  | 'faq'
-  | 'footer';
-
-/** One section in the ordered page layout. `config` holds small refs/toggles only — no content. */
-export interface SectionEntry {
-  type: SectionType | string; // string tolerates an unrecognized stored type (skip-unknown fallback)
-  variant: string;
-  visible: boolean;
-  config?: Record<string, unknown>;
-}
-
-export type PageLayout = SectionEntry[];
-
-/** Typed view of a hero section's `config` — small display toggles + optional copy; all optional. */
-export interface HeroConfig {
-  showRating?: boolean; // rating + reviews block (still needs real reviews); default on
-  showEyebrow?: boolean; // intro line above the name (auto-built from locations); default on
-  // How a cover photo fills the hero (only meaningful once a cover exists; no cover ⇒ drenched field).
-  // "full" = full-bleed cinematic cover (default); "plate" = tall photo bleed with a paper card over it.
-  coverLayout?: "full" | "plate";
-}
-
-/**
- * Typed view of a locations section's `config`: which locations to hide, plus optional bilingual copy
- * overrides for the section heading + sub-lede. Blank/absent copy falls back to the default editorial
- * strings (the public page renders per visitor locale, so each language overrides independently).
- */
-export interface LocationsConfig {
-  /** Owner-hidden location IDs; empty/absent = show all. */
-  hiddenLocationIds?: number[];
-  /** Heading override per locale; a blank/missing locale uses the default copy. */
-  heading?: LocaleText;
-  /** Sub-lede override per locale; a blank/missing locale uses the default copy. */
-  sublede?: LocaleText;
-}
-
-/**
- * Optional bilingual heading + sub-lede overrides shared by the view sections (Team / Gallery / Reviews /
- * Contact). Blank/absent copy falls back to the default editorial string; stored per locale so the public
- * page renders in the visitor's language. Mirrors `LocationsConfig`'s copy fields.
- */
-export interface SectionCopyConfig {
-  heading?: LocaleText;
-  sublede?: LocaleText;
-}
-
-export type TeamConfig = SectionCopyConfig;
-export type GalleryConfig = SectionCopyConfig;
-
-/** Reviews section config: copy overrides + a toggle for the synthetic rating-distribution block. */
-export interface ReviewsConfig extends SectionCopyConfig {
-  /** Hide the 5-star rating-distribution bars (shown by default when there are reviews). */
-  hideDistribution?: boolean;
-}
-
-/** Theme tokens: brand accent color + a curated font "personality" key (mapped to a stack on render). */
-export interface PageTheme {
-  // Mirrors the listing-level `brandColorHex`. Intentionally named `brandColor` here to match the
-  // backend `pageTheme` JSON column shape ({ brandColor, fontKey }) — this is the renderer contract,
-  // so do NOT rename it to brandColorHex.
-  brandColor?: string | null;
-  fontKey?: string | null;
-}
-
-export interface FaqItem {
-  q: LocaleText;
-  a: LocaleText;
-}
-
-export interface AnnouncementCta {
-  /** Opt-in: the call-to-action is off by default; the bar shows a button only when enabled. */
-  enabled: boolean;
-  /** Button copy, per locale. The button shows once enabled and the active locale has text. */
-  label: LocaleText;
-  /** Destination link — any URL the owner chooses. */
-  url: string;
-  /** Open the link in a new tab. */
-  newTab: boolean;
-  /** Trailing arrow glyph after the label. */
-  showArrow: boolean;
-}
-
-/**
- * Auto show/hide window. `start`/`end` are date-only keys (`YYYY-MM-DD`) interpreted as calendar days
- * in `timezone` (IANA). Captured here; the public page enforces it — the dashboard preview always
- * shows the bar so it stays editable.
- */
-export interface AnnouncementSchedule {
-  start?: string | null;
-  end?: string | null;
-  timezone?: string | null;
-}
-
-export interface AnnouncementContent {
-  message: LocaleText;
-  cta: AnnouncementCta;
-  schedule?: AnnouncementSchedule | null;
-  /** @deprecated legacy single link — migrated into `cta.url` on read; no longer written. */
-  link?: string | null;
-}
-
 // Marketplace listing model with customizable details
 export interface MarketplaceListing {
   businessId: number;
@@ -151,18 +27,6 @@ export interface MarketplaceListing {
   useBusinessEmail?: boolean; // Use business email or custom
   useBusinessPhone?: boolean; // Use business phone or custom
   useBusinessDescription?: boolean; // Use business description or custom
-  // Business-page (microsite) content
-  heroImageUrl?: string | null; // Hero/cover image URL
-  heroImageKey?: string | null; // R2 storage key for hero deletion
-  tagline?: string | null; // Short business-page tagline
-  aboutContent?: string | null; // Long-form about content
-  brandColorHex?: string | null; // Accent color, hex e.g. #1B9C85
-  // Section builder (v1): arrangement + theme + the two net-new content blocks
-  pageLayout?: SectionEntry[] | null;
-  pageTheme?: PageTheme | null;
-  faq?: FaqItem[] | null;
-  announcement?: AnnouncementContent | null;
-  layoutVersion?: number;
   // Effective values calculated by backend
   effectiveName?: string;
   effectiveEmail?: string;
@@ -237,10 +101,17 @@ export interface IndustryTag {
   slug?: string;
 }
 
-// Minimal bundle shape for marketplace catalog (from assignment tables)
+// Location-scoped bundle shape used by the marketplace and Website Builder service menu.
 export interface MarketplaceBundle {
   id: number;
+  uuid?: string;
   name: string;
+  /** Additive rich fields are optional so a rolling/cached legacy `{id,name}` response stays safe. */
+  description?: string | null;
+  price_amount_minor?: number | null;
+  duration?: number;
+  services?: Array<{ id: number; name: string }>;
+  includes?: string[];
 }
 
 // Location with assignments (read from actual assignment tables)
@@ -273,7 +144,8 @@ export interface MarketplaceListingResponse {
   bookingSettings: BookingSettings;
 }
 
-// Payload for publishing marketplace listing
+// Payload for publishing marketplace listing. Website content belongs exclusively to
+// the dedicated Website Builder API.
 export interface PublishMarketplaceListingPayload {
   marketplaceName?: string;
   marketplaceEmail?: string;
@@ -287,17 +159,6 @@ export interface PublishMarketplaceListingPayload {
   useBusinessPhone?: boolean;
   useBusinessDescription?: boolean;
   industryTagIds?: number[];
-  // Business-page (microsite) content. tagline/aboutContent/brandColorHex persist on the listing.
-  // (The vanity slug is system-generated server-side from the name; it is not part of this payload.)
-  tagline?: string;
-  aboutContent?: string;
-  brandColorHex?: string;
-  // Section builder (v1): arrangement + theme + net-new content. Sent on the same Save as the rest.
-  pageLayout?: SectionEntry[];
-  pageTheme?: PageTheme;
-  faq?: FaqItem[];
-  announcement?: AnnouncementContent;
-  layoutVersion?: number;
   // Note: Per-location publicity and online-booking flags are toggled inline per location, not in this payload.
   // Note: Assignments are managed in the Assignments flow.
   // Note: Portfolio images AND featured image are saved immediately on change, not on Save.
@@ -330,69 +191,10 @@ export interface BookingSettings {
 // Payload for updating booking settings (omit businessId as it's not editable)
 export type UpdateBookingSettingsPayload = Omit<BookingSettings, 'businessId'>;
 
-// --- Paid section variants (website builder) ---
-
-/**
- * One ACTIVE entry from the backend paid-variant catalog (GET /website-variants/catalog).
- * Merged onto the static section catalog by (sectionType, variantKey): a `priceMinor > 0`
- * entry that is not `owned` renders as a locked, purchasable layout pill. `owned` is
- * per-business (a COMPLETED one-time purchase) and permanent — it survives downgrades.
- */
-export interface WebsiteVariantCatalogEntry {
-  id: number;
-  uuid: string;
-  sectionType: string;
-  variantKey: string;
-  name: string;
-  description: string | null;
-  /** Integer minor units (cents); 0 = free. */
-  priceMinor: number;
-  currency: string;
-  /** The section's free default variant — always offered, unlocked. */
-  isBase: boolean;
-  owned: boolean;
-}
-
-/**
- * One ACTIVE entry from the backend SECTION catalog — the builder renders its
- * section list from these. `priceMinor > 0` and not `owned` = a locked section
- * card that must be unlocked (one-time purchase) before it can be shown/published.
- */
-export interface WebsiteSectionCatalogEntry {
-  id: number;
-  uuid: string;
-  sectionType: string;
-  name: string;
-  description: string | null;
-  /** Integer minor units (cents); 0 = free section. */
-  priceMinor: number;
-  currency: string;
-  owned: boolean;
-}
-
-/** GET /website-variants/catalog — the builder's full server-driven offering. */
-export interface WebsiteCatalogResponse {
-  sections: WebsiteSectionCatalogEntry[];
-  variants: WebsiteVariantCatalogEntry[];
-}
-
-/**
- * Payload for POST /website-variants/checkout (one-time Stripe purchase).
- * Single purchase: variantId or sectionIds: [id]. Cart purchase: variantIds
- * and/or sectionIds — all bought in ONE Stripe session (the backend sums them
- * and invoices them together).
- */
-export interface WebsiteVariantCheckoutPayload {
-  variantId?: number;
-  variantIds?: number[];
-  /** Section unlocks bought in the same session/cart. */
-  sectionIds?: number[];
-  successUrl: string;
-  cancelUrl: string;
-}
-
 // Redux state for marketplace feature
 export interface MarketplaceState {
+  /** Account/business scope that owns every value in this slice. */
+  scopeBusinessId: string | null;
   isLoading: boolean;
   error: string | null;
   business: Business | null;
@@ -408,14 +210,4 @@ export interface MarketplaceState {
   // Booking settings
   bookingSettings: BookingSettings | null;
   isSavingBookingSettings: boolean;
-  // Server-driven website builder offering (sections + their variants)
-  variantCatalog: WebsiteVariantCatalogEntry[];
-  sectionCatalog: WebsiteSectionCatalogEntry[];
-  isLoadingVariantCatalog: boolean;
-  isCreatingVariantCheckout: boolean;
-  /** Shopping cart of catalog variant ids awaiting one combined checkout (persisted to localStorage per business). */
-  variantCart: number[];
-  /** Shopping cart of section catalog ids (unlocks) — checked out together with the variants. */
-  sectionCart: number[];
 }
-

@@ -1,0 +1,15 @@
+/* Team · Portraits — the lookbook grid (mirrors Web app/microsite.css .lb-team). The card itself lives in
+   ../base.css; this file only owns the grid. Fixed ~285px tracks (not 1fr) keep a consistent, slightly-smaller
+   card at any surface width — 3-up on the preview, more on a wide public page — and collapse to 1-up on narrow. */
+
+.mc-team {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, min(100%, 285px));
+  gap: clamp(14px, 1.6cqw, 22px);
+}
+
+/* Mobile: one full-width card, a touch shorter than the desktop 4:5 (scoped so the Carousel card is untouched). */
+@container (max-width: 560px) {
+  .mc-team { grid-template-columns: 1fr; }
+  .mc-team .mc-pfig { aspect-ratio: 4 / 4.5; }
+}

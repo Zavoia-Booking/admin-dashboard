@@ -9,10 +9,15 @@ import { getCalendarLocale } from '../../../features/calendar/timezone';
 interface DatePickerProps {
   value?: Date | null;
   onChange: (date: Date) => void;
+  /** Optional trigger semantics for forms that associate labels and validation with the picker. */
+  triggerId?: string;
+  invalid?: boolean;
+  describedBy?: string;
   className?: string;
   placeholder?: string;
   viewMode?: 'day' | 'week' | 'month';
   minDate?: Date;
+  maxDate?: Date;
   /** When true, trigger is rounded and connects to popover with open/close animation (e.g. add-appointment flow). */
   connectedPopover?: boolean;
   /** Optional class for popover content when connectedPopover (e.g. add-appointment-popover-expand). */
@@ -29,10 +34,14 @@ interface DatePickerProps {
 const DatePicker: React.FC<DatePickerProps> = ({
   value = null,
   onChange,
+  triggerId,
+  invalid = false,
+  describedBy,
   className,
   placeholder = 'Select date',
   viewMode = 'day',
   minDate,
+  maxDate,
   connectedPopover = false,
   contentClassName,
   popoverHeaderSlot,
@@ -188,10 +197,16 @@ const DatePicker: React.FC<DatePickerProps> = ({
   };
 
   const isDateDisabled = (date: Date) => {
-    if (minDate == null) return false;
     const dayStart = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-    const minDayStart = new Date(minDate.getFullYear(), minDate.getMonth(), minDate.getDate());
-    return dayStart < minDayStart;
+    if (minDate != null) {
+      const minDayStart = new Date(minDate.getFullYear(), minDate.getMonth(), minDate.getDate());
+      if (dayStart < minDayStart) return true;
+    }
+    if (maxDate != null) {
+      const maxDayStart = new Date(maxDate.getFullYear(), maxDate.getMonth(), maxDate.getDate());
+      if (dayStart > maxDayStart) return true;
+    }
+    return false;
   };
 
   const handleDateSelect = (date: Date) => {
@@ -231,6 +246,8 @@ const DatePicker: React.FC<DatePickerProps> = ({
     const today = new Date();
     setCurrentMonth(today);
     setCurrentYear(today.getFullYear());
+    // Today can sit outside the min/max window — navigate to it, but never select a disabled day.
+    if (isDateDisabled(today)) return;
     onChange(today);
     setIsOpen(false);
   };
@@ -281,6 +298,9 @@ const DatePicker: React.FC<DatePickerProps> = ({
     <Popover open={isOpen} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
         <Button
+          id={triggerId}
+          aria-invalid={invalid || undefined}
+          aria-describedby={describedBy}
           variant="outline"
           className={cn(
             "h-12 w-full bg-white border border-border text-sm font-medium text-foreground justify-start",
@@ -482,4 +502,4 @@ const DatePicker: React.FC<DatePickerProps> = ({
   );
 };
 
-export default DatePicker; 
+export default DatePicker;

@@ -1,0 +1,49 @@
+.mc-anno--lay-ribbon .mc-anno-in {
+  justify-content: center;
+  text-align: center;
+}
+.mc-anno--lay-ribbon.mc-anno--has-details .mc-anno-in { flex-wrap: nowrap; }
+.mc-anno--lay-ribbon.mc-anno--has-details .mc-anno-txt {
+  display: block;
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@container (max-width: 560px) {
+  .mc-anno--lay-ribbon .mc-anno-in {
+    display: grid;
+    grid-template-columns: 6px minmax(0, 1fr) auto;
+    align-items: center;
+    justify-content: initial;
+    gap: 8px;
+    padding: 10px 44px 10px 14px;
+    text-align: left;
+  }
+  .mc-anno--lay-ribbon .mc-anno-dot {
+    grid-column: 1;
+    grid-row: 1;
+    margin-top: 0;
+  }
+  .mc-anno--lay-ribbon .mc-anno-txt {
+    grid-column: 2;
+    grid-row: 1;
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .mc-anno--lay-ribbon.mc-anno--has-details .mc-anno-txt {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .mc-anno--lay-ribbon .mc-anno-actions {
+    grid-column: 3;
+    grid-row: 1;
+    justify-content: flex-start;
+    flex-wrap: nowrap;
+  }
+}

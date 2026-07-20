@@ -1,0 +1,93 @@
+.mc-anno.mc-anno--lay-pill {
+  position: absolute;
+  right: 0;
+  left: 0;
+  top: clamp(74px, 8vh, 88px);
+  display: flex;
+  justify-content: center;
+  padding: 0 14px;
+  background: transparent;
+  pointer-events: none;
+}
+.mc-anno--lay-pill .mc-anno-in {
+  width: max-content;
+  min-width: 0;
+  max-width: min(94cqw, 100%, 900px);
+  flex-wrap: nowrap;
+  padding: 9px 12px 9px 20px;
+  border-radius: 999px;
+  background: var(--mc-fg);
+  box-shadow: 0 14px 40px -8px rgba(16, 13, 11, .4);
+  pointer-events: auto;
+}
+.mc-anno--lay-pill.mc-anno--offer .mc-anno-in { background: var(--mc-accent); }
+.mc-anno--lay-pill .mc-anno-txt { flex: 1 1 auto; }
+.mc-anno--lay-pill.mc-anno--has-details .mc-anno-txt {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mc-anno--lay-pill .mc-anno-x {
+  position: static;
+  right: auto;
+  top: auto;
+  width: 24px;
+  height: 24px;
+  margin-left: 2px;
+  transform: none;
+}
+.mc-anno.mc-anno--lay-pill.mc-anno--sample {
+  position: relative;
+  right: auto;
+  left: auto;
+  top: auto;
+  padding-block: 14px;
+}
+
+@container (max-width: 560px) {
+  .mc-anno.mc-anno--lay-pill { padding-inline: 10px; }
+  .mc-anno--lay-pill .mc-anno-in {
+    display: grid;
+    width: 100%;
+    max-width: none;
+    grid-template-columns: 6px minmax(0, 1fr) auto 28px;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 10px 10px 14px;
+    border-radius: 999px;
+  }
+  .mc-anno--lay-pill .mc-anno-dot {
+    grid-column: 1;
+    grid-row: 1;
+    margin-top: 0;
+  }
+  .mc-anno--lay-pill .mc-anno-txt {
+    grid-column: 2;
+    grid-row: 1;
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .mc-anno--lay-pill.mc-anno--has-details .mc-anno-txt {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .mc-anno--lay-pill .mc-anno-actions {
+    grid-column: 3;
+    grid-row: 1;
+    justify-content: flex-start;
+    flex-wrap: nowrap;
+  }
+  .mc-anno--lay-pill .mc-anno-x {
+    grid-column: 4;
+    grid-row: 1;
+    width: 28px;
+    height: 28px;
+    margin-left: 0;
+    justify-self: end;
+  }
+}

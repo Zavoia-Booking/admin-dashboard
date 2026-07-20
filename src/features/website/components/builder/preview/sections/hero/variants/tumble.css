@@ -1,0 +1,48 @@
+/* Tumble — the full name falls as huge ink glyphs onto warm, grained paper (design source: .lb-herotb*).
+   A faint accent world (bloom + editorial ring) sits behind the ink; the glyph transforms are driven by the
+   component's physics. Viewport units become container-query units (the preview is width-driven). */
+.mc-herotb { position: relative; min-height: var(--mc-vph, clamp(560px, 100cqw, 900px)); overflow: hidden;
+  background: radial-gradient(126% 92% at 50% -8%, #FCFAF4 0%, #F1E9DB 56%, #E6DBC7 100%); }
+/* faint accent world behind the ink — a soft bloom + one editorial ring */
+.mc-herotb-underlay { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
+.mc-herotb-underlay::before { content: ""; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(86cqw, 860px); aspect-ratio: 1; border-radius: 50%;
+  background: radial-gradient(closest-side, color-mix(in oklch, var(--mc-accent) 15%, transparent) 0%, color-mix(in oklch, var(--mc-accent) 6%, transparent) 46%, transparent 72%); }
+.mc-herotb-underlay::after { content: ""; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(66cqw, 640px); aspect-ratio: 1; border-radius: 50%;
+  border: 1.5px solid color-mix(in oklch, var(--mc-accent) 20%, transparent); }
+/* paper grain (multiply) + soft top light and a warm floor shade for depth */
+.mc-herotb-grain { position: absolute; inset: -24px; z-index: 0; opacity: 0.5; mix-blend-mode: multiply; background-size: 180px 180px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+.mc-herotb-vign { position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background: radial-gradient(102% 76% at 50% -8%, rgba(255, 253, 248, 0.72) 0%, transparent 56%), radial-gradient(120% 96% at 50% 118%, color-mix(in oklch, var(--mc-fg) 20%, transparent) 0%, transparent 60%); }
+/* stage — the full name centred as a stacked lockup; letters tumble into their flow slots. font-size is
+   set inline by the component (fit-to-frame). */
+.mc-herotb-stage { position: absolute; inset: 0; margin: 0; z-index: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.05em;
+  padding: clamp(96px, 22cqw, 226px) 5cqw clamp(96px, 20cqw, 182px); text-align: center; }
+.mc-herotb-line { display: flex; justify-content: center; align-items: flex-end; line-height: 0.82; white-space: nowrap; }
+.mc-herotb-sp { display: inline-block; width: 0.34em; }
+.mc-herotb-ch { display: inline-block; font-family: var(--mc-display); font-weight: var(--mc-display-weight); letter-spacing: var(--mc-display-tracking); line-height: 0.82; color: var(--mc-fg);
+  cursor: grab; -webkit-user-select: none; user-select: none; transform-origin: 50% 74%; will-change: transform;
+  transform: translate(0, -130cqw) rotate(0deg);
+  filter: drop-shadow(0 10px 13px rgba(48, 36, 22, 0.17)); }
+.mc-herotb-ch:active { cursor: grabbing; }
+.mc-herotb-side { position: absolute; top: clamp(80px, 20cqw, 220px); right: clamp(18px, 4cqw, 56px); z-index: 2; width: min(250px, 38cqw); text-align: right; }
+.mc-herotb-tag { margin: 0; font-size: 14.5px; line-height: 1.6; color: var(--mc-fg); text-wrap: pretty; }
+.mc-herotb-foottag { display: none; margin: 0; font-size: 14.5px; line-height: 1.55; color: var(--mc-fg); text-wrap: pretty; max-width: 42ch; }
+.mc-herotb-reg { display: inline-block; margin-top: 16px; font-size: 17px; color: var(--mc-muted); }
+.mc-herotb-foot { position: absolute; left: clamp(18px, 4cqw, 56px); right: clamp(18px, 4cqw, 56px); bottom: clamp(20px, 4cqw, 40px); z-index: 4; display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 16px 28px; }
+.mc-herotb-cta { display: flex; align-items: center; gap: clamp(18px, 3.5cqw, 34px); flex-wrap: wrap; }
+
+/* Narrow: free the side tagline to a full-width line under the nav; centre the foot. */
+@container (max-width: 1024px) {
+  .mc-herotb-side { display: none; }
+  .mc-herotb-foottag { display: block; margin: 0 0 6px; }
+  .mc-herotb-stage { gap: 0.1em; padding: clamp(96px, 16cqw, 170px) 7cqw clamp(150px, 28cqw, 250px); }
+  .mc-herotb-foot { justify-content: center; text-align: center; }
+  .mc-herotb-cta { flex-direction: column; align-items: center; gap: 14px; width: 100%; }
+  .mc-herotb-underlay::before { width: min(92cqw, 720px); }
+  .mc-herotb-underlay::after { width: min(80cqw, 560px); }
+}
+@container (max-width: 480px) {
+  .mc-herotb-side { top: clamp(60px, 12cqw, 120px); left: clamp(18px, 4cqw, 56px); right: clamp(18px, 4cqw, 56px); width: auto; text-align: center; }
+  .mc-herotb-reg { display: none; }
+}

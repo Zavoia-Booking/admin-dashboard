@@ -1,0 +1,85 @@
+.mc-anno--lay-ticker .mc-anno-in {
+  display: flex;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 0;
+  padding: 0;
+  flex-wrap: nowrap;
+}
+.mc-anno-tick {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  align-items: center;
+  overflow: hidden;
+}
+.mc-anno-tick-track {
+  display: inline-flex;
+  align-items: center;
+  padding: 9px 0;
+  white-space: nowrap;
+  will-change: transform;
+}
+.mc-anno-tick-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 16px;
+  font-size: 12.5px;
+  letter-spacing: .01em;
+}
+.mc-anno-tick-item i {
+  width: 5px;
+  height: 5px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--mc-accent);
+}
+.mc-anno--offer .mc-anno-tick-item i { background: rgba(255, 255, 255, .72); }
+.mc-anno-tick-end {
+  position: relative;
+  z-index: 2;
+  display: inline-flex;
+  min-width: 0;
+  max-width: 75%;
+  flex: 0 1 auto;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 14px;
+  padding: 9px 48px 9px 20px;
+  background: inherit;
+  box-shadow: -22px 0 22px -14px rgba(0, 0, 0, .35);
+}
+
+@container (max-width: 560px) {
+  .mc-anno--lay-ticker .mc-anno-tick-track {
+    display: block;
+    width: 100%;
+    padding: 9px 0;
+    transform: none !important;
+  }
+  .mc-anno--lay-ticker .mc-anno-tick-item {
+    display: none;
+  }
+  .mc-anno--lay-ticker .mc-anno-tick-item:first-child {
+    display: block;
+    overflow: hidden;
+    padding: 0 10px 0 14px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .mc-anno--lay-ticker .mc-anno-tick-item:first-child i {
+    display: inline-block;
+    margin-right: 8px;
+    vertical-align: middle;
+  }
+  .mc-anno--lay-ticker .mc-anno-tick-end {
+    max-width: none;
+    flex: 0 0 auto;
+    flex-wrap: nowrap;
+    gap: 8px;
+    padding: 8px 44px 8px 8px;
+  }
+}

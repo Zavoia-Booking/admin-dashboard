@@ -1,0 +1,88 @@
+/* Team · Roster — a numbered editorial directory (mirrors Web app/microsite.css .lb-roster / .lb-rrow).
+   Hover grows an accent left-bar, tints the row, zooms the avatar, and nudges the arrow. vw→cqw + @media→
+   @container so it responds to the preview surface; the row entrance is ../../shared/animations.css .mc-locx-rowin. */
+
+.mc-roster { display: flex; flex-direction: column; }
+.mc-rrow { border-top: 1px solid var(--mc-line); }
+.mc-roster .mc-rrow:last-child { border-bottom: 1px solid var(--mc-line); }
+
+.mc-rrow-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: clamp(16px, 2.2cqw, 30px);
+  width: 100%;
+  padding: clamp(16px, 1.9cqw, 24px) clamp(6px, 1.4cqw, 18px);
+  text-align: left;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+.mc-rrow-btn::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 2px;
+  height: 0;
+  background: var(--mc-accent);
+  transform: translateY(-50%);
+  transition: height 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.mc-rrow-btn:hover { background: color-mix(in oklch, var(--mc-accent) 4%, transparent); }
+.mc-rrow-btn:hover::before { height: calc(100% - 24px); }
+
+.mc-rrow-no {
+  flex: none;
+  align-self: flex-start;
+  padding-top: 6px;
+  font-family: var(--mc-mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--mc-muted);
+  transition: color 0.25s;
+}
+.mc-rrow-btn:hover .mc-rrow-no { color: var(--mc-accent); }
+
+.mc-rrow-ava { width: clamp(56px, 6cqw, 74px); aspect-ratio: 1; flex: none; overflow: hidden; border-radius: 50%; background: var(--mc-line); }
+.mc-rrow-ava img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; transition: transform 0.6s var(--ease-out-strong); }
+.mc-rrow-btn:hover .mc-rrow-ava img { transform: scale(1.07); }
+
+.mc-rrow-main { display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 1; }
+.mc-rrow-name { font-family: var(--mc-display); font-weight: var(--mc-display-weight); letter-spacing: var(--mc-display-tracking); font-size: clamp(20px, 2.2cqw, 28px); line-height: 1.05; color: var(--mc-fg); }
+.mc-rrow-role { font-size: 13px; color: var(--mc-muted); line-height: 1.4; }
+.mc-rrow-where { align-self: flex-start; margin-top: 5px; font-family: var(--mc-mono); font-size: 10.5px; font-weight: 600; letter-spacing: 0.13em; text-transform: uppercase; color: var(--mc-fg); }
+.mc-rrow-meta { display: inline-flex; align-items: center; gap: 9px; margin-top: 3px; font-family: var(--mc-mono); font-size: 11.5px; color: var(--mc-muted); }
+.mc-rrow-rate { display: inline-flex; align-items: center; gap: 5px; font-variant-numeric: tabular-nums; }
+.mc-rrow-rev { opacity: 0.65; }
+
+.mc-rrow-cta { margin-left: auto; display: inline-flex; align-items: center; flex: none; color: var(--mc-accent); }
+.mc-rrow-cta svg { transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.mc-rrow-btn:hover .mc-rrow-cta svg { transform: translateX(4px); }
+
+@container (max-width: 720px) {
+  .mc-rrow-btn { gap: 14px; align-items: center; padding: 15px 16px; }
+  .mc-rrow-no { align-self: center; padding-top: 0; }
+  .mc-rrow-ava { width: 60px; }
+  .mc-rrow-main { gap: 3px; }
+  .mc-rrow-name { font-size: 20px; }
+  .mc-rrow-role { font-size: 12.5px; }
+  .mc-rrow-where { margin-top: 4px; }
+  .mc-rrow-meta { margin-top: 2px; }
+  .mc-rrow-cta {
+    width: 38px;
+    height: 38px;
+    margin-left: 6px;
+    justify-content: center;
+    padding: 0;
+    border-radius: 50%;
+    border: 1px solid var(--mc-line);
+    color: var(--mc-fg);
+    transition: background 0.25s var(--ease-out-strong), border-color 0.25s var(--ease-out-strong), color 0.25s var(--ease-out-strong);
+  }
+  .mc-rrow-btn:active .mc-rrow-cta { background: var(--mc-accent); border-color: var(--mc-accent); color: #fff; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mc-rrow-btn::before, .mc-rrow-ava img, .mc-rrow-cta svg { transition: none; }
+}

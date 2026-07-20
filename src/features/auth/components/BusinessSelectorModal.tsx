@@ -13,6 +13,7 @@ import { Button } from "../../../shared/components/ui/button";
 import { Building2, ChevronRight } from "lucide-react";
 import { Spinner } from "../../../shared/components/ui/spinner";
 import { useTranslation } from "react-i18next";
+import { requestGuardedUnsavedAction } from "../../../shared/hooks/useUnsavedChangesBlocker";
 
 export default function BusinessSelectorModal() {
   const { t } = useTranslation('auth');
@@ -24,13 +25,15 @@ export default function BusinessSelectorModal() {
   const handleSelectBusiness = (businessId: number) => {
     if (!businessSelection?.selectionToken) return;
     
-    setSelectedBusinessId(businessId);
-    dispatch(
-      selectBusinessAction.request({
-        selectionToken: businessSelection.selectionToken,
-        businessId,
-      })
-    );
+    requestGuardedUnsavedAction(() => {
+      setSelectedBusinessId(businessId);
+      dispatch(
+        selectBusinessAction.request({
+          selectionToken: businessSelection.selectionToken,
+          businessId,
+        })
+      );
+    });
   };
 
   const handleClose = () => {

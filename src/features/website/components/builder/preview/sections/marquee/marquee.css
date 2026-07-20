@@ -1,0 +1,116 @@
+/* Strip shared treatment — the `MarqueeBand` source values with a configurable, CSS-drawn separator.
+   Variant styles own only their motion. Equal repeated sequences keep either transform periodic at one set. */
+.mc-strip {
+  overflow: hidden;
+  width: 100%;
+  background: var(--mc-fg);
+  color: var(--mc-bg);
+  text-rendering: optimizeLegibility;
+  transition: background-color 240ms var(--ease-out-strong), color 240ms var(--ease-out-strong);
+  /* Source uses vw; cqw is the builder-equivalent because `.mc-root` is the logical preview viewport. */
+  padding: clamp(13px, 1.7cqw, 22px) 0;
+}
+
+.mc-strip-track {
+  display: inline-flex;
+  white-space: nowrap;
+  font-size: clamp(19px, 2.5cqw, 40px);
+}
+
+.mc-strip-sequence {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mc-strip-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6em;
+  padding: 0 0.45em;
+  font-family: var(--mc-display);
+  font-style: italic;
+  font-weight: var(--mc-display-weight);
+  line-height: normal;
+  letter-spacing: var(--mc-display-tracking);
+}
+
+.mc-strip-label {
+  font-size: var(--mc-strip-text-size, 100%);
+}
+
+.mc-strip--roman .mc-strip-item {
+  font-style: normal;
+}
+
+.mc-strip-separator {
+  display: inline-grid;
+  flex: none;
+  width: 0.42em;
+  height: 0.58em;
+  place-items: center;
+  color: var(--mc-accent);
+  font-style: normal;
+  transition: color 240ms var(--ease-out-strong);
+}
+
+.mc-strip--brand-background {
+  background: var(--mc-accent-field);
+  color: var(--mc-on-accent);
+}
+
+.mc-strip--brand-background .mc-strip-separator {
+  color: var(--mc-on-accent);
+}
+
+.mc-strip-separator::before {
+  display: block;
+  content: "";
+  background: currentColor;
+  transform: scale(var(--mc-strip-separator-scale, 1));
+  transform-origin: center;
+}
+
+.mc-strip-separator[data-separator-style="pearl"]::before {
+  width: clamp(6px, 0.18em, 8px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px color-mix(in srgb, currentColor 20%, transparent);
+}
+
+.mc-strip-separator[data-separator-style="diamond"]::before {
+  width: clamp(6px, 0.18em, 8px);
+  aspect-ratio: 1;
+  border-radius: 1px;
+  transform: rotate(45deg) scale(var(--mc-strip-separator-scale, 1));
+}
+
+.mc-strip-separator[data-separator-style="slash"]::before {
+  width: 1.5px;
+  height: 0.56em;
+  border-radius: 999px;
+  transform: rotate(18deg) scale(var(--mc-strip-separator-scale, 1));
+}
+
+.mc-strip-separator[data-separator-style="sparkle"]::before {
+  width: clamp(8px, 0.3em, 12px);
+  aspect-ratio: 1;
+  clip-path: polygon(50% 0%, 61% 39%, 100% 50%, 61% 61%, 50% 100%, 39% 61%, 0% 50%, 39% 39%);
+}
+
+.mc-strip-separator[data-separator-style="ring"]::before {
+  width: clamp(7px, 0.22em, 10px);
+  aspect-ratio: 1;
+  border: 1.5px solid currentColor;
+  border-radius: 50%;
+  background: transparent;
+}
+
+@container (max-width: 600px) {
+  .mc-strip-track {
+    font-size: 22px;
+  }
+}

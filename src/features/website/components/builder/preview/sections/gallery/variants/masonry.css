@@ -1,0 +1,76 @@
+.mc-masonry {
+  display: grid;
+  align-items: stretch;
+  gap: clamp(8px, 0.9cqw, 14px);
+}
+
+.mc-masonry-col {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: clamp(8px, 0.9cqw, 14px);
+}
+
+.mc-masonry-tile {
+  margin: 0;
+}
+
+.mc-masonry-image {
+  width: 100%;
+}
+
+.mc-masonry-image:hover .mc-gallery-image {
+  transform: scale(1.04);
+}
+
+.mc-masonry-col > .mc-masonry-tile:last-child {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+}
+
+.mc-masonry-col > .mc-masonry-tile:last-child > .mc-masonry-image {
+  width: 100%;
+  height: 100%;
+  flex: 1;
+  aspect-ratio: auto !important;
+}
+
+/* Four-to-eight image sets form a compact, level composition above phone width:
+   paired columns preserve the masonry rhythm, while odd sets retain one anchor tile. */
+@container (min-width: 641px) {
+  .mc-masonry[data-compact-size="small"] {
+    height: clamp(320px, calc(var(--mc-vph, 760px) * 0.44), 400px);
+  }
+
+  .mc-masonry[data-compact-size="medium"] {
+    height: clamp(380px, calc(var(--mc-vph, 760px) * 0.52), 460px);
+  }
+
+  .mc-masonry[data-compact-size="large"] {
+    height: clamp(430px, calc(var(--mc-vph, 760px) * 0.58), 500px);
+  }
+
+  .mc-masonry[data-compact-size] .mc-masonry-col {
+    height: 100%;
+  }
+
+  .mc-masonry[data-compact-size] .mc-masonry-col > .mc-masonry-tile {
+    display: flex;
+    min-height: 0;
+    flex: var(--mc-masonry-weight, 1) 1 0;
+  }
+
+  .mc-masonry[data-compact-size] .mc-masonry-col > .mc-masonry-tile > .mc-masonry-image {
+    width: 100%;
+    height: 100%;
+    flex: 1;
+    aspect-ratio: auto !important;
+  }
+}
+
+@container (min-width: 981px) {
+  .mc-masonry[data-compact-size="large"] {
+    height: clamp(500px, calc(var(--mc-vph, 760px) * 0.66), 590px);
+  }
+}

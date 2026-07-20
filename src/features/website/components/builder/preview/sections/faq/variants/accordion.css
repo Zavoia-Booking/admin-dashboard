@@ -1,0 +1,79 @@
+/* FAQ · Accordion — exact hairline disclosure treatment from the executable source. */
+.mc-faq {
+  border-top: 1px solid var(--mc-line);
+}
+
+.mc-faq-item {
+  border-bottom: 1px solid var(--mc-line);
+}
+
+.mc-faq-q {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  border: 0;
+  padding: clamp(20px, 2.4cqw, 30px) 0;
+  background: none;
+  color: var(--mc-fg);
+  cursor: pointer;
+  font-family: var(--mc-display);
+  font-size: clamp(19px, 2.4cqw, 32px);
+  font-weight: var(--mc-display-weight);
+  letter-spacing: var(--mc-display-tracking);
+  text-align: left;
+}
+
+.mc-faq-ic {
+  display: flex;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--mc-line);
+  border-radius: 50%;
+  transition:
+    transform 350ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    background-color 250ms,
+    color 250ms,
+    border-color 250ms;
+}
+
+.mc-faq-item[data-on="1"] .mc-faq-ic {
+  border-color: var(--mc-accent);
+  background: var(--mc-accent);
+  color: var(--mc-on-accent);
+  transform: rotate(45deg);
+}
+
+.mc-faq-a {
+  overflow: hidden;
+  transition: max-height 400ms var(--mc-faq-ease-out);
+}
+
+.mc-faq-a-inner {
+  max-width: 1000px;
+  padding-bottom: clamp(20px, 2.4cqw, 30px);
+  color: var(--mc-muted);
+  font-size: 16px;
+  line-height: 1.65;
+}
+
+@container (max-width: 600px) {
+  .mc-faq-q { font-size: 16.5px; }
+}
+
+@media (hover: none) {
+  .mc-faq-q:active {
+    background: color-mix(in oklch, var(--mc-accent) 7%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mc-faq-ic,
+  .mc-faq-a {
+    transition: none !important;
+  }
+}

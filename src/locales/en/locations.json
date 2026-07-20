@@ -128,7 +128,8 @@
       "title": "Remove Location",
       "description": "This will permanently remove this location from your locations list. This action cannot be undone.",
       "button": "Remove Location",
-      "removing": "Removing..."
+      "removing": "Removing...",
+      "goToWebsiteGallery": "Open Website Builder"
     },
     "mapDialog": {
       "title": "Verify Location Pin",

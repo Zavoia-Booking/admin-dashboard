@@ -15,7 +15,8 @@ export interface TextFieldProps {
   id?: string;
   className?: string;
   disabled?: boolean;
-  icon?: React.ComponentType<{ className?: string }>; // optional override icon
+  /** Optional override icon; pass null for a text-only field. */
+  icon?: React.ComponentType<{ className?: string }> | null;
   autoFocus?: boolean;
   type?: 'text' | 'password' | 'email';
   onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
@@ -50,7 +51,8 @@ export const TextField: React.FC<TextFieldProps> = ({
 }) => {
   const generatedId = useId();
   const id = providedId ?? generatedId;
-  const Icon = icon ?? MapPin;
+  const errorId = `${id}-error`;
+  const Icon = icon === null ? null : icon ?? MapPin;
 
   return (
     <div className={`space-y-2 ${className} pt-2`}>
@@ -74,18 +76,20 @@ export const TextField: React.FC<TextFieldProps> = ({
           onKeyDown={onKeyDown}
           onFocus={onFocus}
           onBlur={onBlur}
-          className={`!pr-11 transition-all focus-visible:ring-1 focus-visible:ring-offset-0 ${
+          className={`${Icon ? "!pr-11" : ""} transition-[color,background-color,border-color,box-shadow] focus-visible:ring-1 focus-visible:ring-offset-0 ${
             error
               ? "border-destructive bg-error-bg focus-visible:ring-error"
               : "border-border dark:border-border-subtle hover:border-border-strong focus:border-focus focus-visible:ring-focus"
           }`}
           aria-invalid={!!error}
+          aria-describedby={error ? errorId : undefined}
         />
-        <Icon className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" />
+        {Icon ? <Icon className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" /> : null}
       </div>
       <div className="h-5">
         {error && (
           <p
+            id={errorId}
             className="mt-1 flex items-center gap-1.5 text-xs text-destructive"
             role="alert"
             aria-live="polite"

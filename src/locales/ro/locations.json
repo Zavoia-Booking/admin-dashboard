@@ -128,7 +128,8 @@
       "title": "Elimină locația",
       "description": "Aceasta va elimina permanent această locație din lista ta. Această acțiune nu poate fi anulată.",
       "button": "Elimină locația",
-      "removing": "Se elimină..."
+      "removing": "Se elimină...",
+      "goToWebsiteGallery": "Deschide editorul site-ului"
     },
     "mapDialog": {
       "title": "Verifică pinul locației",

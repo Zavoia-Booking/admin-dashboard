@@ -1,0 +1,13 @@
+/* Reviews · Marquee — a centred one-line aggregate over two counter-drifting lanes of quote cards.
+   Source `Web app/microsite.css` .lb-rvm / .lb-rv-line — themed to --mc-*, vw→cqw. */
+.mc-rv-line { display: inline-flex; align-items: center; flex-wrap: wrap; justify-content: center; gap: 8px 13px; margin-top: 16px; font-family: var(--mc-mono); font-size: 12.5px; letter-spacing: 0.02em; color: var(--mc-muted); }
+.mc-rv-line b { color: var(--mc-fg); font-weight: 600; }
+.mc-rv-line-dot { opacity: 0.45; }
+
+.mc-rvm { display: flex; flex-direction: column; gap: clamp(12px, 1.6cqw, 18px); }
+.mc-rvm-row { overflow: hidden; -webkit-mask-image: linear-gradient(to right, transparent, #000 6%, #000 94%, transparent); mask-image: linear-gradient(to right, transparent, #000 6%, #000 94%, transparent); }
+.mc-rvm-track { display: flex; gap: clamp(12px, 1.6cqw, 18px); width: max-content; will-change: transform; }
+.mc-rvm-card { flex: none; width: clamp(280px, 30cqw, 400px); border: 1px solid var(--mc-line); border-radius: 14px; background: var(--mc-card, #fff); padding: clamp(16px, 1.8cqw, 24px); margin: 0; }
+.mc-rvm-q { margin: 10px 0 0; font-size: 14px; line-height: 1.58; color: var(--mc-fg); display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+.mc-rvm-meta { display: flex; align-items: baseline; gap: 8px; margin-top: 13px; font-family: var(--mc-mono); font-size: 11px; color: var(--mc-muted); }
+.mc-rvm-meta b { color: var(--mc-fg); font-weight: 600; font-size: 13px; }

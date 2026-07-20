@@ -9,7 +9,8 @@
     "selectMinute": "Selectează minutul",
     "selectPeriod": "Selectează perioada",
     "clearSearch": "Șterge căutarea",
-    "loading": "Se încarcă"
+    "loading": "Se încarcă",
+    "close": "Închide"
   },
   "loading": "Se încarcă...",
   "businessSetupGate": {
@@ -211,6 +212,8 @@
       "locations": "locații",
       "teamMember": "membru al echipei",
       "teamMembers": "membri ai echipei",
+      "websiteGalleryPhoto": "fotografie folosită pe site-ul publicat",
+      "websiteGalleryPhotos": "fotografii folosite pe site-ul publicat",
       "cancelInvitationHint": "Anulează invitația{{plural}} înainte de a elimina acest {{resourceType}}"
     },
     "resourceTypes": {
@@ -264,6 +267,7 @@
     "personNameSpecialChars": "Eliminați cifrele și caracterele speciale (sunt permise doar - ')",
     "addressFieldSpecialChars": "Eliminați caracterele speciale",
     "descriptionUnsafeChars": "Caracterele speciale < > nu sunt permise",
+    "websiteCopyUnsafeChars": "Eliminați <, > sau caracterele de control neacceptate",
     "url": "Introduceți un URL valid (de exemplu https://example.com)",
     "phoneRequired": "Numărul de telefon este obligatoriu",
     "phoneInvalid": "Introduceți un număr de telefon valid",

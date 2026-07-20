@@ -1,0 +1,47 @@
+/* Poster — giant stacked wordmark over a dark vertical light-curtain (design source: .lb-heropo*). An
+   accent bloom rises from the foot raked into fine vertical god-rays under a deep vignette + film grain.
+   The source's viewport units are converted to container-query units (the preview is width-driven); every
+   gradient / colour-mix is kept verbatim. */
+.mc-heropo { position: relative; min-height: var(--mc-vph, clamp(520px, 92cqw, 860px)); display: flex; overflow: hidden;
+  background:
+    radial-gradient(120% 84% at 50% 120%, color-mix(in oklch, var(--mc-accent) 20%, #0c121c) 0%, transparent 56%),
+    radial-gradient(150% 130% at 50% -10%, #121a28 0%, #0c121d 48%, transparent 78%),
+    linear-gradient(180deg, #0d131e 0%, #0a0f19 58%, #0b101a 100%); }
+/* accent plume rising from bottom-centre — hot near-white foot, saturated body, cooling into navy as it fans up */
+.mc-heropo-bloom { position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    radial-gradient(28% 24% at 51% 112%, color-mix(in oklch, var(--mc-accent) 30%, #fff) 0%, color-mix(in oklch, var(--mc-accent) 74%, #fff) 32%, transparent 62%),
+    radial-gradient(50% 96% at 51% 120%, color-mix(in oklch, var(--mc-accent) 90%, transparent) 0%, color-mix(in oklch, var(--mc-accent) 60%, transparent) 26%, color-mix(in oklch, var(--mc-accent) 30%, transparent) 50%, transparent 76%),
+    radial-gradient(104% 62% at 51% 122%, color-mix(in oklch, var(--mc-accent) 44%, transparent) 0%, color-mix(in oklch, var(--mc-accent) 20%, transparent) 42%, transparent 68%),
+    radial-gradient(150% 108% at 51% 128%, color-mix(in oklch, var(--mc-accent) 28%, #0a0f18) 0%, transparent 60%); }
+/* vertical god-ray shafts — concentrated in the plume, tapering up, warm + soft */
+.mc-heropo-rays { position: absolute; inset: -5%; z-index: 1; pointer-events: none; opacity: 0.5; mix-blend-mode: soft-light; filter: blur(2.5px);
+  background:
+    repeating-linear-gradient(90deg, transparent 0, rgba(255,242,231,0.078) 26px, transparent 60px, transparent 88px),
+    repeating-linear-gradient(90deg, transparent 0, rgba(255,242,231,0.05) 50px, transparent 118px, transparent 156px),
+    repeating-linear-gradient(90deg, transparent 0, rgba(255,242,231,0.036) 12px, transparent 38px, transparent 55px);
+  -webkit-mask: radial-gradient(58% 108% at 51% 120%, #000 0%, rgba(0,0,0,0.6) 42%, rgba(0,0,0,0.16) 68%, transparent 86%);
+          mask: radial-gradient(58% 108% at 51% 120%, #000 0%, rgba(0,0,0,0.6) 42%, rgba(0,0,0,0.16) 68%, transparent 86%); }
+/* deep navy vignette — darkens corners + the top behind the nav, keeps the plume clear */
+.mc-heropo-vignette { position: absolute; inset: 0; z-index: 2; pointer-events: none;
+  background:
+    radial-gradient(122% 104% at 50% 110%, transparent 44%, rgba(6,10,16,0.44) 80%, rgba(6,10,16,0.74) 100%),
+    linear-gradient(180deg, rgba(6,10,16,0.55) 0%, transparent 24%); }
+/* film grain over the whole frame — strong + even, reads in the dark corners too */
+.mc-heropo-grain { position: absolute; inset: 0; z-index: 3; pointer-events: none; opacity: 0.82; mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='170' height='170'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 160px 160px; }
+.mc-heropo-in { position: relative; z-index: 4; width: 100%; max-width: 1160px; margin: 0 auto; box-sizing: border-box; padding: clamp(96px, 20cqw, 180px) clamp(18px, 4cqw, 56px) clamp(56px, 11cqw, 100px); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; min-width: 0; }
+.mc-heropo-title { margin: clamp(16px, 3cqw, 30px) 0 0; display: flex; flex-direction: column; align-items: center; font-family: var(--mc-display); font-weight: var(--mc-display-weight); letter-spacing: var(--mc-display-tracking); font-size: clamp(52px, 13cqw, 150px); line-height: 0.9; color: #FBFAF7; min-width: 0; }
+.mc-heropo-line { display: block; overflow-wrap: break-word; }
+.mc-heropo-line.is-ghost { color: transparent; -webkit-text-stroke: 1.5px color-mix(in oklch, var(--mc-accent) 50%, #fff); }
+.mc-heropo-tag { margin: clamp(20px, 3cqw, 30px) 0 0; font-size: clamp(15px, 1.8cqw, 19px); line-height: 1.6; color: rgba(255,255,255,0.72); max-width: 46ch; text-wrap: pretty; }
+.mc-heropo-cta { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 18px clamp(22px, 3cqw, 34px); margin-top: clamp(28px, 5cqw, 46px); }
+
+@container (max-width: 520px) {
+  .mc-heropo-cta .mc-hx-rate { display: none; }
+}
+@container (max-width: 480px) {
+  .mc-heropo-title { font-size: clamp(42px, 16cqw, 72px); }
+  .mc-heropo-line.is-ghost { -webkit-text-stroke-width: 2px; }
+}

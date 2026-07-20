@@ -1,0 +1,11 @@
+/* Scroll owns its transform in Scroll.tsx: scrollTop × .7, updated only by scrolling. */
+.mc-strip-track--scroll {
+  transform: translateX(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mc-strip-track--scroll {
+    transform: none !important;
+    will-change: auto;
+  }
+}

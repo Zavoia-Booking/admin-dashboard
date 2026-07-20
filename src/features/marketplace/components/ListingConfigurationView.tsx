@@ -1,7 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useSelector } from "react-redux";
 import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
-import { selectHasWebsiteBuilder } from "../../auth/selectors";
 import { useCanWrite } from "../../../shared/components/common/subscription/useCanWrite";
 import { LimitedAccessBanner } from "../../../shared/components/common/subscription/LimitedAccessBanner";
 import {
@@ -12,10 +10,6 @@ import { AlertTriangle } from "lucide-react";
 import type {
   Business,
   LocationWithAssignments,
-  SectionEntry,
-  PageTheme,
-  FaqItem,
-  AnnouncementContent,
   PublishMarketplaceListingPayload,
 } from "../types";
 import { useMarketplaceForm } from "../hooks/useMarketplaceForm";
@@ -24,20 +18,23 @@ import ConfirmDialog from "../../../shared/components/common/ConfirmDialog";
 import { useTranslation } from "react-i18next";
 
 import { BusinessListingTab } from "./business/BusinessListingTab";
-import { WebsiteBuilderTab } from "./business/WebsiteBuilderTab";
-import { WebsiteBuilderLockedView } from "./business/WebsiteBuilderLockedView";
 import { LocationsTab } from "./locations/LocationsTab";
 import { MarketplacePublishStatusStrip } from "./MarketplacePublishStatusStrip";
 import { ReviewsTab } from "../../reviews/components/ReviewsTab";
 
-type MarketplaceTab = "business" | "website" | "locations" | "reviews";
+type MarketplaceTab = "business" | "locations" | "reviews";
 
 const validTabs: MarketplaceTab[] = [
   "business",
-  "website",
   "locations",
   "reviews",
 ];
+
+function resolveMarketplaceTab(rawTab: string | null): MarketplaceTab {
+  const tab = rawTab as MarketplaceTab | null;
+  if (tab && validTabs.includes(tab)) return tab;
+  return rawTab === "portfolio" ? "locations" : "business";
+}
 
 interface ListingConfigurationViewProps {
   business: Business | null;
@@ -52,16 +49,6 @@ interface ListingConfigurationViewProps {
   useBusinessEmail?: boolean;
   useBusinessPhone?: boolean;
   useBusinessDescription?: boolean;
-  // Business-page (microsite) content
-  heroImageUrl?: string | null;
-  tagline?: string | null;
-  aboutContent?: string | null;
-  brandColorHex?: string | null;
-  // Section builder (v1)
-  pageLayout?: SectionEntry[] | null;
-  pageTheme?: PageTheme | null;
-  faq?: FaqItem[] | null;
-  announcement?: AnnouncementContent | null;
   industries: any[];
   industryTags: any[];
   selectedIndustryTags: any[];
@@ -76,44 +63,26 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
+  const rawTab = searchParams.get("tab");
+  const activeTab = resolveMarketplaceTab(rawTab);
 
   // State for unsaved changes confirmation dialog
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
   const pendingNavigationPathRef = useRef<string | null>(null);
   const allowNavigationRef = useRef(false);
 
-  // Plan entitlement gate (websiteBuilder is Plus-only; trials stay locked). The Website tab
-  // stays visible for everyone — without the entitlement it renders an
-  // upgrade/locked view instead of the builder. UX only; the server strips
-  // builder fields for non-entitled plans.
-  const hasWebsiteBuilder = useSelector(selectHasWebsiteBuilder);
-
-  const getInitialTab = (): MarketplaceTab => {
-    const tab = searchParams.get("tab") as MarketplaceTab | null;
-    if (tab && validTabs.includes(tab)) {
-      return tab;
-    }
-    return "business";
-  };
-
-  const [activeTab, setActiveTab] = useState<MarketplaceTab>(getInitialTab());
   const canWrite = useCanWrite();
 
-  // Sync with URL changes (map legacy tab names: profile/booking-settings → business, portfolio → locations)
+  // Canonicalize legacy tab names. The active tab itself is derived from the URL above,
+  // so browser navigation and redirects never require a second state synchronization pass.
+  // The retired Website Builder tab is redirected by the route before this view mounts.
   useEffect(() => {
-    const rawTab = searchParams.get("tab");
-    const tab = rawTab as MarketplaceTab | null;
-    if (tab && validTabs.includes(tab)) {
-      setActiveTab(tab);
-    } else if (rawTab === "profile" || rawTab === "booking-settings") {
-      setActiveTab("business");
+    if (rawTab === "profile" || rawTab === "booking-settings") {
       navigate("/marketplace?tab=business", { replace: true });
     } else if (rawTab === "portfolio") {
-      setActiveTab("locations");
       navigate("/marketplace?tab=locations", { replace: true });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams, navigate]);
+  }, [rawTab, navigate]);
 
   const form = useMarketplaceForm({
     business: props.business,
@@ -121,19 +90,11 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
     marketplaceEmail: props.marketplaceEmail,
     marketplacePhone: props.marketplacePhone,
     marketplaceDescription: props.marketplaceDescription,
-    tagline: props.tagline,
-    aboutContent: props.aboutContent,
-    brandColorHex: props.brandColorHex,
-    pageLayout: props.pageLayout,
-    pageTheme: props.pageTheme,
-    faq: props.faq,
-    announcement: props.announcement,
     useBusinessName: props.useBusinessName ?? true,
     useBusinessEmail: props.useBusinessEmail ?? true,
     useBusinessPhone: props.useBusinessPhone ?? true,
     useBusinessDescription: props.useBusinessDescription ?? true,
     selectedIndustryTags: props.selectedIndustryTags,
-    hasWebsiteBuilder,
     onSave: props.onSave,
   });
 
@@ -292,7 +253,6 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
 
   const handleTabChange = (tabId: string) => {
     const tab = tabId as MarketplaceTab;
-    setActiveTab(tab);
     navigate(`/marketplace?tab=${tab}`, { replace: true });
   };
 
@@ -316,12 +276,6 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
     form.phoneError ||
     form.descriptionError
   );
-  const websiteBuilderOk = !(
-    form.taglineError ||
-    form.brandColorError ||
-    form.announcementError ||
-    form.aboutError
-  );
   // Photo gates, mirroring the backend publish checks: publishing needs at least
   // one photo somewhere (MARKETPLACE_LISTING.E22), and no publicly visible
   // location may have zero photos (E20).
@@ -342,11 +296,9 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
       locationsWithAssignments.find((l) => (l.portfolioImages?.length ?? 0) === 0) ??
       locationsWithAssignments[0];
     if (!target) return;
-    setActiveTab("locations");
     navigate(`/marketplace?tab=locations&locationId=${target.id}`, { replace: true });
     requestPortfolioAttention(target.id);
   };
-
   // Persistent business-level go-live status strip. Rendered at the top of every
   // tab panel (ResponsiveTabs keeps panels mounted but only shows the active one,
   // so exactly one strip is visible — and it stays put as tabs switch).
@@ -363,8 +315,6 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
         locationImagesOk={locationImagesOk}
         hasLocationPhoto={hasLocationPhoto}
         onPhotosNeeded={handlePhotosNeeded}
-        hasWebsiteBuilder={hasWebsiteBuilder}
-        websiteBuilderOk={websiteBuilderOk}
         locations={locationsWithAssignments}
         onPublish={handleCombinedSave}
       />
@@ -388,37 +338,6 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
           />
         </>
       ),
-    },
-    {
-      id: "website",
-      label: t("configuration.tabs.website"),
-      showBadge: hasWebsiteBuilder && !websiteBuilderOk,
-      // Only mount content while active: the builder dispatches review-stats
-      // fetches on mount, and the locked view must never mount it at all.
-      content:
-        activeTab === "website" ? (
-          hasWebsiteBuilder ? (
-            <>
-              {statusStrip}
-              <WebsiteBuilderTab
-                business={business}
-                canWrite={canWrite}
-                heroImageUrl={props.heroImageUrl ?? null}
-                locations={locationsWithAssignments}
-                form={form}
-              />
-            </>
-          ) : (
-            <WebsiteBuilderLockedView
-              business={business}
-              locations={locationsWithAssignments}
-              heroImageUrl={props.heroImageUrl ?? null}
-              // Saved values, not the live form draft — the teaser previews what would actually publish.
-              tagline={props.tagline ?? undefined}
-              brandColorHex={props.brandColorHex ?? undefined}
-            />
-          )
-        ) : null,
     },
     {
       id: "locations",

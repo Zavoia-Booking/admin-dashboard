@@ -56,6 +56,7 @@ function SidebarProvider({
   defaultOpen,
   open: openProp,
   onOpenChange: setOpenProp,
+  collapseOnMount = false,
   className,
   style,
   children,
@@ -64,6 +65,7 @@ function SidebarProvider({
   defaultOpen?: boolean
   open?: boolean
   onOpenChange?: (open: boolean) => void
+  collapseOnMount?: boolean
 }) {
   // Initialize from localStorage, fallback to defaultOpen or true
   // Use lazy initializer to only read from localStorage once on mount
@@ -76,6 +78,22 @@ function SidebarProvider({
   // This is the internal state of the sidebar.
   // We use openProp and setOpenProp for control from outside the component.
   const open = openProp ?? _open
+  const initialCollapseHandledRef = React.useRef(false)
+
+  React.useEffect(() => {
+    if (initialCollapseHandledRef.current || !collapseOnMount) return
+    if (!open) {
+      initialCollapseHandledRef.current = true
+      return
+    }
+
+    const frame = window.requestAnimationFrame(() => {
+      initialCollapseHandledRef.current = true
+      if (setOpenProp) setOpenProp(false)
+      else _setOpen(false)
+    })
+    return () => window.cancelAnimationFrame(frame)
+  }, [collapseOnMount, open, setOpenProp])
   
   const setOpen = React.useCallback(
     (value: boolean | ((value: boolean) => boolean)) => {

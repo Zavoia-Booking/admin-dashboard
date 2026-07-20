@@ -1,0 +1,54 @@
+/* Reviews — shared across every variant: the section head, the auto-playing slide (quote + meta) reused by
+   the showcase + spotlight, the circular prev/next arrow, and the reduced-motion settle. Per-variant layout
+   lives in variants/<name>.css. Adapted from `Web app/microsite.css` .lb-rv-* — themed to --mc-*, vw→cqw. */
+
+/* Section head — display heading with an optional trailing block (the wall rating chip). Row by default
+   (heading left, trailing right); centred column for marquee/deck. */
+.mc-rv-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: clamp(16px, 3cqw, 40px) clamp(20px, 4cqw, 56px);
+  margin-bottom: clamp(26px, 4cqw, 50px);
+}
+.mc-rv-head--center { flex-direction: column; align-items: center; text-align: center; }
+.mc-rv-head--summary-only .mc-rv-line { margin-top: 0; }
+.mc-rv-head-main { min-width: 0; }
+.mc-rv-head--center .mc-rv-head-main { max-width: 720px; }
+.mc-rv-h2 { margin: 0; font-family: var(--mc-display); font-weight: var(--mc-display-weight); letter-spacing: var(--mc-display-tracking); font-size: clamp(32px, 6cqw, 62px); line-height: 0.98; color: var(--mc-fg); text-wrap: balance; }
+
+/* One slide — quote (masked per-word rise) + meta. `data-shown` flips the entrance via CSS *transitions*,
+   which stay live even where the embedded preview idles @keyframes/rAF clocks. Reused by showcase + spotlight. */
+.mc-rv-q { position: relative; z-index: 1; margin: 0; min-height: 4.5em; font-family: var(--mc-display); font-weight: var(--mc-display-weight); letter-spacing: var(--mc-display-tracking); font-size: clamp(24px, 2.9cqw, 42px); line-height: 1.18; color: var(--mc-fg); text-wrap: pretty; }
+.mc-rv-w { display: inline-block; overflow: hidden; vertical-align: top; padding: 0.06em 0.03em 0.2em; margin: -0.06em -0.03em -0.2em; }
+.mc-rv-w > span { display: inline-block; will-change: transform; transform: translateY(118%); transition: transform 0.82s var(--ease-out-strong); transition-delay: calc(var(--i) * 32ms); }
+.mc-rv-q[data-shown="1"] .mc-rv-w > span { transform: translateY(0); }
+
+.mc-rv-meta { position: relative; z-index: 1; display: flex; align-items: center; gap: 14px; margin-top: clamp(26px, 3cqw, 42px); opacity: 0; transform: translateY(8px); transition: opacity 0.6s var(--ease-out-strong) 0.14s, transform 0.6s var(--ease-out-strong) 0.14s; }
+.mc-rv-meta[data-shown="1"] { opacity: 1; transform: none; }
+.mc-rv-meta-mono { flex: none; width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; font-family: var(--mc-display); font-weight: var(--mc-display-weight); font-size: 18px; color: var(--mc-fg); border: 1px solid var(--mc-line); }
+.mc-rv-meta-tx { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.mc-rv-meta-nm { font-family: var(--mc-display); font-weight: var(--mc-display-weight); letter-spacing: var(--mc-display-tracking); font-size: 17px; color: var(--mc-fg); line-height: 1.1; }
+.mc-rv-meta-sub { font-family: var(--mc-mono); font-size: 11px; letter-spacing: 0.03em; color: var(--mc-muted); }
+.mc-rv-meta-end { margin-left: auto; display: inline-flex; align-items: center; gap: 14px; }
+.mc-rv-vrow { display: inline-flex; align-items: center; gap: 6px; font-family: var(--mc-mono); font-size: 10px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--mc-muted); }
+.mc-rv-vrow svg { color: var(--mc-muted); opacity: 0.8; }
+@container (max-width: 460px) { .mc-rv-meta-end { display: none; } }
+
+/* Auto-advance progress hairline (showcase). */
+.mc-rv-prog { position: relative; z-index: 1; height: 2px; margin-top: clamp(24px, 3cqw, 38px); background: color-mix(in oklch, var(--mc-fg) 10%, transparent); overflow: hidden; }
+.mc-rv-prog-fill { position: absolute; inset: 0; transform-origin: left center; transform: scaleX(0); background: var(--mc-fg); }
+
+/* Shared circular prev/next arrow (source .lb-galcar-arr) — self-contained so reviews never depends on
+   gallery.css (a scoped preview may render one section alone). Used by spotlight + deck. */
+.mc-rv-arr { display: inline-flex; align-items: center; justify-content: center; width: 46px; height: 46px; border-radius: 50%; border: 1px solid var(--mc-line); background: var(--mc-bg); color: var(--mc-fg); cursor: pointer; transition: border-color 0.25s var(--ease-out-strong), background-color 0.25s var(--ease-out-strong), color 0.25s var(--ease-out-strong), transform 0.2s var(--ease-out-strong); }
+.mc-rv-arr:hover:not(:disabled) { border-color: var(--mc-fg); background: var(--mc-fg); color: var(--mc-bg); }
+.mc-rv-arr:active:not(:disabled) { transform: scale(0.92); }
+.mc-rv-arr:disabled { opacity: 0.28; cursor: default; }
+
+@media (prefers-reduced-motion: reduce) {
+  .mc-rv-q .mc-rv-w > span { transition: none !important; transform: none !important; }
+  .mc-rv-meta { opacity: 1 !important; transform: none !important; transition: none !important; }
+  .mc-rv-prog { display: none !important; }
+}
