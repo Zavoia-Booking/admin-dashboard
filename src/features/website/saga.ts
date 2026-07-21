@@ -222,7 +222,7 @@ type SaveAttemptResult =
       lockedItems?: WebsiteUnownedPublishItems;
     };
 
-function* handleFetchWebsiteBuilder() {
+function* handleFetchWebsiteBuilder(): Generator<any, void, any> {
   const scope = yield* getWebsiteScope();
   const abortController = new AbortController();
   try {
@@ -776,7 +776,7 @@ function* handleUnpublishWebsite(scope: WebsiteMutationScope) {
  * the builder falls back to its code-side defaults and the server still enforces ownership
  * at publish/delivery.
  */
-function* handleFetchWebsiteVariantCatalog(action: { type: string }) {
+function* handleFetchWebsiteVariantCatalog(action: { type: string }): Generator<any, void, any> {
   // ENTER is part of this takeLatest lane only to invalidate/suppress an older same-business
   // catalog request. The fresh workspace starts the replacement read after primary access loads.
   if (action.type === getType(enterWebsiteBuilderAction)) return;

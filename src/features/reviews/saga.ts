@@ -33,7 +33,7 @@ function* isCurrentReviewsScope(scopeBusinessId: string | null): Generator<any, 
   return currentScopeBusinessId === scopeBusinessId;
 }
 
-function* handleFetchReviewStats(action: { type: string }) {
+function* handleFetchReviewStats(action: { type: string }): Generator<any, void, any> {
   // Website ENTER shares this takeLatest lane only to suppress a retained in-flight result.
   // The fresh editable workspace dispatches the replacement request after its primary GET.
   if (action.type === getType(enterWebsiteBuilderAction)) return;
@@ -130,7 +130,7 @@ function* handleFetchHighlightReviews(
   action:
     | ActionType<typeof fetchHighlightReviewsAction.request>
     | ActionType<typeof enterWebsiteBuilderAction>,
-) {
+): Generator<any, void, any> {
   if (action.type === getType(enterWebsiteBuilderAction)) return;
   const scopeBusinessId: string | null = yield* getReviewsScopeBusinessId();
   const abortController = new AbortController();

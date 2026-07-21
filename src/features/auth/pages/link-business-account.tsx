@@ -1,18 +1,25 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { useForm } from "react-hook-form";
-import { AlertCircle, Lock } from "lucide-react";
+import { AlertCircle, CheckCircle2, Lock } from "lucide-react";
 import { Spinner } from "../../../shared/components/ui/spinner";
 import { Button } from "../../../shared/components/ui/button";
 import { Input } from "../../../shared/components/ui/input";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../../../shared/components/ui/card";
+import { Label } from "../../../shared/components/ui/label";
 import { GoogleSignInButton } from "../../../shared/components/auth/GoogleSignInButton";
 import { validateBusinessLinkTokenApi, completeBusinessLinkApi } from "../api";
 import { setTokensAction, setAuthUserAction } from "../actions";
 import type { BusinessLinkTokenValidation } from "../types";
-import { InfoPage } from "../../../shared/components/common/InfoPage";
 import { useTranslation, Trans } from "react-i18next";
+import { cn } from "../../../shared/lib/utils";
+import {
+  modalBody,
+  modalEyebrow,
+  modalPanel,
+  modalPrimary,
+  modalTitleCompact,
+} from "../../../shared/components/ui/modal-tokens";
 
 type FormValues = {
   password: string;
@@ -24,12 +31,41 @@ type Status =
   | { kind: 'success' }
   | { kind: 'error' };
 
+/** Shared editorial modal shell — every state renders inside the same panel + page
+ * backdrop so the surface stays put and only its contents swap between steps. */
+function Shell({ children }: { children: ReactNode }) {
+  return (
+    <main className="flex min-h-screen items-center justify-center bg-neutral-100 px-4 py-6 dark:bg-background sm:px-6">
+      <section
+        aria-labelledby="link-business-account-title"
+        className={cn(
+          modalPanel,
+          "relative inset-auto left-auto top-auto mx-auto -translate-x-0 -translate-y-0",
+        )}
+      >
+        {children}
+      </section>
+    </main>
+  );
+}
+
+function Eyebrow({ icon, children }: { icon: ReactNode; children: ReactNode }) {
+  return (
+    <div className={cn(modalEyebrow, "mb-5 flex items-center gap-2")}>
+      {icon}
+      <span>{children}</span>
+    </div>
+  );
+}
+
 export default function LinkBusinessAccountPage() {
   const { t } = useTranslation('auth');
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const [status, setStatus] = useState<Status>({ kind: 'validating' });
+  const [status, setStatus] = useState<Status>(
+    () => (searchParams.get('token') ? { kind: 'validating' } : { kind: 'error' }),
+  );
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -40,10 +76,7 @@ export default function LinkBusinessAccountPage() {
   });
 
   useEffect(() => {
-    if (!token) {
-      setStatus({ kind: 'error' });
-      return;
-    }
+    if (!token) return;
 
     let cancelled = false;
     validateBusinessLinkTokenApi(token)
@@ -83,138 +116,161 @@ export default function LinkBusinessAccountPage() {
 
   if (status.kind === 'validating') {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-muted to-background gap-4">
-        <Spinner size="lg" color="info" />
-        <div className="text-center space-y-1">
-          <p className="text-lg font-semibold text-foreground-1">{t('linkBusiness.checkingTitle')}</p>
-          <p className="text-sm text-foreground-3">{t('linkBusiness.checkingDescription')}</p>
+      <Shell>
+        <Eyebrow icon={<Lock className="h-3.5 w-3.5" aria-hidden="true" />}>
+          {t('linkBusiness.securityEyebrow')}
+        </Eyebrow>
+        <h1 id="link-business-account-title" className={modalTitleCompact}>
+          {t('linkBusiness.checkingTitle')}
+        </h1>
+        <p className={cn(modalBody, "mt-3")}>{t('linkBusiness.checkingDescription')}</p>
+        <div className="mt-8 flex justify-center">
+          <Spinner size="lg" />
         </div>
-      </div>
+      </Shell>
     );
   }
 
   if (status.kind === 'success') {
     return (
-      <InfoPage
-        title={t('linkBusiness.successTitle')}
-        description={`${t('linkBusiness.successDescription')} ${t('linkBusiness.successBody')}`}
-        buttons={[
-          {
-            label: t('linkBusiness.setupBusiness'),
-            onClick: () => navigate('/welcome', { replace: true }),
-          },
-        ]}
-      />
+      <Shell>
+        <Eyebrow icon={<CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />}>
+          {t('linkBusiness.securityEyebrow')}
+        </Eyebrow>
+        <h1 id="link-business-account-title" className={modalTitleCompact}>
+          {t('linkBusiness.successTitle')}
+        </h1>
+        <p className={cn(modalBody, "mt-3")}>
+          {`${t('linkBusiness.successDescription')} ${t('linkBusiness.successBody')}`}
+        </p>
+        <footer className="mt-7 border-t border-neutral-200 pt-5 dark:border-border-subtle">
+          <Button
+            className={cn(modalPrimary, "h-auto w-full")}
+            rounded="full"
+            type="button"
+            onClick={() => navigate('/welcome', { replace: true })}
+          >
+            <span>{t('linkBusiness.setupBusiness')}</span>
+          </Button>
+        </footer>
+      </Shell>
     );
   }
 
   if (status.kind === 'error') {
     return (
-      <InfoPage
-        title={t('linkBusiness.errorTitle')}
-        description={t('linkBusiness.errorDescription')}
-        buttons={[
-          {
-            label: t('linkBusiness.goToLogin'),
-            onClick: () => navigate('/login', { replace: true }),
-          },
-        ]}
-      />
+      <Shell>
+        <Eyebrow icon={<AlertCircle className="h-3.5 w-3.5" aria-hidden="true" />}>
+          {t('linkBusiness.securityEyebrow')}
+        </Eyebrow>
+        <h1 id="link-business-account-title" className={modalTitleCompact}>
+          {t('linkBusiness.errorTitle')}
+        </h1>
+        <p className={cn(modalBody, "mt-3")}>{t('linkBusiness.errorDescription')}</p>
+        <footer className="mt-7 border-t border-neutral-200 pt-5 dark:border-border-subtle">
+          <Button
+            className={cn(modalPrimary, "h-auto w-full")}
+            rounded="full"
+            type="button"
+            onClick={() => navigate('/login', { replace: true })}
+          >
+            <span>{t('linkBusiness.goToLogin')}</span>
+          </Button>
+        </footer>
+      </Shell>
     );
   }
 
   const { info } = status;
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-muted to-background px-4">
-      <Card className="w-full max-w-lg mx-auto">
-        <CardHeader className="space-y-2 px-6 py-6 md:px-8 md:py-8 items-center text-center">
-          <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-            <Lock className="h-6 w-6 text-primary" />
-          </div>
-          <CardTitle className="text-xl md:text-2xl text-center">{t('linkBusiness.confirmTitle')}</CardTitle>
-          <CardDescription className="text-center text-sm">
-            <Trans
-              i18nKey={info.hasPassword ? 'linkBusiness.confirmDescription' : 'linkBusiness.googleOnlyDescription'}
-              t={t}
-              values={{ email: info.email }}
-              components={{ strong: <strong /> }}
+    <Shell>
+      <header className="text-left">
+        <Eyebrow icon={<Lock className="h-3.5 w-3.5" aria-hidden="true" />}>
+          {t('linkBusiness.securityEyebrow')}
+        </Eyebrow>
+        <h1 id="link-business-account-title" className={modalTitleCompact}>
+          {t('linkBusiness.confirmTitle')}
+        </h1>
+        <div className={cn(modalBody, "mt-3")}>
+          <Trans
+            i18nKey={info.hasPassword ? 'linkBusiness.confirmDescription' : 'linkBusiness.googleOnlyDescription'}
+            t={t}
+            values={{ email: info.email }}
+            components={{ strong: <strong /> }}
+          />
+        </div>
+      </header>
+      {info.hasPassword ? (
+        <form className="mt-7" onSubmit={handleSubmit(onSubmit)} noValidate>
+          <div className="space-y-2">
+            <Label htmlFor="password" className="text-[13px] font-medium text-neutral-700 dark:text-foreground-2">
+              {t('linkBusiness.passwordLabel')}
+            </Label>
+            <Input
+              id="password"
+              type="password"
+              placeholder={t('linkBusiness.passwordPlaceholder')}
+              disabled={submitting}
+              aria-invalid={!!errors.password}
+              autoComplete="current-password"
+              autoFocus
+              className={cn(
+                "h-11 bg-surface text-sm",
+                errors.password
+                  ? 'border-destructive bg-error-bg focus-visible:ring-error'
+                  : 'border-neutral-300 hover:border-neutral-400 focus-visible:border-focus',
+              )}
+              {...register('password', {
+                required: t('linkBusiness.passwordRequired'),
+              })}
             />
-          </CardDescription>
-        </CardHeader>
-        {info.hasPassword ? (
-          <form onSubmit={handleSubmit(onSubmit)} noValidate>
-            <CardContent className="flex flex-col gap-3 px-6 md:px-8">
-              <div className="space-y-2">
-                <label htmlFor="password" className="text-base font-medium text-foreground-1">
-                  {t('linkBusiness.passwordLabel')}
-                </label>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder={t('linkBusiness.passwordPlaceholder')}
-                  disabled={submitting}
-                  aria-invalid={!!errors.password}
-                  autoComplete="current-password"
-                  className={`transition-all focus-visible:ring-1 focus-visible:ring-offset-0 ${
-                    errors.password
-                      ? 'border-destructive bg-error-bg focus-visible:ring-error'
-                      : 'border-border hover:border-border-strong focus:border-focus focus-visible:ring-focus'
-                  }`}
-                  {...register('password', {
-                    required: t('linkBusiness.passwordRequired'),
-                  })}
-                />
-                <div className="h-5">
-                  {errors.password && (
-                    <p className="mt-1 flex items-center gap-1.5 text-xs text-destructive" role="alert" aria-live="polite">
-                      <AlertCircle className="h-3.5 w-3.5" />
-                      <span>{String(errors.password.message)}</span>
-                    </p>
-                  )}
-                </div>
-              </div>
-              {submitError && (
-                <p className="flex items-center gap-1.5 text-sm text-destructive" role="alert" aria-live="polite">
-                  <AlertCircle className="h-4 w-4" />
-                  <span>{submitError}</span>
+            <div className="min-h-5">
+              {errors.password && (
+                <p className="mt-1 flex items-center gap-1.5 text-[13px] text-destructive" role="alert" aria-live="polite">
+                  <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                  <span>{String(errors.password.message)}</span>
                 </p>
               )}
-            </CardContent>
-            <CardFooter className="flex flex-col gap-3 pt-2 px-6 md:px-8 pb-6 md:pb-8">
-              <Button
-                className="w-full h-10 md:h-12"
-                rounded="full"
-                type="submit"
-                disabled={submitting}
-              >
-                {submitting ? (
-                  <div className="flex items-center justify-center gap-3">
-                    <Spinner size="sm" color="info" />
-                    <span>{t('linkBusiness.confirming')}</span>
-                  </div>
-                ) : (
-                  t('linkBusiness.confirmSubmit')
-                )}
-              </Button>
-              {info.googleLinked && (
-                <>
-                  <div className="flex items-center gap-3 w-full">
-                    <div className="h-px flex-1 bg-border" />
-                    <span className="text-xs text-foreground-3">{t('linkBusiness.or')}</span>
-                    <div className="h-px flex-1 bg-border" />
-                  </div>
-                  <GoogleSignInButton context="register" disabled={submitting} />
-                </>
-              )}
-            </CardFooter>
-          </form>
-        ) : (
-          <CardFooter className="flex flex-col gap-3 pt-2 px-6 md:px-8 pb-6 md:pb-8">
-            <GoogleSignInButton context="register" />
-          </CardFooter>
-        )}
-      </Card>
-    </div>
+            </div>
+          </div>
+          {submitError && (
+            <p
+              className="mt-4 flex items-center gap-2 rounded-lg border border-destructive/20 bg-error-bg px-3 py-2.5 text-[13px] text-destructive"
+              role="alert"
+              aria-live="polite"
+            >
+              <AlertCircle className="h-4 w-4 shrink-0" />
+              <span>{submitError}</span>
+            </p>
+          )}
+          <footer className="mt-7 border-t border-neutral-200 pt-5 dark:border-border-subtle">
+            <Button
+              className={cn(modalPrimary, "h-auto w-full")}
+              rounded="full"
+              type="submit"
+              disabled={submitting}
+            >
+              {submitting ? <Spinner size="sm" color="white" /> : null}
+              <span>{submitting ? t('linkBusiness.confirming') : t('linkBusiness.confirmSubmit')}</span>
+            </Button>
+            {info.googleLinked && (
+              <div className="mt-4 space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-px flex-1 bg-neutral-200 dark:bg-border-subtle" />
+                  <span className="text-[12px] text-neutral-500 dark:text-foreground-3">{t('linkBusiness.or')}</span>
+                  <div className="h-px flex-1 bg-neutral-200 dark:bg-border-subtle" />
+                </div>
+                <GoogleSignInButton context="register" disabled={submitting} className="h-11 rounded-full text-sm" />
+              </div>
+            )}
+          </footer>
+        </form>
+      ) : (
+        <div className="mt-7 border-t border-neutral-200 pt-5 dark:border-border-subtle">
+          <GoogleSignInButton context="register" className="h-11 rounded-full text-sm" />
+        </div>
+      )}
+    </Shell>
   );
 }
