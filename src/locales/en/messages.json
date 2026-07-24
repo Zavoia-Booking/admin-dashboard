@@ -37,7 +37,9 @@
     "E35": "Please enter a valid phone number",
     "E36": "Set a password first",
     "E37": "Current password is wrong",
-    "E38": "Couldn’t change password. Try again"
+    "E38": "Couldn’t change password. Try again",
+    "E39": "You’ve reached the resend limit. Try again in a few hours",
+    "E40": "Couldn’t send the verification email. Try again"
   },
   "ACCOUNT": {
     "E01": "Couldn’t update account status. Try again",

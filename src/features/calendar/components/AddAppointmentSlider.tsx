@@ -31,7 +31,6 @@ import {
 import {
   getSelectedLocationId,
   getLocationStaff,
-  getHasTeamMembersAtLocation,
   getLocationWorkingHours,
   getLocationOpen247,
   getBookingSettings,
@@ -140,7 +139,6 @@ interface AppointmentItemRowTeamMember {
 interface AppointmentItemRowProps {
   item: AppointmentItem;
   index: number;
-  hasTeamMembersAtLocation: boolean;
   locationServices: AppointmentItemRowService[];
   locationBundles: AppointmentItemRowBundle[];
   locationTeamMembers: AppointmentItemRowTeamMember[];
@@ -157,7 +155,6 @@ interface AppointmentItemRowProps {
 function AppointmentItemRow({
   item,
   index,
-  hasTeamMembersAtLocation,
   locationServices,
   locationBundles,
   locationTeamMembers,
@@ -234,7 +231,6 @@ function AppointmentItemRow({
   // and the popover is fully closed (no pulse fighting the open-state border).
   const pulseStaffPicker =
     isFirstUnassigned &&
-    hasTeamMembersAtLocation &&
     !item.staffUserId &&
     !staffPopoverOpen &&
     !closingAnimation;
@@ -324,8 +320,7 @@ function AppointmentItemRow({
         )}
       </div>
       <div className="flex items-center gap-2 sm:shrink-0 sm:self-stretch w-full sm:w-auto">
-        {hasTeamMembersAtLocation && (
-            <Popover open={staffPopoverOpen} onOpenChange={handleStaffPopoverOpenChange}>
+        <Popover open={staffPopoverOpen} onOpenChange={handleStaffPopoverOpenChange}>
               <PopoverTrigger asChild>
                 <Button
                   variant="ghost"
@@ -399,8 +394,7 @@ function AppointmentItemRow({
                   </CommandList>
                 </Command>
               </PopoverContent>
-            </Popover>
-          )}
+        </Popover>
         <Button
           type="button"
           variant="ghost"
@@ -428,7 +422,6 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
   // Redux state
   const selectedLocationId = useSelector(getSelectedLocationId);
   const locationStaff = useSelector(getLocationStaff);
-  const hasTeamMembersAtLocation = useSelector(getHasTeamMembersAtLocation);
   const workingHours = useSelector(getLocationWorkingHours);
   const open247 = useSelector(getLocationOpen247);
   const bookingSettings = useSelector(getBookingSettings);
@@ -564,7 +557,7 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
     if (validItems.length === 0) {
       return null;
     }
-    if (hasTeamMembersAtLocation && validItems.some((item) => item.staffUserId == null)) {
+    if (validItems.some((item) => item.staffUserId == null)) {
       return null;
     }
     const resolvedItems = validItems.map((item) => ({
@@ -573,7 +566,7 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
       ...(item.staffUserId != null ? { staffUserId: item.staffUserId } : {}),
     }));
     return resolvedItems;
-  }, [appointmentItems, hasTeamMembersAtLocation]);
+  }, [appointmentItems]);
 
   useEffect(() => {
     if (!selectedLocationId || !form.date || !slotFetchItems) {
@@ -692,20 +685,18 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
   }, [locationBundles, prefillStaffFilter]);
 
   const getAutoStaffForService = useCallback((serviceId: number): number | null => {
-    if (!hasTeamMembersAtLocation) return null;
     const service = locationServices.find((item) => item.serviceId === serviceId);
     if (service?.staffIds?.length === 1) return service.staffIds[0];
     if (locationStaff.length === 1) return locationStaff[0].id;
     return null;
-  }, [hasTeamMembersAtLocation, locationServices, locationStaff]);
+  }, [locationServices, locationStaff]);
 
   const getAutoStaffForBundle = useCallback((bundleId: number): number | null => {
-    if (!hasTeamMembersAtLocation) return null;
     const bundle = locationBundles.find((item) => item.bundleId === bundleId);
     if (bundle?.staffIds?.length === 1) return bundle.staffIds[0];
     if (locationStaff.length === 1) return locationStaff[0].id;
     return null;
-  }, [hasTeamMembersAtLocation, locationBundles, locationStaff]);
+  }, [locationBundles, locationStaff]);
 
   const selectedServiceIds = useMemo(
     () => appointmentItems
@@ -893,8 +884,8 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
   // ─────────────────────────────────────────────────────────────
 
   const allCreateItemsValid = useMemo(
-    () => appointmentItems.length > 0 && appointmentItems.every((item) => isValidAppointmentItem(item, hasTeamMembersAtLocation)),
-    [appointmentItems, hasTeamMembersAtLocation],
+    () => appointmentItems.length > 0 && appointmentItems.every((item) => isValidAppointmentItem(item)),
+    [appointmentItems],
   );
 
   const isDirty = useMemo(() => {
@@ -1223,7 +1214,6 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
         form,
         appointmentItems,
         selectedLocationId,
-        hasTeamMembersAtLocation,
         scheduledDate,
       });
       if (Object.keys(payload).length === 0) {
@@ -1239,7 +1229,7 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
   };
 
   const hasSelectedAnyItem = appointmentItems.length > 0;
-  const isStaffReadyForSlots = allItemsHaveStaff(appointmentItems, hasTeamMembersAtLocation);
+  const isStaffReadyForSlots = allItemsHaveStaff(appointmentItems);
   const canSelectDateTime = isStaffReadyForSlots && !durationExceedsOneDay;
 
   // ─────────────────────────────────────────────────────────────
@@ -1437,15 +1427,12 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
                     // Track which row is the "next step" to draw attention to —
                     // the first item without an assigned staff. Only one row
                     // pulses at a time so the UI doesn't turn into a light show.
-                    const firstUnassignedIdx = hasTeamMembersAtLocation
-                      ? appointmentItems.findIndex((it) => it.staffUserId == null)
-                      : -1;
+                    const firstUnassignedIdx = appointmentItems.findIndex((it) => it.staffUserId == null);
                     return appointmentItems.map((item, idx) => (
                       <AppointmentItemRow
                         key={`${item.serviceId ?? 'b'}-${item.bundleId ?? 's'}-${idx}`}
                         item={item}
                         index={idx}
-                        hasTeamMembersAtLocation={hasTeamMembersAtLocation}
                         locationServices={locationServices}
                         locationBundles={locationBundles}
                         locationTeamMembers={locationTeamMembers}

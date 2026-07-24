@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
-import { Building2, Mail, Phone, Globe, Instagram, Facebook, Camera, Loader2, Lock, Info, FileText, ChevronRight } from 'lucide-react';
+import { Building2, Mail, Phone, Globe, Instagram, Facebook, Camera, Loader2, Lock, Info, FileText, ChevronRight, CheckCircle, AlertTriangle } from 'lucide-react';
 import { Button } from '../../../shared/components/ui/button';
 import { Label } from '../../../shared/components/ui/label';
 import { toast } from 'sonner';
@@ -18,8 +18,8 @@ import { fetchCurrentBusinessAction, updateBusinessAction } from '../../business
 import type { UpdateBusinessDTO } from '../../business/types';
 import { getCurrentBusinessSelector } from '../../business/selectors';
 import { fetchCurrentUserAction } from '../../auth/actions';
-import { setPasswordApi, changeOwnerPasswordApi, changeAccountEmailApi } from '../../auth/api';
-import { translateMessageCode } from '../../../shared/utils/error';
+import { setPasswordApi, changeOwnerPasswordApi, changeAccountEmailApi, resendVerificationEmailApi } from '../../auth/api';
+import { translateMessageCode, getErrorMessage } from '../../../shared/utils/error';
 import type { RootState } from '../../../app/providers/store';
 import { industryApi } from '../../../shared/api/industry.api';
 import type { Industry } from '../../../shared/types/industry';
@@ -132,6 +132,11 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
   const [emailFieldErrors, setEmailFieldErrors] = useState<{ currentEmail?: string; newEmail?: string }>({});
 
   const [legalDialogType, setLegalDialogType] = useState<LegalPageType | null>(null);
+
+  // Email verification resend state
+  const [isResendingVerification, setIsResendingVerification] = useState(false);
+  const [verificationEmailSent, setVerificationEmailSent] = useState(false);
+  const [resendLimitReached, setResendLimitReached] = useState(false);
 
   const [errors, setErrors] = useState<Record<string, string | undefined>>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
@@ -387,6 +392,30 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
     newEmailInput.trim().length > 0 &&
     !isSavingEmail;
 
+  const handleResendVerification = async () => {
+    setIsResendingVerification(true);
+    try {
+      const response = await resendVerificationEmailApi();
+      if (response.alreadyVerified) {
+        toast.success(t('profile.emailVerification.toast.alreadyVerified'));
+        dispatch(fetchCurrentUserAction.request());
+      } else {
+        toast.success(t('profile.emailVerification.toast.sent'));
+        setVerificationEmailSent(true);
+        if (response.remaining === 0) {
+          setResendLimitReached(true);
+        }
+      }
+    } catch (error: any) {
+      if (error?.response?.status === 429) {
+        setResendLimitReached(true);
+      }
+      toast.error(getErrorMessage(error));
+    } finally {
+      setIsResendingVerification(false);
+    }
+  };
+
   const handlePasswordSubmit = async () => {
     setPwFocused(false);
     const policyResult = validatePasswordPolicy(newPassword, t);
@@ -476,6 +505,12 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
               </div>
             </div>
             <div className="profile-hero-right">
+              {user && !user.emailVerified && (
+                <span className="profile-pill profile-pill-warn">
+                  <AlertTriangle className="h-3 w-3" />
+                  {t('profile.hero.emailNotVerified')}
+                </span>
+              )}
               <span className="profile-pill profile-pill-good">
                 <span className="profile-pill-dot" />
                 {t('profile.hero.ownerBadge')}
@@ -677,6 +712,79 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
 
             <div className="profile-field-stack">
               <GoogleAccountManager onSetPasswordClick={handleSetPasswordClick} />
+
+              <div className="profile-divider" />
+
+              {/* Email verification status */}
+              <div className="profile-subgroup">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3">
+                  <div className="profile-subgroup-head flex-1 min-w-0">
+                    <div className="profile-subgroup-title flex items-center gap-2 flex-wrap">
+                      <span>{t('profile.emailVerification.title')}</span>
+                      {user && (user.emailVerified ? (
+                        <span className="profile-pill profile-pill-verified">
+                          <CheckCircle className="h-3 w-3" />
+                          {t('profile.emailVerification.statusVerified')}
+                        </span>
+                      ) : (
+                        <span className="profile-pill profile-pill-warn">
+                          <AlertTriangle className="h-3 w-3" />
+                          {t('profile.emailVerification.statusNotVerified')}
+                        </span>
+                      ))}
+                    </div>
+                    {user?.email && (
+                      <div className="profile-subgroup-sub">
+                        <span className="font-medium">{user.email}</span>
+                      </div>
+                    )}
+                  </div>
+                  {user && !user.emailVerified && (
+                    <button
+                      type="button"
+                      onClick={handleResendVerification}
+                      disabled={isResendingVerification || resendLimitReached}
+                      className="profile-btn-ghost profile-btn-compact shrink-0 self-start sm:self-auto"
+                    >
+                      {isResendingVerification ? (
+                        <>
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                          {t('profile.emailVerification.sending')}
+                        </>
+                      ) : (
+                        <>
+                          <Mail className="h-3 w-3" />
+                          {t('profile.emailVerification.resend')}
+                        </>
+                      )}
+                    </button>
+                  )}
+                </div>
+
+                {user && !user.emailVerified && (
+                  verificationEmailSent ? (
+                    <div className="profile-banner profile-banner-good">
+                      <CheckCircle className="profile-banner-icon h-3.5 w-3.5" />
+                      <div className="profile-banner-body">{t('profile.emailVerification.sentHint')}</div>
+                    </div>
+                  ) : resendLimitReached ? (
+                    <div className="profile-banner profile-banner-warn">
+                      <AlertTriangle className="profile-banner-icon h-3.5 w-3.5" />
+                      <div className="profile-banner-body">{t('profile.emailVerification.limitHint')}</div>
+                    </div>
+                  ) : (
+                    <div className="profile-banner profile-banner-warn">
+                      <AlertTriangle className="profile-banner-icon h-3.5 w-3.5" />
+                      <div className="profile-banner-body">{t('profile.emailVerification.notVerifiedHint')}</div>
+                    </div>
+                  )
+                )}
+
+                <div className="profile-banner profile-banner-info">
+                  <Info className="profile-banner-icon h-3.5 w-3.5" />
+                  <div className="profile-banner-body">{t('profile.emailVerification.whyItMatters')}</div>
+                </div>
+              </div>
 
               <div className="profile-divider" />
 

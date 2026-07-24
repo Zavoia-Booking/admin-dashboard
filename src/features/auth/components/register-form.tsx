@@ -35,7 +35,7 @@ type RegisterFormProps = {
 }
 
 export function RegisterForm({ initialEmail, lockEmail, welcomeToken }: RegisterFormProps = {}) {
-  const { t } = useTranslation('auth')
+  const { t, i18n } = useTranslation('auth')
   const [pwFocused, setPwFocused] = useState<boolean>(false)
   const [pwInteracted, setPwInteracted] = useState<boolean>(false)
   const [showPassword, setShowPassword] = useState<boolean>(false)
@@ -43,7 +43,7 @@ export function RegisterForm({ initialEmail, lockEmail, welcomeToken }: Register
   const dispatch = useDispatch()
   const { isLoading, error: authError } = useSelector((state: RootState) => state.auth)
 
-  const { register, handleSubmit, formState: { errors, isValid, isSubmitting }, watch, setValue, reset, control } = useForm<FormValues>({
+  const { register, handleSubmit, formState: { errors, isValid, isSubmitting }, watch, setValue, reset, control, getValues, trigger } = useForm<FormValues>({
     mode: 'onChange',
     reValidateMode: 'onChange',
     defaultValues: {
@@ -70,6 +70,16 @@ export function RegisterForm({ initialEmail, lockEmail, welcomeToken }: Register
     required: t('register.validation.passwordRequired'),
     validate: (value) => validatePasswordPolicy(value, t),
   })
+
+  // Validation messages are resolved (and stored) at validation time, so a
+  // language switch would otherwise leave visible errors in the old language.
+  useEffect(() => {
+    const erroredFields = Object.keys(errors) as (keyof FormValues)[]
+    if (erroredFields.length > 0) {
+      trigger(erroredFields)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [i18n.language])
 
   const onSubmit = (values: FormValues) => {
     setPwFocused(false)
@@ -290,6 +300,14 @@ export function RegisterForm({ initialEmail, lockEmail, welcomeToken }: Register
                 </span>
               </label>
             </div>
+            <div className="h-5">
+              {errors.acceptTerms && (
+                <p className="mt-1 flex items-center gap-1.5 text-xs text-destructive" role="alert" aria-live="polite">
+                  <AlertCircle className="h-3.5 w-3.5" />
+                  <span>{String(errors.acceptTerms.message)}</span>
+                </p>
+              )}
+            </div>
           </div>
           <Button
             className="w-full h-10 md:h-12 mt-2"
@@ -310,7 +328,18 @@ export function RegisterForm({ initialEmail, lockEmail, welcomeToken }: Register
             <span className="px-4 text-sm text-muted-foreground bg-card whitespace-nowrap">{t('register.or')}</span>
             <div className="flex-1 h-px bg-border min-w-0"></div>
           </div>
-          <GoogleSignInButton context="register" disabled={isLoading} className="w-full h-10 md:h-12" />
+          <GoogleSignInButton
+            context="register"
+            disabled={isLoading}
+            className="w-full h-10 md:h-12"
+            onBeforeStart={() => {
+              if (!getValues('acceptTerms')) {
+                trigger('acceptTerms')
+                return false
+              }
+              return true
+            }}
+          />
       </form>
       <LegalContentDialog type={legalDialog} onOpenChange={(open) => !open && setLegalDialog(null)} />
     </>

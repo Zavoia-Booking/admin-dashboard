@@ -24,7 +24,8 @@
     "hero": {
       "eyebrow": "My account",
       "placeholderName": "Your account",
-      "emailVerified": "Email verified"
+      "emailVerified": "Email verified",
+      "emailNotVerified": "Email not verified"
     },
     "personalInfo": {
       "title": "Personal information",
@@ -39,6 +40,21 @@
     "contactInfo": {
       "title": "Contact details",
       "description": "Email and phone we use to reach you."
+    },
+    "emailVerification": {
+      "title": "Email address",
+      "statusVerified": "Verified",
+      "statusNotVerified": "Not verified",
+      "resend": "Resend verification email",
+      "sending": "Sending…",
+      "notVerifiedHint": "Your email address hasn't been confirmed yet. Check your inbox for the verification link, or resend it — you can request up to 2 emails per day.",
+      "sentHint": "Verification email sent. Check your inbox — and your spam folder, just in case. The link is valid for 24 hours.",
+      "limitHint": "You've reached the resend limit for today. Please try again in a few hours.",
+      "whyItMatters": "We use your email address to send you appointment reminders, booking updates, and other important notifications about your account. Keeping it verified makes sure these messages reach you.",
+      "toast": {
+        "sent": "Verification email sent.",
+        "alreadyVerified": "Your email is already verified."
+      }
     },
     "accountSecurity": {
       "title": "Account security",

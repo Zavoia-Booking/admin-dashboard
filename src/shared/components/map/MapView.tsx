@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 
@@ -58,6 +58,12 @@ export interface MapViewProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onMapLoad?: (map: any) => void;
   /**
+   * Callback when the map fails to initialize (e.g. the browser/GPU can't
+   * provide a WebGL context). Fired instead of the constructor throw bubbling
+   * up and crashing the whole route.
+   */
+  onError?: (error: Error) => void;
+  /**
    * Additional CSS classes for the container
    */
   className?: string;
@@ -91,12 +97,26 @@ export const MapView: React.FC<MapViewProps> = ({
   onMarkerDragEnd,
   clickToPlace = false,
   onMapClick,
+  onError,
   className = '',
 }) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const markerRef = useRef<mapboxgl.Marker | null>(null);
   const initializedRef = useRef(false);
+  const [hasError, setHasError] = useState(false);
+
+  // Keep the latest onError callback reachable from the init effect (which
+  // only runs once and captures its dependencies via a ref).
+  const onErrorRef = useRef(onError);
+  useEffect(() => {
+    onErrorRef.current = onError;
+  }, [onError]);
+  const reportError = (err: unknown) => {
+    const error = err instanceof Error ? err : new Error('Failed to initialize map');
+    setHasError(true);
+    onErrorRef.current?.(error);
+  };
   
   // Capture initial values - these should not change after first render
   const initialValuesRef = useRef({
@@ -124,15 +144,32 @@ export const MapView: React.FC<MapViewProps> = ({
       ? initStyle 
       : `mapbox://styles/mapbox/${initStyle}`;
 
-    // Initialize map
-    map.current = new mapboxgl.Map({
-      container: mapContainer.current,
-      style: styleUrl,
-      center: initCenter,
-      zoom: initZoom,
-    });
-    
+    // Initialize map. Mapbox throws synchronously ("Failed to initialize
+    // WebGL") when the browser/GPU can't give it a WebGL context — catch it
+    // so a headless/GPU-less environment can't take down the whole route.
+    try {
+      map.current = new mapboxgl.Map({
+        container: mapContainer.current,
+        style: styleUrl,
+        center: initCenter,
+        zoom: initZoom,
+      });
+    } catch (err) {
+      // Recording a one-time terminal init failure — not a cascading render.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      reportError(err);
+      return;
+    }
+
     initializedRef.current = true;
+
+    // Async failures (e.g. WebGL context lost after creation) surface here.
+    map.current.on('error', (e) => {
+      const message = (e as { error?: { message?: string } })?.error?.message ?? '';
+      if (/webgl|context/i.test(message)) {
+        reportError((e as { error?: unknown })?.error ?? message);
+      }
+    });
 
     // Add navigation controls
     if (initShowControls) {
@@ -225,6 +262,19 @@ export const MapView: React.FC<MapViewProps> = ({
       }
     };
   }, [marker, onMarkerDragEnd]);
+
+  if (hasError) {
+    return (
+      <div
+        className={`rounded-lg overflow-hidden flex items-center justify-center bg-surface-2 border border-border ${className}`}
+        style={{ height, width }}
+      >
+        <span className="px-4 text-center text-sm text-foreground-3">
+          The map couldn&apos;t be loaded on this device.
+        </span>
+      </div>
+    );
+  }
 
   return (
     <div

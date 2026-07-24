@@ -63,7 +63,7 @@ export const googleRegisterApi = async (payload: { code: string, redirectUri: st
     return data;
 };
 
-export const reauthForLinkApi = async (payload: { email: string; password: string }): Promise<{ proof: string }> => {
+export const reauthForLinkApi = async (payload: { email: string; password: string; tx_id?: string }): Promise<{ proof: string }> => {
     const { data } = await apiClient().post<{ proof: string }>(`/auth/link/google/re-auth`, payload);
     return data;
 };
@@ -129,6 +129,11 @@ export const changeOwnerPasswordApi = async (payload: { currentPassword: string;
 
 export const changeAccountEmailApi = async (payload: { currentEmail: string; newEmail: string }): Promise<{ success: boolean; email: string; revokedSessionCount: number }> => {
     const { data } = await apiClient().post<{ success: boolean; email: string; revokedSessionCount: number }>(`/auth/change-email`, payload);
+    return data;
+};
+
+export const resendVerificationEmailApi = async (): Promise<{ message: string; success: boolean; alreadyVerified: boolean; remaining?: number }> => {
+    const { data } = await apiClient().post<{ message: string; success: boolean; alreadyVerified: boolean; remaining?: number }>(`/auth/resend-verification-email`);
     return data;
 };
 

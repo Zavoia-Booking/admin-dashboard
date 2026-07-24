@@ -194,6 +194,7 @@ export const AuthReducer: Reducer<AuthState, any> = (state: AuthState = initialS
       const preservedState = preserveModalState ? {
         isAccountLinkingModalOpen: state.isAccountLinkingModalOpen,
         pendingLinkTxId: state.pendingLinkTxId,
+        pendingLinkEmail: state.pendingLinkEmail,
       } : {};
       return { ...initialState, ...preservedState };
     }
@@ -207,26 +208,26 @@ export const AuthReducer: Reducer<AuthState, any> = (state: AuthState = initialS
     }
 
     case getType(openAccountLinkingModal): {
-      return { ...state, isAccountLinkingModalOpen: true, pendingLinkTxId: action.payload.txId } as any;
+      return { ...state, isAccountLinkingModalOpen: true, pendingLinkTxId: action.payload.txId, pendingLinkEmail: action.payload.email ?? null, linkingError: null, linkingErrorCode: null } as any;
     }
 
     case getType(closeAccountLinkingModal): {
-      return { ...state, isAccountLinkingModalOpen: false, pendingLinkTxId: null } as any;
+      return { ...state, isAccountLinkingModalOpen: false, pendingLinkTxId: null, pendingLinkEmail: null, linkingError: null, linkingErrorCode: null } as any;
     }
 
     // Linking flow states
     case getType(reauthForLinkAction.request):
     case getType(linkGoogleAction.request): {
-      return { ...state, linkingLoading: true, linkingError: null } as any;
+      return { ...state, linkingLoading: true, linkingError: null, linkingErrorCode: null } as any;
     }
 
     case getType(reauthForLinkAction.failure):
     case getType(linkGoogleAction.failure): {
-      return { ...state, linkingLoading: false, linkingError: (action as any).payload.message } as any;
+      return { ...state, linkingLoading: false, linkingError: (action as any).payload.message, linkingErrorCode: (action as any).payload.code ?? null } as any;
     }
 
     case getType(linkGoogleAction.success): {
-      return { ...state, linkingLoading: false, linkingError: null, isAccountLinkingModalOpen: false, pendingLinkTxId: undefined } as any;
+      return { ...state, linkingLoading: false, linkingError: null, linkingErrorCode: null, isAccountLinkingModalOpen: false, pendingLinkTxId: undefined, pendingLinkEmail: null } as any;
     }
 
     // Unlink Google account handlers

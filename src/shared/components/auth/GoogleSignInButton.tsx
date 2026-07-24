@@ -9,9 +9,11 @@ type GoogleSignInButtonProps = {
   context: 'login' | 'register';
   disabled?: boolean;
   className?: string;
+  /** Called before the OAuth redirect starts; return false to block it (e.g. required terms checkbox not ticked). */
+  onBeforeStart?: () => boolean;
 };
 
-export function GoogleSignInButton({ context, disabled, className }: GoogleSignInButtonProps) {
+export function GoogleSignInButton({ context, disabled, className, onBeforeStart }: GoogleSignInButtonProps) {
   const { t } = useTranslation('auth');
   const dispatch = useDispatch();
   const redirectUri = getGoogleRedirectUri();
@@ -37,11 +39,12 @@ export function GoogleSignInButton({ context, disabled, className }: GoogleSignI
     <Button
       variant="outline"
       type="button"
-      onClick={() => { 
-        try { 
-          setOauthContext(context); 
+      onClick={() => {
+        if (onBeforeStart && !onBeforeStart()) return;
+        try {
+          setOauthContext(context);
         } catch {}
-        googleLogin(); 
+        googleLogin();
       }}
       disabled={disabled}
       className={"w-full bg-surface text-foreground-1 border-border hover:bg-surface-hover flex items-center justify-center gap-3 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed" + (className ? ` ${className}` : '')}

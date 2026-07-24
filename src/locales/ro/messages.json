@@ -37,7 +37,9 @@
     "E35": "Introdu un număr de telefon valid",
     "E36": "Setează mai întâi o parolă",
     "E37": "Parola curentă este greșită",
-    "E38": "Nu am putut schimba parola. Încearcă din nou"
+    "E38": "Nu am putut schimba parola. Încearcă din nou",
+    "E39": "Ai atins limita de retrimiteri. Încearcă din nou peste câteva ore",
+    "E40": "Nu am putut trimite emailul de verificare. Încearcă din nou"
   },
   "ACCOUNT": {
     "E01": "Nu am putut actualiza contul. Încearcă din nou",

@@ -96,7 +96,7 @@ export const googleRegisterAction = createAsyncAction(
 // In-flow Google collision modal controls
 export const openAccountLinkingModal = createAction(
   'auth/OPEN_ACCOUNT_LINKING_MODAL',
-)<{ suggestedNext?: string; txId?: string }>();
+)<{ suggestedNext?: string; txId?: string; email?: string }>();
 
 export const closeAccountLinkingModal = createAction(
   'auth/CLOSE_ACCOUNT_LINKING_MODAL',
@@ -107,13 +107,13 @@ export const reauthForLinkAction = createAsyncAction(
   'auth/REAUTH_FOR_LINK_REQUEST',
   'auth/REAUTH_FOR_LINK_SUCCESS',
   'auth/REAUTH_FOR_LINK_FAILURE',
-)<{ email: string; password: string }, { proof: string }, { message: string }>();
+)<{ email: string; password: string }, { proof: string }, { message: string; code?: string }>();
 
 export const linkGoogleAction = createAsyncAction(
   'auth/LINK_GOOGLE_REQUEST',
   'auth/LINK_GOOGLE_SUCCESS',
   'auth/LINK_GOOGLE_FAILURE',
-)<{ tx_id: string; proof: string }, { message: string }, { message: string }>();
+)<{ tx_id: string; proof: string }, { message: string }, { message: string; code?: string }>();
 
 export const unlinkGoogleAction = createAsyncAction(
   'auth/UNLINK_GOOGLE_REQUEST',

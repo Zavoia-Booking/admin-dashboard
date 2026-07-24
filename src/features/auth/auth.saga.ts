@@ -28,8 +28,17 @@ import { select } from "redux-saga/effects";
 import type { RootState } from "../../app/providers/store";
 import { refreshSession } from "../../shared/lib/http";
 import { tokenStorage } from "../../shared/lib/tokenStorage";
-import { getErrorMessage } from "../../shared/utils/error";
+import { getErrorMessage, isMessageCode } from "../../shared/utils/error";
 import i18n from "../../shared/lib/i18n";
+
+// Machine-readable code for a failed auth call: explicit `code` field first,
+// otherwise a bare message code (e.g. "AUTH.E12") sent in the message field.
+function getErrorCode(error: any): string | undefined {
+  const data = error?.response?.data;
+  if (typeof data?.code === 'string' && data.code) return data.code;
+  const msg = Array.isArray(data?.message) ? data.message[0] : data?.message;
+  return typeof msg === 'string' && isMessageCode(msg) ? msg : undefined;
+}
 
 function* handleRegisterOwnerRequest(action: { type: string; payload: RegisterOwnerPayload }): Generator<any, void, any> {
   try {
@@ -277,7 +286,7 @@ function* handleGoogleLogin(action: ReturnType<typeof googleLoginAction.request>
     if (code === 'account_exists_unlinked_google') {
       try { sessionStorage.setItem('linkContext', 'login'); } catch { /* empty */ }
       yield put(clearAuthErrorAction()); // Clear error so error handler doesn't redirect
-      yield put(openAccountLinkingModal({ suggestedNext: details?.suggestedNext, txId: details?.tx_id }));
+      yield put(openAccountLinkingModal({ suggestedNext: details?.suggestedNext, txId: details?.tx_id, email: details?.email }));
       yield put(setAuthLoadingAction({ isLoading: false }));
       return;
     }
@@ -373,7 +382,7 @@ function* handleGoogleRegister(action: ReturnType<typeof googleRegisterAction.re
     if (code === 'account_exists_unlinked_google') {
       try { sessionStorage.setItem('linkContext', 'register'); } catch { /* empty */ }
       yield put(clearAuthErrorAction()); // Clear error so error handler doesn't redirect
-      yield put(openAccountLinkingModal({ suggestedNext: details?.suggestedNext, txId: details?.tx_id }));
+      yield put(openAccountLinkingModal({ suggestedNext: details?.suggestedNext, txId: details?.tx_id, email: details?.email }));
       yield put(setAuthLoadingAction({ isLoading: false }));
       return;
     }
@@ -398,19 +407,21 @@ function* handleGoogleRegister(action: ReturnType<typeof googleRegisterAction.re
 function* handleReauthForLink(action: ReturnType<typeof reauthForLinkAction.request>): Generator<any, void, any> {
   try {
     const txId: string | undefined = yield select((s: RootState) => (s as any).auth.pendingLinkTxId);
-    
+
     if (!txId) {
-      yield put(reauthForLinkAction.failure({ message: i18n.t('auth:page.errors.linkSessionExpired') }));
-      yield put(closeAccountLinkingModal());
+      // Keep the modal open: it renders the error and Cancel handles the
+      // navigation back to login/register. Closing it here would strand the
+      // user on the /auth/callback spinner.
+      yield put(reauthForLinkAction.failure({ message: i18n.t('auth:page.errors.linkSessionExpired'), code: 'SYSTEM.E08' }));
       return;
     }
 
-    const res: { proof: string } = yield call(reauthForLinkApi, action.payload);
+    const res: { proof: string } = yield call(reauthForLinkApi, { ...action.payload, tx_id: txId });
     yield put(reauthForLinkAction.success({ proof: res.proof }));
     yield put(linkGoogleAction.request({ tx_id: txId, proof: res.proof }));
   } catch (error: any) {
     const message = getErrorMessage(error) || i18n.t('auth:page.errors.verificationFailed');
-    yield put(reauthForLinkAction.failure({ message }));
+    yield put(reauthForLinkAction.failure({ message, code: getErrorCode(error) }));
   }
 }
 
@@ -451,7 +462,7 @@ function* handleLinkGoogle(action: ReturnType<typeof linkGoogleAction.request>):
     
   } catch (error: any) {
     const message = getErrorMessage(error) || i18n.t('auth:page.errors.googleLinkFailed');
-    yield put(linkGoogleAction.failure({ message }));
+    yield put(linkGoogleAction.failure({ message, code: getErrorCode(error) }));
   }
 }
 

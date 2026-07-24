@@ -24,7 +24,8 @@
     "hero": {
       "eyebrow": "Contul meu",
       "placeholderName": "Contul tău",
-      "emailVerified": "Email verificat"
+      "emailVerified": "Email verificat",
+      "emailNotVerified": "Email neverificat"
     },
     "personalInfo": {
       "title": "Informații personale",
@@ -39,6 +40,21 @@
     "contactInfo": {
       "title": "Date de contact",
       "description": "Emailul și telefonul pe care le folosim pentru a te contacta."
+    },
+    "emailVerification": {
+      "title": "Adresa de email",
+      "statusVerified": "Verificată",
+      "statusNotVerified": "Neverificată",
+      "resend": "Retrimite emailul de verificare",
+      "sending": "Se trimite…",
+      "notVerifiedHint": "Adresa ta de email nu a fost încă confirmată. Caută linkul de verificare în inbox sau retrimite-l — poți solicita cel mult 2 emailuri pe zi.",
+      "sentHint": "Emailul de verificare a fost trimis. Verifică-ți inboxul — și folderul spam, pentru orice eventualitate. Linkul este valabil 24 de ore.",
+      "limitHint": "Ai atins limita de retrimiteri pentru astăzi. Te rugăm să încerci din nou peste câteva ore.",
+      "whyItMatters": "Folosim adresa ta de email pentru a-ți trimite remindere pentru programări, actualizări ale rezervărilor și alte notificări importante despre contul tău. Menținerea ei verificată asigură că aceste mesaje ajung la tine.",
+      "toast": {
+        "sent": "Emailul de verificare a fost trimis.",
+        "alreadyVerified": "Emailul tău este deja verificat."
+      }
     },
     "accountSecurity": {
       "title": "Securitatea contului",

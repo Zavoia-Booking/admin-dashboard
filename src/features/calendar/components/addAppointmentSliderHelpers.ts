@@ -140,16 +140,15 @@ export function getConfirmButtonTitle(isReschedule: boolean, t?: TFunction): str
 // Appointment items (service/bundle + staff assignment)
 // ─────────────────────────────────────────────────────────────
 
-export function isValidAppointmentItem(item: AppointmentItem, hasTeamMembersAtLocation: boolean): boolean {
+export function isValidAppointmentItem(item: AppointmentItem): boolean {
   const hasService = item.serviceId != null;
   const hasBundle = item.bundleId != null;
   if (!hasService && !hasBundle) return false;
   if (hasService && hasBundle) return false;
-  return item.staffUserId !== null || !hasTeamMembersAtLocation;
+  return item.staffUserId != null;
 }
 
-export function allItemsHaveStaff(items: AppointmentItem[], hasTeamMembersAtLocation: boolean): boolean {
-  if (!hasTeamMembersAtLocation) return items.length > 0;
+export function allItemsHaveStaff(items: AppointmentItem[]): boolean {
   return items.length > 0 && items.every((item) => item.staffUserId != null);
 }
 
@@ -328,10 +327,9 @@ export function buildMinimalEditAppointmentPayload(params: {
   form: FormState;
   appointmentItems: AppointmentItem[];
   selectedLocationId: number | null;
-  hasTeamMembersAtLocation: boolean;
   scheduledDate: Date;
 }): EditAppointmentPayload {
-  const { snapshot, form, appointmentItems, selectedLocationId, hasTeamMembersAtLocation, scheduledDate } = params;
+  const { snapshot, form, appointmentItems, selectedLocationId, scheduledDate } = params;
   const payload: EditAppointmentPayload = {};
   const editItem = appointmentItems.find((item) => item.serviceId != null);
   if (!editItem?.serviceId) return payload;
@@ -348,9 +346,9 @@ export function buildMinimalEditAppointmentPayload(params: {
     payload.locationId = selectedLocationId;
   }
   if (hasItemStaffChanged(appointmentItems, snapshot)) {
-    payload.staffUserIds = hasTeamMembersAtLocation
-      ? appointmentItems.filter((i) => i.staffUserId != null).map((i) => i.staffUserId as number)
-      : [];
+    payload.staffUserIds = appointmentItems
+      .filter((i) => i.staffUserId != null)
+      .map((i) => i.staffUserId as number);
   }
   const dateChanged =
     form.date != null &&

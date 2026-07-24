@@ -131,6 +131,7 @@ export interface AuthState {
   lastRefreshAt: number | null;
   isAccountLinkingModalOpen?: boolean;
   pendingLinkTxId?: string;
+  pendingLinkEmail?: string | null;
   linkingLoading?: boolean;
   linkingError?: string | null;
   linkingErrorCode?: string | null;

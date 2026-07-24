@@ -95,6 +95,10 @@ export interface MapDialogProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onMapLoad?: (map: any) => void;
   /**
+   * Callback when the map fails to initialize (e.g. WebGL unavailable).
+   */
+  onMapError?: (error: Error) => void;
+  /**
    * Show search bar for address autocomplete
    */
   showSearch?: boolean;
@@ -151,6 +155,7 @@ export const MapDialog: React.FC<MapDialogProps> = ({
   className,
   overlayClassName,
   countryCodes,
+  onMapError,
   ...mapProps
 }) => {
   const { t } = useTranslation(['locations', 'common']);
@@ -180,6 +185,7 @@ export const MapDialog: React.FC<MapDialogProps> = ({
         zoom={17}
         onMarkerDragEnd={onMarkerDragEnd}
         onMapClick={onMapClick}
+        onError={onMapError}
       />
     </div>
   );

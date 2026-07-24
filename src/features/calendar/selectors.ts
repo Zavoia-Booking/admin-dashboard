@@ -74,11 +74,6 @@ export const getLocationStaff = createSelector(getLocationContext, (context) => 
     return context?.staff ?? [];
 })
 
-/** True when the selected location has at least one team member (for location-only vs team-based availability). */
-export const getHasTeamMembersAtLocation = createSelector(getLocationContext, (context) => {
-    return (context?.staff?.length ?? 0) > 0;
-})
-
 /** Working hours for the selected location */
 export const getLocationWorkingHours = createSelector(getLocationContext, (context) => {
     return context?.location.workingHours ?? null;

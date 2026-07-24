@@ -34,10 +34,11 @@ import {
   setPasswordApi,
   deleteAccountApi,
   changeAccountEmailApi,
+  resendVerificationEmailApi,
 } from '../../../auth/api';
 import { fetchCurrentUserAction, logoutRequestAction } from '../../../auth/actions';
 import GoogleAccountManager from '../../../settings/components/GoogleAccountManager';
-import { translateMessageCode } from '../../../../shared/utils/error';
+import { translateMessageCode, getErrorMessage } from '../../../../shared/utils/error';
 import { PasswordStrength } from '../../../auth/components/PasswordStrength';
 import {
   validatePasswordPolicy,
@@ -106,6 +107,11 @@ const MyAccountContent = ({ onDirtyChange, onSavingChange }: MyAccountContentPro
 
   const [errors, setErrors] = useState<Record<string, string | undefined>>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
+
+  // Email verification resend state
+  const [isResendingVerification, setIsResendingVerification] = useState(false);
+  const [verificationEmailSent, setVerificationEmailSent] = useState(false);
+  const [resendLimitReached, setResendLimitReached] = useState(false);
 
   const validatePhone = (value: string): string | undefined => {
     const v = value.trim();
@@ -266,6 +272,30 @@ const MyAccountContent = ({ onDirtyChange, onSavingChange }: MyAccountContentPro
     currentEmailInput.trim().length > 0 &&
     newEmailInput.trim().length > 0 &&
     !isSavingEmail;
+
+  const handleResendVerification = async () => {
+    setIsResendingVerification(true);
+    try {
+      const response = await resendVerificationEmailApi();
+      if (response.alreadyVerified) {
+        toast.success(t('profile.emailVerification.toast.alreadyVerified'));
+        dispatch(fetchCurrentUserAction.request());
+      } else {
+        toast.success(t('profile.emailVerification.toast.sent'));
+        setVerificationEmailSent(true);
+        if (response.remaining === 0) {
+          setResendLimitReached(true);
+        }
+      }
+    } catch (error: any) {
+      if (error?.response?.status === 429) {
+        setResendLimitReached(true);
+      }
+      toast.error(getErrorMessage(error));
+    } finally {
+      setIsResendingVerification(false);
+    }
+  };
 
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -529,12 +559,17 @@ const MyAccountContent = ({ onDirtyChange, onSavingChange }: MyAccountContentPro
               </div>
             </div>
             <div className="profile-hero-right">
-              {user?.emailVerified && (
+              {user && (user.emailVerified ? (
                 <span className="profile-pill profile-pill-verified">
                   <CheckCircle className="h-3 w-3" />
                   {t('profile.hero.emailVerified')}
                 </span>
-              )}
+              ) : (
+                <span className="profile-pill profile-pill-warn">
+                  <AlertTriangle className="h-3 w-3" />
+                  {t('profile.hero.emailNotVerified')}
+                </span>
+              ))}
             </div>
           </header>
 
@@ -592,21 +627,96 @@ const MyAccountContent = ({ onDirtyChange, onSavingChange }: MyAccountContentPro
               </div>
             </header>
 
-            <div className="profile-field-grid">
-              <TextField
-                label={t('profile.fields.phone')}
-                placeholder={t('profile.fields.phonePlaceholder')}
-                value={formData.phone}
-                onChange={(value) => {
-                  const sanitized = sanitizePhoneToE164Draft(value);
-                  setFormData(prev => ({ ...prev, phone: sanitized }));
-                  setErrors(prev => ({ ...prev, phone: validatePhone(sanitized) }));
-                }}
-                onBlur={() => setTouched(prev => ({ ...prev, phone: true }))}
-                error={touched.phone ? errors.phone : undefined}
-                icon={Phone}
-                disabled={isSaving}
-              />
+            <div className="profile-field-stack">
+              {/* Email verification status */}
+              <div className="profile-subgroup">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3">
+                  <div className="profile-subgroup-head flex-1 min-w-0">
+                    <div className="profile-subgroup-title flex items-center gap-2 flex-wrap">
+                      <span>{t('profile.emailVerification.title')}</span>
+                      {user && (user.emailVerified ? (
+                        <span className="profile-pill profile-pill-verified">
+                          <CheckCircle className="h-3 w-3" />
+                          {t('profile.emailVerification.statusVerified')}
+                        </span>
+                      ) : (
+                        <span className="profile-pill profile-pill-warn">
+                          <AlertTriangle className="h-3 w-3" />
+                          {t('profile.emailVerification.statusNotVerified')}
+                        </span>
+                      ))}
+                    </div>
+                    {user?.email && (
+                      <div className="profile-subgroup-sub">
+                        <span className="font-medium">{user.email}</span>
+                      </div>
+                    )}
+                  </div>
+                  {user && !user.emailVerified && (
+                    <button
+                      type="button"
+                      onClick={handleResendVerification}
+                      disabled={isResendingVerification || resendLimitReached}
+                      className="profile-btn-ghost profile-btn-compact shrink-0 self-start sm:self-auto"
+                    >
+                      {isResendingVerification ? (
+                        <>
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                          {t('profile.emailVerification.sending')}
+                        </>
+                      ) : (
+                        <>
+                          <Mail className="h-3 w-3" />
+                          {t('profile.emailVerification.resend')}
+                        </>
+                      )}
+                    </button>
+                  )}
+                </div>
+
+                {user && !user.emailVerified && (
+                  verificationEmailSent ? (
+                    <div className="profile-banner profile-banner-good">
+                      <CheckCircle className="profile-banner-icon h-3.5 w-3.5" />
+                      <div className="profile-banner-body">{t('profile.emailVerification.sentHint')}</div>
+                    </div>
+                  ) : resendLimitReached ? (
+                    <div className="profile-banner profile-banner-warn">
+                      <AlertTriangle className="profile-banner-icon h-3.5 w-3.5" />
+                      <div className="profile-banner-body">{t('profile.emailVerification.limitHint')}</div>
+                    </div>
+                  ) : (
+                    <div className="profile-banner profile-banner-warn">
+                      <AlertTriangle className="profile-banner-icon h-3.5 w-3.5" />
+                      <div className="profile-banner-body">{t('profile.emailVerification.notVerifiedHint')}</div>
+                    </div>
+                  )
+                )}
+
+                <div className="profile-banner profile-banner-info">
+                  <Info className="profile-banner-icon h-3.5 w-3.5" />
+                  <div className="profile-banner-body">{t('profile.emailVerification.whyItMatters')}</div>
+                </div>
+              </div>
+
+              <div className="profile-divider" />
+
+              <div className="profile-field-grid">
+                <TextField
+                  label={t('profile.fields.phone')}
+                  placeholder={t('profile.fields.phonePlaceholder')}
+                  value={formData.phone}
+                  onChange={(value) => {
+                    const sanitized = sanitizePhoneToE164Draft(value);
+                    setFormData(prev => ({ ...prev, phone: sanitized }));
+                    setErrors(prev => ({ ...prev, phone: validatePhone(sanitized) }));
+                  }}
+                  onBlur={() => setTouched(prev => ({ ...prev, phone: true }))}
+                  error={touched.phone ? errors.phone : undefined}
+                  icon={Phone}
+                  disabled={isSaving}
+                />
+              </div>
             </div>
           </section>
 

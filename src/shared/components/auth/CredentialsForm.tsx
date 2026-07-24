@@ -16,6 +16,8 @@ type Props = {
   loadingLabel?: string;
   isLoading?: boolean;
   defaultEmail?: string;
+  /** Lock the email field to defaultEmail (e.g. account-linking, where the tx pins the email). */
+  emailReadOnly?: boolean;
   autoFocusField?: "email" | "password";
   className?: string;
   onEmailChange?: (email: string) => void;
@@ -31,6 +33,7 @@ function CredentialsFormBase({
   loadingLabel,
   isLoading,
   defaultEmail,
+  emailReadOnly = false,
   autoFocusField = "email",
   className,
   onEmailChange,
@@ -105,16 +108,18 @@ function CredentialsFormBase({
             value={email}
             autoFocus={autoFocusField === "email"}
             onChange={(e) => {
+              if (emailReadOnly) return;
               setEmail(e.target.value);
               onEmailChange?.(e.target.value);
             }}
             required
+            readOnly={emailReadOnly}
             disabled={!!isLoading}
             className={`!pr-11 transition-all focus-visible:ring-1 focus-visible:ring-offset-0 ${
               emailError
                 ? 'border-destructive bg-error-bg focus-visible:ring-error'
                 : 'border-border hover:border-border-strong focus:border-focus focus-visible:ring-focus'
-            }`}
+            } ${emailReadOnly ? 'bg-muted text-muted-foreground cursor-not-allowed' : ''}`}
             aria-invalid={!!emailError}
           />
           <Mail className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" />

@@ -14,6 +14,14 @@ import ContactInformationToggle from "../../../shared/components/common/ContactI
 import Open247Toggle from "../../../shared/components/common/Open247Toggle";
 import { Label } from "../../../shared/components/ui/label";
 import { Button } from "../../../shared/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "../../../shared/components/ui/dialog";
 import { MapDialog } from "../../../shared/components/map";
 import { maptilerGeocode } from "../../../shared/lib/maptiler";
 import type { WizardData } from "../../../shared/hooks/useSetupWizard";
@@ -65,8 +73,17 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
     const [initialMapCenter, setInitialMapCenter] = useState<[number, number]>([0, 0]);
     const [searchedAddressData, setSearchedAddressData] = useState<any>(null);
     const [isGeocodingAddress, setIsGeocodingAddress] = useState(false);
+    // Set when the map itself can't render (e.g. no WebGL). We can't verify
+    // the pin without a working map, so the step is blocked and the owner is
+    // told to reach support rather than being left on a dead step.
+    const [mapUnavailable, setMapUnavailable] = useState(false);
     const mapInstanceRef = useRef<any>(null);
     const isConfirmingFromMap = useRef(false); // Flag to prevent reset during map confirmation
+
+    const handleMapError = useCallback(() => {
+      setIsMapOpen(false);
+      setMapUnavailable(true);
+    }, []);
 
     const businessEmail = (watch("businessInfo.email" satisfies WizardFieldPath) as string) || "";
     const businessPhone = (watch("businessInfo.phone" satisfies WizardFieldPath) as string) || "";
@@ -372,10 +389,11 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
           formIsValid &&
           Object.keys(errors).length === 0 &&
           isAddressValid &&
+          !mapUnavailable &&
           isPinConfirmed;
         onValidityChange(valid);
       }
-    }, [formIsValid, errors, isAddressValid, isPinConfirmed, onValidityChange]);
+    }, [formIsValid, errors, isAddressValid, isPinConfirmed, mapUnavailable, onValidityChange]);
 
     // Expose methods to parent via ref
     useImperativeHandle(
@@ -409,11 +427,13 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
           // Check if there are any errors
           if (Object.keys(errors).length > 0) return false;
           if (!isAddressValid) return false;
+          // A broken map means the pin can never be verified — block the step.
+          if (mapUnavailable) return false;
           if (!isPinConfirmed) return false;
           return formIsValid;
         },
       }),
-      [watch, trigger, errors, formIsValid, isAddressValid, isPinConfirmed, useBusinessContact, emailField, phoneField]
+      [watch, trigger, errors, formIsValid, isAddressValid, isPinConfirmed, mapUnavailable, useBusinessContact, emailField, phoneField]
     );
 
     // Reset form ONLY once when wizard finishes loading (same pattern as business step)
@@ -655,6 +675,7 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
               onMarkerDragEnd={handleMarkerDrag}
               onMapClick={handleMapClick}
               onMapLoad={handleMapLoad}
+              onMapError={handleMapError}
               clickToPlace={true}
               showSearch={true}
               onSearchSelect={handleSearchSelect}
@@ -691,6 +712,34 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
             />
           );
         })()}
+
+        {/* Shown when the map can't render (e.g. WebGL unavailable). The pin
+            can't be verified without it, so the step stays blocked and we
+            point the owner at support instead of a dead end. */}
+        <Dialog open={mapUnavailable}>
+          <DialogContent
+            className="z-[110] max-w-md [&_[data-slot=dialog-close]]:hidden"
+            onEscapeKeyDown={(e) => e.preventDefault()}
+            onInteractOutside={(e) => e.preventDefault()}
+          >
+            <DialogHeader>
+              <DialogTitle>{tw("stepLocation.mapUnavailable.title", { defaultValue: "Map unavailable" })}</DialogTitle>
+              <DialogDescription>
+                {tw("stepLocation.mapUnavailable.description", {
+                  defaultValue:
+                    "We couldn't load the map needed to confirm your location, so setup can't continue on this device. Please try a different browser or device, or contact a Zavoia administrator for help.",
+                })}
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button asChild rounded="full">
+                <a href="mailto:support@zavoia.com">
+                  {tw("stepLocation.mapUnavailable.contact", { defaultValue: "Contact support@zavoia.com" })}
+                </a>
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }
