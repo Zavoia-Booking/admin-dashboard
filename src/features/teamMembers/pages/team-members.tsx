@@ -214,7 +214,12 @@ export default function TeamMembersPage() {
                       {activeMembers.map((member: TeamMember) => {
                 const memberRoleStatus = member.roleStatus;
                 const canEdit = memberRoleStatus !== 'pending_acceptance';
-                const displayName = `${member.firstName || text('page.displayNameFallback.pending')} ${member.lastName || text('page.displayNameFallback.invite')}`.trim();
+                // One phrase rather than a "Pending" + "Invite" pair spliced into the
+// first/last name slots: that only reads correctly in English, and word
+// order for it differs by language.
+const displayName =
+  `${member.firstName ?? ''} ${member.lastName ?? ''}`.trim() ||
+  text('page.displayNameFallback.pendingInvite');
                 
                 // Create avatar/thumbnail
                 const thumbnail = (
@@ -306,7 +311,12 @@ export default function TeamMembersPage() {
                   {pendingMembers.length > 0 && (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-2">
                       {pendingMembers.map((member: TeamMember) => {
-                        const displayName = `${member.firstName || text('page.displayNameFallback.pending')} ${member.lastName || text('page.displayNameFallback.invite')}`.trim();
+                        // One phrase rather than a "Pending" + "Invite" pair spliced into the
+// first/last name slots: that only reads correctly in English, and word
+// order for it differs by language.
+const displayName =
+  `${member.firstName ?? ''} ${member.lastName ?? ''}`.trim() ||
+  text('page.displayNameFallback.pendingInvite');
 
                         // Create avatar/thumbnail
                         const thumbnail = (

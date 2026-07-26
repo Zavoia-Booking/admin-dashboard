@@ -20,7 +20,7 @@
     },
     "deleteAccount": {
       "title": "Șterge contul",
-      "description": "Șterge definitiv contul. Vor fi anulate toate programările, eliminați toți membrii echipei, ștearsă afacerea și anunțul din marketplace, iar toate datele vor fi pierdute pentru totdeauna.",
+      "description": "Șterge definitiv contul. Vor fi anulate toate programările, revocat accesul tuturor membrilor echipei, ștearsă afacerea și anunțul din marketplace, iar toate datele vor fi pierdute pentru totdeauna.",
       "irreversible": "Această acțiune este imediată și nu poate fi anulată.",
       "subscriptionHint": "Dacă ai un abonament activ, trebuie să îl anulezi înainte de a putea șterge contul.",
       "deleting": "Se șterge…",
@@ -47,7 +47,7 @@
     "intro": "Această acțiune va executa imediat și definitiv:",
     "bullets": {
       "appointments": "Anularea tuturor programărilor",
-      "teamMembers": "Eliminarea tuturor membrilor echipei din afacere",
+      "teamMembers": "Revocarea accesului tuturor membrilor echipei",
       "businessData": "Ștergerea afacerii, serviciilor și locațiilor",
       "marketplace": "Ștergerea anunțului din marketplace",
       "account": "Ștergerea contului tău"

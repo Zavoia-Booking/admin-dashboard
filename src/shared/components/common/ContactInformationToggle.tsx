@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
 import { Switch } from '../ui/switch';
@@ -47,7 +48,7 @@ export const ContactInformationToggle: React.FC<ContactInformationToggleProps> =
   onToggleChange,
   inheritedEmail,
   inheritedPhone,
-  inheritedLabel = 'the previous step',
+  inheritedLabel,
   localEmail,
   localPhone,
   onEmailChange,
@@ -65,11 +66,15 @@ export const ContactInformationToggle: React.FC<ContactInformationToggleProps> =
   helperTextOff,
   autoFocusOnToggle = false,
 }) => {
-  const inheritedWhat = showEmail && showPhone
-    ? 'email and phone number'
-    : showEmail
-      ? 'email'
-      : 'phone number';
+  // Most visible strings are supplied already-translated by the caller, but the
+  // badge had no prop and the helper-text fallbacks were English templates, so
+  // anything the caller omitted silently rendered in English. Translate them here
+  // instead, so a new caller can't reintroduce that.
+  const { t } = useTranslation('common');
+  // Each case gets a whole sentence rather than a noun interpolated into one
+  // template: Romanian needs a definite noun after "Vom folosi" but an
+  // indefinite one after "Introdu alt", so no single noun form fits both.
+  const whatKey = showEmail && showPhone ? 'emailAndPhone' : showEmail ? 'email' : 'phone';
 
   return (
     <div
@@ -90,8 +95,10 @@ export const ContactInformationToggle: React.FC<ContactInformationToggleProps> =
       </div>
       <p className={`text-sm ${useInheritedContact ? 'text-neutral-900' : 'text-foreground-3 dark:text-foreground-2'}`}>
         {useInheritedContact
-          ? (helperTextOn ?? `We'll use the ${inheritedWhat} from ${inheritedLabel}`)
-          : (helperTextOff ?? `Enter different ${inheritedWhat} for this location`)}
+          ? (helperTextOn ?? t(`contactToggle.helperOn.${whatKey}`, {
+              source: inheritedLabel ?? t('contactToggle.previousStep'),
+            }))
+          : (helperTextOff ?? t(`contactToggle.helperOff.${whatKey}`))}
       </p>
       {useInheritedContact && (inheritedEmail || inheritedPhone) && (
         <div className="text-sm pt-4">
@@ -141,10 +148,10 @@ export const ContactInformationToggle: React.FC<ContactInformationToggleProps> =
                   />
                   <Mail className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" />
                 </div>
-                <div className="h-5">
+                <div className="min-h-5">
                   {emailError && (
                     <p className="mt-1 flex items-center gap-1.5 text-xs text-destructive" role="alert" aria-live="polite">
-                      <AlertCircle className="h-3.5 w-3.5" />
+                      <AlertCircle className="h-3.5 w-3.5 shrink-0" />
                       <span>{emailError}</span>
                     </p>
                   )}
@@ -178,10 +185,10 @@ export const ContactInformationToggle: React.FC<ContactInformationToggleProps> =
                   />
                   <Phone className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" />
                 </div>
-                <div className="h-5">
+                <div className="min-h-5">
                   {phoneError && (
                     <p className="mt-1 flex items-center gap-1.5 text-xs text-destructive" role="alert" aria-live="polite">
-                      <AlertCircle className="h-3.5 w-3.5" />
+                      <AlertCircle className="h-3.5 w-3.5 shrink-0" />
                       <span>{phoneError}</span>
                     </p>
                   )}
@@ -197,7 +204,7 @@ export const ContactInformationToggle: React.FC<ContactInformationToggleProps> =
             >
               <div className="h-2 w-2 rounded-full bg-purple-500" />
               <span className="text-neutral-900">
-                Custom
+                {t('contactToggle.customBadge')}
               </span>
             </Badge>
           </div>

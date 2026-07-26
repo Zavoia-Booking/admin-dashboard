@@ -125,10 +125,10 @@ const AddressManualFields: React.FC<Props> = ({
             <Navigation className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" />
           </div>
         )}
-        <div className="h-5">
+        <div className="min-h-5">
           {streetError && !isLocked && (
             <p className="mt-1 flex items-center gap-1.5 text-xs text-destructive" role="alert" aria-live="polite">
-              <AlertCircle className="h-3.5 w-3.5" />
+              <AlertCircle className="h-3.5 w-3.5 shrink-0" />
               <span>{streetError}</span>
             </p>
           )}
@@ -184,10 +184,10 @@ const AddressManualFields: React.FC<Props> = ({
             />
             <Hash className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" />
           </div>
-          <div className="h-5">
+          <div className="min-h-5">
             {numberError && (
               <p className="mt-1 flex items-center gap-1.5 text-xs text-destructive" role="alert" aria-live="polite">
-                <AlertCircle className="h-3.5 w-3.5" />
+                <AlertCircle className="h-3.5 w-3.5 shrink-0" />
                 <span>{numberError}</span>
               </p>
             )}
@@ -208,10 +208,10 @@ const AddressManualFields: React.FC<Props> = ({
             />
             <Building2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" />
           </div>
-          <div className="h-5">
+          <div className="min-h-5">
             {cityError && (
               <p className="mt-1 flex items-center gap-1.5 text-xs text-destructive" role="alert" aria-live="polite">
-                <AlertCircle className="h-3.5 w-3.5" />
+                <AlertCircle className="h-3.5 w-3.5 shrink-0" />
                 <span>{cityError}</span>
               </p>
             )}
@@ -235,10 +235,10 @@ const AddressManualFields: React.FC<Props> = ({
             />
             <Locate className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" />
           </div>
-          <div className="h-5">
+          <div className="min-h-5">
             {postalError && (
               <p className="mt-1 flex items-center gap-1.5 text-xs text-destructive" role="alert" aria-live="polite">
-                <AlertCircle className="h-3.5 w-3.5" />
+                <AlertCircle className="h-3.5 w-3.5 shrink-0" />
                 <span>{postalError}</span>
               </p>
             )}
@@ -259,10 +259,10 @@ const AddressManualFields: React.FC<Props> = ({
             />
             <Flag className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" />
           </div>
-          <div className="h-5">
+          <div className="min-h-5">
             {countryError && (
               <p className="mt-1 flex items-center gap-1.5 text-xs text-destructive" role="alert" aria-live="polite">
-                <AlertCircle className="h-3.5 w-3.5" />
+                <AlertCircle className="h-3.5 w-3.5 shrink-0" />
                 <span>{countryError}</span>
               </p>
             )}

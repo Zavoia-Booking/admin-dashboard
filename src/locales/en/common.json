@@ -42,11 +42,16 @@
   },
   "countrySelect": {
     "autoDetect": "Auto-detect country from your browser",
-    "autoDetectShort": "Auto-detect"
+    "autoDetectShort": "Auto-detect",
+    "title": "Select country",
+    "noResults": "No country found."
   },
   "timezoneSelect": {
     "autoDetect": "Auto-detect timezone from your browser",
-    "autoDetectShort": "Auto-detect"
+    "autoDetectShort": "Auto-detect",
+    "title": "Select timezone",
+    "noResults": "No timezone found.",
+    "showingCount": "Showing {{shown}} of {{total}} timezones..."
   },
   "logoUpload": {
     "altPreview": "Business logo preview",
@@ -135,6 +140,20 @@
     "buildingHelpExample2": "\"Building 3, Floor 2\"",
     "buildingHelpExample3": "\"Suite 205\""
   },
+  "contactToggle": {
+    "customBadge": "Custom",
+    "previousStep": "the previous step",
+    "helperOn": {
+      "emailAndPhone": "We'll use the email and phone number from {{source}}",
+      "email": "We'll use the email from {{source}}",
+      "phone": "We'll use the phone number from {{source}}"
+    },
+    "helperOff": {
+      "emailAndPhone": "Enter a different email and phone number for this location",
+      "email": "Enter a different email for this location",
+      "phone": "Enter a different phone number for this location"
+    }
+  },
   "workingHours": {
     "closed": "Closed",
     "from": "From",
@@ -166,6 +185,11 @@
       "saturday": "Saturday",
       "sunday": "Sunday"
     }
+  },
+  "timePicker": {
+    "pickStart": "Pick a start time",
+    "pickEnd": "Pick an end time",
+    "pick": "Select a time"
   },
   "pinVerification": {
     "confirmed": "Location pin confirmed",

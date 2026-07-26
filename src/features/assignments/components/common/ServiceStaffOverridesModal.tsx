@@ -277,7 +277,7 @@ function MemberOverrideRow({
             role="alert"
             aria-live="polite"
           >
-            {durationError && <AlertCircle className="h-3.5 w-3.5" />}
+            {durationError && <AlertCircle className="h-3.5 w-3.5 shrink-0" />}
             {durationError && <span>{durationError}</span>}
           </p>
 
@@ -572,6 +572,13 @@ export function ServiceStaffOverridesModal({
         <DrawerContent
           className="h-auto max-h-[85vh] flex flex-col bg-popover text-popover-foreground !z-80"
           overlayClassName="!z-80"
+          // Same as the row drawer: keep the keyboard down on open, and keep
+          // focus inside the panel rather than on the aria-hidden trigger.
+          tabIndex={-1}
+          onOpenAutoFocus={(event) => {
+            event.preventDefault();
+            (event.currentTarget as HTMLElement | null)?.focus?.();
+          }}
         >
           <DrawerTitle className="sr-only">
             {t("page.locationService.teamMemberOverrides", {

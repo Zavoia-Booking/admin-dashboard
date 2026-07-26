@@ -112,14 +112,14 @@ export const OptionSelect: React.FC<OptionSelectProps> = ({
           </Command>
         </PopoverContent>
       </Popover>
-      <div className="h-5">
+      <div className="min-h-5">
         {errorMessage && (
           <p
             className="mt-1 flex items-center gap-1.5 text-xs text-destructive"
             role="alert"
             aria-live="polite"
           >
-            <AlertCircle className="h-3.5 w-3.5" />
+            <AlertCircle className="h-3.5 w-3.5 shrink-0" />
             <span>{errorMessage}</span>
           </p>
         )}

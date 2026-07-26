@@ -257,7 +257,7 @@ const WizardLayout: React.FC<WizardLayoutProps> = ({
                   variant="outline"
                   rounded="full"
                   onClick={onPrevious}
-                  disabled={currentStep === 1}
+                  disabled={currentStep === 1 || isLoading}
                   className="gap-2 h-11 w-40 cursor-pointer"
                 >
                   <ArrowLeft className="h-4 w-4" />
@@ -267,7 +267,7 @@ const WizardLayout: React.FC<WizardLayoutProps> = ({
                   <Button
                     rounded="full"
                     onClick={onNext}
-                    disabled={!canProceed}
+                    disabled={!canProceed || isLoading}
                     className={`gap-2 h-11 ${currentStep === 3 ? 'w-48' : 'w-40'} cursor-pointer`}
                   >
                     {resolvedNextLabel}
@@ -289,7 +289,7 @@ const WizardLayout: React.FC<WizardLayoutProps> = ({
                     variant="outline"
                     rounded="full"
                     onClick={onPrevious}
-                    disabled={currentStep === 1}
+                    disabled={currentStep === 1 || isLoading}
                     className="h-11 cursor-pointer flex-1"
                   >
                     <ArrowLeft className="h-4 w-4" />
@@ -299,7 +299,7 @@ const WizardLayout: React.FC<WizardLayoutProps> = ({
                     <Button
                       rounded="full"
                       onClick={onNext}
-                      disabled={!canProceed}
+                      disabled={!canProceed || isLoading}
                       className="h-11 cursor-pointer flex-2"
                     >
                       {resolvedNextLabel}

@@ -282,15 +282,9 @@ export const CalendarHeaderFilters: FC<CalendarHeaderFiltersProps> = ({ slim, ex
   );
 
   if (isMobile) {
+    // Smooth-scroll suppression while open lives in the shared Drawer.
     const handleDrawerOpenChange = (next: boolean) => {
       setOpen(next);
-      if (next) {
-        document.documentElement.style.scrollBehavior = "auto";
-      } else {
-        setTimeout(() => {
-          document.documentElement.style.scrollBehavior = "smooth";
-        }, 100);
-      }
     };
 
     return (

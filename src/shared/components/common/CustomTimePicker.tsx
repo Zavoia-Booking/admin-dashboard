@@ -12,12 +12,18 @@ type CustomTimePickerProps = {
   min?: string; // optional HH:mm lower bound
   max?: string; // optional HH:mm upper bound
   stepMinutes?: number; // optional minute step for rounding (omit to disable)
+  /**
+   * What the picker represents, when it is one end of a range. Must be given
+   * explicitly rather than derived from `label`, which is already translated
+   * and so cannot be matched against fixed strings.
+   */
+  kind?: 'start' | 'end';
 };
 
 const hours = Array.from({ length: 12 }, (_, i) => i + 1);
 const minutes = Array.from({ length: 60 }, (_, i) => i);
 
-const CustomTimePicker: React.FC<CustomTimePickerProps> = ({ id, label, value, onChange, min, max, stepMinutes }) => {
+const CustomTimePicker: React.FC<CustomTimePickerProps> = ({ id, label, value, onChange, min, max, stepMinutes, kind }) => {
   const { t } = useTranslation('common');
   const [isOpen, setIsOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -145,11 +151,10 @@ const CustomTimePicker: React.FC<CustomTimePickerProps> = ({ id, label, value, o
   }, []);
 
   const headerText = useMemo(() => {
-    const l = label?.toLowerCase?.() ?? '';
-    if (l === 'from') return 'Pick a start time';
-    if (l === 'to') return 'Pick an end time';
-    return `Select ${l} time`;
-  }, [label]);
+    if (kind === 'start') return t('timePicker.pickStart');
+    if (kind === 'end') return t('timePicker.pickEnd');
+    return t('timePicker.pick');
+  }, [kind, t]);
 
   const timePickerContent = (
     <div className="flex flex-col gap-3 py-2 dark:bg-neutral-900">
@@ -269,24 +274,14 @@ const CustomTimePicker: React.FC<CustomTimePickerProps> = ({ id, label, value, o
     <div className="flex items-center gap-2 shrink-0">
       <span
         id={`${id}-label`}
-        className={`${(label?.toLowerCase?.() === 'from' || label?.toLowerCase?.() === 'to') ? 'hidden md:inline' : ''} text-xs text-foreground-3 dark:text-foreground-2 whitespace-nowrap`}
+        className={`${kind ? 'hidden md:inline' : ''} text-xs text-foreground-3 dark:text-foreground-2 whitespace-nowrap`}
       >
         {label}
       </span>
 
       {isMobile ? (
-        <Drawer
-          onOpenChange={(open) => {
-            setIsOpen(open);
-            if (open) {
-              document.documentElement.style.scrollBehavior = 'auto';
-            } else {
-              setTimeout(() => {
-                document.documentElement.style.scrollBehavior = 'smooth';
-              }, 100);
-            }
-          }}
-        >
+        // Smooth-scroll suppression while open lives in the shared Drawer.
+        <Drawer onOpenChange={setIsOpen}>
           <DrawerTrigger asChild>
             {trigger}
           </DrawerTrigger>

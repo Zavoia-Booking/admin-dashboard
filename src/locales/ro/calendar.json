@@ -62,7 +62,7 @@
       "anyStatusTitle": "Orice status al programării",
       "anySource": "Orice sursă",
       "anySourceTitle": "Orice sursă",
-      "searchServicesPlaceholder": "Caută servicii și pachete\u2026",
+      "searchServicesPlaceholder": "Caută servicii și pachete…",
       "filterByServiceLabel": "Filtrează după serviciu și pachet",
       "filterBySourceLabel": "Filtrează după sursa rezervării",
       "filterByStaffLabel": "Filtrează după membrul echipei",
@@ -131,7 +131,7 @@
         "cancelAppointment": "Anulează programarea",
         "noReasonProvided": "Nu a fost oferit niciun motiv",
         "noProfileLinkedContact": "Niciun profil asociat. Datele de contact au fost adăugate în timpul rezervării.",
-        "noProfileNoContact": "Niciun profil asociat \u00b7 Fără date de contact",
+        "noProfileNoContact": "Niciun profil asociat · Fără date de contact",
         "service": "Serviciu",
         "activity": "Activitate",
         "activityDescription": "Istoricul programării, actualizări și intervenții administrative.",
@@ -164,6 +164,11 @@
         "reasonOptional": "Opțional",
         "notifyCustomer": "Notifică clientul",
         "notificationMethod": "Metoda de notificare",
+        "notificationMethods": {
+          "email": "Email",
+          "sms": "SMS",
+          "both": "Toate"
+        },
         "date": "Data",
         "slotTime": "Interval orar",
         "notes": "Note",
@@ -219,7 +224,24 @@
         "selectTime": "Selectează ora",
         "workingHours": "Program de lucru",
         "outsideWorkingHours": "În afara programului",
-        "noTimesWithinHours": "Nu există ore disponibile în program"
+        "noTimesWithinHours": "Nu există ore disponibile în program",
+        "serviceCount_one": "serviciu",
+        "serviceCount_few": "servicii",
+        "serviceCount_other": "de servicii",
+        "bundleCount_one": "pachet",
+        "bundleCount_few": "pachete",
+        "bundleCount_other": "de pachete",
+        "emptyPromptServices": "Selectează serviciile pentru a începe să construiești această programare.",
+        "emptyPromptServicesAndBundles": "Selectează servicii și/sau pachete pentru a începe să construiești această programare.",
+        "totalLabel": "Total",
+        "lockedNeedItems": "Selectează cel puțin un serviciu sau un pachet pentru a debloca alegerea datei și a orei.",
+        "lockedNeedStaff": "Alocă un membru al echipei fiecărui element selectat pentru a încărca disponibilitatea corectă.",
+        "durationExceedsDay": "Durata totală depășește o zi întreagă și s-ar întinde pe mai multe zile. Elimină câteva servicii pentru ca programarea să încapă într-o singură zi (până la miezul nopții).",
+        "businessClosedNotice": "Afacerea este închisă în această zi. Poți face totuși o programare; ți se va cere să o confirmi.",
+        "dateLabel": "Dată",
+        "timeLabel": "Oră",
+        "noInHoursSlots": "Niciun interval în programul de lucru în această zi",
+        "nextAvailableDay": "Următoarea zi cu disponibilitate este {{date}}. Folosește butonul de mai jos pentru a comuta."
       },
       "confirmDialog": {
         "rescheduleAnyway": "Reprogramezi oricum?",
@@ -356,7 +378,7 @@
         "titleAndNotesDesc": "Adaugă un titlu opțional și note interne pentru această blocare.",
         "titlePlaceholder": "ex. Prânz de echipă, interval de mentenanță",
         "notesLabel": "Note",
-        "notesPlaceholder": "Adaugă note interne pentru echipă\u2026",
+        "notesPlaceholder": "Adaugă note interne pentru echipă…",
         "notesHelper": "Note interne opționale pentru echipă. Nu sunt afișate clienților.",
         "editNotice": "Ora, motivul, titlul și notele pot fi actualizate. Pentru a schimba locația, scopul sau recurența, șterge această blocare și creează una nouă.",
         "allDay": "Toată ziua",
@@ -416,7 +438,8 @@
       "newCustomer": "Client nou",
       "noneFound": "Niciun client găsit.",
       "loadingMore": "Se încarcă mai mulți clienți...",
-      "endOfResults": "Sfârșitul rezultatelor"
+      "endOfResults": "Sfârșitul rezultatelor",
+      "change": "Schimbă"
     },
     "common": {
       "done": "Gata",
@@ -438,7 +461,7 @@
         "phone": "Rezervată prin telefon",
         "walkIn": "Fără programare",
         "marketplace": "Rezervată prin marketplace",
-        "empty": "Rezervată prin \u2014",
+        "empty": "Rezervată prin —",
         "generic": "Rezervată prin {{source}}"
       },
       "noCustomerData": "Nu există date despre client",
@@ -516,7 +539,7 @@
     "dnd": {
       "unassigned": "Programările trebuie alocate unui membru al echipei.",
       "staffConflict": "Acest membru al echipei are deja o programare la această oră. Alege altă oră sau alt membru al echipei.",
-      "staffBufferConflict": "Acest interval se află în cele {{minutes}} minute tampon necesare între programările acestui membru al echipei. Alege altă oră sau alt membru.",
+      "staffBufferConflict": "Acest interval se află în cele {{minutes}} minute de pauză necesare între programările acestui membru al echipei. Alege altă oră sau alt membru.",
       "blockOverlap": "Acest interval se suprapune cu o blocare din calendar. Alege altă oră sau editează blocarea.",
       "pastTime": "Nu poți reprograma în trecut.",
       "ineligibleStaff": "{{staffLabel}} nu este alocat pentru acest serviciu. Alege alt membru al echipei sau editează programarea.",

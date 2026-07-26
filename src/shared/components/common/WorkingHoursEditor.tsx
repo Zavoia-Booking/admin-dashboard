@@ -100,6 +100,7 @@ const DayRow: React.FC<DayRowProps> = memo(
                 <CustomTimePicker
                   id={`wh-${day}-open`}
                   label={t('workingHours.from')}
+                  kind="start"
                   value={hours.open}
                   onChange={handleOpenChange}
                 />
@@ -111,6 +112,7 @@ const DayRow: React.FC<DayRowProps> = memo(
                 <CustomTimePicker
                   id={`wh-${day}-close`}
                   label={t('workingHours.to')}
+                  kind="end"
                   value={hours.close}
                   onChange={handleCloseChange}
                 />

@@ -652,7 +652,7 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
                                 role="alert"
                                 aria-live="polite"
                               >
-                                <AlertCircle className="h-3.5 w-3.5" />
+                                <AlertCircle className="h-3.5 w-3.5 shrink-0" />
                                 <span>{durationState.error.message}</span>
                               </p>
                             )}

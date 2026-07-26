@@ -176,9 +176,13 @@ export const MapDialog: React.FC<MapDialogProps> = ({
     setSearchValue(change.address);
   };
 
-  // Map component (reusable)
+  // Map component (reusable). data-vaul-no-drag keeps panning the map and
+  // dragging the pin from being read as a drag on the drawer itself.
   const mapElement = (
-    <div className={cn(isMobile ? "mt-0" : "mt-4", "focus:outline-none focus-visible:outline-none border-0 outline-none")}>
+    <div
+      data-vaul-no-drag=""
+      className={cn(isMobile ? "mt-0" : "mt-4", "focus:outline-none focus-visible:outline-none border-0 outline-none")}
+    >
       <MapView
         {...mapProps}
         width="100%"
@@ -235,30 +239,36 @@ export const MapDialog: React.FC<MapDialogProps> = ({
     </>
   );
 
-  // Mobile content: map, search, info, footer
-  const mobileContentElement = (
-    <>
-      {mapElement}
-      {searchElement}
-      {infoCardElement}
-      {footerElement}
-    </>
-  );
-
-  // Use Drawer on mobile, Dialog on desktop
+  // Use Drawer on mobile, Dialog on desktop. Keyboard handling on native comes
+  // from the shared Drawer wrapper; the height below must stay in dvh for it.
   if (isMobile) {
     return (
       <Drawer open={isOpen} onOpenChange={onClose}>
-        <DrawerContent className={cn("max-h-[95vh] bg-white dark:bg-surface border-border focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0", className)} overlayClassName={overlayClassName}>
-          <DrawerHeader className="text-left">
+        <DrawerContent
+          className={cn(
+            "flex max-h-[92dvh] flex-col bg-white dark:bg-surface border-border focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0",
+            className
+          )}
+          overlayClassName={overlayClassName}
+        >
+          <DrawerHeader className="shrink-0 text-left">
             <DrawerTitle className="text-foreground-1">{title}</DrawerTitle>
             {description && (
               <DrawerDescription className="text-foreground-3 dark:text-foreground-2">{description}</DrawerDescription>
             )}
           </DrawerHeader>
-          <div className="overflow-y-auto px-4 pb-4">
-            {mobileContentElement}
+          {/* Only this middle band scrolls, so the actions below stay reachable
+              no matter how short the drawer gets when the keyboard is up. */}
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-4">
+            {mapElement}
+            {searchElement}
+            {infoCardElement}
           </div>
+          {footerActions && (
+            <div className="shrink-0 border-t border-border bg-white px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] dark:bg-surface">
+              <div className="flex flex-col gap-2">{footerActions}</div>
+            </div>
+          )}
         </DrawerContent>
       </Drawer>
     );

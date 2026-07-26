@@ -86,7 +86,7 @@ export const TextField: React.FC<TextFieldProps> = ({
         />
         {Icon ? <Icon className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" /> : null}
       </div>
-      <div className="h-5">
+      <div className="min-h-5">
         {error && (
           <p
             id={errorId}
@@ -94,7 +94,7 @@ export const TextField: React.FC<TextFieldProps> = ({
             role="alert"
             aria-live="polite"
           >
-            <AlertCircle className="h-3.5 w-3.5" />
+            <AlertCircle className="h-3.5 w-3.5 shrink-0" />
             <span>{error}</span>
           </p>
         )}

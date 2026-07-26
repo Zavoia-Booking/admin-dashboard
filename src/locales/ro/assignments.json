@@ -203,7 +203,7 @@
     "ariaLabels": {
       "close": "Închide",
       "addMember": "Adaugă {{name}} la locație",
-      "removeMember": "Elimină {{name}} de la locație"
+      "removeMember": "Anulează alocarea pentru {{name}}"
     },
     "manageTeamMemberDrawer": {
       "title": "Gestionează Serviciile pentru {{name}}",
@@ -256,9 +256,9 @@
     },
     "toasts": {
       "teamMemberAssigned": "{{memberName}} a fost adăugat la această locație",
-      "teamMemberRemoved": "{{memberName}} a fost eliminat de la această locație",
+      "teamMemberRemoved": "Alocarea pentru {{memberName}} la această locație a fost anulată",
       "teamMemberAssignFailed": "Nu s-a putut adăuga {{memberName}} la această locație",
-      "teamMemberRemoveFailed": "Nu s-a putut elimina {{memberName}} de la această locație",
+      "teamMemberRemoveFailed": "Nu s-a putut anula alocarea pentru {{memberName}} la această locație",
       "locationServicesUpdated": "Serviciile locației au fost actualizate cu succes",
       "locationBundlesUpdated": "Pachetele locației au fost actualizate cu succes",
       "locationAssignmentsUpdated": "Alocările locației au fost actualizate cu succes",

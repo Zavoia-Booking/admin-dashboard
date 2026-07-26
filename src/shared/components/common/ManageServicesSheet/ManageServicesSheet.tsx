@@ -864,15 +864,7 @@ export function ManageServicesSheet({
           />
 
           {isMobile ? (
-            <Drawer
-              autoFocus={true}
-              open={showFilters}
-              onOpenChange={(open) => {
-                setShowFilters(open);
-                if (open) document.documentElement.style.scrollBehavior = "auto";
-                else setTimeout(() => { document.documentElement.style.scrollBehavior = "smooth"; }, 100);
-              }}
-            >
+            <Drawer autoFocus={true} open={showFilters} onOpenChange={setShowFilters}>
               <DrawerTrigger asChild>{renderFilterButton(showFilters)}</DrawerTrigger>
               <DrawerContent className="outline-none !z-[100]" overlayClassName="!z-[95]">
                 <DrawerTitle className="sr-only">{t("filters.addFilter")}</DrawerTitle>
@@ -934,7 +926,21 @@ export function ManageServicesSheet({
       // `aria-hidden`-on-siblings subtree (browser blocks this for a11y).
       // Same fix applied to [ReviewsFiltersSheet] and [SortSelect]'s Drawer.
       <Drawer open={isOpen} onOpenChange={onClose} autoFocus nested>
-        <DrawerContent className="h-[85vh] flex flex-col bg-popover text-popover-foreground !z-[90]" overlayClassName="!z-[85]">
+        <DrawerContent
+          className="h-[85vh] flex flex-col bg-popover text-popover-foreground !z-[90]"
+          overlayClassName="!z-[85]"
+          // Focus must enter the drawer (see above) but must NOT land on the
+          // search field: Radix otherwise focuses the first focusable child,
+          // which raises the soft keyboard on Capacitor before the user has
+          // asked to type. Park focus on the panel itself instead. Vaul runs
+          // this handler before its own autoFocus check, so preventing the
+          // default here is what stops the input from taking focus.
+          tabIndex={-1}
+          onOpenAutoFocus={(event) => {
+            event.preventDefault();
+            (event.currentTarget as HTMLElement | null)?.focus?.();
+          }}
+        >
           <DrawerTitle className="sr-only">{title || (teamMemberName ? `${t("manageServices.title")} ${teamMemberName}` : t("manageServices.title"))}</DrawerTitle>
           <DrawerDescription className="sr-only">{title || (teamMemberName ? `${t("manageServices.title")} ${teamMemberName}` : t("manageServices.title"))}</DrawerDescription>
           <PortalContainerContext.Provider value={null}>

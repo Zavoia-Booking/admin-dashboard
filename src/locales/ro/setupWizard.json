@@ -31,7 +31,7 @@
     },
     "team": {
       "title": "Vrei să adaugi echipa?",
-      "subtitle": "Invită membri ai echipei pentru a prelua rezervări, a-și gestiona programul sau a accesa calendarul."
+      "subtitle": "Invită membrii echipei pentru a prelua rezervări, a-și gestiona programul sau a accesa calendarul."
     }
   },
   "stepBusinessInfo": {
@@ -90,17 +90,13 @@
     "worksSoloLabel": "Lucrez singur",
     "worksSoloDescriptionOn": "Perfect! Ești gata să-ți gestionezi afacerea independent",
     "worksSoloDescriptionOff": "Activează această opțiune pentru a sări peste configurarea echipei. Poți invita membri oricând din dashboard pentru a gestiona împreună rezervările",
-    "worksSoloNote": "Poți invita membri ai echipei oricând din setările dashboard-ului pentru a colabora și gestiona rezervările împreună.",
+    "worksSoloNote": "Poți invita membrii echipei oricând din setările dashboard-ului pentru a colabora și gestiona rezervările împreună.",
     "inviteTeamMember": "Invită un membru al echipei",
     "ariaWhatDoesInvitingDo": "Ce face invitarea?",
     "invitePopover": "Membrii echipei vor primi o invitație prin email pentru a se alătura contului afacerii tale. Își vor putea seta propria disponibilitate și gestiona rezervările.",
     "emailPlaceholder": "ex. coleg@companie.com",
     "addTeamMember": "Adaugă membru",
     "emailGeneralError": "Te rugăm să introduci o adresă de email validă",
-    "limitReached": "Ai atins numărul maxim de invitații pentru membri în timpul configurării.",
-    "remainingInvites_one": "Mai poți invita {{count}} membru în timpul configurării.",
-    "remainingInvites_few": "Mai poți invita {{count}} membri în timpul configurării.",
-    "remainingInvites_other": "Mai poți invita {{count}} de membri în timpul configurării.",
     "maxLimitError": "Poți invita până la 10 membri în timpul configurării",
     "selfEmailError": "Nu îți poți invita propria adresă de email",
     "invitations": "Invitații",
@@ -127,14 +123,13 @@
     "business": "Afacere",
     "allSet": "Gata",
     "location": "Locație",
-    "onSite": "La sediu",
     "team": "Echipă",
     "teamMemberInvited_one": "membru invitat",
     "teamMemberInvited_few": "membri invitați",
     "teamMemberInvited_other": "de membri invitați",
     "awaitingAcceptance": "În așteptarea acceptării",
     "justYou": "Deocamdată doar tu",
-    "addTeamLater": "Poți adăuga membri ai echipei mai târziu",
+    "addTeamLater": "Poți adăuga membrii echipei mai târziu",
     "moreYouCanDo": "Mai multe acțiuni disponibile",
     "assignServices": "Alocă servicii",
     "assignServicesDescription": "Asociază serviciile cu membrii potriviți ai echipei — pentru ca rezervările să ajungă la persoanele potrivite.",

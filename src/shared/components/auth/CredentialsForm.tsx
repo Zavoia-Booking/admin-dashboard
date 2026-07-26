@@ -124,7 +124,7 @@ function CredentialsFormBase({
           />
           <Mail className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" />
         </div>
-        <div className="h-5">
+        <div className="min-h-5">
           {emailError && (
             <p className="mt-1 flex items-center gap-1.5 text-xs text-destructive" role="alert" aria-live="polite">
               <span>{emailError}</span>
@@ -161,7 +161,7 @@ function CredentialsFormBase({
               {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
           </div>
-          <div className="h-5">
+          <div className="min-h-5">
             {passwordError && (
               <p className="mt-1 flex items-center gap-1.5 text-xs text-destructive" role="alert" aria-live="polite">
                 <span>{passwordError}</span>

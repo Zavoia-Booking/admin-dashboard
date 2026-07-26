@@ -2,9 +2,18 @@ import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Globe, Check, MapPin, ChevronDown, AlertCircle } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
+import {
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from '../ui/drawer';
 import { Button } from '../ui/button';
 import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from '../ui/command';
 import { cn } from '../../lib/utils';
+import { useIsMobile } from '../../hooks/use-mobile';
 
 interface TimezoneSelectProps {
   value: string;
@@ -217,6 +226,7 @@ export const TimezoneSelect: React.FC<TimezoneSelectProps> = React.memo(({
   const scrollTimeoutRef = React.useRef<NodeJS.Timeout | undefined>(undefined);
   const hasError = !!error;
   const errorMessage = typeof error === 'string' ? error : undefined;
+  const isMobile = useIsMobile();
 
   // Get timezones for the selected country (or all if no country specified)
   const countryTimezones = useMemo(() => {
@@ -334,77 +344,137 @@ export const TimezoneSelect: React.FC<TimezoneSelectProps> = React.memo(({
     return offset ? `${displayName} (${offset})` : displayName;
   }, [value, placeholder]);
 
+  const trigger = (
+    <Button
+      variant="outline"
+      role="combobox"
+      aria-haspopup="listbox"
+      aria-expanded={open}
+      className={cn(
+        'w-full h-10 justify-between items-center font-normal transition-all focus-visible:ring-1 focus-visible:ring-offset-0 cursor-pointer',
+        hasError
+          ? 'border-destructive bg-error-bg hover:bg-error-bg hover:border-destructive focus-visible:ring-error'
+          : 'border-border dark:border-border-subtle bg-surface dark:bg-neutral-900 hover:bg-surface-hover hover:border-border-strong focus:border-focus focus-visible:ring-focus text-foreground-1',
+        !value && 'text-muted-foreground'
+      )}
+    >
+      <span className="flex items-center gap-2 min-w-0">
+        <Globe className="h-4 w-4 text-primary shrink-0" />
+        <span className="truncate text-left">{displayLabel}</span>
+      </span>
+      <ChevronDown className={cn('h-4 w-4 text-neutral-700 transition-transform', open && 'rotate-180')} />
+    </Button>
+  );
+
+  // Shared between both containers; only the list's height behaviour differs.
+  const searchAndList = (listClassName: string) => (
+    <>
+      <div className="shrink-0 p-2 bg-popover">
+        <CommandInput
+          placeholder={t('placeholders.searchTimezones')}
+          value={search}
+          onValueChange={setSearch}
+          className="border-0 focus:border-0 focus:ring-0 shadow-none"
+        />
+      </div>
+      <CommandList className={listClassName} onScroll={handleScroll}>
+        <CommandEmpty className="py-6 text-center text-sm text-muted-foreground">
+          {t('timezoneSelect.noResults')}
+        </CommandEmpty>
+        <CommandGroup>
+          {filteredTimezones.map((tz) => (
+            <TimezoneItem
+              key={tz}
+              tz={tz}
+              isSelected={value === tz}
+              onSelect={(selectedTz) => {
+                onChange(selectedTz);
+                setOpen(false);
+                setSearch('');
+              }}
+            />
+          ))}
+          {displayCount < allFilteredTimezones.length && (
+            <div className="py-2 text-center text-xs text-muted-foreground">
+              {t('timezoneSelect.showingCount', {
+                shown: displayCount,
+                total: allFilteredTimezones.length,
+              })}
+            </div>
+          )}
+        </CommandGroup>
+      </CommandList>
+    </>
+  );
+
+  const errorBlock = errorMessage && (
+    <div className="h-5 mt-1">
+      <p
+        className="flex items-center gap-1.5 text-xs text-destructive"
+        role="alert"
+        aria-live="polite"
+      >
+        <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+        <span>{errorMessage}</span>
+      </p>
+    </div>
+  );
+
+  // A popover is positioned against the trigger and is position:fixed, so once
+  // the soft keyboard is up it can sit below the fold with no way to scroll it
+  // back -- fixed elements don't move when a scroll container scrolls. A bottom
+  // sheet is anchored to the viewport's bottom edge instead, which under
+  // Capacitor is the top of the keyboard, so the search field stays in view.
+  if (isMobile) {
+    return (
+      <div>
+        <Drawer open={open} onOpenChange={setOpen}>
+          <DrawerTrigger asChild>{trigger}</DrawerTrigger>
+          <DrawerContent
+            className="flex max-h-[85dvh] flex-col bg-white dark:bg-surface border-border !z-[80]"
+            overlayClassName="!z-[75]"
+            // Open showing the list; the keyboard only appears if the user
+            // actually taps the search field. Focus is parked on the panel
+            // rather than simply suppressed, so it does not stay on the trigger
+            // -- which Radix puts inside an aria-hidden subtree while the
+            // drawer is open, hiding the focused element from assistive tech.
+            tabIndex={-1}
+            onOpenAutoFocus={(event) => {
+              event.preventDefault();
+              (event.currentTarget as HTMLElement | null)?.focus?.();
+            }}
+          >
+            <DrawerHeader className="shrink-0 pb-1 text-left">
+              <DrawerTitle className="text-foreground-1">
+                {t('timezoneSelect.title')}
+              </DrawerTitle>
+              <DrawerDescription className="sr-only">
+                {t('placeholders.searchTimezones')}
+              </DrawerDescription>
+            </DrawerHeader>
+            <Command shouldFilter={false} className="flex min-h-0 flex-1 flex-col bg-transparent">
+              {searchAndList(
+                'max-h-none min-h-0 flex-1 overflow-y-auto overscroll-contain pb-[calc(0.5rem+env(safe-area-inset-bottom))]'
+              )}
+            </Command>
+          </DrawerContent>
+        </Drawer>
+        {errorBlock}
+      </div>
+    );
+  }
+
   return (
     <div>
       <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            variant="outline"
-            role="combobox"
-            aria-haspopup="listbox"
-            aria-expanded={open}
-            className={cn(
-              'w-full h-10 justify-between items-center font-normal transition-all focus-visible:ring-1 focus-visible:ring-offset-0 cursor-pointer',
-              hasError
-                ? 'border-destructive bg-error-bg hover:bg-error-bg hover:border-destructive focus-visible:ring-error'
-                : 'border-border dark:border-border-subtle bg-surface dark:bg-neutral-900 hover:bg-surface-hover hover:border-border-strong focus:border-focus focus-visible:ring-focus text-foreground-1',
-              !value && 'text-muted-foreground'
-            )}
-          >
-            <span className="flex items-center gap-2 min-w-0">
-              <Globe className="h-4 w-4 text-primary shrink-0" />
-              <span className="truncate text-left">{displayLabel}</span>
-            </span>
-            <ChevronDown className={cn('h-4 w-4 text-neutral-700 transition-transform', open && 'rotate-180')} />
-          </Button>
-        </PopoverTrigger>
-      <PopoverContent className="w-[calc(100vw-2rem)] md:w-[420px] p-0 shadow-lg border border-border max-h-[min(320px,50vh)] overflow-hidden !z-[80]" align="start" side="bottom" sideOffset={8} avoidCollisions={true} collisionPadding={16}>
-        <Command shouldFilter={false}>
-          <div className="p-2 bg-popover">
-            <CommandInput
-              placeholder={t('placeholders.searchTimezones')}
-              value={search}
-              onValueChange={setSearch}
-              className="border-0 focus:border-0 focus:ring-0 shadow-none"
-            />
-          </div>
-          <CommandList className="max-h-[min(260px,40vh)] overflow-y-auto" onScroll={handleScroll}>
-            <CommandEmpty className="py-6 text-center text-sm text-muted-foreground">No timezone found.</CommandEmpty>
-            <CommandGroup>
-              {filteredTimezones.map((tz) => (
-                <TimezoneItem
-                  key={tz}
-                  tz={tz}
-                  isSelected={value === tz}
-                  onSelect={(selectedTz) => {
-                    onChange(selectedTz);
-                    setOpen(false);
-                    setSearch('');
-                  }}
-                />
-              ))}
-              {displayCount < allFilteredTimezones.length && (
-                <div className="py-2 text-center text-xs text-muted-foreground">
-                  Showing {displayCount} of {allFilteredTimezones.length} timezones...
-                </div>
-              )}
-            </CommandGroup>
-          </CommandList>
-        </Command>
-      </PopoverContent>
-    </Popover>
-    {errorMessage && (
-      <div className="h-5 mt-1">
-        <p
-          className="flex items-center gap-1.5 text-xs text-destructive"
-          role="alert"
-          aria-live="polite"
-        >
-          <AlertCircle className="h-3.5 w-3.5" />
-          <span>{errorMessage}</span>
-        </p>
-      </div>
-    )}
+        <PopoverTrigger asChild>{trigger}</PopoverTrigger>
+        <PopoverContent className="w-[calc(100vw-2rem)] md:w-[420px] p-0 shadow-lg border border-border max-h-[min(320px,50vh)] overflow-hidden !z-[80]" align="start" side="bottom" sideOffset={8} avoidCollisions={true} collisionPadding={16}>
+          <Command shouldFilter={false}>
+            {searchAndList('max-h-[min(260px,40vh)] overflow-y-auto')}
+          </Command>
+        </PopoverContent>
+      </Popover>
+      {errorBlock}
     </div>
   );
 });

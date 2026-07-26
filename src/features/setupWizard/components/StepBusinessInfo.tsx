@@ -534,14 +534,14 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
                 />
                 <Phone className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" />
               </div>
-              <div className="h-5">
+              <div className="min-h-5">
                 {(businessPhoneState.isTouched || businessPhoneState.isDirty || phoneHasDraft) && businessPhoneState.error && (
                   <p
                     className="mt-1 flex items-center gap-1.5 text-xs text-destructive"
                     role="alert"
                     aria-live="polite"
                   >
-                    <AlertCircle className="h-3.5 w-3.5" />
+                    <AlertCircle className="h-3.5 w-3.5 shrink-0" />
                     <span>{String(businessPhoneState.error.message)}</span>
                   </p>
                 )}

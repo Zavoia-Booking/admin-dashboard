@@ -5,8 +5,7 @@
   "page": {
     "title": "Team Members",
     "displayNameFallback": {
-      "pending": "Pending",
-      "invite": "Invite"
+      "pendingInvite": "Pending invite"
     },
     "subtitle": "Manage your team members",
     "actions": {

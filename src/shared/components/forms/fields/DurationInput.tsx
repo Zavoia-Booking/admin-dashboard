@@ -210,14 +210,14 @@ export const DurationInput: React.FC<DurationInputProps> = ({
             </div>
           )}
         </div>
-        <div className="h-5">
+        <div className="min-h-5">
           {error && (
             <p
               className="flex items-center gap-1.5 text-xs text-destructive"
               role="alert"
               aria-live="polite"
             >
-              <AlertCircle className="h-3.5 w-3.5" />
+              <AlertCircle className="h-3.5 w-3.5 shrink-0" />
               <span>{error}</span>
             </p>
           )}
@@ -226,7 +226,7 @@ export const DurationInput: React.FC<DurationInputProps> = ({
 
       {/* Quick actions - below if not compact layout */}
       {!compactLayout && quickActions && quickActions.length > 0 && (
-        <div className="flex items-center gap-2 pl-0">
+        <div className="flex flex-wrap items-center gap-2 pl-0">
           {quickActions.map((action) => {
             const isOther = action === "other";
             const isActive = isOther ? isOtherActive : value === action && !forceOtherSelected;
@@ -246,14 +246,19 @@ export const DurationInput: React.FC<DurationInputProps> = ({
                   onChange(action);
                 }}
                 className={cn(
-                  "flex-1 cursor-pointer px-2.5 py-1 text-xs font-medium rounded-md transition-colors duration-200 text-center focus:outline-none focus-visible:ring-3 focus-visible:ring-focus/50 focus-visible:ring-offset-0",
+                  // grow/basis-auto rather than flex-1: flex-1 forces every chip
+                  // to the same width regardless of content, so a long localised
+                  // label ("Niciunul") spills out of its box. Starting from the
+                  // content width and sharing the slack keeps them even-ish and
+                  // legible; flex-wrap on the row is the backstop on narrow screens.
+                  "grow basis-auto whitespace-nowrap cursor-pointer px-2.5 py-1 text-xs font-medium rounded-md transition-colors duration-200 text-center focus:outline-none focus-visible:ring-3 focus-visible:ring-focus/50 focus-visible:ring-offset-0",
                   isActive
                     ? "bg-primary text-white"
                     : "bg-surface hover:bg-surface-hover text-foreground-3 dark:text-foreground-2 border border-border",
                   disabled && "cursor-not-allowed opacity-50"
                 )}
               >
-                {isOther ? "Other" : chipFormatter(action)}
+                {isOther ? t("duration.other") : chipFormatter(action)}
               </button>
             );
           })}

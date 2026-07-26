@@ -534,7 +534,7 @@ export function StaffServiceItem({
                   role="alert"
                   aria-live="polite"
                 >
-                  {durationError && <AlertCircle className="h-3.5 w-3.5" />}
+                  {durationError && <AlertCircle className="h-3.5 w-3.5 shrink-0" />}
                   {durationError && <span>{durationError}</span>}
                 </p>
 

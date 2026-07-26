@@ -19,7 +19,7 @@
     "ownerTitle": "Finalizează configurarea afacerii",
     "restrictedTitle": "Afacere indisponibilă",
     "ownerMessage": "Înainte de a invita membrii echipei, de a crea servicii sau de a adăuga locații, te rugăm să finalizezi configurarea informațiilor afacerii tale.",
-    "restrictedMessage": "Accesul tău la această afacere pare să fie inactiv. Este posibil să fi fost eliminat din afacere sau afacerea să fi fost ștearsă. Te rugăm să contactezi administratorul afacerii.",
+    "restrictedMessage": "Accesul tău la această afacere pare să fie inactiv. Este posibil să nu mai faci parte din afacere sau afacerea să fi fost ștearsă. Te rugăm să contactezi administratorul afacerii.",
     "ownerCta": "Finalizează configurarea"
   },
   "confirmDialog": {
@@ -42,11 +42,16 @@
   },
   "countrySelect": {
     "autoDetect": "Detectează țara automat din browser",
-    "autoDetectShort": "Detectează automat"
+    "autoDetectShort": "Detectează automat",
+    "title": "Alege țara",
+    "noResults": "Nicio țară găsită."
   },
   "timezoneSelect": {
     "autoDetect": "Detectează fusul orar automat din browser",
-    "autoDetectShort": "Detectează automat"
+    "autoDetectShort": "Detectează automat",
+    "title": "Alege fusul orar",
+    "noResults": "Niciun fus orar găsit.",
+    "showingCount": "Se afișează {{shown}} din {{total}} fusuri orare..."
   },
   "logoUpload": {
     "altPreview": "Previzualizare logo afacere",
@@ -66,7 +71,7 @@
     }
   },
   "duration": {
-    "none": "Niciuna",
+    "none": "Fără",
     "days": "zile",
     "hours": "ore",
     "minutes": "minute",
@@ -135,6 +140,20 @@
     "buildingHelpExample2": "\"Clădirea 3, Etaj 2\"",
     "buildingHelpExample3": "\"Birou 205\""
   },
+  "contactToggle": {
+    "customBadge": "Personalizat",
+    "previousStep": "pasul anterior",
+    "helperOn": {
+      "emailAndPhone": "Vom folosi emailul și numărul de telefon de la {{source}}",
+      "email": "Vom folosi emailul de la {{source}}",
+      "phone": "Vom folosi numărul de telefon de la {{source}}"
+    },
+    "helperOff": {
+      "emailAndPhone": "Introdu un alt email și un alt număr de telefon pentru această locație",
+      "email": "Introdu un alt email pentru această locație",
+      "phone": "Introdu un alt număr de telefon pentru această locație"
+    }
+  },
   "workingHours": {
     "closed": "Închis",
     "from": "De la",
@@ -166,6 +185,11 @@
       "saturday": "Sâmbătă",
       "sunday": "Duminică"
     }
+  },
+  "timePicker": {
+    "pickStart": "Alege ora de început",
+    "pickEnd": "Alege ora de sfârșit",
+    "pick": "Alege o oră"
   },
   "pinVerification": {
     "confirmed": "Pinul locației confirmat",

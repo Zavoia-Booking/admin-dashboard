@@ -87,7 +87,10 @@ export const SortSelect: React.FC<SortSelectProps> = ({
       size="sm"
       rounded="full"
       className={cn(
-        "h-auto px-3 py-1.5 gap-1.5 border transition-[colors,box-shadow,background-color,color] duration-200 ease-out flex items-center justify-between",
+        // justify-center, not justify-between: there is a single child here, and
+        // justify-between parks a lone child at the start -- so the label sat
+        // left-aligned while the neighbouring Filters button centred its own.
+        "h-auto px-3 py-1.5 gap-1.5 border transition-[colors,box-shadow,background-color,color] duration-200 ease-out flex items-center justify-center",
         open
           ? "bg-info-100 border-border-strong text-foreground-1 dark:bg-neutral-900 dark:text-foreground-1 dark:border-border-strong"
           : "border-border bg-surface-hover text-foreground-1 shadow-xs hover:bg-surface-active hover:border-border-strong dark:bg-transparent dark:text-foreground-1 dark:hover:bg-neutral-900 dark:border-border-strong",
@@ -166,20 +169,7 @@ export const SortSelect: React.FC<SortSelectProps> = ({
   return (
     <>
       {isMobile ? (
-        <Drawer
-          autoFocus={true}
-          open={open}
-          onOpenChange={(isOpen) => {
-            setOpen(isOpen);
-            if (isOpen) {
-              document.documentElement.style.scrollBehavior = "auto";
-            } else {
-              setTimeout(() => {
-                document.documentElement.style.scrollBehavior = "smooth";
-              }, 100);
-            }
-          }}
-        >
+        <Drawer autoFocus={true} open={open} onOpenChange={setOpen}>
           <DrawerTrigger asChild>
             {triggerButton}
           </DrawerTrigger>

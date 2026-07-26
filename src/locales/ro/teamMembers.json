@@ -5,8 +5,7 @@
   "page": {
     "title": "Membri echipă",
     "displayNameFallback": {
-      "pending": "În așteptare",
-      "invite": "Invitație"
+      "pendingInvite": "Invitație în așteptare"
     },
     "subtitle": "Gestionează membrii echipei tale",
     "actions": {
@@ -87,10 +86,10 @@
     "teamMembers": "Membri echipă",
     "trialMessage": "În perioada de probă, poți invita membri nelimitați pentru a explora funcționalitățile împreună!",
     "subscriptionRequired": "Abonament necesar",
-    "subscriptionRequiredDescription": "Ai nevoie de un abonament activ pentru a invita membri ai echipei.",
+    "subscriptionRequiredDescription": "Ai nevoie de un abonament activ pentru a invita membrii echipei.",
     "goToBilling": "Mergi la facturare",
     "subscriptionCancelled": "Abonament necesar",
-    "subscriptionCancelledDescription": "Abonamentul tău a fost anulat. Pentru a invita membri ai echipei, trebuie să reînnoiești mai întâi abonamentul.",
+    "subscriptionCancelledDescription": "Abonamentul tău a fost anulat. Pentru a invita membrii echipei, trebuie să reînnoiești mai întâi abonamentul.",
     "renewSubscription": "Reînnoiește abonamentul",
     "paidSeats": "Locuri plătite",
     "usedSeats": "Locuri utilizate",

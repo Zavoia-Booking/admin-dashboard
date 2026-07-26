@@ -144,7 +144,7 @@ export function RegisterForm({ initialEmail, lockEmail, welcomeToken }: Register
               <div className="h-5">
                 {errors.firstName && (
                   <p className="mt-1 flex items-center gap-1.5 text-xs text-destructive" role="alert" aria-live="polite">
-                    <AlertCircle className="h-3.5 w-3.5" />
+                    <AlertCircle className="h-3.5 w-3.5 shrink-0" />
                     <span>{String(errors.firstName.message)}</span>
                   </p>
                 )}
@@ -178,7 +178,7 @@ export function RegisterForm({ initialEmail, lockEmail, welcomeToken }: Register
               <div className="h-5">
                 {errors.lastName && (
                   <p className="mt-1 flex items-center gap-1.5 text-xs text-destructive" role="alert" aria-live="polite">
-                    <AlertCircle className="h-3.5 w-3.5" />
+                    <AlertCircle className="h-3.5 w-3.5 shrink-0" />
                     <span>{String(errors.lastName.message)}</span>
                   </p>
                 )}
@@ -213,7 +213,7 @@ export function RegisterForm({ initialEmail, lockEmail, welcomeToken }: Register
             <div className="h-5">
               {errors.email && (
                 <p className="mt-1 flex items-center gap-1.5 text-xs text-destructive" role="alert" aria-live="polite">
-                  <AlertCircle className="h-3.5 w-3.5" />
+                  <AlertCircle className="h-3.5 w-3.5 shrink-0" />
                   <span>{String(errors.email.message)}</span>
                 </p>
               )}
@@ -303,7 +303,7 @@ export function RegisterForm({ initialEmail, lockEmail, welcomeToken }: Register
             <div className="h-5">
               {errors.acceptTerms && (
                 <p className="mt-1 flex items-center gap-1.5 text-xs text-destructive" role="alert" aria-live="polite">
-                  <AlertCircle className="h-3.5 w-3.5" />
+                  <AlertCircle className="h-3.5 w-3.5 shrink-0" />
                   <span>{String(errors.acceptTerms.message)}</span>
                 </p>
               )}

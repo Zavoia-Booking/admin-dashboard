@@ -105,10 +105,10 @@ export const NumberField: React.FC<NumberFieldProps> = ({
       {helpText && !error && (
         <p className="text-xs text-foreground-3 dark:text-foreground-2">{helpText}</p>
       )}
-      <div className="h-5">
+      <div className="min-h-5">
         {error && (
           <p className="mt-1 flex items-center gap-1.5 text-xs text-destructive" role="alert" aria-live="polite">
-            <AlertCircle className="h-3.5 w-3.5" />
+            <AlertCircle className="h-3.5 w-3.5 shrink-0" />
             <span>{error}</span>
           </p>
         )}

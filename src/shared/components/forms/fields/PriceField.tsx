@@ -266,14 +266,14 @@ export const PriceField: React.FC<PriceFieldProps> = ({
           {helpText}
         </p>
       )}
-      {!hideInlineError && <div className="h-5">
+      {!hideInlineError && <div className="min-h-5">
         {error && (
           <p
             className="mt-1 flex items-center gap-1.5 text-xs text-destructive"
             role="alert"
             aria-live="polite"
           >
-            <AlertCircle className="h-3.5 w-3.5" />
+            <AlertCircle className="h-3.5 w-3.5 shrink-0" />
             <span>{error}</span>
           </p>
         )}

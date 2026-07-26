@@ -244,19 +244,7 @@ export const ServiceFilters: FC<ServiceFiltersProps> = ({
           />
 
           {isMobile ? (
-            <Drawer
-              open={showFilters}
-              onOpenChange={(open) => {
-                setShowFilters(open);
-                if (open) {
-                  document.documentElement.style.scrollBehavior = "auto";
-                } else {
-                  setTimeout(() => {
-                    document.documentElement.style.scrollBehavior = "smooth";
-                  }, 100);
-                }
-              }}
-            >
+            <Drawer open={showFilters} onOpenChange={setShowFilters}>
               <DrawerTrigger asChild>
                 <button
                   className={`
@@ -866,13 +854,6 @@ export const ServiceFilters: FC<ServiceFiltersProps> = ({
                 // While the confirmation dialog is open, keep the drawer mounted
                 if (showManageConfirm) return;
                 setShowManageCategories(open);
-                if (open) {
-                  document.documentElement.style.scrollBehavior = "auto";
-                } else {
-                  setTimeout(() => {
-                    document.documentElement.style.scrollBehavior = "smooth";
-                  }, 100);
-                }
               }}
             >
               <DrawerTrigger asChild>

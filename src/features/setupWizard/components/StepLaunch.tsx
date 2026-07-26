@@ -233,15 +233,6 @@ const StepLaunch: React.FC<StepLaunchProps> = ({
                     {location.name}
                   </div>
                 )}
-                <div
-                  className={
-                    location?.name
-                      ? "text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed"
-                      : "text-lg font-bold text-foreground-1 leading-tight tracking-tight"
-                  }
-                >
-                  {t("stepLaunch.onSite")}
-                </div>
                 <div className="text-xs text-foreground-3 dark:text-foreground-2 leading-relaxed">
                   {location?.timezone || business?.timezone || "—"}
                 </div>

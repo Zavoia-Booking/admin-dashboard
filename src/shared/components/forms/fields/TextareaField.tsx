@@ -109,7 +109,7 @@ export const TextareaField: React.FC<TextareaFieldProps> = ({
         aria-invalid={!!error}
         aria-describedby={error ? errorId : undefined}
       />
-      <div className="h-5">
+      <div className="min-h-5">
         {error && (
           <p
             id={errorId}
@@ -117,7 +117,7 @@ export const TextareaField: React.FC<TextareaFieldProps> = ({
             role="alert"
             aria-live="polite"
           >
-            <AlertCircle className="h-3.5 w-3.5" />
+            <AlertCircle className="h-3.5 w-3.5 shrink-0" />
             <span>{error}</span>
           </p>
         )}

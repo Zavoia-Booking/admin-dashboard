@@ -146,10 +146,10 @@ const QuickCreateCustomerForm: React.FC<QuickCreateCustomerFormProps> = ({
             />
             <UserCircle className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" />
           </div>
-          <div className="h-5">
+          <div className="min-h-5">
             {firstNameState.error && (
               <p className="mt-1 flex items-center gap-1.5 text-xs text-destructive" role="alert" aria-live="polite">
-                <AlertCircle className="h-3.5 w-3.5" />
+                <AlertCircle className="h-3.5 w-3.5 shrink-0" />
                 <span>{firstNameState.error.message}</span>
               </p>
             )}
@@ -176,10 +176,10 @@ const QuickCreateCustomerForm: React.FC<QuickCreateCustomerFormProps> = ({
             />
             <UserRound className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" />
           </div>
-          <div className="h-5">
+          <div className="min-h-5">
             {lastNameState.error && (
               <p className="mt-1 flex items-center gap-1.5 text-xs text-destructive" role="alert" aria-live="polite">
-                <AlertCircle className="h-3.5 w-3.5" />
+                <AlertCircle className="h-3.5 w-3.5 shrink-0" />
                 <span>{lastNameState.error.message}</span>
               </p>
             )}
@@ -207,14 +207,14 @@ const QuickCreateCustomerForm: React.FC<QuickCreateCustomerFormProps> = ({
           />
           <Mail className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" />
         </div>
-        <div className="h-5">
+        <div className="min-h-5">
           {emailState.error && (
             <p
               className="mt-1 flex items-center gap-1.5 text-xs text-destructive"
               role="alert"
               aria-live="polite"
             >
-              <AlertCircle className="h-3.5 w-3.5" />
+              <AlertCircle className="h-3.5 w-3.5 shrink-0" />
               <span>{emailState.error.message}</span>
             </p>
           )}
@@ -245,14 +245,14 @@ const QuickCreateCustomerForm: React.FC<QuickCreateCustomerFormProps> = ({
           />
           <Phone className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" />
         </div>
-        <div className="h-5">
+        <div className="min-h-5">
           {phoneState.error && (
             <p
               className="mt-1 flex items-center gap-1.5 text-xs text-destructive"
               role="alert"
               aria-live="polite"
             >
-              <AlertCircle className="h-3.5 w-3.5" />
+              <AlertCircle className="h-3.5 w-3.5 shrink-0" />
               <span>{phoneState.error.message}</span>
             </p>
           )}

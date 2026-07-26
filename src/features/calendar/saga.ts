@@ -51,12 +51,29 @@ import { formatDateInTimezone } from "./timezone.ts";
 import type { CalendarDayFilters, DayDataResponse, LocationContextData, CalendarSummaryResponse } from "../../shared/types/calendar.ts";
 import { toast } from "sonner";
 import i18n from "../../shared/lib/i18n";
-import { translateMessageCode } from "../../shared/utils/error";
+import { translateMessageCode, wasGlobalHttpErrorToastHandled } from "../../shared/utils/error";
+import { sanitizeNativeMessage } from "../../shared/lib/nativeMessageSanitizer";
 
 function calendarErrorMessage(error: any): string {
   const raw = error?.response?.data?.message;
-  if (Array.isArray(raw)) return raw.map((m: string) => translateMessageCode(m)).join(' ');
-  return translateMessageCode(raw ?? '');
+  const translated = Array.isArray(raw)
+    ? raw.map((m: string) => translateMessageCode(m)).join(' ')
+    : translateMessageCode(raw ?? '');
+  // Server copy is outside our control and may carry billing wording, which
+  // must never surface on native (Apple 3.1.1 / Google Play equivalents).
+  return sanitizeNativeMessage(translated, translated ? undefined : '');
+}
+
+/**
+ * Feature-level toast for a failed calendar call. Stays silent when the shared
+ * HTTP boundary already explained the failure (402 subscription_required),
+ * otherwise the user gets two toasts for one action — and the second one echoes
+ * the server's raw subscription copy. Mirrors `shouldShowFeatureErrorToast` in
+ * the website saga.
+ */
+function toastCalendarError(error: unknown, fallback: string): void {
+  if (wasGlobalHttpErrorToastHandled(error, "subscription_required")) return;
+  toast.error(calendarErrorMessage(error) || fallback);
 }
 import { dropSuccessHaptic } from "./haptics.ts";
 
@@ -369,7 +386,7 @@ function* handleAdminCreateAppointmentGroup(action: ActionType<typeof adminCreat
                 details,
             });
         }
-        toast.error(calendarErrorMessage(error) || i18n.t("calendar:page.toasts.bookingGroupCreationFailed"));
+        toastCalendarError(error, i18n.t("calendar:page.toasts.bookingGroupCreationFailed"));
     }
 }
 
@@ -388,7 +405,7 @@ function* handleUpdateAppointmentStatus(action: ActionType<typeof updateAppointm
         toast.success(i18n.t(toastKey, { status }));
     } catch (error: any) {
         yield put(updateAppointmentStatus.failure(error));
-        toast.error(calendarErrorMessage(error) || i18n.t("calendar:page.toasts.appointmentStatusUpdateFailed"));
+        toastCalendarError(error, i18n.t("calendar:page.toasts.appointmentStatusUpdateFailed"));
     }
 }
 
@@ -416,7 +433,7 @@ function* handleUpdateAppointment(action: ActionType<typeof updateAppointment.re
                 toast.info(i18n.t("calendar:page.toasts.slotUnavailable"), { description: i18n.t("calendar:page.toasts.slotUnavailableDesc") });
             }
         } else {
-            toast.error(calendarErrorMessage(error) || i18n.t("calendar:page.toasts.appointmentUpdateFailed"));
+            toastCalendarError(error, i18n.t("calendar:page.toasts.appointmentUpdateFailed"));
         }
     }
 }
@@ -435,7 +452,7 @@ function* handleCancelAppointment(action: ActionType<typeof cancelAppointment.re
         toast.success(i18n.t("calendar:page.toasts.appointmentCancelled"));
     } catch (error: any) {
         yield put(cancelAppointment.failure(error));
-        toast.error(calendarErrorMessage(error) || i18n.t("calendar:page.toasts.appointmentCancelFailed"));
+        toastCalendarError(error, i18n.t("calendar:page.toasts.appointmentCancelFailed"));
     }
 }
 
@@ -452,7 +469,7 @@ function* handleCreateCalendarBlock(action: ActionType<typeof createCalendarBloc
         toast.success(i18n.t("calendar:page.toasts.blockCreated"));
     } catch (error: any) {
         yield put(createCalendarBlock.failure(error));
-        toast.error(calendarErrorMessage(error) || i18n.t("calendar:page.toasts.blockCreateFailed"));
+        toastCalendarError(error, i18n.t("calendar:page.toasts.blockCreateFailed"));
     }
 }
 
@@ -465,7 +482,7 @@ function* handleDeleteCalendarBlock(action: ActionType<typeof deleteCalendarBloc
         toast.success(i18n.t("calendar:page.toasts.blockDeleted"));
     } catch (error: any) {
         yield put(deleteCalendarBlock.failure(error));
-        toast.error(calendarErrorMessage(error) || i18n.t("calendar:page.toasts.blockDeleteFailed"));
+        toastCalendarError(error, i18n.t("calendar:page.toasts.blockDeleteFailed"));
     }
 }
 
@@ -487,7 +504,7 @@ function* handleUpdateCalendarBlock(action: ActionType<typeof updateCalendarBloc
         toast.success(i18n.t("calendar:page.toasts.blockUpdated"));
     } catch (error: any) {
         yield put(updateCalendarBlock.failure(error));
-        toast.error(calendarErrorMessage(error) || i18n.t("calendar:page.toasts.blockUpdateFailed"));
+        toastCalendarError(error, i18n.t("calendar:page.toasts.blockUpdateFailed"));
     }
 }
 

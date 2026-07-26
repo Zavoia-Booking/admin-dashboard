@@ -1393,7 +1393,11 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
 
               {appointmentItems.length === 0 ? (
                 <div className="p-3 rounded-lg bg-surface-hover text-foreground-3 dark:text-foreground-2 text-sm">
-                  Select service(s){!isEditMode && locationBundles.length > 0 ? ' and/or bundle(s)' : ''} to start building this appointment.
+                  {/* Two whole sentences rather than one built by concatenation:
+                      the clause order differs by language. */}
+                  {!isEditMode && locationBundles.length > 0
+                    ? t('page.appointments.add.emptyPromptServicesAndBundles')
+                    : t('page.appointments.add.emptyPromptServices')}
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -1406,7 +1410,7 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
                         <div className="h-2 w-2 rounded-full bg-green-500" />
                         <span className="font-semibold text-neutral-900">{selectedServicesCount}</span>
                         <span className="text-neutral-900">
-                          {selectedServicesCount === 1 ? 'service' : 'services'}
+                          {t('page.appointments.add.serviceCount', { count: selectedServicesCount })}
                         </span>
                       </Badge>
                     )}
@@ -1418,7 +1422,7 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
                         <div className="h-2 w-2 rounded-full bg-purple-500" />
                         <span className="font-semibold text-neutral-900">{selectedBundlesCount}</span>
                         <span className="text-neutral-900">
-                          {selectedBundlesCount === 1 ? 'bundle' : 'bundles'}
+                          {t('page.appointments.add.bundleCount', { count: selectedBundlesCount })}
                         </span>
                       </Badge>
                     )}
@@ -1445,7 +1449,7 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
                   })()}
                   <div className="rounded-lg border border-border bg-surface-hover/50 dark:bg-surface px-4 py-3 flex items-center justify-between gap-4">
                     <span className="text-sm font-medium text-foreground-1">
-                      Total
+                      {t('page.appointments.add.totalLabel')}
                     </span>
                     <div className="flex items-center gap-3 text-sm text-foreground-2">
                       <PriceDisplay
@@ -1479,30 +1483,30 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
               />
               {!hasSelectedAnyItem && (
                 <div className="p-3 rounded-lg bg-surface-hover text-foreground-3 dark:text-foreground-2 text-sm">
-                  Select at least one service or bundle to unlock date and time selection.
+                  {t('page.appointments.add.lockedNeedItems')}
                 </div>
               )}
               {hasSelectedAnyItem && !isStaffReadyForSlots && (
                 <div className="p-3 rounded-lg bg-surface-hover text-foreground-3 dark:text-foreground-2 text-sm">
-                  Assign staff to each selected item to load accurate availability.
+                  {t('page.appointments.add.lockedNeedStaff')}
                 </div>
               )}
 
               {hasSelectedAnyItem && isStaffReadyForSlots && durationExceedsOneDay && (
                 <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
-                  Total duration is longer than a full day and would span multiple days. Please remove some services so this appointment fits within one day (by midnight).
+                  {t('page.appointments.add.durationExceedsDay')}
                 </div>
               )}
 
               {isClosedDay && (
                 <div className="p-3 rounded-lg bg-surface-hover text-foreground-3 dark:text-foreground-2 text-sm">
-                  Business is closed on this day. You can still book; you will be asked to confirm.
+                  {t('page.appointments.add.businessClosedNotice')}
                 </div>
               )}
 
               <div className={cn('grid grid-cols-1 sm:grid-cols-2 gap-4', !canSelectDateTime && 'opacity-60 pointer-events-none')}>
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium text-foreground-1">Date</Label>
+                  <Label className="text-sm font-medium text-foreground-1">{t('page.appointments.add.dateLabel')}</Label>
                   <DatePicker
                     value={form.date}
                     onChange={handleDateChange}
@@ -1520,7 +1524,7 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium text-foreground-1">Time</Label>
+                  <Label className="text-sm font-medium text-foreground-1">{t('page.appointments.add.timeLabel')}</Label>
                   {displayTimeSlots.length > 0 ? (
                     <Popover open={hourOpen} onOpenChange={handleHourOpenChange}>
                       <PopoverTrigger asChild>
@@ -1670,9 +1674,9 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
                     <div className="flex items-start gap-2 text-sm text-foreground-1 leading-relaxed">
                       <CalendarClock className="h-4 w-4 mt-0.5 flex-shrink-0 text-primary" />
                       <div className="space-y-0.5 min-w-0">
-                        <p className="font-medium text-foreground-1">No in-hours slots on this date</p>
+                        <p className="font-medium text-foreground-1">{t('page.appointments.add.noInHoursSlots')}</p>
                         <p className="text-xs text-foreground-3 dark:text-foreground-2">
-                          The next day with availability is {nextDateFormatted}. Use the button below to switch.
+                          {t('page.appointments.add.nextAvailableDay', { date: nextDateFormatted })}
                         </p>
                       </div>
                     </div>

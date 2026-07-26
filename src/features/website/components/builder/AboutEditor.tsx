@@ -340,7 +340,7 @@ export function AboutEditor({
             {t("businessPage.about.establishedYearHelp")}
           </p>
         )}
-        <div className="h-5">
+        <div className="min-h-5">
           {yearError && (
             <p
               id="business-page-about-established-year-error"

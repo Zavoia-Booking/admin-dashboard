@@ -129,7 +129,7 @@ export default function ResetPasswordPage() {
                 <div className="h-5">
                   {confirmPassword.length > 0 && !passwordsMatch && (
                     <p className="mt-1 flex items-center gap-1.5 text-xs text-destructive">
-                      <AlertCircle className="h-3.5 w-3.5" />
+                      <AlertCircle className="h-3.5 w-3.5 shrink-0" />
                       <span>{t('resetPassword.errorPasswordsMismatch')}</span>
                     </p>
                   )}

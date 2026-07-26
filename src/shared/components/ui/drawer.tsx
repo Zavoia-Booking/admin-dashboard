@@ -4,11 +4,101 @@ import * as React from "react"
 import { Drawer as DrawerPrimitive } from "vaul"
 
 import { cn } from "../../lib/utils"
+import appConfig from "../../../app/config/env"
+
+/**
+ * vaul compensates for the soft keyboard by rewriting the drawer's inline
+ * height, sizing it from `window.innerHeight - visualViewport.height` and
+ * caching the pre-keyboard height to restore later. Both only hold on the web,
+ * where the keyboard shrinks the visual viewport alone. Under Capacitor the
+ * native layer resizes the whole web view, so the two heights move together and
+ * the cached baseline can be captured mid-resize -- after which every "restore"
+ * writes back a too-small height and the drawer is left stranded at part size.
+ *
+ * Native builds therefore let the web view resize do the work by itself, with
+ * drawer height coming from CSS (dvh) so nothing is cached to go stale. Pass
+ * `repositionInputs` explicitly to override this per drawer.
+ */
+/**
+ * On Safari and every iOS browser, vaul pins `body` with `position: fixed` and a
+ * negative `top` while a drawer is open, which drops the document's real scroll
+ * offset to 0. On close it restores those styles and then calls `window.scrollTo`
+ * inside a requestAnimationFrame to put you back. Our global
+ * `html { scroll-behavior: smooth }` turns that restore into an animation, so the
+ * page sits at the top for a moment and then visibly glides back down.
+ *
+ * vaul already forces `scroll-behavior: auto` while the drawer is open, but it
+ * releases it in the effect cleanup -- one frame before that scrollTo runs. So
+ * the window that actually needs covering starts at close, not at open.
+ *
+ * This is done with a class rather than an inline style on purpose: vaul's own
+ * set/reset helpers cache the previous *inline* value, so writing inline here
+ * would make vaul cache our value and restore it forever. A class is invisible to
+ * that bookkeeping. Refcounted so nested drawers don't release it early.
+ */
+const INSTANT_SCROLL_CLASS = "drawer-instant-scroll"
+let instantScrollHolds = 0
+let instantScrollRelease: number | null = null
+
+function holdInstantScroll() {
+  if (typeof document === "undefined") return
+  if (instantScrollRelease !== null) {
+    window.clearTimeout(instantScrollRelease)
+    instantScrollRelease = null
+  }
+  instantScrollHolds += 1
+  document.documentElement.classList.add(INSTANT_SCROLL_CLASS)
+}
+
+function releaseInstantScroll() {
+  if (typeof document === "undefined") return
+  instantScrollHolds = Math.max(0, instantScrollHolds - 1)
+  if (instantScrollHolds > 0) return
+  if (instantScrollRelease !== null) window.clearTimeout(instantScrollRelease)
+  instantScrollRelease = window.setTimeout(() => {
+    instantScrollRelease = null
+    if (instantScrollHolds !== 0) return
+    document.documentElement.classList.remove(INSTANT_SCROLL_CLASS)
+  }, 300)
+}
 
 function Drawer({
+  repositionInputs,
+  open,
+  defaultOpen,
+  onOpenChange,
   ...props
 }: React.ComponentProps<typeof DrawerPrimitive.Root>) {
-  return <DrawerPrimitive.Root data-slot="drawer" {...props} />
+  // Track the open state for both controlled and uncontrolled callers: a parent
+  // closing a drawer by flipping `open` never fires onOpenChange, and an
+  // uncontrolled drawer never passes `open` at all.
+  const [uncontrolledOpen, setUncontrolledOpen] = React.useState(!!defaultOpen)
+  const isOpen = open ?? uncontrolledOpen
+
+  React.useEffect(() => {
+    if (!isOpen) return
+    holdInstantScroll()
+    return releaseInstantScroll
+  }, [isOpen])
+
+  const handleOpenChange = React.useCallback(
+    (next: boolean) => {
+      if (open === undefined) setUncontrolledOpen(next)
+      onOpenChange?.(next)
+    },
+    [open, onOpenChange]
+  )
+
+  return (
+    <DrawerPrimitive.Root
+      data-slot="drawer"
+      repositionInputs={repositionInputs ?? !appConfig.IS_NATIVE}
+      open={open}
+      defaultOpen={defaultOpen}
+      onOpenChange={handleOpenChange}
+      {...props}
+    />
+  )
 }
 
 function DrawerTrigger({

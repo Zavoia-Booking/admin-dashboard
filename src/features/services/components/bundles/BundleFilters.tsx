@@ -429,19 +429,7 @@ export const BundleFilters: FC<BundleFiltersProps> = ({
         />
 
         {isMobile ? (
-          <Drawer
-            open={showFilters}
-            onOpenChange={(open) => {
-              setShowFilters(open);
-              if (open) {
-                document.documentElement.style.scrollBehavior = "auto";
-              } else {
-                setTimeout(() => {
-                  document.documentElement.style.scrollBehavior = "smooth";
-                }, 100);
-              }
-            }}
-          >
+          <Drawer open={showFilters} onOpenChange={setShowFilters}>
             <DrawerTrigger asChild>
               <button
                 className={`

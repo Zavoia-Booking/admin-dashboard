@@ -1682,7 +1682,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                                     <MessageSquare className="h-2.5 w-2.5" />
                                   </div>
                                 )}
-                                {method.charAt(0).toUpperCase() + method.slice(1)}
+                                {t(`page.appointments.edit.notificationMethods.${method}`)}
                               </button>
                             );
                           })}

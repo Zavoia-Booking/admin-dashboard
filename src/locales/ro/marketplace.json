@@ -165,7 +165,7 @@
       "portfolioItem": "Element portofoliu",
       "portfolioImage": "Imagine portofoliu"
     },
-    "featured": "Reprezentativă",
+    "featured": "Copertă",
     "setCover": "Setează copertă",
     "setAsMainCover": "Setează ca fotografie principală",
     "remove": "Elimină",
@@ -212,10 +212,10 @@
         "helpText": "Clienții pot face programări cu până la atâtea zile în avans."
       },
       "bufferTime": {
-        "label": "Timp tampon între programări",
+        "label": "Pauză între programări",
         "helpText": "Adaugă o pauză între programări pentru a evita rezervările una după alta."
       },
-      "none": "Niciunul"
+      "none": "Fără"
     },
     "policy": {
       "title": "Anulări și reprogramări",

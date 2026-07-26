@@ -67,7 +67,7 @@ function CustomerSelectedCard({ display, isEditMode, onClear }: CustomerSelected
           onClick={onClear}
           className="shrink-0 !min-h-0 h-7 !px-3 border border-border group-hover:border-border-strong text-foreground-3 dark:text-foreground-2 hover:text-primary dark:hover:text-primary group-hover:text-primary group-hover:bg-info-100/20 dark:hover:bg-muted-foreground/10 dark:group-hover:bg-muted-foreground/10 cursor-pointer"
         >
-          <span className="text-xs text-foreground-3 group-hover:text-foreground-1">Change</span>
+          <span className="text-xs text-foreground-3 group-hover:text-foreground-1">{t('page.customerSearch.change')}</span>
           <ChevronRight className="h-3 w-3 pt-0.5 transition-transform duration-200 ease-out group-hover:translate-x-0.5" />
         </Button>
       )}

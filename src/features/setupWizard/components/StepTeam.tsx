@@ -357,7 +357,7 @@ const StepTeam = forwardRef<StepHandle, StepProps>(
                       role="alert"
                       aria-live="polite"
                     >
-                      <AlertCircle className="h-3.5 w-3.5" />
+                      <AlertCircle className="h-3.5 w-3.5 shrink-0" />
                       <span>
                         {String(
                           errors.email.message ||
@@ -367,11 +367,6 @@ const StepTeam = forwardRef<StepHandle, StepProps>(
                     </p>
                   )}
                 </div>
-                <p className="text-sm text-foreground-3 dark:text-foreground-2 mt-2 pb-2 md:pb-0">
-                  {localTeamMembers.length >= 20
-                    ? tw('stepTeam.limitReached')
-                    : tw('stepTeam.remainingInvites', { count: 20 - localTeamMembers.length })}
-                </p>
               </div>
             </div>
 

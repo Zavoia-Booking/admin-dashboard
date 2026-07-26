@@ -213,7 +213,7 @@ export function LocationServiceRow({
   })();
 
   // Render form content
-  const renderFormContent = () => (
+  const renderFormBody = () => (
     <>
       <div className="space-y-1.5 mb-2">
         <h4 className="text-lg font-semibold text-foreground-1 mb-1">
@@ -335,14 +335,14 @@ export function LocationServiceRow({
             ))}
           </div>
           {/* Error message */}
-          <div className="h-5">
+          <div className="min-h-5">
             {durationError && (
               <p
                 className="flex items-center gap-1.5 text-xs text-destructive"
                 role="alert"
                 aria-live="polite"
               >
-                <AlertCircle className="h-3.5 w-3.5" />
+                <AlertCircle className="h-3.5 w-3.5 shrink-0" />
                 <span>{durationError}</span>
               </p>
             )}
@@ -350,37 +350,40 @@ export function LocationServiceRow({
         </div>
       </div>
 
-      <div className="bg-surface shrink-0">
-        <DashedDivider
-          marginTop="mt-0"
-          className="mb-0"
-          paddingTop="pt-0"
-          dashPattern="1 1"
-        />
-        <div className="flex justify-between gap-2 mt-0 pt-6">
-          <Button
-            variant="outline"
-            rounded="full"
-            size="sm"
-            onClick={handleRevert}
-            className="w-32 h-11 cursor-pointer"
-            disabled={!hasLocationOverride}
-          >
-            {t("page.locationService.buttons.revert")}
-          </Button>
-          <Button
-            rounded="full"
-            size="sm"
-            onClick={handleSave}
-            className="group flex-1 h-11 cursor-pointer"
-            disabled={!hasLocalChanges || !!durationError}
-          >
-            {t("page.locationService.buttons.save")}
-            <ArrowRight className="h-4 w-4 transition-transform duration-300 ease-out group-hover:translate-x-1.5" />
-          </Button>
-        </div>
-      </div>
     </>
+  );
+
+  const renderFormActions = () => (
+    <div className="bg-surface shrink-0">
+      <DashedDivider
+        marginTop="mt-0"
+        className="mb-0"
+        paddingTop="pt-0"
+        dashPattern="1 1"
+      />
+      <div className="flex justify-between gap-2 mt-0 pt-6">
+        <Button
+          variant="outline"
+          rounded="full"
+          size="sm"
+          onClick={handleRevert}
+          className="w-32 h-11 cursor-pointer"
+          disabled={!hasLocationOverride}
+        >
+          {t("page.locationService.buttons.revert")}
+        </Button>
+        <Button
+          rounded="full"
+          size="sm"
+          onClick={handleSave}
+          className="group flex-1 h-11 cursor-pointer"
+          disabled={!hasLocalChanges || !!durationError}
+        >
+          {t("page.locationService.buttons.save")}
+          <ArrowRight className="h-4 w-4 transition-transform duration-300 ease-out group-hover:translate-x-1.5" />
+        </Button>
+      </div>
+    </div>
   );
 
   // Main row content - redesigned with two zones
@@ -424,6 +427,16 @@ export function LocationServiceRow({
               <DrawerContent
                 className="h-auto max-h-[85vh] flex flex-col bg-popover text-popover-foreground !z-80"
                 overlayClassName="!z-80"
+                // Focus enters the panel but not the price field: Radix would
+                // otherwise focus the first input and raise the soft keyboard
+                // before the user has picked which value to edit. Parking focus
+                // on the panel keeps it off the trigger, which Radix marks
+                // aria-hidden while the drawer is open.
+                tabIndex={-1}
+                onOpenAutoFocus={(event) => {
+                  event.preventDefault();
+                  (event.currentTarget as HTMLElement | null)?.focus?.();
+                }}
               >
                 <DrawerTitle className="sr-only">
                   {service.serviceName}
@@ -432,7 +445,14 @@ export function LocationServiceRow({
                   {t("page.locationService.popover.helperText")}{" "}
                   {service.serviceName}
                 </DrawerDescription>
-                <div className="p-4 pt-1 md:pt-4 space-y-4">{renderFormContent()}</div>
+                {/* Only the fields scroll, so the actions stay reachable when
+                    the soft keyboard shortens the drawer. */}
+                <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pt-1 md:pt-4 space-y-4">
+                  {renderFormBody()}
+                </div>
+                <div className="shrink-0 px-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+                  {renderFormActions()}
+                </div>
               </DrawerContent>
             </Drawer>
           ) : (
@@ -457,7 +477,10 @@ export function LocationServiceRow({
                 onClick={(e) => e.stopPropagation()}
                 onOpenAutoFocus={(e) => e.preventDefault()}
               >
-                <div className="space-y-4">{renderFormContent()}</div>
+                <div className="space-y-4">
+                  {renderFormBody()}
+                  {renderFormActions()}
+                </div>
               </PopoverContent>
             </Popover>
           )}

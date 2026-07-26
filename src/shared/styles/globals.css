@@ -789,6 +789,14 @@ html {
   scroll-behavior: smooth;
 }
 
+/* Held by the shared Drawer while one is open and briefly after it closes: vaul
+   restores the page offset with window.scrollTo a frame after close, and the
+   smooth behaviour above would animate that restore into a visible jump.
+   !important because it must beat vaul's own inline scroll-behavior. */
+html.drawer-instant-scroll {
+  scroll-behavior: auto !important;
+}
+
 /* Prevent horizontal scroll on mobile */
 body {
   overflow-x: hidden;
