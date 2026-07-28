@@ -35,7 +35,6 @@ const AccountWebInfoPage = lazy(() => import('./features/settings/pages/AccountW
 const AssignmentsPage = lazy(() => import('./features/assignments/pages/assignments'))
 const VerifyEmailPage = lazy(() => import('./features/auth/pages/verify-email'))
 const LinkBusinessAccountPage = lazy(() => import('./features/auth/pages/link-business-account'))
-const ModalGalleryPage = lazy(() => import('./features/dev/ModalGalleryPage'))
 const TeamInvitationPage = lazy(() => import('./features/auth/pages/team-invitation'))
 const SupportPage = lazy(() => import('./features/support/pages/support'))
 const CustomersPage = lazy(() => import('./features/customers/pages/customers'))
@@ -185,9 +184,6 @@ const router = createBrowserRouter(
       <Route path="/info" element={<InfoPageComponent />} />
       <Route path="/account-info" element={<ProtectedRoute element={<AccountWebInfoPage />} />} />
       <Route path="/team-members/invitation-success" element={<ProtectedRoute element={<InvitationSuccessPage />} />} />
-
-      {/* Dev — modal design gallery (not linked from nav) */}
-      <Route path="/dev/modals" element={<ProtectedRoute element={<ModalGalleryPage />} />} />
 
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/calendar" replace />} />

@@ -31,21 +31,27 @@ type Status =
   | { kind: 'success' }
   | { kind: 'error' };
 
-/** Shared editorial modal shell — every state renders inside the same panel + page
- * backdrop so the surface stays put and only its contents swap between steps. */
+/** Page backdrop — every state renders the same panel on it so the surface stays
+ * put and only its contents swap between steps. */
 function Shell({ children }: { children: ReactNode }) {
   return (
     <main className="flex min-h-screen items-center justify-center bg-neutral-100 px-4 py-6 dark:bg-background sm:px-6">
-      <section
-        aria-labelledby="link-business-account-title"
-        className={cn(
-          modalPanel,
-          "relative inset-auto left-auto top-auto mx-auto -translate-x-0 -translate-y-0",
-        )}
-      >
-        {children}
-      </section>
+      {children}
     </main>
+  );
+}
+
+function Panel({ children }: { children: ReactNode }) {
+  return (
+    <section
+      aria-labelledby="link-business-account-title"
+      className={cn(
+        modalPanel,
+        "relative inset-auto left-auto top-auto mx-auto -translate-x-0 -translate-y-0",
+      )}
+    >
+      {children}
+    </section>
   );
 }
 
@@ -58,133 +64,51 @@ function Eyebrow({ icon, children }: { icon: ReactNode; children: ReactNode }) {
   );
 }
 
-export default function LinkBusinessAccountPage() {
+function LinkBusinessSuccessCard({ onContinue }: { onContinue: () => void }) {
   const { t } = useTranslation('auth');
-  const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
-  const dispatch = useDispatch();
-  const [status, setStatus] = useState<Status>(
-    () => (searchParams.get('token') ? { kind: 'validating' } : { kind: 'error' }),
+  return (
+    <Panel>
+      <Eyebrow icon={<CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />}>
+        {t('linkBusiness.securityEyebrow')}
+      </Eyebrow>
+      <h1 id="link-business-account-title" className={modalTitleCompact}>
+        {t('linkBusiness.successTitle')}
+      </h1>
+      <p className={cn(modalBody, "mt-3")}>
+        {`${t('linkBusiness.successDescription')} ${t('linkBusiness.successBody')}`}
+      </p>
+      <footer className="mt-7 border-t border-neutral-200 pt-5 dark:border-border-subtle">
+        <Button
+          className={cn(modalPrimary, "h-auto w-full")}
+          rounded="full"
+          type="button"
+          onClick={onContinue}
+        >
+          <span>{t('linkBusiness.setupBusiness')}</span>
+        </Button>
+      </footer>
+    </Panel>
   );
-  const [submitting, setSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
+}
 
-  const token = searchParams.get('token');
-
+function LinkBusinessConfirmCard({
+  info,
+  submitting,
+  submitError,
+  onSubmit,
+}: {
+  info: BusinessLinkTokenValidation;
+  submitting: boolean;
+  submitError: string | null;
+  onSubmit: (values: FormValues) => void | Promise<void>;
+}) {
+  const { t } = useTranslation('auth');
   const { register, handleSubmit, formState: { errors } } = useForm<FormValues>({
     defaultValues: { password: '' },
   });
 
-  useEffect(() => {
-    if (!token) return;
-
-    let cancelled = false;
-    validateBusinessLinkTokenApi(token)
-      .then((info) => { if (!cancelled) setStatus({ kind: 'confirm', info }); })
-      .catch(() => { if (!cancelled) setStatus({ kind: 'error' }); });
-    return () => { cancelled = true; };
-  }, [token]);
-
-  const onSubmit = async (values: FormValues) => {
-    if (!token) return;
-    setSubmitError(null);
-    setSubmitting(true);
-    try {
-      const data = await completeBusinessLinkApi({ token, password: values.password });
-      dispatch(setTokensAction({
-        accessToken: data.accessToken,
-        csrfToken: data.csrfToken ?? null,
-        refreshToken: data.refreshToken ?? null,
-      }));
-      dispatch(setAuthUserAction({ user: data.user }));
-      setStatus({ kind: 'success' });
-    } catch (err: any) {
-      const httpStatus = err?.response?.status;
-      const code = err?.response?.data?.code;
-      if (httpStatus === 401) {
-        setSubmitError(t('linkBusiness.wrongPassword'));
-      } else if (code === 'google_login_required' && status.kind === 'confirm') {
-        // Passwordless (Google-only) account - only the Google path can confirm it.
-        setStatus({ kind: 'confirm', info: { ...status.info, hasPassword: false, googleLinked: true } });
-      } else {
-        setStatus({ kind: 'error' });
-      }
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  if (status.kind === 'validating') {
-    return (
-      <Shell>
-        <Eyebrow icon={<Lock className="h-3.5 w-3.5" aria-hidden="true" />}>
-          {t('linkBusiness.securityEyebrow')}
-        </Eyebrow>
-        <h1 id="link-business-account-title" className={modalTitleCompact}>
-          {t('linkBusiness.checkingTitle')}
-        </h1>
-        <p className={cn(modalBody, "mt-3")}>{t('linkBusiness.checkingDescription')}</p>
-        <div className="mt-8 flex justify-center">
-          <Spinner size="lg" />
-        </div>
-      </Shell>
-    );
-  }
-
-  if (status.kind === 'success') {
-    return (
-      <Shell>
-        <Eyebrow icon={<CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />}>
-          {t('linkBusiness.securityEyebrow')}
-        </Eyebrow>
-        <h1 id="link-business-account-title" className={modalTitleCompact}>
-          {t('linkBusiness.successTitle')}
-        </h1>
-        <p className={cn(modalBody, "mt-3")}>
-          {`${t('linkBusiness.successDescription')} ${t('linkBusiness.successBody')}`}
-        </p>
-        <footer className="mt-7 border-t border-neutral-200 pt-5 dark:border-border-subtle">
-          <Button
-            className={cn(modalPrimary, "h-auto w-full")}
-            rounded="full"
-            type="button"
-            onClick={() => navigate('/welcome', { replace: true })}
-          >
-            <span>{t('linkBusiness.setupBusiness')}</span>
-          </Button>
-        </footer>
-      </Shell>
-    );
-  }
-
-  if (status.kind === 'error') {
-    return (
-      <Shell>
-        <Eyebrow icon={<AlertCircle className="h-3.5 w-3.5" aria-hidden="true" />}>
-          {t('linkBusiness.securityEyebrow')}
-        </Eyebrow>
-        <h1 id="link-business-account-title" className={modalTitleCompact}>
-          {t('linkBusiness.errorTitle')}
-        </h1>
-        <p className={cn(modalBody, "mt-3")}>{t('linkBusiness.errorDescription')}</p>
-        <footer className="mt-7 border-t border-neutral-200 pt-5 dark:border-border-subtle">
-          <Button
-            className={cn(modalPrimary, "h-auto w-full")}
-            rounded="full"
-            type="button"
-            onClick={() => navigate('/login', { replace: true })}
-          >
-            <span>{t('linkBusiness.goToLogin')}</span>
-          </Button>
-        </footer>
-      </Shell>
-    );
-  }
-
-  const { info } = status;
-
   return (
-    <Shell>
+    <Panel>
       <header className="text-left">
         <Eyebrow icon={<Lock className="h-3.5 w-3.5" aria-hidden="true" />}>
           {t('linkBusiness.securityEyebrow')}
@@ -270,6 +194,123 @@ export default function LinkBusinessAccountPage() {
           <GoogleSignInButton context="register" className="h-11 rounded-full text-sm" />
         </div>
       )}
+    </Panel>
+  );
+}
+
+export default function LinkBusinessAccountPage() {
+  const { t } = useTranslation('auth');
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const [status, setStatus] = useState<Status>(
+    () => (searchParams.get('token') ? { kind: 'validating' } : { kind: 'error' }),
+  );
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  const token = searchParams.get('token');
+
+  useEffect(() => {
+    if (!token) return;
+
+    let cancelled = false;
+    validateBusinessLinkTokenApi(token)
+      .then((info) => { if (!cancelled) setStatus({ kind: 'confirm', info }); })
+      .catch(() => { if (!cancelled) setStatus({ kind: 'error' }); });
+    return () => { cancelled = true; };
+  }, [token]);
+
+  const onSubmit = async (values: FormValues) => {
+    if (!token) return;
+    setSubmitError(null);
+    setSubmitting(true);
+    try {
+      const data = await completeBusinessLinkApi({ token, password: values.password });
+      dispatch(setTokensAction({
+        accessToken: data.accessToken,
+        csrfToken: data.csrfToken ?? null,
+        refreshToken: data.refreshToken ?? null,
+      }));
+      dispatch(setAuthUserAction({ user: data.user }));
+      setStatus({ kind: 'success' });
+    } catch (err: any) {
+      const httpStatus = err?.response?.status;
+      const code = err?.response?.data?.code;
+      if (httpStatus === 401) {
+        setSubmitError(t('linkBusiness.wrongPassword'));
+      } else if (code === 'google_login_required' && status.kind === 'confirm') {
+        // Passwordless (Google-only) account - only the Google path can confirm it.
+        setStatus({ kind: 'confirm', info: { ...status.info, hasPassword: false, googleLinked: true } });
+      } else {
+        setStatus({ kind: 'error' });
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (status.kind === 'validating') {
+    return (
+      <Shell>
+        <Panel>
+          <Eyebrow icon={<Lock className="h-3.5 w-3.5" aria-hidden="true" />}>
+            {t('linkBusiness.securityEyebrow')}
+          </Eyebrow>
+          <h1 id="link-business-account-title" className={modalTitleCompact}>
+            {t('linkBusiness.checkingTitle')}
+          </h1>
+          <p className={cn(modalBody, "mt-3")}>{t('linkBusiness.checkingDescription')}</p>
+          <div className="mt-8 flex justify-center">
+            <Spinner size="lg" />
+          </div>
+        </Panel>
+      </Shell>
+    );
+  }
+
+  if (status.kind === 'success') {
+    return (
+      <Shell>
+        <LinkBusinessSuccessCard onContinue={() => navigate('/welcome', { replace: true })} />
+      </Shell>
+    );
+  }
+
+  if (status.kind === 'error') {
+    return (
+      <Shell>
+        <Panel>
+          <Eyebrow icon={<AlertCircle className="h-3.5 w-3.5" aria-hidden="true" />}>
+            {t('linkBusiness.securityEyebrow')}
+          </Eyebrow>
+          <h1 id="link-business-account-title" className={modalTitleCompact}>
+            {t('linkBusiness.errorTitle')}
+          </h1>
+          <p className={cn(modalBody, "mt-3")}>{t('linkBusiness.errorDescription')}</p>
+          <footer className="mt-7 border-t border-neutral-200 pt-5 dark:border-border-subtle">
+            <Button
+              className={cn(modalPrimary, "h-auto w-full")}
+              rounded="full"
+              type="button"
+              onClick={() => navigate('/login', { replace: true })}
+            >
+              <span>{t('linkBusiness.goToLogin')}</span>
+            </Button>
+          </footer>
+        </Panel>
+      </Shell>
+    );
+  }
+
+  return (
+    <Shell>
+      <LinkBusinessConfirmCard
+        info={status.info}
+        submitting={submitting}
+        submitError={submitError}
+        onSubmit={onSubmit}
+      />
     </Shell>
   );
 }
