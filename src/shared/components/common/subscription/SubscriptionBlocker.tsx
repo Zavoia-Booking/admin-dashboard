@@ -125,7 +125,7 @@ export const SubscriptionBlocker: React.FC = () => {
             e.preventDefault();
             contentRef.current?.focus();
           }}
-          className={modalPanelLarge}
+          className={`${modalPanelLarge} sm:max-w-[560px]`}
         >
           <div className={modalEyebrow}>{eyebrow}</div>
 
@@ -137,17 +137,17 @@ export const SubscriptionBlocker: React.FC = () => {
               Mobile: stack with primary on top, then secondary, then sign-out. */}
           <div className={modalFooterRow}>
             <div className="order-2 flex justify-center sm:order-1 sm:justify-start">
-              <button type="button" onClick={handleSignOut} className={modalGhost}>
+              <button type="button" onClick={handleSignOut} className={`${modalGhost} whitespace-nowrap`}>
                 {t('limitedUsage.blockerSignOut')}
               </button>
             </div>
 
-            <div className="order-1 flex flex-col-reverse gap-2 sm:order-2 sm:flex-row">
-              <button type="button" onClick={handleSecondary} className={modalSecondary}>
+            <div className="order-1 flex flex-col-reverse gap-2 sm:order-2 sm:shrink-0 sm:flex-row">
+              <button type="button" onClick={handleSecondary} className={`${modalSecondary} shrink-0 whitespace-nowrap`}>
                 {secondaryLabel}
               </button>
 
-              <button type="button" onClick={handlePrimary} className={modalPrimary}>
+              <button type="button" onClick={handlePrimary} className={`${modalPrimary} shrink-0 whitespace-nowrap`}>
                 <span>{primaryLabel}</span>
                 <ModalArrow />
               </button>

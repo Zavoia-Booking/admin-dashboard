@@ -21,15 +21,17 @@ import type { LocationFullAssignment, StaffServicesAtLocation } from "./types";
 import { toast } from "sonner";
 import i18n from "../../shared/lib/i18n";
 import { getErrorMessage } from "../../shared/utils/error";
+import type { RootState } from "../../app/providers/store";
 
 function* handleFetchLocationFullAssignment(
   action: ReturnType<typeof fetchLocationFullAssignmentAction.request>,
 ) {
+  const locationId =
+    typeof action.payload === "number"
+      ? action.payload
+      : action.payload.locationId;
+
   try {
-    const locationId =
-      typeof action.payload === "number"
-        ? action.payload
-        : action.payload.locationId;
     const data: LocationFullAssignment = yield call(
       fetchLocationFullAssignmentRequest,
       locationId,
@@ -41,7 +43,14 @@ function* handleFetchLocationFullAssignment(
         message: getErrorMessage(error),
       }),
     );
-    toast.error(i18n.t("assignments:page.toasts.failedToLoadLocationData"));
+    const hasRenderableAssignment: boolean = yield select(
+      (state: RootState) =>
+        state.assignments.selectedLocationId === locationId &&
+        state.assignments.selectedLocationFullAssignment?.id === locationId,
+    );
+    if (hasRenderableAssignment) {
+      toast.error(i18n.t("assignments:page.toasts.failedToLoadLocationData"));
+    }
   }
 }
 

@@ -11,12 +11,14 @@ import {
   type ListItem,
 } from '../../../assignments/components/common/AssignmentListPanel';
 import { DashedDivider } from '../../../../shared/components/common/DashedDivider';
+import { ErrorState } from '../../../../shared/components/common/ErrorState';
 import { MyAssignmentServicesSection } from '../components/MyAssignmentServicesSection';
 import { MyAssignmentBundlesSection } from '../components/MyAssignmentBundlesSection';
 import { highlightMatches } from '../../../../shared/utils/highlight';
 import { cn } from '../../../../shared/lib/utils';
 import { selectCurrentUser } from '../../../auth/selectors';
 import { getAssignedLocations, getLocationAssignments } from '../api';
+import { getErrorMessage } from '../../../../shared/utils/error';
 import type { AssignedLocation, LocationAssignments } from '../types';
 
 export default function MyAssignmentsPage() {
@@ -33,15 +35,20 @@ export default function MyAssignmentsPage() {
   // Data fetching state
   const [locations, setLocations] = useState<AssignedLocation[]>([]);
   const [isLocationsLoading, setIsLocationsLoading] = useState(true);
+  const [locationsError, setLocationsError] = useState<string | null>(null);
+  const [locationsReloadKey, setLocationsReloadKey] = useState(0);
   const [locationAssignments, setLocationAssignments] =
     useState<LocationAssignments | null>(null);
   const [isAssignmentsLoading, setIsAssignmentsLoading] = useState(false);
+  const [assignmentsError, setAssignmentsError] = useState<string | null>(null);
+  const [assignmentsReloadKey, setAssignmentsReloadKey] = useState(0);
 
-  // Fetch assigned locations on mount
+  // Fetch assigned locations on mount (and on retry)
   useEffect(() => {
     const fetchLocations = async () => {
       try {
         setIsLocationsLoading(true);
+        setLocationsError(null);
         const data = await getAssignedLocations();
         setLocations(data);
 
@@ -51,15 +58,22 @@ export default function MyAssignmentsPage() {
         }
       } catch (error: any) {
         console.error('Error fetching assigned locations:', error);
-        toast.error(error?.message || t('toast.loadLocationsFailed'));
+        const message = getErrorMessage(error, t('toast.loadLocationsFailed'));
+        // Retained locations stay listed with a toast; the panel ErrorState
+        // (with retry) is reserved for an empty list.
+        if (locations.length > 0) {
+          toast.error(message);
+        } else {
+          setLocationsError(message);
+        }
       } finally {
         setIsLocationsLoading(false);
       }
     };
     fetchLocations();
-  }, []);
+  }, [locationsReloadKey]);
 
-  // Fetch location assignments when a location is selected
+  // Fetch location assignments when a location is selected (and on retry)
   useEffect(() => {
     if (!selectedLocationId) {
       setLocationAssignments(null);
@@ -69,17 +83,21 @@ export default function MyAssignmentsPage() {
     const fetchAssignments = async () => {
       try {
         setIsAssignmentsLoading(true);
+        // Clear the previous location's data so a failed fetch can't leave
+        // stale assignments rendered under the newly selected location.
+        setLocationAssignments(null);
+        setAssignmentsError(null);
         const data = await getLocationAssignments(selectedLocationId);
         setLocationAssignments(data);
       } catch (error: any) {
         console.error('Error fetching location assignments:', error);
-        toast.error(error?.message || t('toast.loadAssignmentsFailed'));
+        setAssignmentsError(getErrorMessage(error, t('toast.loadAssignmentsFailed')));
       } finally {
         setIsAssignmentsLoading(false);
       }
     };
     fetchAssignments();
-  }, [selectedLocationId]);
+  }, [selectedLocationId, assignmentsReloadKey]);
 
   // Filter locations by search
   const filteredLocations = useMemo(() => {
@@ -177,9 +195,17 @@ export default function MyAssignmentsPage() {
     [handleSelectLocation, searchTerm]
   );
 
-  // Empty state for locations list
+  // Empty state for locations list — a load failure takes priority over the
+  // "no locations assigned" message so a failed fetch never reads as empty.
   const emptyStateComponent =
-    locations.length === 0 && !isLocationsLoading ? (
+    locationsError && locations.length === 0 && !isLocationsLoading ? (
+      <ErrorState
+        variant="pane"
+        body={locationsError}
+        onRetry={() => setLocationsReloadKey((k) => k + 1)}
+        className="px-3"
+      />
+    ) : locations.length === 0 && !isLocationsLoading ? (
       <div className="flex flex-col items-center justify-center py-12 px-4">
         <div className="flex flex-col items-center justify-center space-y-4 text-center max-w-sm">
           <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center">
@@ -365,6 +391,16 @@ export default function MyAssignmentsPage() {
           <div className="w-full md:flex-1 min-w-0">
             {isAssignmentsLoading ? (
               renderDetailsSkeleton()
+            ) : assignmentsError && selectedLocationId ? (
+              <Card className="py-3 cursor-default">
+                <CardContent className="px-3">
+                  <ErrorState
+                    variant="pane"
+                    body={assignmentsError}
+                    onRetry={() => setAssignmentsReloadKey((k) => k + 1)}
+                  />
+                </CardContent>
+              </Card>
             ) : !locationAssignments ? (
               renderEmptyDetails()
             ) : (

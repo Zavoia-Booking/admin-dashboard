@@ -58,7 +58,7 @@ import {
 import type { AppointmentDragData, TimeSlotDropData } from "../CalendarDnD";
 import { DROP_ANIMATION } from "../calendarDndAnimations";
 import { useGridDndState } from "../timeGrid/useGridDndState";
-import { ConfirmDropDialog } from "../timeGrid/ConfirmDropDialog";
+import { ConfirmDropDialog, RescheduleConfirmDescription } from "../timeGrid/ConfirmDropDialog";
 import { OverrideDialog } from "../timeGrid/OverrideDialog";
 import { calendarPreferences } from "../../calendarPreferences";
 import {
@@ -730,10 +730,16 @@ export const MobileDayTimeline: FC = () => {
 
   const confirmDescription = (() => {
     if (!pendingDrop || pendingDrop.type !== "reschedule") return null;
-    const min = pendingDrop.minute ?? 0;
-    const timeStr = `${pendingDrop.hour}:${String(min).padStart(2, "0")}`;
     return (
-      <>Move &quot;{pendingDrop.appointment.bookedItemName}&quot; to {pendingDrop.dateKey} at {timeStr}?</>
+      <RescheduleConfirmDescription
+        name={pendingDrop.appointment.bookedItemName}
+        customerName={pendingDrop.appointment.customerName}
+        sourceScheduledAt={pendingDrop.appointment.scheduledAt}
+        targetDateKey={pendingDrop.dateKey}
+        targetHour={pendingDrop.hour}
+        targetMinute={pendingDrop.minute}
+        timezone={timeline.calendarTimezone ?? "UTC"}
+      />
     );
   })();
 

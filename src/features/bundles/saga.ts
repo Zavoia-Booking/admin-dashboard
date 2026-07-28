@@ -1,5 +1,6 @@
-import { all, call, put, takeLatest } from "redux-saga/effects";
+import { all, call, put, select, takeLatest } from "redux-saga/effects";
 import i18n from "../../shared/lib/i18n";
+import type { RootState } from "../../app/providers/store";
 import { listBundlesAction, createBundleAction, updateBundleAction, deleteBundleAction } from "./actions.ts";
 import { listBundlesRequest, createBundleRequest, updateBundleRequest, deleteBundleRequest, type DeleteBundleResponse } from "./api.ts";
 import type { ActionType } from "typesafe-actions";
@@ -17,9 +18,16 @@ function* handleListBundles(): Generator<any, void, any> {
     }
   } catch (error: unknown) {
     console.error("Failed to load bundles:", error);
-    const errorMessage = getErrorMessage(error);
-    toast.error(errorMessage || i18n.t("services:toasts.bundles.loadFailed"));
+    const errorMessage = getErrorMessage(error, i18n.t("services:toasts.bundles.loadFailed"));
     yield put(listBundlesAction.failure({ message: errorMessage }));
+    // With retained bundles the grid stays visible, so a toast is the feedback;
+    // on an empty list the tab renders an ErrorState with retry instead.
+    const hasRetainedBundles: boolean = yield select(
+      (state: RootState) => state.bundles.bundles.length > 0,
+    );
+    if (hasRetainedBundles) {
+      toast.error(errorMessage);
+    }
   }
 }
 

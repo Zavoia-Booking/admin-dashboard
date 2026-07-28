@@ -1,7 +1,7 @@
 {
   "page": {
     "errors": {
-      "fetchPricingSummary": "Nu s-a putut obține sumarul de preț",
+      "fetchPricingSummary": "A apărut o problemă. Încearcă din nou sau contactează suportul",
       "createCheckoutSession": "Crearea sesiunii de checkout a eșuat",
       "getCustomerPortalUrl": "Nu s-a putut obține URL-ul portalului clientului",
       "modifySubscription": "Modificarea abonamentului a eșuat",
@@ -457,11 +457,11 @@
       "undoScheduledContent": "Ești sigur că vrei să anulezi anularea programată a locurilor? Locurile tale curente vor rămâne active.",
       "undoCancellation": "Anulează Anularea",
       "keepScheduled": "Păstrează Programarea",
-      "confirmSeatIncrease_one": "Adaugi {{count}} loc?",
-      "confirmSeatIncrease_other": "Adaugi {{count}} locuri?",
+      "confirmSeatIncrease_one": "Adaugi un loc în echipă?",
+      "confirmSeatIncrease_other": "Adaugi {{count}} locuri în echipă?",
       "confirmSeatDecrease": "Confirmă reducerea locurilor",
-      "addingSeatsContent": "Adaugi {{count}} loc. Vei fi taxat {{amount}} {{currency}} acum.",
-      "addingSeatsContent_other": "Adaugi {{count}} locuri. Vei fi taxat {{amount}} {{currency}} acum.",
+      "addingSeatsContent": "Vei plăti {{amount}} {{currency}} acum.",
+      "addingSeatsContent_other": "Vei plăti {{amount}} {{currency}} acum.",
       "removingSeatsContent": "Elimini {{count}} loc. Locurile eliminate rămân active până la sfârșitul perioadei de facturare.",
       "removingSeatsContent_other": "Elimini {{count}} locuri. Locurile eliminate rămân active până la sfârșitul perioadei de facturare.",
       "dueTodaySuffix": "de plată acum",

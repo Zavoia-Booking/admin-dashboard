@@ -1,10 +1,31 @@
 import { type ReactElement } from "react";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
+import { useTranslation } from "react-i18next";
 import { selectIsAuthenticated } from "../selectors";
+import { logoutRequestAction } from "../actions";
 import AuthGate from "./AuthGate";
 import { Navigate, useLocation } from "react-router-dom";
 import { Permission, getRoutePermission, getHomeRouteForRole } from "../../../shared/lib/permissions";
 import { usePermissions } from "../../../shared/hooks/usePermissions";
+import { Button } from "../../../shared/components/ui/button";
+
+/** Terminal recovery screen: the role has no accessible home route (navigating would loop). Sign out to recover. */
+function AccessRecoveryScreen() {
+  const dispatch = useDispatch();
+  const { t } = useTranslation();
+  return (
+    <div className="min-h-[100svh] bg-background flex items-center justify-center px-6">
+      <div className="w-full max-w-sm text-center">
+        <p className="text-sm text-foreground-3">
+          {t("auth:page.errors.sessionExpired")}
+        </p>
+        <Button rounded="full" className="mt-5" onClick={() => dispatch(logoutRequestAction.request())}>
+          {t("navigation:sidebar.logOut")}
+        </Button>
+      </div>
+    </div>
+  );
+}
 
 type Props = { 
   element: ReactElement;
@@ -60,16 +81,26 @@ export default function ProtectedRoute({
     // Use explicit redirect or fall back to the role-appropriate home route
     const redirectTo = unauthorizedRedirect || getHomeRouteForRole(role);
 
+    // Loop guard: if the redirect target is itself blocked (e.g. an unknown role whose
+    // home route also fails), navigating would loop forever — show a recovery screen instead.
+    const [redirectPath, redirectQuery] = redirectTo.split("?");
+    const redirectPermission = getRoutePermission(redirectPath, redirectQuery ? `?${redirectQuery}` : undefined);
+    const redirectAlsoBlocked = !!(redirectPermission && !hasPermission(redirectPermission));
+
+    if (redirectAlsoBlocked) {
+      return <AccessRecoveryScreen />;
+    }
+
     return (
       <AuthGate>
-        <Navigate 
-          to={redirectTo} 
-          replace 
-          state={{ 
+        <Navigate
+          to={redirectTo}
+          replace
+          state={{
             from: location,
             unauthorizedAccess: true,
-            requiredPermission: permissionToCheck 
-          }} 
+            requiredPermission: permissionToCheck
+          }}
         />
       </AuthGate>
     );

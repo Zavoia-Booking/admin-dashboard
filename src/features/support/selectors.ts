@@ -40,3 +40,13 @@ export const getSupportErrorSelector = createSelector(
   getSupportStateSelector,
   (state) => state.error,
 );
+
+export const getTicketsListErrorSelector = createSelector(
+  getSupportStateSelector,
+  (state) => state.listError,
+);
+
+export const getTicketDetailErrorSelector = createSelector(
+  getSupportStateSelector,
+  (state) => state.detailError,
+);

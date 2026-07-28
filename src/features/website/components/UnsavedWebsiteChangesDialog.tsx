@@ -53,7 +53,7 @@ export function UnsavedWebsiteChangesDialog({
       <AlertDialogContent
         aria-busy={saveBusy || undefined}
         overlayClassName="z-[79] bg-[rgb(23_22_20/45%)] backdrop-blur-[2px] duration-200 motion-reduce:duration-0 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0"
-        className="website-atelier atelier-confirm-dialog atelier-unsaved-dialog left-1/2 right-auto z-[80] w-[calc(100%-2rem)] -translate-x-1/2 cursor-default duration-200 motion-reduce:duration-0 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0 data-[state=open]:zoom-in-95 data-[state=closed]:zoom-out-95 sm:max-w-[420px]"
+        className="website-atelier atelier-confirm-dialog atelier-unsaved-dialog left-1/2 right-auto z-[80] w-[calc(100%-2rem)] -translate-x-1/2 cursor-default duration-200 motion-reduce:duration-0 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0 data-[state=open]:zoom-in-95 data-[state=closed]:zoom-out-95 sm:max-w-[520px]"
       >
         <button
           type="button"

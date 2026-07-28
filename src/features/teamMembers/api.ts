@@ -1,10 +1,14 @@
-import { apiClient } from "../../shared/lib/http";
+import { apiClient, READ_REQUEST_TIMEOUT_MS } from "../../shared/lib/http";
 import type { TeamMember, TeamMemberSummary } from "../../shared/types/team-member";
 import type { InviteTeamMemberPayload, InviteTeamMemberResponse } from "./types";
 
 export const listTeamMembersApi = async (): Promise<{ summary: TeamMemberSummary; teamMembers: TeamMember[] }> => {
   // TODO: Add filters
-  const { data } = await apiClient().post<{ summary: TeamMemberSummary; teamMembers: TeamMember[] }>('/team-members/list', { filters: [] });
+  const { data } = await apiClient().post<{ summary: TeamMemberSummary; teamMembers: TeamMember[] }>(
+    '/team-members/list',
+    { filters: [] },
+    { timeout: READ_REQUEST_TIMEOUT_MS },
+  );
   return data;
 };
 
@@ -113,7 +117,7 @@ export const getBulkOffboardPreviewApi = async (
   const { data } = await apiClient().post<BulkOffboardPreviewResponse>(
     '/team-members/offboard-preview',
     { userIds },
-    { signal },
+    { signal, timeout: READ_REQUEST_TIMEOUT_MS },
   );
   return data;
 };

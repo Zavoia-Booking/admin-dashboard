@@ -1,4 +1,5 @@
 import { type FC, useEffect, useCallback, useState, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { Check, ChevronDown, Loader2, MapPin } from "lucide-react";
 import {
     Command,
@@ -30,14 +31,19 @@ export const LocationSelector: FC<LocationSelectorProps> = ({
     onSelect,
     isLoading = false,
     isLoadingContext = false,
-    placeholder = "Select a location",
-    loadingLabel = "Loading locations…",
-    noLocationsLabel = "No locations",
-    groupHeading = "Location",
+    placeholder,
+    loadingLabel,
+    noLocationsLabel,
+    groupHeading,
     closedClassName,
     mobile,
     onOpenChange,
 }) => {
+    const { t } = useTranslation("common");
+    const resolvedPlaceholder = placeholder ?? t("locationSelector.placeholder");
+    const resolvedLoadingLabel = loadingLabel ?? t("locationSelector.loading");
+    const resolvedNoLocationsLabel = noLocationsLabel ?? t("locationSelector.none");
+    const resolvedGroupHeading = groupHeading ?? t("locationSelector.group");
     const [open, setOpen] = useState(false);
     const [listMounted, setListMounted] = useState(false);
     const rootRef = useRef<HTMLDivElement>(null);
@@ -83,7 +89,7 @@ export const LocationSelector: FC<LocationSelectorProps> = ({
         return (
             <div className="flex h-11 items-center gap-2 rounded-full border border-border bg-surface px-4">
                 <MapPin className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
-                <span className="min-w-0 flex-1 truncate text-sm text-muted-foreground">{loadingLabel}</span>
+                <span className="min-w-0 flex-1 truncate text-sm text-muted-foreground">{resolvedLoadingLabel}</span>
                 <Loader2 className="h-4 w-4 shrink-0 animate-spin text-muted-foreground" />
             </div>
         );
@@ -93,7 +99,7 @@ export const LocationSelector: FC<LocationSelectorProps> = ({
         return (
             <div className="flex h-11 items-center gap-2 rounded-full border border-border bg-surface px-4">
                 <MapPin className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
-                <span className="min-w-0 flex-1 truncate text-sm text-muted-foreground">{noLocationsLabel}</span>
+                <span className="min-w-0 flex-1 truncate text-sm text-muted-foreground">{resolvedNoLocationsLabel}</span>
             </div>
         );
     }
@@ -121,7 +127,7 @@ export const LocationSelector: FC<LocationSelectorProps> = ({
             >
                 <MapPin className={cn("h-4 w-4 shrink-0 transition-colors", showListContainer ? "text-primary" : "text-muted-foreground group-hover:text-primary")} aria-hidden />
                 <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground-1">
-                    {selectedLocation?.name ?? placeholder}
+                    {selectedLocation?.name ?? resolvedPlaceholder}
                 </span>
                 {isLoadingContext ? (
                     <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-muted-foreground" aria-hidden />
@@ -142,7 +148,7 @@ export const LocationSelector: FC<LocationSelectorProps> = ({
                 >
                     <Command shouldFilter={false} className="w-full min-w-0 max-w-full">
                         <CommandList className="max-h-[min(260px,40vh)] w-full min-w-0 max-w-full overflow-x-hidden overflow-y-auto">
-                            <CommandGroup heading={groupHeading}>
+                            <CommandGroup heading={resolvedGroupHeading}>
                                 {locations.map((location, index) => {
                                     const isSelected = location.id === selectedLocationId;
                                     return (

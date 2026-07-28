@@ -51,7 +51,7 @@ import { formatDateInTimezone } from "./timezone.ts";
 import type { CalendarDayFilters, DayDataResponse, LocationContextData, CalendarSummaryResponse } from "../../shared/types/calendar.ts";
 import { toast } from "sonner";
 import i18n from "../../shared/lib/i18n";
-import { translateMessageCode, wasGlobalHttpErrorToastHandled } from "../../shared/utils/error";
+import { getErrorMessage, translateMessageCode, wasGlobalHttpErrorToastHandled } from "../../shared/utils/error";
 import { sanitizeNativeMessage } from "../../shared/lib/nativeMessageSanitizer";
 
 function calendarErrorMessage(error: any): string {
@@ -100,15 +100,23 @@ function* mergeSummaryForCalendarMonth(
     const startDate = `${y}-${String(mo + 1).padStart(2, "0")}-01`;
     const lastDay = new Date(y, mo + 1, 0).getDate();
     const endDate = `${y}-${String(mo + 1).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
-    const data: CalendarSummaryResponse = yield call(
-        getCalendarSummaryRequest,
-        locationId,
-        startDate,
-        endDate,
-        false,
-        filters,
-    );
-    yield put(mergeCalendarSummaryAction(data.days));
+    // Best-effort merge: a failure just leaves the mini-calendar counts stale.
+    // Must never throw - an uncaught error here propagates through the watcher
+    // and cancels the whole root saga (every fetch in the app goes dead), and in
+    // the block-CRUD flows it would misreport a succeeded mutation as failed.
+    try {
+        const data: CalendarSummaryResponse = yield call(
+            getCalendarSummaryRequest,
+            locationId,
+            startDate,
+            endDate,
+            false,
+            filters,
+        );
+        yield put(mergeCalendarSummaryAction(data.days));
+    } catch (error: unknown) {
+        console.error("Failed to refresh mini-calendar summary:", error);
+    }
 }
 
 /** Refetch and merge summary rows for months that affect the sidebar mini calendar after block CRUD. */
@@ -189,8 +197,8 @@ function* handleFetchLocationContext(action: ActionType<typeof fetchLocationCont
     try {
         const data: LocationContextData = yield call(getLocationContextRequest, action.payload);
         yield put(fetchLocationContext.success(data));
-    } catch (error: any) {
-        yield put(fetchLocationContext.failure(error));
+    } catch (error: unknown) {
+        yield put(fetchLocationContext.failure({ message: getErrorMessage(error) }));
     }
 }
 
@@ -210,8 +218,8 @@ function* handleFetchCalendarSummary(action: ActionType<typeof fetchCalendarSumm
             filters,
         );
         yield put(fetchCalendarSummary.success(data.days));
-    } catch (error: any) {
-        yield put(fetchCalendarSummary.failure(error));
+    } catch (error: unknown) {
+        yield put(fetchCalendarSummary.failure({ message: getErrorMessage(error) }));
     }
 }
 
@@ -224,8 +232,8 @@ function* handleFetchDayData(action: ActionType<typeof fetchDayData.request>): G
     try {
         const data: DayDataResponse = yield call(getDayDataRequest, locationId, date, filters);
         yield put(fetchDayData.success(data));
-    } catch (error: any) {
-        yield put(fetchDayData.failure(error));
+    } catch (error: unknown) {
+        yield put(fetchDayData.failure({ message: getErrorMessage(error) }));
     }
 }
 
@@ -344,8 +352,8 @@ function* handleFetchWeekData(action: ActionType<typeof fetchWeekData.request>):
             dayFilters,
         );
         yield put(fetchWeekData.success(response));
-    } catch (error: any) {
-        yield put(fetchWeekData.failure(error));
+    } catch (error: unknown) {
+        yield put(fetchWeekData.failure({ message: getErrorMessage(error) }));
     }
 }
 
@@ -540,4 +548,3 @@ export function* calendarSaga(): Generator<any, void, any> {
         takeLatest(updateCalendarBlock.request, handleUpdateCalendarBlock),
     ]);
 }
-

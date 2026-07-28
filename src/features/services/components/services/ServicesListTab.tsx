@@ -13,6 +13,7 @@ import {
 } from "../../../categories/api";
 import { listCategoriesAction } from "../../../categories/actions";
 import {
+  getCategoriesErrorSelector,
   getCategoriesListSelector,
   getCategoriesLoadingSelector,
 } from "../../../categories/selectors";
@@ -23,8 +24,10 @@ import {
   getServicesListSelector,
   getServicesFilterSelector,
   getAddFormSelector,
+  getServicesListErrorSelector,
   getServicesLoadingSelector,
 } from "../../selectors.ts";
+import { ErrorState } from "../../../../shared/components/common/ErrorState";
 import { useDispatch, useSelector } from "react-redux";
 import {
   getServicesAction,
@@ -53,12 +56,14 @@ export function ServicesListTab({ isActive = true }: ServicesListTabProps) {
   const allServices: Service[] = useSelector(getServicesListSelector);
   const filters = useSelector(getServicesFilterSelector);
   const isServicesLoading = useSelector(getServicesLoadingSelector);
+  const servicesListError = useSelector(getServicesListErrorSelector);
   const currentUser = useSelector(selectCurrentUser);
   const businessCurrency = currentUser?.business?.businessCurrency || "eur";
 
   // Categories from Redux
   const reduxCategories = useSelector(getCategoriesListSelector);
   const isCategoriesLoading = useSelector(getCategoriesLoadingSelector);
+  const categoriesError = useSelector(getCategoriesErrorSelector);
 
   const dispatch = useDispatch();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -222,6 +227,7 @@ export function ServicesListTab({ isActive = true }: ServicesListTabProps) {
 
   const isPageLoading =
     isServicesLoading || isCategoriesLoading || isCategoriesApplying;
+  const pageLoadError = servicesListError || categoriesError;
 
   // Check if filters are active
   const hasActiveFilters = useMemo(() => {
@@ -250,6 +256,15 @@ export function ServicesListTab({ isActive = true }: ServicesListTabProps) {
       {/* While services are loading, show full-page skeleton (including filters) */}
       {isPageLoading ? (
         <ServicesListSkeleton />
+      ) : pageLoadError && allServices.length === 0 ? (
+        <ErrorState
+          variant="page"
+          body={pageLoadError}
+          onRetry={() => {
+            dispatch(getServicesAction.request());
+            dispatch(listCategoriesAction.request());
+          }}
+        />
       ) : (
         <>
           <ServiceFilters

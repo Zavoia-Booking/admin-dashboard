@@ -3,22 +3,27 @@ import { useSelector, useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { selectAccountLinkingRequired, selectAuthIsLoading, selectAuthError } from "../selectors";
 import { sendBusinessLinkEmailAction, closeAccountLinkingRequiredModal, clearAuthErrorAction } from "../actions";
+import * as DialogPrimitive from "@radix-ui/react-dialog";
+import { cn } from "../../../shared/lib/utils";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "../../../shared/components/ui/dialog";
-import { Button } from "../../../shared/components/ui/button";
-import { Alert, AlertDescription } from "../../../shared/components/ui/alert";
+  modalScrim,
+  modalPanelLarge,
+  modalEyebrow,
+  modalTitleCompact,
+  modalBody,
+  modalBodyMuted,
+  modalFooterRowRight,
+  modalCancel,
+  modalPrimary,
+} from "../../../shared/components/ui/modal-tokens";
 import { Spinner } from "../../../shared/components/ui/spinner";
-import { InfoIcon, Briefcase, Mail, AlertTriangle } from "lucide-react";
+import { X, AlertTriangle } from "lucide-react";
 import { useTranslation, Trans } from "react-i18next";
+import { getAvatarBgColor } from "../../setupWizard/components/StepTeam";
 
 export default function AccountLinkingRequiredModal() {
   const { t } = useTranslation('auth');
+  const { t: tc } = useTranslation('common');
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const accountLinking = useSelector(selectAccountLinkingRequired);
@@ -70,81 +75,102 @@ export default function AccountLinkingRequiredModal() {
 
   const { email, firstName, lastName, existingRoles } = accountLinking;
   const roleType = existingRoles.customer ? t('accountLinkingRequired.roleCustomer') : t('accountLinkingRequired.roleTeamMember');
+  const initials = ([firstName?.[0], lastName?.[0]].filter(Boolean).join('') || email?.[0] || '?').toUpperCase();
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
-      <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Briefcase className="h-5 w-5 text-primary" />
+    <DialogPrimitive.Root open={isOpen} onOpenChange={(open) => { if (!open && !isLoading) handleClose(); }}>
+      <DialogPrimitive.Portal>
+        <DialogPrimitive.Overlay className={modalScrim} />
+        <DialogPrimitive.Content className={cn(modalPanelLarge, "text-left")}>
+          <div className={cn(modalEyebrow, "pr-8")}>{t('accountLinkingRequired.eyebrow')}</div>
+          <DialogPrimitive.Title className={cn(modalTitleCompact, "pr-8")}>
             {t('accountLinkingRequired.title')}
-          </DialogTitle>
-          <DialogDescription>
-            {t('accountLinkingRequired.description')}
-          </DialogDescription>
-        </DialogHeader>
+          </DialogPrimitive.Title>
+          <DialogPrimitive.Description asChild>
+            <p className={cn(modalBody, "mt-3")}>{t('accountLinkingRequired.description')}</p>
+          </DialogPrimitive.Description>
 
-        <div className="space-y-4 py-4">
-          <Alert>
-            <InfoIcon className="h-4 w-4" />
-            <AlertDescription>
-              <div className="space-y-2">
-                <p>
-                  <strong>{firstName} {lastName}</strong> ({email})
-                </p>
-                <p className="text-sm">
-                  <Trans
-                    i18nKey="accountLinkingRequired.existingAccountInfo"
-                    ns="auth"
-                    values={{ role: roleType }}
-                    components={{ strong: <strong /> }}
-                  />
-                </p>
-              </div>
-            </AlertDescription>
-          </Alert>
+          <div className="mt-6 flex items-center gap-3">
+            <div
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-neutral-900/5 text-[13px] font-semibold text-neutral-800"
+              style={{ backgroundColor: getAvatarBgColor(email) }}
+            >
+              {initials}
+            </div>
+            <div className="min-w-0">
+              <p className="truncate text-[15px] font-semibold leading-tight text-neutral-900 dark:text-foreground-1">{firstName} {lastName}</p>
+              <p className="truncate text-[13px] leading-tight text-neutral-500 dark:text-foreground-3">{email}</p>
+            </div>
+          </div>
+          <p className={cn(modalBodyMuted, "mt-4")}>
+            <Trans
+              i18nKey="accountLinkingRequired.existingAccountInfo"
+              ns="auth"
+              values={{ role: roleType }}
+              components={{ strong: <strong className="font-semibold text-neutral-700 dark:text-foreground-2" /> }}
+            />
+          </p>
 
           {authError ? (
-            <Alert className="border-warning-border bg-warning-bg">
-              <AlertTriangle className="h-4 w-4 text-warning" />
-              <AlertDescription className="text-warning">
-                {authError}
-              </AlertDescription>
-            </Alert>
+            <div className="mt-6 flex items-start gap-2.5 rounded-xl border border-warning-border bg-warning-bg px-4 py-3">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" aria-hidden="true" />
+              <p className="text-[14px] leading-[1.5] text-warning">{authError}</p>
+            </div>
           ) : (
-            <div className="bg-muted p-4 rounded-lg space-y-2">
-              <div className="flex items-start gap-2">
-                <Mail className="h-5 w-5 text-muted-foreground mt-0.5" />
-                <div>
-                  <p className="font-medium text-sm">{t('accountLinkingRequired.whatHappensNext')}</p>
-                  <ul className="text-sm text-muted-foreground space-y-1 mt-2 list-disc list-inside">
-                    <li><Trans i18nKey="accountLinkingRequired.stepSendEmail" ns="auth" values={{ email }} components={{ strong: <strong /> }} /></li>
-                    <li>{t('accountLinkingRequired.stepClickLink')}</li>
-                    <li>{t('accountLinkingRequired.stepAccessBoth')}</li>
-                  </ul>
-                </div>
-              </div>
+            <div className="mt-6 border-t border-neutral-200 pt-6 dark:border-border-subtle">
+              <p className="text-[13px] font-medium text-neutral-700 dark:text-foreground-2">
+                {t('accountLinkingRequired.whatHappensNext')}
+              </p>
+              <ol className="mt-4">
+                {[
+                  <Trans i18nKey="accountLinkingRequired.stepSendEmail" ns="auth" values={{ email }} components={{ strong: <strong className="font-semibold text-neutral-800 dark:text-foreground-2" /> }} />,
+                  t('accountLinkingRequired.stepClickLink'),
+                  t('accountLinkingRequired.stepAccessBoth'),
+                ].map((step, i, arr) => (
+                  <li key={i} className="relative flex gap-3 pb-5 last:pb-0">
+                    {i < arr.length - 1 && (
+                      <span className="absolute bottom-0 left-[11px] top-6 w-px bg-neutral-200 dark:bg-border-subtle" aria-hidden="true" />
+                    )}
+                    <span className="relative z-10 flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full bg-neutral-100 text-[11px] font-semibold text-neutral-600 ring-1 ring-inset ring-neutral-200 dark:bg-surface-hover dark:text-foreground-2 dark:ring-border-subtle">
+                      {i + 1}
+                    </span>
+                    <p className="pt-0.5 text-[14px] leading-[1.5] text-neutral-600 dark:text-foreground-3">
+                      {step}
+                    </p>
+                  </li>
+                ))}
+              </ol>
             </div>
           )}
-        </div>
 
-        <DialogFooter>
-          <Button variant="outline" rounded="full" onClick={handleClose} disabled={isLoading}>
-            {t('accountLinkingRequired.cancel')}
-          </Button>
-          <Button rounded="full" onClick={handleConfirm} disabled={isLoading} className="relative">
-            <span className={isLoading ? 'invisible' : ''}>
-              {t('accountLinkingRequired.sendConfirmationEmail')}
-            </span>
-            {isLoading && (
-              <span className="absolute inset-0 flex items-center justify-center">
-                <Spinner size="sm" color="white" />
-              </span>
+          <div className={cn("mt-7", modalFooterRowRight)}>
+            <button type="button" onClick={handleClose} disabled={isLoading} className={modalCancel}>
+              {t('accountLinkingRequired.cancel')}
+            </button>
+            <button type="button" onClick={handleConfirm} disabled={isLoading} className={modalPrimary}>
+              {isLoading ? <Spinner size="sm" color="white" /> : t('accountLinkingRequired.sendConfirmationEmail')}
+            </button>
+          </div>
+
+          {/* Rendered last so a content control is focused first, not the close button; kept top-right via absolute. */}
+          <button
+            type="button"
+            onClick={handleClose}
+            disabled={isLoading}
+            aria-label={tc('aria.close')}
+            className={cn(
+              "absolute right-4 top-4 inline-flex h-8 w-8 items-center justify-center rounded-lg",
+              "text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-800",
+              "dark:text-foreground-3 dark:hover:bg-surface-hover dark:hover:text-foreground-1",
+              "cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/30",
+              "disabled:cursor-not-allowed disabled:opacity-50"
             )}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </DialogPrimitive.Content>
+      </DialogPrimitive.Portal>
+    </DialogPrimitive.Root>
   );
 }
 

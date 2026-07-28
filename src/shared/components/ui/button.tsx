@@ -3,6 +3,7 @@ import { Slot } from "@radix-ui/react-slot"
 import { cva, type VariantProps } from "class-variance-authority"
 
 import { cn } from "../../lib/utils"
+import { Spinner } from "./spinner"
 
 const buttonVariants = cva(
   "inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 outline-none cursor-pointer focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-2 focus-visible:ring-offset-0 focus-visible:!transition-none aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
@@ -48,19 +49,32 @@ function Button({
   size,
   rounded,
   asChild = false,
+  loading = false,
+  disabled,
+  children,
   ...props
 }: React.ComponentProps<"button"> &
   VariantProps<typeof buttonVariants> & {
     asChild?: boolean
+    /** Show the app Spinner in place of the label and disable the button. Never render loading text. */
+    loading?: boolean
   }) {
   const Comp = asChild ? Slot : "button"
+  // Filled variants have white labels; everything else sits on a light surface.
+  const spinnerColor = variant === "default" || variant === "destructive" ? "white" : "default"
+  // Slot requires a single child, so skip injection when asChild.
+  const showSpinner = loading && !asChild
 
   return (
     <Comp
       data-slot="button"
       className={cn(buttonVariants({ variant, size, rounded, className }))}
+      disabled={asChild ? disabled : disabled || loading}
+      aria-busy={loading || undefined}
       {...props}
-    />
+    >
+      {showSpinner ? <Spinner size="sm" color={spinnerColor} /> : children}
+    </Comp>
   )
 }
 

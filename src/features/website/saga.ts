@@ -234,12 +234,18 @@ function* handleFetchWebsiteBuilder(): Generator<any, void, any> {
   } catch (error: unknown) {
     if (!(yield* isCurrentWebsiteScope(scope))) return;
     const message = getErrorMessage(error);
-    if (shouldShowFeatureErrorToast(error)) {
+    yield put(fetchWebsiteBuilderAction.failure({ message, ...scope }));
+    const hasRenderableWorkspace: boolean = yield select(
+      (state: RootState) =>
+        state.website.scopeBusinessId === scope.scopeBusinessId &&
+        state.website.scopeRevision === scope.scopeRevision &&
+        Boolean(state.website.identity && state.website.draft && state.website.access),
+    );
+    if (hasRenderableWorkspace && shouldShowFeatureErrorToast(error)) {
       toast.error(message || i18n.t('website:page.toasts.loadFailed'), {
         id: "website-load-failed",
       });
     }
-    yield put(fetchWebsiteBuilderAction.failure({ message, ...scope }));
   } finally {
     if (yield cancelled()) abortController.abort();
   }

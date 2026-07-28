@@ -24,8 +24,7 @@ import { ListingConfigurationView } from "../components/ListingConfigurationView
 import { ListingConfigurationSkeleton } from "../components/ListingConfigurationSkeleton";
 import BusinessSetupGate from "../../../shared/components/guards/BusinessSetupGate";
 import { selectCurrentUser } from "../../auth/selectors";
-import { Button } from "../../../shared/components/ui/button";
-import { AlertTriangle, RotateCcw } from "lucide-react";
+import { ErrorState } from "../../../shared/components/common/ErrorState";
 
 export default function MarketplacePage() {
   const dispatch = useDispatch();
@@ -96,18 +95,12 @@ export default function MarketplacePage() {
     return (
       <AppLayout>
         <BusinessSetupGate>
-          <div className="flex h-[calc(100vh-200px)] flex-col items-center justify-center gap-4 px-4 text-center">
-            <AlertTriangle className="h-8 w-8 text-amber-500" aria-hidden />
-            <p className="text-sm text-muted-foreground">{t("page.loadError")}</p>
-            <Button
-              variant="outline"
-              onClick={() => dispatch(fetchMarketplaceListingAction.request())}
-              className="gap-1.5"
-            >
-              <RotateCcw className="h-4 w-4" />
-              {t("page.retry")}
-            </Button>
-          </div>
+          <ErrorState
+            variant="page"
+            body={t("page.loadError")}
+            onRetry={() => dispatch(fetchMarketplaceListingAction.request())}
+            retryLabel={t("page.retry")}
+          />
         </BusinessSetupGate>
       </AppLayout>
     );

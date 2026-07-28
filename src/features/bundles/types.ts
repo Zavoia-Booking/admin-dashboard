@@ -30,7 +30,11 @@ export interface Bundle {
 
 export type BundlesState = {
   bundles: Bundle[];
+  /** Create/update failures — read by the bundle sliders' submit flow. */
   error: string | null;
+  /** List load failure; drives the tab ErrorState. Kept off `error` so a
+   *  background refetch failure can't disrupt an open slider. */
+  listError: string | null;
   isLoading: boolean;
   isDeleting: boolean;
   deleteError: string | null;

@@ -10,6 +10,7 @@ export const selectSettingsError = (s: { settings: SettingsState }) => s.setting
 export const selectAvailablePlans = (s: { settings: SettingsState }) => s.settings.plans;
 
 export const selectIsLoadingSubscriptionSummary = (s: { settings: SettingsState }) => s.settings.isLoading.subscriptionSummary;
+export const selectSubscriptionSummaryError = (s: { settings: SettingsState }) => s.settings.summaryError;
 export const selectIsLoadingPlans = (s: { settings: SettingsState }) => s.settings.isLoading.plans;
 export const selectIsLoadingCheckoutSession = (s: { settings: SettingsState }) => s.settings.isLoading.checkoutSession;
 export const selectIsLoadingCustomerPortal = (s: { settings: SettingsState }) => s.settings.isLoading.customerPortal;

@@ -2,6 +2,7 @@ import { useState, useEffect, forwardRef, useImperativeHandle } from "react";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { Button } from "../../components/ui/button";
+import { Spinner } from "../../components/ui/spinner";
 import { Mail, Eye, EyeOff } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -13,7 +14,6 @@ export type CredentialsFormHandle = {
 type Props = {
   onSubmit: (values: { email: string; password: string }) => void;
   submitLabel?: string;
-  loadingLabel?: string;
   isLoading?: boolean;
   defaultEmail?: string;
   /** Lock the email field to defaultEmail (e.g. account-linking, where the tx pins the email). */
@@ -30,7 +30,6 @@ type Props = {
 function CredentialsFormBase({
   onSubmit,
   submitLabel,
-  loadingLabel,
   isLoading,
   defaultEmail,
   emailReadOnly = false,
@@ -97,7 +96,7 @@ function CredentialsFormBase({
   return (
     <form onSubmit={handleSubmit} noValidate className={className}>
       <div className="space-y-2">
-        <Label htmlFor="cred-email" className="text-base font-medium text-foreground-1">
+        <Label htmlFor="cred-email" className="text-sm font-medium text-foreground-1">
           {showPasswordField ? t('credentials.email') : t('credentials.emailRequired')}
         </Label>
         <div className="relative">
@@ -134,7 +133,7 @@ function CredentialsFormBase({
       </div>
       {showPasswordField && (
         <div className="mt-4 space-y-2">
-          <Label htmlFor="cred-password" className="text-base font-medium text-foreground-1">{t('credentials.password')}</Label>
+          <Label htmlFor="cred-password" className="text-sm font-medium text-foreground-1">{t('credentials.password')}</Label>
           <div className="relative">
             <Input
               id="cred-password"
@@ -171,7 +170,7 @@ function CredentialsFormBase({
         </div>
       )}
       <Button type="submit" rounded="full" className="w-full mt-8" disabled={!!isLoading}>
-        {isLoading && loadingLabel ? loadingLabel : resolvedSubmitLabel}
+        {isLoading ? <Spinner size="sm" color="white" /> : resolvedSubmitLabel}
       </Button>
     </form>
   );

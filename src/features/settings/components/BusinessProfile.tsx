@@ -16,10 +16,12 @@ import AdvancedSettings from './AdvancedSettings';
 import MobilePushNotifications from './MobilePushNotifications';
 import { fetchCurrentBusinessAction, updateBusinessAction } from '../../business/actions';
 import type { UpdateBusinessDTO } from '../../business/types';
-import { getCurrentBusinessSelector } from '../../business/selectors';
+import { getCurrentBusinessSelector, getBusinessLoadingSelector, getBusinessErrorSelector } from '../../business/selectors';
+import { ErrorState } from '../../../shared/components/common/ErrorState';
+import { Skeleton } from '../../../shared/components/ui/skeleton';
 import { fetchCurrentUserAction } from '../../auth/actions';
 import { setPasswordApi, changeOwnerPasswordApi, changeAccountEmailApi, resendVerificationEmailApi } from '../../auth/api';
-import { translateMessageCode, getErrorMessage } from '../../../shared/utils/error';
+import { getErrorMessage } from '../../../shared/utils/error';
 import type { RootState } from '../../../app/providers/store';
 import { industryApi } from '../../../shared/api/industry.api';
 import type { Industry } from '../../../shared/types/industry';
@@ -105,6 +107,8 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
   const { t: tIndustry } = useTranslation('industries');
   const dispatch = useDispatch();
   const currentBusiness = useSelector(getCurrentBusinessSelector);
+  const isBusinessLoading = useSelector(getBusinessLoadingSelector);
+  const businessError = useSelector(getBusinessErrorSelector);
   const user = useSelector((state: RootState) => state.auth.user);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const passwordInputRef = useRef<HTMLInputElement>(null);
@@ -184,6 +188,7 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
         console.error('Failed to fetch industries:', err);
         toast.error(t('profile.toast.industriesLoadFailed'));
       });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Populate form when business data is loaded (and set baseline for dirty check)
@@ -207,6 +212,7 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
         logo: currentBusiness.logo || null,
         logoKey: null,
       };
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setFormData(data);
       setOriginalSnapshot(getUpdatePayloadSnapshot(data));
     }
@@ -273,7 +279,7 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
       dispatch(fetchCurrentUserAction.request());
     } catch (error: any) {
       console.error('Error uploading logo:', error);
-      toast.error(error?.message || t('profile.toast.logoUploadFailed'));
+      toast.error(getErrorMessage(error, t('profile.toast.logoUploadFailed')));
     } finally {
       setIsUploadingLogo(false);
       // Reset file input
@@ -376,11 +382,7 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
       } else if (code === 'SAME_EMAIL') {
         setEmailFieldErrors({ newEmail: t('profile.toast.emailSame') });
       } else {
-        const message = error?.response?.data?.message || error?.message || t('profile.toast.emailChangeFailed');
-        const translatedMessage = Array.isArray(message)
-          ? translateMessageCode(message[0])
-          : translateMessageCode(message);
-        toast.error(translatedMessage);
+        toast.error(getErrorMessage(error, t('profile.toast.emailChangeFailed')));
       }
     } finally {
       setIsSavingEmail(false);
@@ -446,15 +448,48 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
       dispatch(fetchCurrentUserAction.request());
     } catch (error: any) {
       const fallback = userHasPassword ? t('profile.toast.passwordChangeFailed') : t('profile.toast.passwordSetFailed');
-      const message = error?.response?.data?.message || error?.message || fallback;
-      const translatedMessage = Array.isArray(message) 
-        ? translateMessageCode(message[0]) 
-        : translateMessageCode(message);
-      toast.error(translatedMessage);
+      toast.error(getErrorMessage(error, fallback));
     } finally {
       setIsSettingPassword(false);
     }
   };
+
+  // Without the business the form would render dead empty defaults (and a bogus
+  // "name required" error) that can't be edited meaningfully. A retained
+  // business keeps rendering the form; only the no-data cases are gated.
+  if (!currentBusiness && isBusinessLoading) {
+    return (
+      <div className="w-full space-y-4">
+        <div className="rounded-xl border border-border bg-surface p-5">
+          <div className="flex items-center gap-4">
+            <Skeleton className="h-16 w-16 rounded-full" />
+            <div className="space-y-2">
+              <Skeleton className="h-3 w-28" />
+              <Skeleton className="h-6 w-44" />
+            </div>
+          </div>
+        </div>
+        <div className="rounded-xl border border-border bg-surface p-5 space-y-4">
+          <Skeleton className="h-5 w-40" />
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <Skeleton className="h-12" />
+            <Skeleton className="h-12" />
+          </div>
+          <Skeleton className="h-24 w-full" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!currentBusiness && businessError) {
+    return (
+      <ErrorState
+        variant="page"
+        body={businessError}
+        onRetry={() => dispatch(fetchCurrentBusinessAction.request())}
+      />
+    );
+  }
 
   return (
     <form id="business-info-form" onSubmit={handleSubmit} className="w-full">

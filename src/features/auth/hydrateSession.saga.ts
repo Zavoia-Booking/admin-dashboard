@@ -5,14 +5,17 @@ import type { RootState } from "../../app/providers/store";
 import { isNativeApp } from "../../app/config/env";
 import { tokenStorage } from "../../shared/lib/tokenStorage";
 import i18n from "../../shared/lib/i18n";
+import { isAxiosError } from "axios";
 // no-op
 
 
 function* hydrateSessionWorker(): Generator<any, void, any> {
+  let hadAccessToken = false;
   try {
     // Skip hydrate during Google OAuth redirect callback (race avoidance)
     const urlHasCode = typeof window !== "undefined" && new URLSearchParams(window.location.search).has("code");
     const hasAccessToken: string | null = yield select((s: RootState) => s.auth.accessToken);
+    hadAccessToken = !!hasAccessToken;
     if (urlHasCode && !hasAccessToken) {
       return;
     }
@@ -56,7 +59,18 @@ function* hydrateSessionWorker(): Generator<any, void, any> {
     // Trigger refresh via single-flight helper (also updates redux)
     // refreshSession already updates Redux state; nothing else needed here
     yield call(refreshSession);
-  } catch {
+  } catch (error) {
+    const status = isAxiosError(error) ? error.response?.status : undefined;
+    const rejectedByServer = status != null && [400, 401, 403].includes(status);
+
+    // Definitive token rejection is handled centrally by the single-flight
+    // refresh helper. With an existing access token, every other refresh
+    // pipeline failure (network, server, or native storage) preserves the
+    // session and lets page requests settle into retryable errors.
+    if (rejectedByServer || hadAccessToken) {
+      return;
+    }
+
     // Never surface internal error strings ("Session refresh failed") - the
     // login form toasts whatever lands in auth.error verbatim.
     yield put(hydrateSessionAction.failure({ message: i18n.t('auth:page.errors.hydrateSessionFailed') }));

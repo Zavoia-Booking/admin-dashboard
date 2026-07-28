@@ -32,7 +32,8 @@
     "calculationNote": "Combinat din toate recenziile primite pe locațiile și membrii echipei tale.",
     "audienceNote": "Acesta este ratingul pe care clienții îl văd pe profilul afacerii tale.",
     "calculationNotePersonal": "Combinat din toate recenziile primite de la clienții tăi.",
-    "audienceNotePersonal": "Acesta este ratingul pe care clienții îl văd pe profilul tău public."
+    "audienceNotePersonal": "Acesta este ratingul pe care clienții îl văd pe profilul tău public.",
+    "errorBody": "Nu am putut încărca statisticile recenziilor. Verifică conexiunea și încearcă din nou."
   },
   "hero": {
     "statusGood": "Excelent",

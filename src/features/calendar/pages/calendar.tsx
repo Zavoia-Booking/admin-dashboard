@@ -17,6 +17,7 @@ import {
   setScrollToNow,
   setDisplayedWeekAction,
   setDisplayedMonthAction,
+  fetchLocationContext,
 } from "../actions";
 import { getAppointmentDetailRequest } from "../api";
 import {
@@ -32,6 +33,13 @@ import {
   getSelectedDate,
   getDisplayedWeekStart,
   getMonthViewDisplayStart,
+  getLocationContextError,
+  getSummaryError,
+  getDayDataError,
+  getWeekDataError,
+  getCalendarSummary,
+  getDayData,
+  getWeekData,
 } from "../selectors.ts";
 import { getWeekStart, getWeekEnd } from "../utils.ts";
 import { getCalendarLocale } from "../timezone.ts";
@@ -43,6 +51,10 @@ import { store } from "../../../app/providers/store";
 import EditAppointmentSlider from "../components/EditAppointmentSlider.tsx";
 import { AppointmentGrid } from "../components/AppointmentGrid.tsx";
 import { listLocationsAction } from "../../locations/actions.ts";
+import {
+  getAllLocationsSelector,
+  getLocationListErrorSelector,
+} from "../../locations/selectors.ts";
 import { CreateBlockDrawer } from "../components/CreateBlockDrawer.tsx";
 import { CalendarSidebar } from "../components/CalendarSidebar.tsx";
 import { CalendarHeader } from "../components/CalendarHeader.tsx";
@@ -50,6 +62,7 @@ import { CalendarSettingsSheet } from "../components/CalendarSettingsSheet.tsx";
 import { Card } from "../../../shared/components/ui/card.tsx";
 import { useIsMobile } from "../../../shared/hooks/use-mobile.ts";
 import { MobileCalendarLayout } from "../components/mobile/MobileCalendarLayout.tsx";
+import { ErrorState } from "../../../shared/components/common/ErrorState.tsx";
 
 const Calendar = () => {
   const dispatch = useDispatch();
@@ -66,10 +79,65 @@ const Calendar = () => {
   const selectedDate = useSelector(getSelectedDate);
   const displayedWeekStart = useSelector(getDisplayedWeekStart);
   const displayedMonthStart = useSelector(getMonthViewDisplayStart);
+  const locationContextError = useSelector(getLocationContextError);
+  const summaryError = useSelector(getSummaryError);
+  const dayDataError = useSelector(getDayDataError);
+  const weekDataError = useSelector(getWeekDataError);
+  const summary = useSelector(getCalendarSummary);
+  const dayData = useSelector(getDayData);
+  const weekData = useSelector(getWeekData);
+  const locations = useSelector(getAllLocationsSelector);
+  const locationsListError = useSelector(getLocationListErrorSelector);
   const hasRefetchedOnEnter = useRef(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const isMobile = useIsMobile();
   const { t } = useTranslation("calendar");
+  const viewDataError =
+    viewMode === AppointmentViewMode.DAY
+      ? dayDataError
+      : viewMode === AppointmentViewMode.WEEK
+        ? weekDataError
+        : summaryError;
+  const locationsUnavailable =
+    !!locationsListError && locations.length === 0;
+  const viewHasData =
+    viewMode === AppointmentViewMode.DAY
+      ? dayData !== null
+      : viewMode === AppointmentViewMode.WEEK
+        ? weekData !== null
+        : Object.keys(summary).length > 0;
+  const calendarLoadError =
+    (locationsUnavailable ? locationsListError : null) ??
+    (locationContextError && !locationContext ? locationContextError : null) ??
+    (viewDataError && !viewHasData ? viewDataError : null);
+
+  const handleRetryCalendarLoad = useCallback(() => {
+    if (locationsUnavailable) {
+      dispatch(listLocationsAction.request());
+      return;
+    }
+
+    if (!selectedLocationId) {
+      dispatch(listLocationsAction.request());
+      return;
+    }
+
+    if (locationContextError) {
+      dispatch(fetchLocationContext.request(selectedLocationId));
+    }
+    if (viewDataError) {
+      // Re-dispatching the current filters uses the existing view-aware saga
+      // without resetting the selected date, view, or filters.
+      dispatch(setDayFiltersAction(dayFilters));
+    }
+  }, [
+    dayFilters,
+    dispatch,
+    locationContextError,
+    locationsUnavailable,
+    selectedLocationId,
+    viewDataError,
+  ]);
 
   /* ── "Today" chip for mobile breadcrumb header ──
    * True when tapping Today would be a no-op — i.e. selectedDate is already
@@ -331,9 +399,24 @@ const Calendar = () => {
     >
       <BusinessSetupGate>
         <>
-          {isMobile ? (
+          {calendarLoadError ? (
+            /* The grid is the calendar's primary experience and calendarLoadError
+               is only set when the current view has no data to render (retained
+               data suppresses it). With a dead grid the sidebar is inert too, so
+               one page-scope error replaces the whole interior. */
+            <ErrorState
+              variant="page"
+              body={calendarLoadError}
+              onRetry={handleRetryCalendarLoad}
+              className={isMobile ? "p-4" : undefined}
+            />
+          ) : isMobile ? (
             /* ─── Mobile Layout ─── */
-            <MobileCalendarLayout onOpenSettings={() => setSettingsOpen(true)} />
+            <MobileCalendarLayout
+              onOpenSettings={() => setSettingsOpen(true)}
+              loadError={calendarLoadError}
+              onRetryLoad={handleRetryCalendarLoad}
+            />
           ) : (
             /* ─── Desktop Layout ─── */
             <div className="flex min-h-[calc(100vh-64px)] items-start">
@@ -350,6 +433,8 @@ const Calendar = () => {
                     {/* Content area — single scroll container for all views */}
                     <div data-calendar-scroll className="relative flex-1 min-h-0 overflow-auto">
                       {/* Month view uses summary grid; Day & Week views use the time grid */}
+                      {/* calendarLoadError is handled by the page-scope gate above,
+                          so this branch always has data to render. */}
                       <AppointmentGrid viewMode={viewMode} />
                     </div>
                   </Card>

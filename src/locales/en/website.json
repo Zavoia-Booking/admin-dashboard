@@ -1,7 +1,7 @@
 {
   "page": {
     "title": "Website",
-    "loadError": "We couldn't load your website. Try again.",
+    "loadError": "We couldn't load your website.",
     "retry": "Try again",
     "toasts": {
       "loadFailed": "We couldn't load your website",
@@ -118,8 +118,8 @@
       "discard": "Discard changes"
     },
     "discardConfirm": {
-      "title": "Discard draft changes?",
-      "description": "This restores the last saved draft. Your unsaved content, layout, colors, and styles will be lost. Items in your unlocks will stay selected, and cover image changes won't be reverted.",
+      "title": "Go back to your last save?",
+      "description": "Anything you haven't saved in the editor will be lost. Your selected premium options and cover image will stay as they are.",
       "confirm": "Discard changes",
       "cancel": "Keep editing"
     },

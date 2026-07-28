@@ -58,10 +58,10 @@
       "publishing": "Se publică..."
     },
     "unsavedChanges": {
-      "title": "Modificări nesalvate",
-      "description": "Ai modificări nesalvate care se vor pierde dacă pleci. Ești sigur că vrei să continui?",
+      "title": "Pleci fără să salvezi?",
+      "description": "Tot ce nu ai salvat se va pierde.",
       "leave": "Ieși fără salvare",
-      "cancel": "Anulează"
+      "cancel": "Continuă editarea"
     }
   },
   "details": {

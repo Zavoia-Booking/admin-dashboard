@@ -24,6 +24,7 @@ const initialState: SettingsState = {
   customerPortalUrl: null,
   plans: [],
   error: null,
+  summaryError: null,
   isLoading: {
     subscriptionSummary: false,
     checkoutSession: false,
@@ -64,6 +65,7 @@ export default function settingsReducer(state: SettingsState = initialState, act
         ...state,
         isLoading: { ...state.isLoading, subscriptionSummary: true },
         error: null,
+        summaryError: null,
       };
 
     case getType(getSubscriptionSummaryAction.success):
@@ -72,6 +74,7 @@ export default function settingsReducer(state: SettingsState = initialState, act
         subscriptionSummary: action.payload.subscriptionSummary,
         isLoading: { ...state.isLoading, subscriptionSummary: false },
         error: null,
+        summaryError: null,
       };
 
     case getType(getSubscriptionSummaryAction.failure):
@@ -79,6 +82,7 @@ export default function settingsReducer(state: SettingsState = initialState, act
         ...state,
         isLoading: { ...state.isLoading, subscriptionSummary: false },
         error: action.payload.message,
+        summaryError: action.payload.message,
       };
 
     // Available Plans

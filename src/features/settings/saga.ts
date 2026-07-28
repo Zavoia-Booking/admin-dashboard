@@ -37,15 +37,14 @@ import type {
   BusinessInvoicesResponse,
 } from "./types";
 import { fetchCurrentUserAction } from "../auth/actions";
-import { translateMessageCode } from "../../shared/utils/error";
+import { getErrorMessage } from "../../shared/utils/error";
 import i18n from "../../shared/lib/i18n";
 
+// Delegates to the shared extractor: same message-code translation (incl. Nest
+// validation arrays), but raw axios internals ("Request failed with status code
+// 502", "Network Error") land on the localized fallback instead of the user.
 function extractMessage(error: any, fallback: string): string {
-  const raw = error?.response?.data?.message;
-  const translated = Array.isArray(raw)
-    ? raw.map((m: string) => translateMessageCode(m)).join(' ')
-    : translateMessageCode(raw ?? '');
-  return translated || error?.message || fallback;
+  return getErrorMessage(error, fallback);
 }
 
 function* handleGetSubscriptionSummary() {

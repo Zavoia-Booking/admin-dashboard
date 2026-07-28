@@ -19,6 +19,7 @@ import type {
   TeamMemberReviewsResponse,
 } from "./types";
 import { getType, type ActionType } from "typesafe-actions";
+import { toast } from "sonner";
 import { getErrorMessage } from "../../shared/utils/error";
 import type { RootState } from "../../app/providers/store";
 
@@ -85,7 +86,9 @@ function* handleFetchMoreBusinessReviews(
     yield put(fetchMoreBusinessReviewsAction.success({ ...response, scopeBusinessId }));
   } catch (error: unknown) {
     if (!(yield* isCurrentReviewsScope(scopeBusinessId))) return;
+    // The loaded rows are still valid — a toast is the whole feedback.
     const message = getErrorMessage(error);
+    toast.error(message);
     yield put(fetchMoreBusinessReviewsAction.failure({ message, scopeBusinessId }));
   }
 }
@@ -122,6 +125,7 @@ function* handleFetchMoreTeamMemberReviews(
   } catch (error: unknown) {
     if (!(yield* isCurrentReviewsScope(scopeBusinessId))) return;
     const message = getErrorMessage(error);
+    toast.error(message);
     yield put(fetchMoreTeamMemberReviewsAction.failure({ message, scopeBusinessId }));
   }
 }

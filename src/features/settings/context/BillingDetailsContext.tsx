@@ -6,6 +6,8 @@ export const INVOICE_BILLING_DETAILS_SECTION_ID = 'invoice-billing-details';
 export interface BillingDetailsContextValue {
   details: BillingDetails | null;
   isLoading: boolean;
+  /** Set when the initial load failed and there are no details to show. */
+  loadError: string | null;
   reload: () => Promise<void>;
   /**
    * Returns true when invoice billing details are saved. When not saved,

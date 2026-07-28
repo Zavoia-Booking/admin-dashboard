@@ -56,7 +56,11 @@
     "E04": "Couldn’t delete location. Try again",
     "E05": "Invalid location selection",
     "E06": "This location doesn’t belong to your business",
-    "E07": "This location can’t be deleted because it’s still in use"
+    "E07": "This location can’t be deleted because it’s still in use",
+    "E08": "Invalid tag selection",
+    "E09": "Couldn’t load marketplace tags. Try again",
+    "E10": "Couldn’t save marketplace tags. Try again",
+    "E11": "This location’s photos are used on your published website. Update the website first, then delete the location"
   },
   "SERVICE": {
     "E01": "You don’t have access to this service",
@@ -141,7 +145,9 @@
     "E19": "Your page includes premium sections you haven’t unlocked yet",
     "E20": "A visible location needs at least one photo. Add a photo or hide the location",
     "E21": "You can’t remove the last photo of a visible location. Add another photo first, or hide the location",
-    "E22": "Add at least one photo to a location before publishing"
+    "E22": "Add at least one photo to a location before publishing",
+    "E23": "This location has reached its photo limit. Remove a photo before adding another",
+    "E24": "This photo is used on your published website. Update the website first, then remove it"
   },
   "WEBSITE_VARIANTS": {
     "E01": "This premium style is no longer available",
@@ -173,6 +179,12 @@
     "E07": "This section is no longer available in Website Builder",
     "E08": "This section isn’t supported by the builder yet",
     "E09": "This section still has styles attached, so its key can’t be changed"
+  },
+  "WEBSITE_THEME_ASSETS": {
+    "E01": "This style is no longer available",
+    "E02": "This style is already included with your website",
+    "E03": "You already unlocked this style",
+    "E04": "This style can’t be applied right now. Try again"
   },
   "WEBSITE_BUILDER": {
     "E01": "Website Builder requires the Plus plan. Upgrade from Account > Billing",
@@ -266,6 +278,11 @@
     "E02": "Couldn’t load review stats. Try again",
     "E03": "You don’t have access to this team member"
   },
+  "PLATFORM_REVIEW": {
+    "E01": "You’ve already left a platform review",
+    "E02": "Couldn’t submit your review. Try again",
+    "E03": "Couldn’t load reviews. Try again"
+  },
   "BUSINESS_NOTIFICATION": {
     "E01": "Notification not found",
     "E02": "Couldn’t process notification. Try again"
@@ -283,5 +300,6 @@
     "E03": "Couldn’t load map. Try again"
   },
   "rateLimited": "That was attempted too many times in a row. Please wait a moment and try again.",
+  "networkError": "No connection. Check your internet and try again",
   "fallback": "Something went wrong. Please try again or contact support"
 }

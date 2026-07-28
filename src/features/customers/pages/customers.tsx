@@ -12,11 +12,13 @@ import { CustomerFilters } from '../components/CustomerFilters';
 import { listCustomersAction, fetchCustomerByIdAction, clearCurrentCustomerAction, mergeCustomerAction } from '../actions';
 import {
     getAllCustomersSelector,
+    getCustomersListErrorSelector,
     getCustomersLoadingSelector,
     getCurrentCustomerSelector,
     getIsFetchingCustomerSelector,
     getIsMergingCustomerSelector,
 } from '../selectors';
+import { ErrorState } from '../../../shared/components/common/ErrorState';
 import { ItemCard } from '../../../shared/components/common/ItemCard';
 import { PersonAvatar } from '../../../shared/components/common/PersonAvatar';
 import { highlightMatches as highlight } from '../../../shared/utils/highlight';
@@ -34,6 +36,7 @@ export default function CustomersPage() {
   const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
   const customers = useSelector(getAllCustomersSelector);
   const isLoading = useSelector(getCustomersLoadingSelector);
+  const customersListError = useSelector(getCustomersListErrorSelector);
   const currentCustomer = useSelector(getCurrentCustomerSelector);
   const isFetchingCustomer = useSelector(getIsFetchingCustomerSelector);
   const isMerging = useSelector(getIsMergingCustomerSelector);
@@ -111,6 +114,16 @@ export default function CustomersPage() {
 
           {isLoading ? (
             <CustomersListSkeleton />
+          ) : customersListError && customers.length === 0 ? (
+            <ErrorState
+              variant="page"
+              body={customersListError}
+              onRetry={() => dispatch(listCustomersAction.request({
+                search: searchTerm || undefined,
+                filters: [],
+                pagination: { offset: 0, limit: 20 }
+              }))}
+            />
           ) : (
             <>
               <CustomerFilters

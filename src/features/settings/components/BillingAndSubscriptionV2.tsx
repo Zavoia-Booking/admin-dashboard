@@ -24,6 +24,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { Skeleton } from '../../../shared/components/ui/skeleton';
+import { ErrorState } from '../../../shared/components/common/ErrorState';
 import { Button } from '../../../shared/components/ui/button';
 import { Card, CardContent } from '../../../shared/components/ui/card';
 import {
@@ -74,6 +75,7 @@ import {
   selectSubscriptionSummary,
   selectAvailablePlans,
   selectIsLoadingSubscriptionSummary,
+  selectSubscriptionSummaryError,
   selectIsLoadingPlans,
   selectIsLoadingCustomerPortal,
   selectIsLoadingCheckoutSession,
@@ -93,16 +95,7 @@ import {
   useBillingDetailsContext,
 } from '../context/BillingDetailsContext';
 import type { AvailablePlan, BusinessInvoice, SmsPackage, SubscriptionSummary } from '../types';
-import { translateMessageCode } from '../../../shared/utils/error';
-
-function extractBillingError(err: unknown): string {
-  const e = err as { response?: { data?: { message?: string | string[] } }; message?: string };
-  const raw = e?.response?.data?.message;
-  const translated = Array.isArray(raw)
-    ? raw.map((m: string) => translateMessageCode(m)).join(' ')
-    : translateMessageCode(raw ?? '');
-  return translated || e?.message || '';
-}
+import { getErrorMessage } from '../../../shared/utils/error';
 import type { AuthUser } from '../../auth/types';
 import { updateBillingDetailsApi } from '../../business/api';
 import type {
@@ -254,6 +247,7 @@ const BillingAndSubscriptionV2Inner = () => {
   const currentUser = useSelector(selectCurrentUser);
   const subscriptionSummary = useSelector(selectSubscriptionSummary);
   const loading = useSelector(selectIsLoadingSubscriptionSummary);
+  const summaryError = useSelector(selectSubscriptionSummaryError);
   const portalLoading = useSelector(selectIsLoadingCustomerPortal);
   const checkoutLoading = useSelector(selectIsLoadingCheckoutSession);
   const cancelLoading = useSelector(selectIsLoadingModifySubscription);
@@ -503,7 +497,7 @@ const BillingAndSubscriptionV2Inner = () => {
           throw new Error('No checkout URL returned');
         }
       } catch (err: unknown) {
-        toast.error(extractBillingError(err) || t('billing.toast.updateFailed'));
+        toast.error(getErrorMessage(err, t('billing.toast.updateFailed')));
       } finally {
         setUpdatingSeats(false);
       }
@@ -686,7 +680,7 @@ const BillingAndSubscriptionV2Inner = () => {
         throw new Error('Seat update failed');
       }
     } catch (err: unknown) {
-      toast.error(extractBillingError(err) || t('billing.toast.updateFailed'));
+      toast.error(getErrorMessage(err, t('billing.toast.updateFailed')));
       dispatch(getSubscriptionSummaryAction.request());
       dispatch(fetchCurrentUserAction.request());
     } finally {
@@ -702,7 +696,7 @@ const BillingAndSubscriptionV2Inner = () => {
       dispatch(getSubscriptionSummaryAction.request());
       dispatch(fetchCurrentUserAction.request());
     } catch (err: unknown) {
-      toast.error(extractBillingError(err) || t('billing.toast.updateFailed'));
+      toast.error(getErrorMessage(err, t('billing.toast.updateFailed')));
     } finally {
       setRetryingPayment(false);
     }
@@ -901,7 +895,7 @@ const BillingAndSubscriptionV2Inner = () => {
       dispatch(fetchCurrentUserAction.request());
       dispatch(getPlansAction.request());
     } catch (err: unknown) {
-      toast.error(extractBillingError(err) || t('billing.toast.planChangeFailed'));
+      toast.error(getErrorMessage(err, t('billing.toast.planChangeFailed')));
       dispatch(getSubscriptionSummaryAction.request());
       dispatch(fetchCurrentUserAction.request());
     } finally {
@@ -932,7 +926,7 @@ const BillingAndSubscriptionV2Inner = () => {
       dispatch(fetchCurrentUserAction.request());
       dispatch(getPlansAction.request());
     } catch (err: unknown) {
-      toast.error(extractBillingError(err) || t('billing.toast.planChangeFailed'));
+      toast.error(getErrorMessage(err, t('billing.toast.planChangeFailed')));
     } finally {
       setCancellingPlanChange(false);
     }
@@ -1204,6 +1198,33 @@ const BillingAndSubscriptionV2Inner = () => {
             </div>
           </CardContent>
         </Card>
+      </div>
+    );
+  }
+
+  // The whole tab is built on the summary. Without it every card would render
+  // zero-filled placeholder values as if they were real account data - show a
+  // recoverable error instead. A retained summary keeps rendering as before.
+  if (summaryError && !subscriptionSummary) {
+    return (
+      <div className="space-y-5">
+        <header className="bv2-page-header">
+          <div>
+            <h1>{t('tabs.billing')}</h1>
+            <p>{t('billing.v2.headerSubtitle')}</p>
+          </div>
+        </header>
+        <ErrorState
+          variant="page"
+          body={summaryError}
+          onRetry={() => {
+            dispatch(getSubscriptionSummaryAction.request());
+            dispatch(getPlansAction.request());
+            dispatch(getSmsBalanceAction.request());
+            dispatch(getSmsPackagesAction.request());
+            dispatch(getBusinessInvoicesAction.request({ limit: 20 }));
+          }}
+        />
       </div>
     );
   }
@@ -2664,7 +2685,7 @@ const buildInitialInvoiceState = (details: BillingDetails): InvoiceFormState => 
 
 const Bv2InvoiceDetailsCard = () => {
   const { t } = useTranslation('settings');
-  const { details, isLoading, reload } = useBillingDetailsContext();
+  const { details, isLoading, loadError, reload } = useBillingDetailsContext();
   const [form, setForm] = useState<InvoiceFormState | null>(null);
   const [snapshot, setSnapshot] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -2743,11 +2764,28 @@ const Bv2InvoiceDetailsCard = () => {
       toast.success(t('billing.invoiceDetails.toastSuccess'));
       await reload();
     } catch (err: unknown) {
-      toast.error(extractBillingError(err) || t('billing.invoiceDetails.toastFailure'));
+      toast.error(getErrorMessage(err, t('billing.invoiceDetails.toastFailure')));
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  // Failed initial load: without details the form never initializes, so the
+  // skeleton below would otherwise sit there forever with no way to recover.
+  if (!isLoading && loadError && !details) {
+    return (
+      <Card id={INVOICE_BILLING_DETAILS_SECTION_ID} className="scroll-mt-24">
+        <CardContent>
+          <Bv2CardHeader title={t('billing.invoiceDetails.title')} />
+          <ErrorState
+            variant="section"
+            body={loadError}
+            onRetry={() => void reload()}
+          />
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (isLoading || !form) {
     return (

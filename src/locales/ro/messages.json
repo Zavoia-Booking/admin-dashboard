@@ -56,7 +56,11 @@
     "E04": "Nu am putut șterge locația. Încearcă din nou",
     "E05": "Selecție invalidă de locații",
     "E06": "Această locație nu aparține afacerii tale",
-    "E07": "Această locație nu poate fi ștearsă pentru că este în uz"
+    "E07": "Această locație nu poate fi ștearsă pentru că este în uz",
+    "E08": "Selecție invalidă de etichete",
+    "E09": "Nu am putut încărca etichetele de marketplace. Încearcă din nou",
+    "E10": "Nu am putut salva etichetele de marketplace. Încearcă din nou",
+    "E11": "Fotografiile acestei locații sunt folosite pe site-ul publicat. Actualizează mai întâi site-ul, apoi șterge locația"
   },
   "SERVICE": {
     "E01": "Nu ai acces la acest serviciu",
@@ -141,7 +145,9 @@
     "E19": "Pagina ta include secțiuni premium pe care nu le-ai deblocat încă",
     "E20": "O locație vizibilă are nevoie de cel puțin o fotografie. Adaugă o fotografie sau ascunde locația",
     "E21": "Nu poți șterge ultima fotografie a unei locații vizibile. Adaugă mai întâi altă fotografie sau ascunde locația",
-    "E22": "Adaugă cel puțin o fotografie unei locații înainte de a publica"
+    "E22": "Adaugă cel puțin o fotografie unei locații înainte de a publica",
+    "E23": "Această locație a atins limita de fotografii. Șterge o fotografie înainte de a adăuga alta",
+    "E24": "Această fotografie este folosită pe site-ul publicat. Actualizează mai întâi site-ul, apoi șterge fotografia"
   },
   "WEBSITE_VARIANTS": {
     "E01": "Acest stil premium nu mai este disponibil",
@@ -173,6 +179,12 @@
     "E07": "Această secțiune nu mai este disponibilă în Constructorul de site",
     "E08": "Această secțiune nu este încă suportată de constructor",
     "E09": "Această secțiune are încă stiluri atașate, deci cheia ei nu poate fi modificată"
+  },
+  "WEBSITE_THEME_ASSETS": {
+    "E01": "Acest stil nu mai este disponibil",
+    "E02": "Acest stil este deja inclus în site-ul tău",
+    "E03": "Ai deblocat deja acest stil",
+    "E04": "Acest stil nu poate fi aplicat momentan. Încearcă din nou"
   },
   "WEBSITE_BUILDER": {
     "E01": "Constructorul de site necesită planul Plus. Poți face upgrade din Cont > Facturare",
@@ -266,6 +278,11 @@
     "E02": "Nu am putut încărca statisticile. Încearcă din nou",
     "E03": "Nu ai acces la acest membru"
   },
+  "PLATFORM_REVIEW": {
+    "E01": "Ai lăsat deja o recenzie pentru platformă",
+    "E02": "Nu am putut trimite recenzia. Încearcă din nou",
+    "E03": "Nu am putut încărca recenziile. Încearcă din nou"
+  },
   "BUSINESS_NOTIFICATION": {
     "E01": "Notificarea nu a fost găsită",
     "E02": "Nu am putut procesa notificarea. Încearcă din nou"
@@ -283,5 +300,6 @@
     "E03": "Nu am putut încărca harta. Încearcă din nou"
   },
   "rateLimited": "Ai încercat de prea multe ori într-un timp scurt. Te rugăm să aștepți puțin și să încerci din nou.",
+  "networkError": "Fără conexiune. Verifică internetul și încearcă din nou",
   "fallback": "A apărut o problemă. Încearcă din nou sau contactează suportul"
 }

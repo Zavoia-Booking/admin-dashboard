@@ -1,7 +1,7 @@
 {
   "page": {
     "title": "Website",
-    "loadError": "Nu am putut încărca site-ul. Încearcă din nou.",
+    "loadError": "Nu am putut încărca site-ul.",
     "retry": "Încearcă din nou",
     "toasts": {
       "loadFailed": "Nu am putut încărca site-ul",
@@ -122,8 +122,8 @@
       "discard": "Renunță la modificări"
     },
     "discardConfirm": {
-      "title": "Renunți la modificările schiței?",
-      "description": "Aceasta restaurează ultima schiță salvată. Conținutul, structura, culorile și stilurile nesalvate se vor pierde. Opțiunile din lista de deblocări rămân selectate, iar modificările imaginii de copertă nu vor fi anulate.",
+      "title": "Revii la ultima salvare?",
+      "description": "Tot ce nu ai salvat în editor se va pierde. Opțiunile premium selectate și imaginea de copertă se păstrează.",
       "confirm": "Renunță la modificări",
       "cancel": "Continuă editarea"
     },

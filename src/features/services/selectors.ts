@@ -152,6 +152,13 @@ export const getServicesErrorSelector = createSelector(
   }
 );
 
+export const getServicesListErrorSelector = createSelector(
+  getServicesStateSelector,
+  (state) => {
+    return state.listError;
+  }
+);
+
 export const getServicesLoadingSelector = createSelector(
   getServicesStateSelector,
   (state) => {

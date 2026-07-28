@@ -9,6 +9,7 @@ type Actions = ActionType<typeof actions> | ActionType<typeof logoutRequestActio
 const initialState: CustomerState = {
   isLoading: false,
   error: null,
+  listError: null,
   customers: [],
   currentCustomer: null,
   isFetchingCustomer: false,
@@ -94,20 +95,21 @@ export const CustomersReducer: Reducer<CustomerState, any> = (
       return { ...state, isMerging: false, error: action.payload.message };
 
     case getType(actions.listCustomersAction.request):
-      return { ...state, isLoading: true, error: null };
+      return { ...state, isLoading: true, error: null, listError: null };
 
     case getType(actions.listCustomersAction.success):
-      return { 
-        ...state, 
-        isLoading: false, 
-        customers: action.payload.data, 
+      return {
+        ...state,
+        isLoading: false,
+        customers: action.payload.data,
         pagination: action.payload.pagination,
         summary: action.payload.summary,
-        error: null 
+        error: null,
+        listError: null
       };
 
     case getType(actions.listCustomersAction.failure):
-      return { ...state, isLoading: false, error: action.payload.message };
+      return { ...state, isLoading: false, error: action.payload.message, listError: action.payload.message };
 
     case getType(actions.clearCurrentCustomerAction):
       return { ...state, currentCustomer: null, error: null };

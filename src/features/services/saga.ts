@@ -1,4 +1,4 @@
-import { all, call, put, takeLatest } from "redux-saga/effects";
+import { all, call, put, select, takeLatest } from "redux-saga/effects";
 import i18n from "../../shared/lib/i18n";
 import {
   createServicesAction,
@@ -20,6 +20,7 @@ import type { ActionType } from "typesafe-actions";
 import { toast } from "sonner";
 import type { Service } from "../../shared/types/service.ts";
 import { getErrorMessage } from "../../shared/utils/error";
+import type { RootState } from "../../app/providers/store";
 
 function* handleGetServices(): Generator<any, void, any> {
   // Always fetch the full list; all filtering is handled client-side
@@ -29,8 +30,15 @@ function* handleGetServices(): Generator<any, void, any> {
       yield put(getServicesAction.success(response.data));
     }
   } catch (error: unknown) {
-    console.log(error);
-    toast.error(i18n.t("services:toasts.services.loadFailed"));
+    console.error("Failed to load services:", error);
+    const message = getErrorMessage(error, i18n.t("services:toasts.services.loadFailed"));
+    yield put(getServicesAction.failure({ message }));
+    const hasRetainedServices: boolean = yield select(
+      (state: RootState) => state.services.services.length > 0,
+    );
+    if (hasRetainedServices) {
+      toast.error(message);
+    }
   }
 }
 
@@ -46,8 +54,10 @@ function* handleGetServiceById(
       yield put(getServiceByIdAction.success(response.data));
     }
   } catch (error: unknown) {
-    console.log(error);
-    toast.error(i18n.t("services:toasts.services.loadDetailsFailed"));
+    console.error("Failed to load service details:", error);
+    const message = getErrorMessage(error, i18n.t("services:toasts.services.loadDetailsFailed"));
+    toast.error(message);
+    yield put(getServiceByIdAction.failure({ message }));
   }
 }
 

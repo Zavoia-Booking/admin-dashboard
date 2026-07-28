@@ -16,6 +16,13 @@ export const getBundlesErrorSelector = createSelector(
   }
 );
 
+export const getBundlesListErrorSelector = createSelector(
+  getBundlesStateSelector,
+  (state) => {
+    return state.listError;
+  }
+);
+
 export const getBundlesLoadingSelector = createSelector(
   getBundlesStateSelector,
   (state) => {

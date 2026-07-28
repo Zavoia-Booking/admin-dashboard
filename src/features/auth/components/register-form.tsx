@@ -96,7 +96,6 @@ export function RegisterForm({ initialEmail, lockEmail, welcomeToken }: Register
     if (authError) {
       toast.error(authError, {
         duration: 8000,
-        position: 'top-center',
       })
       reset({
         firstName: '',

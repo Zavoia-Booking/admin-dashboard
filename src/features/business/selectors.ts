@@ -14,6 +14,11 @@ export const getBusinessLoadingSelector = createSelector(
   (state): boolean => state.isLoading
 );
 
+export const getBusinessErrorSelector = createSelector(
+  getBusinessStateSelector,
+  (state): string | null => state.error
+);
+
 export const getBusinessUpdatingSelector = createSelector(
   getBusinessStateSelector,
   (state): boolean => state.isUpdating

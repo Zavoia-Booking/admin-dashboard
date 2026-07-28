@@ -1,13 +1,12 @@
-import { MessageSquareText, FilterX, AlertTriangle } from "lucide-react";
+import { MessageSquareText, FilterX } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "../../../shared/components/ui/button";
 
-export type EmptyReviewsStateKind = "none" | "filtered" | "error";
+export type EmptyReviewsStateKind = "none" | "filtered";
 
 interface EmptyReviewsStateProps {
   kind: EmptyReviewsStateKind;
   onClearFilters?: () => void;
-  onRetry?: () => void;
   /**
    * Scopes the filtered-empty copy. `"business"` (default) names the
    * star/location/team-member filters of the owner reviews page;
@@ -20,13 +19,11 @@ interface EmptyReviewsStateProps {
 const ICON: Record<EmptyReviewsStateKind, typeof MessageSquareText> = {
   none: MessageSquareText,
   filtered: FilterX,
-  error: AlertTriangle,
 };
 
 export function EmptyReviewsState({
   kind,
   onClearFilters,
-  onRetry,
   variant = "business",
 }: EmptyReviewsStateProps) {
   const { t } = useTranslation("reviews");
@@ -35,24 +32,16 @@ export function EmptyReviewsState({
   const titleKey =
     kind === "none"
       ? "empty.title"
-      : kind === "filtered"
-        ? "empty.noFilteredTitle"
-        : "empty.errorTitle";
+      : "empty.noFilteredTitle";
   const bodyKey =
     kind === "none"
       ? "empty.description"
-      : kind === "filtered"
-        ? variant === "personal"
-          ? "empty.noFilteredBodyPersonal"
-          : "empty.noFilteredBody"
-        : "empty.errorBody";
+      : variant === "personal"
+        ? "empty.noFilteredBodyPersonal"
+        : "empty.noFilteredBody";
 
   const iconTone =
-    kind === "error"
-      ? "text-error"
-      : kind === "filtered"
-        ? "text-primary/80"
-        : "text-foreground-3";
+    kind === "filtered" ? "text-primary/80" : "text-foreground-3";
 
   return (
     <div className="flex flex-col items-center justify-center py-14 px-4 text-center gap-3">
@@ -74,17 +63,6 @@ export function EmptyReviewsState({
           className="mt-1"
         >
           {t("empty.noFilteredAction")}
-        </Button>
-      )}
-      {kind === "error" && onRetry && (
-        <Button
-          variant="outline"
-          size="sm"
-          rounded="full"
-          onClick={onRetry}
-          className="mt-1"
-        >
-          {t("empty.errorAction")}
         </Button>
       )}
     </div>

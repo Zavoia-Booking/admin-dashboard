@@ -39,8 +39,15 @@ function* handleFetchMarketplaceListing() {
   } catch (error: unknown) {
     if (!(yield* isCurrentMarketplaceScope(scopeBusinessId))) return;
     const message = getErrorMessage(error);
-    toast.error(message || i18n.t('marketplace:page.toasts.listingDataLoadFailed'));
     yield put(fetchMarketplaceListingAction.failure({ message, scopeBusinessId }));
+    const hasRetainedListing: boolean = yield select(
+      (state: RootState) =>
+        state.marketplace.scopeBusinessId === scopeBusinessId &&
+        state.marketplace.listing !== null,
+    );
+    if (hasRetainedListing) {
+      toast.error(message || i18n.t('marketplace:page.toasts.listingDataLoadFailed'));
+    }
   }
 }
 

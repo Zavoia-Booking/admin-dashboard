@@ -19,7 +19,9 @@ const initialState: ServicesState = {
     item: null,
   },
   error: null,
+  listError: null,
   isLoading: false,
+  isMutating: false,
   isDeleting: false,
   deleteError: null,
   deleteResponse: null,
@@ -76,11 +78,19 @@ export const ServicesReducer: Reducer<ServicesState, any> = (
       return { ...initialState };
 
     case getType(actions.getServicesAction.request):
+      return {
+        ...state,
+        isLoading: true,
+        error: null,
+        listError: null,
+      };
+
     case getType(actions.createServicesAction.request):
     case getType(actions.editServicesAction.request):
       return {
         ...state,
         isLoading: true,
+        isMutating: true,
         error: null,
       };
 
@@ -90,6 +100,7 @@ export const ServicesReducer: Reducer<ServicesState, any> = (
         services: action.payload,
         isLoading: false,
         error: null,
+        listError: null,
       };
 
     case getType(actions.getServiceByIdAction.success):
@@ -104,7 +115,19 @@ export const ServicesReducer: Reducer<ServicesState, any> = (
       return {
         ...state,
         isLoading: false,
+        isMutating: false,
         error: null,
+      };
+
+    // Sets only listError: the shared `error` field drives the create/edit
+    // sliders' submit handling, which must not react to list-load failures.
+    // isLoading likewise stays untouched mid-mutation so the sliders don't
+    // read a list failure as their own request completing.
+    case getType(actions.getServicesAction.failure):
+      return {
+        ...state,
+        isLoading: state.isMutating ? state.isLoading : false,
+        listError: (action.payload as any)?.message || i18n.t("common:errors.generic"),
       };
 
     case getType(actions.createServicesAction.failure):
@@ -112,6 +135,7 @@ export const ServicesReducer: Reducer<ServicesState, any> = (
       return {
         ...state,
         isLoading: false,
+        isMutating: false,
         error: (action.payload as any)?.message || i18n.t("common:errors.generic"),
       };
 

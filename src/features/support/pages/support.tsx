@@ -10,6 +10,7 @@ import { Textarea } from "../../../shared/components/ui/textarea";
 import { Spinner } from "../../../shared/components/ui/spinner";
 import { Skeleton } from "../../../shared/components/ui/skeleton";
 import { EmptyState } from "../../../shared/components/common/EmptyState";
+import { ErrorState } from "../../../shared/components/common/ErrorState";
 import {
   Dialog,
   DialogContent,
@@ -32,6 +33,8 @@ import {
   getIsCreatingTicketSelector,
   getIsSendingMessageSelector,
   getIsClosingTicketSelector,
+  getTicketsListErrorSelector,
+  getTicketDetailErrorSelector,
 } from "../selectors";
 import {
   Plus,
@@ -598,6 +601,8 @@ export default function SupportPage() {
   const isCreating = useSelector(getIsCreatingTicketSelector);
   const isSending = useSelector(getIsSendingMessageSelector);
   const isClosing = useSelector(getIsClosingTicketSelector);
+  const listError = useSelector(getTicketsListErrorSelector);
+  const detailError = useSelector(getTicketDetailErrorSelector);
 
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null);
@@ -696,7 +701,19 @@ export default function SupportPage() {
               className="bg-surface border border-border rounded-xl overflow-hidden flex flex-col"
               style={{ height: "calc(100dvh - 140px)" }}
             >
-              {isFetchingTicket || !currentTicket?.details ? (
+              {isFetchingTicket ? (
+                <ConversationSkeleton />
+              ) : detailError && !currentTicket?.details ? (
+                <ErrorState
+                  variant="pane"
+                  body={detailError}
+                  onRetry={() =>
+                    selectedTicketId !== null &&
+                    dispatch(getTicketByIdAction.request({ id: selectedTicketId }))
+                  }
+                  className="my-auto px-4"
+                />
+              ) : !currentTicket?.details ? (
                 <ConversationSkeleton />
               ) : (
                 <ConversationView
@@ -716,6 +733,12 @@ export default function SupportPage() {
             <div className="px-2 md:px-0">
               {isLoading ? (
                 <TicketListSkeleton />
+              ) : listError && tickets.length === 0 ? (
+                <ErrorState
+                  variant="page"
+                  body={listError}
+                  onRetry={() => dispatch(listTicketsAction.request())}
+                />
               ) : filteredTickets.length === 0 ? (
                 <EmptyState
                   title={t("empty.noTickets")}

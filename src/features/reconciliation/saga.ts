@@ -1,7 +1,7 @@
 import { call, put, takeLatest } from 'redux-saga/effects';
 import { toast } from 'sonner';
 import i18n from '../../shared/lib/i18n';
-import { translateMessageCode } from '../../shared/utils/error';
+import { getErrorMessage } from '../../shared/utils/error';
 import { unassignFromLocationApi } from '../teamMembers/api';
 import { fetchLocationFullAssignmentAction } from '../assignments/actions';
 import {
@@ -28,15 +28,8 @@ function* handleUnassignFromLocation(
         skipLoading: true,
       }),
     );
-  } catch (error: any) {
-    const raw = error?.response?.data?.message;
-    const translated = Array.isArray(raw)
-      ? raw.map((m: string) => translateMessageCode(m)).join(' ')
-      : translateMessageCode(raw ?? '');
-    const message =
-      translated ||
-      error?.message ||
-      i18n.t('teamMembers:seatOverflow.unassignFailed');
+  } catch (error: unknown) {
+    const message = getErrorMessage(error, i18n.t('teamMembers:seatOverflow.unassignFailed'));
     toast.error(message);
     yield put(unassignFromLocationAction.failure({ message }));
   }

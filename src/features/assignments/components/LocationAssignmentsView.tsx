@@ -29,13 +29,16 @@ import {
 import {
   getIsLoadingSelector,
   getIsSavingSelector,
+  getLoadErrorSelector,
   getSelectedLocationIdSelector,
   getSelectedLocationFullSelector,
   getStaffServicesSelector,
   getStaffServicesLoadingSelector,
 } from "../selectors";
+import { ErrorState } from "../../../shared/components/common/ErrorState";
 import {
   getAllLocationsSelector,
+  getLocationListErrorSelector,
   getLocationLoadingSelector,
 } from "../../locations/selectors";
 import { listLocationsAction } from "../../locations/actions";
@@ -56,15 +59,19 @@ export function LocationAssignmentsView() {
 
   // Selectors
   const isLoading = useSelector(getIsLoadingSelector);
+  const loadError = useSelector(getLoadErrorSelector);
   const isSaving = useSelector(getIsSavingSelector);
   const allLocations = useSelector(getAllLocationsSelector);
   const isLocationsLoading = useSelector(getLocationLoadingSelector);
+  const locationsListError = useSelector(getLocationListErrorSelector);
   const selectedLocationId = useSelector(getSelectedLocationIdSelector);
   const selectedLocation = useSelector(getSelectedLocationFullSelector);
   const staffServices = useSelector(getStaffServicesSelector);
   const isStaffServicesLoading = useSelector(getStaffServicesLoadingSelector);
   const currentUser = useSelector(selectCurrentUser);
   const businessCurrency = currentUser?.business?.businessCurrency || "eur";
+  const isInitialLocationsLoading =
+    isLocationsLoading && allLocations.length === 0;
 
   // Track navigation to reset auto-selection state
   const lastLocationKeyRef = useRef<string | null>(null);
@@ -772,6 +779,20 @@ export function LocationAssignmentsView() {
     </Card>
   );
 
+  if (
+    locationsListError &&
+    allLocations.length === 0 &&
+    !isInitialLocationsLoading
+  ) {
+    return (
+      <ErrorState
+        variant="page"
+        body={locationsListError}
+        onRetry={() => dispatch(listLocationsAction.request())}
+      />
+    );
+  }
+
   return (
     <div className="flex flex-col md:flex-row gap-2 w-full">
       {/* Left list panel */}
@@ -788,7 +809,7 @@ export function LocationAssignmentsView() {
           items={listItems}
           selectedId={selectedLocationId ?? null}
           onSelect={(id) => handleSelectLocation(Number(id))}
-          isLoading={isLocationsLoading}
+          isLoading={isInitialLocationsLoading}
           emptyMessage={
             searchTerm
               ? t("page.assignments.emptyState.noLocationsMatchSearch")
@@ -805,8 +826,23 @@ export function LocationAssignmentsView() {
 
       {/* Right details panel */}
       <div className="w-full md:flex-1 min-w-0">
-        {(isLoading || forceLoading) && saveOperation !== "teamMembers" ? (
+        {isInitialLocationsLoading ? (
           renderDetailsSkeleton()
+        ) : (isLoading || forceLoading) && saveOperation !== "teamMembers" ? (
+          renderDetailsSkeleton()
+        ) : loadError && selectedLocationId &&
+          (!selectedLocation || selectedLocation.id !== selectedLocationId) ? (
+          <Card className="py-3 cursor-default">
+            <CardContent className="px-3">
+              <ErrorState
+                variant="pane"
+                body={loadError}
+                onRetry={() =>
+                  dispatch(fetchLocationFullAssignmentAction.request({ locationId: selectedLocationId }))
+                }
+              />
+            </CardContent>
+          </Card>
         ) : !selectedLocation ? (
           renderEmptyDetails()
         ) : (

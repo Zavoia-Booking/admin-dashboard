@@ -55,7 +55,6 @@ export function LoginForm() {
       }
       toast.error(authError, {
         duration: 8000,
-        position: 'top-center',
       })
       try { credRef.current?.reset(); credRef.current?.hidePassword() } catch {}
       dispatch(clearAuthErrorAction())
@@ -83,7 +82,7 @@ export function LoginForm() {
           </Link>.
         </Banner>
       )}
-      <CredentialsForm ref={credRef} onSubmit={handleCredentialsSubmit} submitLabel={t('login.submitLabel')} loadingLabel={t('credentials.loggingIn')} isLoading={isLoading} />
+      <CredentialsForm ref={credRef} onSubmit={handleCredentialsSubmit} submitLabel={t('login.submitLabel')} isLoading={isLoading} />
       <div className="flex justify-center mt-1">
         <button
           type="button"

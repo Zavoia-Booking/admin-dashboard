@@ -69,6 +69,7 @@ export type CalendarViewState = {
     selectedLocationId: number | null;
     locationContext: LocationContextData | null;
     locationContextLoading: boolean;
+    locationContextError: string | null;
 
     /** Per-location services, team, and bundles from GET /calendar/location-context (same request as locationContext). */
     locationServices: LocationService[];
@@ -79,14 +80,17 @@ export type CalendarViewState = {
     // --- Summary data (month/week overview, keyed by "YYYY-MM-DD") ---
     summary: Record<string, DaySummary>;
     summaryLoading: boolean;
+    summaryError: string | null;
 
     // --- Day data (full day view) ---
     dayData: DayDataResponse | null;
     dayDataLoading: boolean;
+    dayDataError: string | null;
 
     // --- Week data (full week view, keyed by "YYYY-MM-DD") ---
     weekData: Record<string, DayDataResponse> | null;
     weekDataLoading: boolean;
+    weekDataError: string | null;
 
     // --- Day filters (for the calendar/day endpoint) ---
     dayFilters: CalendarDayFilters;

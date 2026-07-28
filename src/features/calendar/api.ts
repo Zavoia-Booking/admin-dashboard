@@ -1,4 +1,4 @@
-import { apiClient } from "../../shared/lib/http.ts";
+import { apiClient, READ_REQUEST_TIMEOUT_MS } from "../../shared/lib/http.ts";
 import type {
     LocationContextData,
     CalendarSummaryResponse,
@@ -41,7 +41,11 @@ export const getCalendarSummaryRequest = async (
         includePreview,
         ...serializeCalendarDayFilters(filters),
     };
-    const { data } = await apiClient().post<CalendarSummaryResponse>(`/calendar/summary`, body);
+    const { data } = await apiClient().post<CalendarSummaryResponse>(
+        `/calendar/summary`,
+        body,
+        { timeout: READ_REQUEST_TIMEOUT_MS },
+    );
     return data;
 }
 
@@ -51,11 +55,15 @@ export const getDayDataRequest = async (
     date: string,
     filters?: CalendarDayFilters,
 ): Promise<DayDataResponse> => {
-    const { data } = await apiClient().post<DayDataResponse>(`/calendar/day`, {
-        locationId,
-        date,
-        ...serializeCalendarDayFilters(filters),
-    });
+    const { data } = await apiClient().post<DayDataResponse>(
+        `/calendar/day`,
+        {
+            locationId,
+            date,
+            ...serializeCalendarDayFilters(filters),
+        },
+        { timeout: READ_REQUEST_TIMEOUT_MS },
+    );
     return data;
 }
 
@@ -65,11 +73,15 @@ export const getWeekDataRequest = async (
     weekStart: string,
     filters?: CalendarDayFilters,
 ): Promise<CalendarWeekResponse> => {
-    const { data } = await apiClient().post<CalendarWeekResponse>(`/calendar/week`, {
-        locationId,
-        weekStart,
-        ...serializeCalendarDayFilters(filters),
-    });
+    const { data } = await apiClient().post<CalendarWeekResponse>(
+        `/calendar/week`,
+        {
+            locationId,
+            weekStart,
+            ...serializeCalendarDayFilters(filters),
+        },
+        { timeout: READ_REQUEST_TIMEOUT_MS },
+    );
     return data;
 }
 
@@ -78,7 +90,11 @@ export const getAvailableSlotsRequest = async (
     payload: AvailableSlotsRequest,
     signal?: AbortSignal,
 ): Promise<AvailableSlotsResponse> => {
-    const { data } = await apiClient().post<AvailableSlotsResponse>(`/calendar/available-slots`, payload, { signal });
+    const { data } = await apiClient().post<AvailableSlotsResponse>(
+        `/calendar/available-slots`,
+        payload,
+        { signal, timeout: READ_REQUEST_TIMEOUT_MS },
+    );
     return data;
 }
 

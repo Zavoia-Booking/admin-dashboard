@@ -16,6 +16,7 @@ const initialState: CalendarViewState = {
     selectedLocationId: null,
     locationContext: null,
     locationContextLoading: false,
+    locationContextError: null,
     locationServices: [],
     locationTeamMembers: [],
     locationBundles: [],
@@ -23,14 +24,17 @@ const initialState: CalendarViewState = {
     // --- Summary data ---
     summary: {},
     summaryLoading: false,
+    summaryError: null,
 
     // --- Day data ---
     dayData: null,
     dayDataLoading: false,
+    dayDataError: null,
 
     // --- Week data ---
     weekData: null,
     weekDataLoading: false,
+    weekDataError: null,
 
     // --- Day filters ---
     dayFilters: initialDayFilters,
@@ -158,11 +162,15 @@ const handleSetSelectedLocation = (state: CalendarViewState, payload: number | n
         // Clear stale data when switching locations
         locationContext: null,
         locationContextLoading: payload !== null,
+        locationContextError: null,
         locationServices: [],
         locationTeamMembers: [],
         summary: {},
+        summaryError: null,
         dayData: null,
+        dayDataError: null,
         weekData: null,
+        weekDataError: null,
         dayFilters: initialDayFilters,
         staffFilter: [],
         optimisticBlocks: [],
@@ -176,6 +184,7 @@ const handleSetLocationContext = (state: CalendarViewState, payload: LocationCon
         ...state,
         locationContext: payload,
         locationContextLoading: false,
+        locationContextError: null,
         locationServices: (payload?.services ?? []) as LocationService[],
         locationTeamMembers: (payload?.teamMembers ?? []) as LocationTeamMember[],
         locationBundles: payload?.bundles ?? [],
@@ -194,6 +203,7 @@ const handleSetSummary = (state: CalendarViewState, payload: Record<string, DayS
         ...state,
         summary: payload,
         summaryLoading: false,
+        summaryError: null,
     }
 }
 
@@ -212,6 +222,7 @@ const handleSetDayData = (state: CalendarViewState, payload: DayDataResponse | n
         ...state,
         dayData: payload,
         dayDataLoading: false,
+        dayDataError: null,
         summary,
     };
 }
@@ -267,6 +278,7 @@ const handleSetWeekData = (state: CalendarViewState, payload: CalendarWeekRespon
         ...state,
         weekData: payload.days,
         weekDataLoading: false,
+        weekDataError: null,
         summary,
     };
 }
@@ -352,18 +364,31 @@ export const CalendarReducer: Reducer<CalendarViewState, any> = (state: Calendar
             return handleSetSelectedLocation(state, action.payload);
 
         case getType(actions.fetchLocationContext.request):
-            return handleSetLocationContextLoading(state, true);
+            return {
+                ...handleSetLocationContextLoading(state, true),
+                locationContextError: null,
+            };
         case getType(actions.fetchLocationContext.success):
             return handleSetLocationContext(state, action.payload);
         case getType(actions.fetchLocationContext.failure):
-            return handleSetLocationContextLoading(state, false);
+            return {
+                ...handleSetLocationContextLoading(state, false),
+                locationContextError: action.payload.message,
+            };
 
         case getType(actions.fetchCalendarSummary.request):
-            return handleSetSummaryLoading(state, true);
+            return {
+                ...handleSetSummaryLoading(state, true),
+                summary: {},
+                summaryError: null,
+            };
         case getType(actions.fetchCalendarSummary.success):
             return handleSetSummary(state, action.payload);
         case getType(actions.fetchCalendarSummary.failure):
-            return handleSetSummaryLoading(state, false);
+            return {
+                ...handleSetSummaryLoading(state, false),
+                summaryError: action.payload.message,
+            };
 
         case getType(actions.mergeCalendarSummaryAction):
             return {
@@ -375,12 +400,17 @@ export const CalendarReducer: Reducer<CalendarViewState, any> = (state: Calendar
             return { ...state, sidebarMiniCalendarMonthStart: action.payload };
 
         case getType(actions.fetchDayData.request):
-            return handleSetDayDataLoading(state, true);
+            return {
+                ...handleSetDayDataLoading(state, true),
+                dayData: null,
+                dayDataError: null,
+            };
         case getType(actions.fetchDayData.success):
             return { ...handleSetDayData(state, action.payload), pendingDrop: null, optimisticBlocks: [] };
         case getType(actions.fetchDayData.failure):
             return {
                 ...handleSetDayDataLoading(state, false),
+                dayDataError: action.payload.message,
                 pendingDrop: null,
                 optimisticBlocks: [],
             };
@@ -414,12 +444,17 @@ export const CalendarReducer: Reducer<CalendarViewState, any> = (state: Calendar
 
         // --- Week data ---
         case getType(actions.fetchWeekData.request):
-            return handleSetWeekDataLoading(state, true);
+            return {
+                ...handleSetWeekDataLoading(state, true),
+                weekData: null,
+                weekDataError: null,
+            };
         case getType(actions.fetchWeekData.success):
             return { ...handleSetWeekData(state, action.payload), pendingDrop: null, optimisticBlocks: [] };
         case getType(actions.fetchWeekData.failure):
             return {
                 ...handleSetWeekDataLoading(state, false),
+                weekDataError: action.payload.message,
                 pendingDrop: null,
                 optimisticBlocks: [],
             };

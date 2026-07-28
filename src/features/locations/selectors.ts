@@ -14,6 +14,10 @@ export const getLocationErrorSelector = createSelector(getLocationStateSelector,
     return state.error
 });
 
+export const getLocationListErrorSelector = createSelector(getLocationStateSelector, (state) => {
+    return state.listError
+});
+
 export const getDeleteResponseSelector = createSelector(getLocationStateSelector, (state) => {
     return state.deleteResponse
 });

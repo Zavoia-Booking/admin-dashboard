@@ -29,7 +29,8 @@
     "calculationNote": "Combined from every review across your locations and team members.",
     "audienceNote": "This is the rating clients see on your business profile.",
     "calculationNotePersonal": "Combined from every review clients have left for you.",
-    "audienceNotePersonal": "This is the rating clients see on your public profile."
+    "audienceNotePersonal": "This is the rating clients see on your public profile.",
+    "errorBody": "Couldn't load review insights. Check your connection and try again."
   },
   "hero": {
     "statusGood": "Excellent",

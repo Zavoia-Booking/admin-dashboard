@@ -45,7 +45,7 @@ export const fetchLocationContext = createAsyncAction(
     'CALENDAR/LOCATION_CONTEXT/REQUEST',
     'CALENDAR/LOCATION_CONTEXT/SUCCESS',
     'CALENDAR/LOCATION_CONTEXT/FAILURE',
-)<number, LocationContextData, any>()
+)<number, LocationContextData, { message: string }>()
 
 /** Fetch calendar summary for a date range (month/week overview) */
 export const fetchCalendarSummary = createAsyncAction(
@@ -54,7 +54,7 @@ export const fetchCalendarSummary = createAsyncAction(
     'CALENDAR/SUMMARY/FAILURE',
 )<{ locationId: number; startDate: string; endDate: string; includePreview?: boolean; filters?: CalendarDayFilters },
     Record<string, DaySummary>,
-    any>()
+    { message: string }>()
 
 /** Merge summary rows into {@link CalendarViewState.summary} (e.g. after block CRUD so the sidebar mini month updates). */
 export const mergeCalendarSummaryAction = createAction(
@@ -73,7 +73,7 @@ export const fetchDayData = createAsyncAction(
     'CALENDAR/DAY_DATA/FAILURE',
 )<{ locationId: number; date: string; filters?: CalendarDayFilters },
     DayDataResponse,
-    any>()
+    { message: string }>()
 
 /** Set day-level filters (staff, service, status, client name) */
 export const setDayFiltersAction = createAction(
@@ -139,7 +139,7 @@ export const fetchWeekData = createAsyncAction(
     'CALENDAR/WEEK_DATA/FAILURE',
 )<{ locationId: number; weekStart: string; filters?: CalendarDayFilters },
     CalendarWeekResponse,
-    any>()
+    { message: string }>()
 
 // ─────────────────────────────────────────────────────────────
 // New actions: Admin appointment CRUD

@@ -1,25 +1,33 @@
-import {
-  Dialog,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogPortal,
-  DialogOverlay,
-} from "../ui/dialog";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { useState, useEffect } from "react";
-import { Loader2, AlertTriangle, XCircle, X } from "lucide-react";
-import { Button } from "../ui/button";
+import { AlertTriangle, X } from "lucide-react";
+import { Spinner } from "../ui/spinner";
 import { Badge } from "../ui/badge";
-import { DashedDivider } from "./DashedDivider";
 import type {
   DeleteConfirmDialogProps,
   DeleteResponse,
 } from "../../types/delete-response";
 import { cn } from "../../lib/utils";
 import { useTranslation } from "react-i18next";
+import {
+  modalScrim,
+  modalPanel,
+  modalTitleCompact,
+  modalBody,
+  modalBodyMuted,
+  modalHelperSmall,
+  modalFooterRowRight,
+  modalCancel,
+  modalPrimary,
+  modalDestructive,
+} from "../ui/modal-tokens";
 
+/**
+ * Delete confirmation dialog. Built on the dashboard `modal-tokens` language (cream panel,
+ * terracotta eyebrow, refined type, one hairline seam, tiered pills) so it matches the app's
+ * other modals. Handles three states: checking dependencies, can-delete, and blocked (with a
+ * dependency list). Full prop API + i18n keys preserved for the 4 call sites.
+ */
 export function DeleteConfirmDialog({
   open,
   onOpenChange,
@@ -42,6 +50,11 @@ export function DeleteConfirmDialog({
       setLocalDeleteResponse(deleteResponse);
     }
   }, [open, deleteResponse]);
+
+  // While open, trust the fresh prop (callers set it before opening); use the local copy only
+  // during the close animation, when the parent has reset deleteResponse to null. This stops the
+  // stale local copy from flashing the wrong state (loader / old dependency list) on open.
+  const effectiveResponse = open ? deleteResponse ?? localDeleteResponse : localDeleteResponse;
 
   const getResourceLabel = (count: number, type: string) => {
     // Map resourceType to locale key (handle team_member -> team_member, etc.)
@@ -71,8 +84,8 @@ export function DeleteConfirmDialog({
   const resourceLabelSingular = getResourceLabel(1, resourceType);
   const resourceTitle = getResourceTitle(resourceType);
 
-  // Show loading state if no response yet
-  const isCheckingDependencies = !localDeleteResponse;
+  // Loading state only when there is genuinely no response at all (no current flow opens this way).
+  const isCheckingDependencies = !effectiveResponse;
 
   const {
     canDelete,
@@ -84,7 +97,7 @@ export function DeleteConfirmDialog({
     activeUsersCount,
     pendingUsersCount,
     websiteGalleryImagesCount,
-  } = (localDeleteResponse || {}) as Partial<DeleteResponse>;
+  } = (effectiveResponse || {}) as Partial<DeleteResponse>;
 
   // Build dynamic dependency list
   const dependencies: {
@@ -99,11 +112,7 @@ export function DeleteConfirmDialog({
   if (usersCount && usersCount > 0) {
     dependencies.push({
       count: usersCount,
-      label: t(
-        `deleteConfirmDialog.dependencies.${
-          usersCount === 1 ? "user" : "users"
-        }`
-      ),
+      label: t(`deleteConfirmDialog.dependencies.${usersCount === 1 ? "user" : "users"}`),
     });
   }
   if (activeUsersCount && activeUsersCount > 0) {
@@ -134,31 +143,21 @@ export function DeleteConfirmDialog({
   if (servicesCount && servicesCount > 0) {
     dependencies.push({
       count: servicesCount,
-      label: t(
-        `deleteConfirmDialog.dependencies.${
-          servicesCount === 1 ? "service" : "services"
-        }`
-      ),
+      label: t(`deleteConfirmDialog.dependencies.${servicesCount === 1 ? "service" : "services"}`),
     });
   }
   if (appointmentsCount && appointmentsCount > 0) {
     dependencies.push({
       count: appointmentsCount,
       label: t(
-        `deleteConfirmDialog.dependencies.${
-          appointmentsCount === 1 ? "appointment" : "appointments"
-        }`
+        `deleteConfirmDialog.dependencies.${appointmentsCount === 1 ? "appointment" : "appointments"}`
       ),
     });
   }
   if (locationsCount && locationsCount > 0) {
     dependencies.push({
       count: locationsCount,
-      label: t(
-        `deleteConfirmDialog.dependencies.${
-          locationsCount === 1 ? "location" : "locations"
-        }`
-      ),
+      label: t(`deleteConfirmDialog.dependencies.${locationsCount === 1 ? "location" : "locations"}`),
       isLocation: true,
     });
   }
@@ -166,9 +165,7 @@ export function DeleteConfirmDialog({
     dependencies.push({
       count: teamMembersCount,
       label: t(
-        `deleteConfirmDialog.dependencies.${
-          teamMembersCount === 1 ? "teamMember" : "teamMembers"
-        }`
+        `deleteConfirmDialog.dependencies.${teamMembersCount === 1 ? "teamMember" : "teamMembers"}`
       ),
       isTeamMember: true,
     });
@@ -193,259 +190,213 @@ export function DeleteConfirmDialog({
     onOpenChange(newOpen);
   };
 
+  // Secondary actions (blocked state): "Go to Assignments" gets a localized label; others pass through.
+  const goToAssignments = secondaryActions?.find((a) => a.label === "Go to Assignments");
+  const otherActions = secondaryActions?.filter((a) => a.label !== "Go to Assignments");
+
+  const closeButton = (
+    <button
+      type="button"
+      onClick={() => handleOpenChange(false)}
+      aria-label={t("deleteConfirmDialog.close")}
+      className={cn(
+        "absolute right-4 top-4 inline-flex h-8 w-8 items-center justify-center rounded-lg",
+        "text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-800",
+        "dark:text-foreground-3 dark:hover:bg-surface-hover dark:hover:text-foreground-1",
+        "cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/30"
+      )}
+    >
+      <X className="h-4 w-4" />
+    </button>
+  );
+
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogPortal>
-        <DialogOverlay className={cn(overlayClassName)} />
+    <DialogPrimitive.Root open={open} onOpenChange={handleOpenChange}>
+      <DialogPrimitive.Portal>
+        <DialogPrimitive.Overlay className={cn(modalScrim, overlayClassName)} />
         <DialogPrimitive.Content
-          className={cn(
-            "bg-surface border-border dark:border-border-subtle data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border p-6 shadow-lg duration-200 sm:max-w-lg cursor-default",
-            className
-          )}
-          onOpenAutoFocus={(e) => {
-            e.preventDefault();
-            // Focus the primary action button instead of the close X button
-            const target = e.currentTarget as HTMLElement;
-            if (target) {
-              const footer = target.querySelector('[data-slot="dialog-footer"]');
-              if (footer) {
-                const buttons = Array.from(footer.querySelectorAll('button'));
-                // Find the primary button (Confirm/Delete) which is typically the last one
-                const primaryButton = buttons.length > 1 ? buttons[buttons.length - 1] : buttons[0];
-                if (primaryButton instanceof HTMLElement) {
-                  primaryButton.focus();
-                }
-              }
-            }
-          }}
+          className={cn(modalPanel, "text-left sm:p-6", className)}
+          onOpenAutoFocus={(e) => e.preventDefault()}
         >
           {isCheckingDependencies ? (
-            // Loading state while checking dependencies
+            /* Checking dependencies — never reached by the current optimistic flows. */
             <>
-              <DialogHeader className="space-y-4 text-left pr-6 cursor-default">
-                <DialogTitle className="text-lg md:text-xl font-semibold text-foreground-1 cursor-default">
-                  {t("deleteConfirmDialog.loading.title")}
-                </DialogTitle>
-                {/* Add a visually hidden description for accessibility during loading */}
-                <DialogDescription className="sr-only">
-                  {t("deleteConfirmDialog.loading.description", {
-                    resourceType: resourceLabelSingular,
-                  })}
-                </DialogDescription>
-              </DialogHeader>
-              <div className="flex flex-col items-center justify-center py-8">
-                <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
-                <p className="text-sm text-foreground-3 dark:text-foreground-2 cursor-default">
-                  {t("deleteConfirmDialog.loading.description", {
+              <div className="flex flex-col items-center py-2 text-center">
+                <DialogPrimitive.Title asChild>
+                  <h2 className={modalTitleCompact}>{t("deleteConfirmDialog.loading.title")}</h2>
+                </DialogPrimitive.Title>
+                <Spinner size="sm" className="mt-6" />
+                <DialogPrimitive.Description asChild>
+                  <p className={cn(modalBodyMuted, "mt-4")}>
+                    {t("deleteConfirmDialog.loading.description", {
+                      resourceType: resourceLabelSingular,
+                    })}
+                  </p>
+                </DialogPrimitive.Description>
+              </div>
+            </>
+          ) : canDelete ? (
+            /* Can delete — destructive confirm. */
+            <>
+              {closeButton}
+              <div className="flex items-center gap-2.5 pr-8">
+                <AlertTriangle className="h-6 w-6 shrink-0 text-destructive" aria-hidden="true" />
+                <DialogPrimitive.Title asChild>
+                  <h2 className={modalTitleCompact}>
+                    {t("deleteConfirmDialog.canDelete.title", { resourceName })}
+                  </h2>
+                </DialogPrimitive.Title>
+              </div>
+              <DialogPrimitive.Description asChild>
+                <p className={cn(modalBody, "mt-3")}>
+                  {t("deleteConfirmDialog.canDelete.description", {
                     resourceType: resourceLabelSingular,
                   })}
                 </p>
+              </DialogPrimitive.Description>
+
+              <div className={cn("mt-6", modalFooterRowRight)}>
+                <button
+                  type="button"
+                  onClick={() => onOpenChange(false)}
+                  disabled={isLoading}
+                  className={modalCancel}
+                >
+                  {t("deleteConfirmDialog.canDelete.cancel")}
+                </button>
+                <button
+                  type="button"
+                  onClick={onConfirm}
+                  disabled={isLoading}
+                  aria-busy={isLoading || undefined}
+                  className={modalDestructive}
+                >
+                  {isLoading ? (
+                    <Spinner size="sm" color="white" />
+                  ) : (
+                    <span>
+                      {t("deleteConfirmDialog.canDelete.delete", {
+                        resourceType: resourceLabelSingular,
+                      })}
+                    </span>
+                  )}
+                </button>
               </div>
             </>
           ) : (
+            /* Blocked — explain why, list what depends on it, offer a way to resolve. */
             <>
-              <button
-                type="button"
-                onClick={() => handleOpenChange(false)}
-                className={cn(
-                  "absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-md",
-                  "text-foreground-2 hover:text-foreground-1",
-                  "active:bg-surface-active",
-                  "transition-colors duration-200",
-                  "focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-                  "disabled:pointer-events-none",
-                  "cursor-pointer"
-                )}
-              >
-                <X className="h-6 w-6" />
-                <span className="sr-only">
-                  {t("deleteConfirmDialog.close")}
-                </span>
-              </button>
-              <DialogHeader className="space-y-4 text-left pr-6 cursor-default">
-                <div className="flex items-end gap-3">
-                  {canDelete ? (
-                    <AlertTriangle className="h-6 w-6 text-warning flex-shrink-0 cursor-default mb-0.5" />
-                  ) : (
-                    <XCircle className="h-6 w-6 text-error flex-shrink-0 cursor-default mb-0.5" />
-                  )}
-                  <div className="space-y-2 cursor-default flex-1 min-w-0">
-                    <DialogTitle className="text-lg md:text-xl font-semibold text-foreground-1 cursor-default">
-                      {canDelete
-                        ? t("deleteConfirmDialog.canDelete.title", {
-                            resourceName,
-                          })
-                        : t("deleteConfirmDialog.cannotDelete.title", {
-                            resourceType: resourceTitle,
-                          })}
-                    </DialogTitle>
-                  </div>
-                </div>
-              </DialogHeader>
+              {closeButton}
+              <div className="flex items-center gap-2.5 pr-8">
+                <AlertTriangle className="h-6 w-6 shrink-0 text-warning" aria-hidden="true" />
+                <DialogPrimitive.Title asChild>
+                  <h2 className={modalTitleCompact}>
+                    {t("deleteConfirmDialog.cannotDelete.title", { resourceType: resourceTitle })}
+                  </h2>
+                </DialogPrimitive.Title>
+              </div>
+              <DialogPrimitive.Description asChild>
+                <p className={cn(modalBody, "mt-3")}>
+                  {t("deleteConfirmDialog.cannotDelete.descriptionPrefix")}{" "}
+                  <span className="font-semibold text-neutral-900 dark:text-foreground-1">
+                    {resourceName}
+                  </span>{" "}
+                  {t("deleteConfirmDialog.cannotDelete.descriptionSuffix")}
+                </p>
+              </DialogPrimitive.Description>
 
-              {/* Main question / explanation row */}
-              <DialogDescription asChild className="text-sm text-foreground-3 dark:text-foreground-2 cursor-default">
-                <div className="text-left">
-                  {canDelete ? (
-                    t("deleteConfirmDialog.canDelete.description", {
-                      resourceType: resourceLabelSingular,
-                    })
-                  ) : (
-                    <>
-                      {t("deleteConfirmDialog.cannotDelete.descriptionPrefix")}{" "}
-                      <span className="font-semibold text-foreground-1">
-                        {resourceName}
-                      </span>{" "}
-                      {t("deleteConfirmDialog.cannotDelete.descriptionSuffix")}
-                    </>
-                  )}
-                </div>
-              </DialogDescription>
-
-              {!canDelete && dependencies.length > 0 && (
-                <>
-                  <div>
-                    <div className="flex flex-wrap gap-2">
-                      {dependencies.map((dep, index) => (
-                        <Badge
-                          key={index}
-                          variant="secondary"
-                          className={cn(
-                            "text-xs px-3 py-1 rounded-full font-medium flex items-center gap-1.5 border",
-                            dep.isWebsite
-                              ? "bg-warning-bg border-warning-border hover:bg-warning-bg"
-                              : dep.isTeamMember
-                              ? "bg-purple-50 border-purple-200 hover:bg-purple-100"
-                              : dep.isLocation
-                              ? "bg-blue-50 border-blue-200 hover:bg-blue-100"
-                              : "bg-info/20 border-border"
-                          )}
-                        >
-                          <div
-                            className={cn(
-                              "h-2 w-2 rounded-full",
-                              dep.isWebsite
-                                ? "bg-warning"
-                                : dep.isTeamMember
-                                ? "bg-purple-500"
-                                : dep.isLocation
-                                ? "bg-blue-500"
-                                : "bg-info"
-                            )}
-                          />
-                          <span className="font-semibold text-neutral-900">
-                            {dep.count}
-                          </span>
-                          <span className="text-neutral-900">
-                            {dep.label}
-                          </span>
-                        </Badge>
-                      ))}
-                    </div>
-                    {dependencies.some((dep) => dep.isPending) && (
-                      <div className="mt-3 space-y-1">
-                        {dependencies
-                          .filter((dep) => dep.isPending)
-                          .map((dep, index) => (
-                            <p
-                              key={index}
-                              className="text-xs text-foreground-3 dark:text-foreground-2"
-                            >
-                              {t(
-                                "deleteConfirmDialog.dependencies.cancelInvitationHint",
-                                {
-                                  plural: dep.count > 1 ? "s" : "",
-                                  resourceType: resourceLabelSingular,
-                                }
-                              )}
-                            </p>
-                          ))}
-                      </div>
-                    )}
-                    <p className="mt-3 text-sm text-foreground-3 dark:text-foreground-2">
-                      {t("deleteConfirmDialog.cannotDelete.footer", {
-                        resourceType: resourceLabelSingular,
-                      })}
-                    </p>
-                  </div>
-                </>
-              )}
-              {!canDelete && (
-                <DashedDivider marginTop="mt-0" paddingTop="pt-0" />
-              )}
-
-              <DialogFooter className="flex-col-reverse sm:flex-row gap-2 sm:gap-2 sm:justify-end">
-                {canDelete ? (
-                  <>
-                    <Button
-                      variant="outline"
-                      onClick={() => onOpenChange(false)}
-                      disabled={isLoading}
-                      className="rounded-full h-11 px-6 border-border bg-surface-hover hover:bg-surface-active text-foreground-1 font-medium cursor-pointer"
-                    >
-                      {t("deleteConfirmDialog.canDelete.cancel")}
-                    </Button>
-                    <Button
-                      onClick={onConfirm}
-                      disabled={isLoading}
-                      className="rounded-full h-11 px-6 font-semibold cursor-pointer bg-error hover:bg-error-border text-white border-0"
-                    >
-                      {isLoading
-                        ? t("deleteConfirmDialog.canDelete.deleting")
-                        : t("deleteConfirmDialog.canDelete.delete", {
-                            resourceType: resourceLabelSingular,
-                          })}
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    {secondaryActions?.find(
-                      (action) => action.label === "Go to Assignments"
-                    ) ? (
-                      <Button
-                        onClick={() => {
-                          const assignmentsAction = secondaryActions.find(
-                            (action) => action.label === "Go to Assignments"
-                          );
-                          if (assignmentsAction) {
-                            assignmentsAction.onClick();
-                          }
-                        }}
-                        disabled={isLoading}
-                        className="rounded-full h-11 px-6 font-semibold cursor-pointer bg-primary text-white hover:bg-primary-hover"
-                      >
-                        {t(
-                          "deleteConfirmDialog.cannotDelete.manageAssignments"
+              {dependencies.length > 0 && (
+                <div className="mt-5">
+                  <div className="flex flex-wrap gap-2">
+                    {dependencies.map((dep, index) => (
+                      <Badge
+                        key={index}
+                        variant="secondary"
+                        className={cn(
+                          "text-xs px-3 py-1 rounded-full font-medium flex items-center gap-1.5 border",
+                          dep.isWebsite
+                            ? "bg-warning-bg border-warning-border hover:bg-warning-bg"
+                            : dep.isTeamMember
+                            ? "bg-purple-50 border-purple-200 hover:bg-purple-100"
+                            : dep.isLocation
+                            ? "bg-blue-50 border-blue-200 hover:bg-blue-100"
+                            : "bg-blue-50 border-blue-200 hover:bg-blue-100"
                         )}
-                      </Button>
-                    ) : null}
-                    {secondaryActions
-                      ?.filter((action) => action.label !== "Go to Assignments")
-                      .map((action: { label: string; onClick: () => void }) => (
-                        <Button
-                          key={action.label}
-                          onClick={action.onClick}
-                          disabled={isLoading}
-                          className="rounded-full h-11 px-6 font-semibold cursor-pointer bg-primary text-white hover:bg-primary-hover"
-                        >
-                          {action.label}
-                        </Button>
-                      ))}
-                    <Button
-                      variant="outline"
-                      onClick={() => onOpenChange(false)}
-                      disabled={isLoading}
-                      className="rounded-full h-11 px-6 border-border bg-surface-hover hover:bg-surface-active text-foreground-1 font-medium cursor-pointer"
-                    >
-                      {t("deleteConfirmDialog.cannotDelete.cancel")}
-                    </Button>
-                  </>
+                      >
+                        <div
+                          className={cn(
+                            "h-2 w-2 rounded-full",
+                            dep.isWebsite
+                              ? "bg-warning"
+                              : dep.isTeamMember
+                              ? "bg-purple-500"
+                              : dep.isLocation
+                              ? "bg-blue-500"
+                              : "bg-blue-500"
+                          )}
+                        />
+                        <span className="font-semibold text-neutral-900">{dep.count}</span>
+                        <span className="text-neutral-900">{dep.label}</span>
+                      </Badge>
+                    ))}
+                  </div>
+                  {dependencies.some((dep) => dep.isPending) && (
+                    <div className="mt-3 space-y-1">
+                      {dependencies
+                        .filter((dep) => dep.isPending)
+                        .map((dep, index) => (
+                          <p key={index} className={modalHelperSmall}>
+                            {t("deleteConfirmDialog.dependencies.cancelInvitationHint", {
+                              plural: dep.count > 1 ? "s" : "",
+                              resourceType: resourceLabelSingular,
+                            })}
+                          </p>
+                        ))}
+                    </div>
+                  )}
+                  <p className={cn(modalHelperSmall, "mt-3")}>
+                    {t("deleteConfirmDialog.cannotDelete.footer", {
+                      resourceType: resourceLabelSingular,
+                    })}
+                  </p>
+                </div>
+              )}
+
+              <div className={cn("mt-6", modalFooterRowRight)}>
+                <button
+                  type="button"
+                  onClick={() => onOpenChange(false)}
+                  disabled={isLoading}
+                  className={modalCancel}
+                >
+                  {t("deleteConfirmDialog.cannotDelete.cancel")}
+                </button>
+                {goToAssignments && (
+                  <button
+                    type="button"
+                    onClick={goToAssignments.onClick}
+                    disabled={isLoading}
+                    className={modalPrimary}
+                  >
+                    {t("deleteConfirmDialog.cannotDelete.manageAssignments")}
+                  </button>
                 )}
-              </DialogFooter>
+                {otherActions?.map((action) => (
+                  <button
+                    key={action.label}
+                    type="button"
+                    onClick={action.onClick}
+                    disabled={isLoading}
+                    className={modalPrimary}
+                  >
+                    {action.label}
+                  </button>
+                ))}
+              </div>
             </>
           )}
         </DialogPrimitive.Content>
-      </DialogPortal>
-    </Dialog>
+      </DialogPrimitive.Portal>
+    </DialogPrimitive.Root>
   );
 }

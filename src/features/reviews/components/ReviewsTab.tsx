@@ -20,7 +20,8 @@ import {
   selectTeamMemberReviewsTotal,
   selectTeamMemberReviewsLoading,
   selectTeamMemberReviewsMoreLoading,
-  selectReviewsError,
+  selectReviewStatsError,
+  selectReviewsListError,
 } from "../selectors";
 import { BusinessReviewCard, TeamMemberReviewCard } from "./ReviewCard";
 import { ReviewsHero } from "./ReviewsHero";
@@ -31,6 +32,7 @@ import { MobileClearFiltersFab } from "./MobileClearFiltersFab";
 import { EmptyReviewsState } from "./EmptyReviewsState";
 import { FirstReviewState } from "./FirstReviewState";
 import { ReviewListSkeleton } from "./ReviewListSkeleton";
+import { ErrorState } from "../../../shared/components/common/ErrorState";
 import {
   SortSelect,
   type SortGroup,
@@ -172,7 +174,8 @@ export function ReviewsTab({ locationId }: { locationId?: number | null } = {}) 
 
   const stats = useSelector(selectReviewStats);
   const statsLoading = useSelector(selectReviewStatsLoading);
-  const error = useSelector(selectReviewsError);
+  const statsError = useSelector(selectReviewStatsError);
+  const listError = useSelector(selectReviewsListError);
   const businessReviews = useSelector(selectBusinessReviews);
   const businessReviewsTotal = useSelector(selectBusinessReviewsTotal);
   const businessReviewsLoading = useSelector(selectBusinessReviewsLoading);
@@ -387,7 +390,8 @@ export function ReviewsTab({ locationId }: { locationId?: number | null } = {}) 
     !statsLoading &&
     stats !== null &&
     overall.totalReviews === 0 &&
-    error === null;
+    listError === null &&
+    statsError === null;
 
   if (isTrulyEmpty) {
     return (
@@ -400,6 +404,23 @@ export function ReviewsTab({ locationId }: { locationId?: number | null } = {}) 
           loading={statsLoading}
         />
         <FirstReviewState />
+      </div>
+    );
+  }
+
+  // Shared-cause failure: stats AND the feed failed with nothing retained.
+  // One consolidated error replaces the layout instead of two error cards
+  // (list column + insights sidebar) around a dead toolbar.
+  if (statsError && listError && !stats && reviews.length === 0) {
+    return (
+      <div className="w-full max-w-7xl mb-0 md:mb-8">
+        <ErrorState
+          variant="page"
+          title={t("empty.errorTitle")}
+          body={t("empty.errorBody")}
+          onRetry={handleRetry}
+          retryLabel={t("empty.errorAction")}
+        />
       </div>
     );
   }
@@ -586,8 +607,13 @@ export function ReviewsTab({ locationId }: { locationId?: number | null } = {}) 
               triggers the auth-card-style fade+settle animation when the
               user switches between Business and Team. */}
           <div key={subTab} className="reviews-content-enter space-y-3">
-            {error ? (
-              <EmptyReviewsState kind="error" onRetry={handleRetry} />
+            {listError ? (
+              <ErrorState
+                title={t("empty.errorTitle")}
+                body={t("empty.errorBody")}
+                onRetry={handleRetry}
+                retryLabel={t("empty.errorAction")}
+              />
             ) : loading ? (
               // Refetch (initial load, filter apply, sort change) — show
               // skeleton over any existing rows so the user gets clear
@@ -655,19 +681,27 @@ export function ReviewsTab({ locationId }: { locationId?: number | null } = {}) 
         {/* Insights sidebar (lg+) — vertical hairline separates it from the
             reviews column inside the shared card. */}
         <aside className="hidden lg:block lg:sticky lg:top-18 min-w-0 lg:border-l lg:border-border lg:pl-8">
-          <ReviewsInsightsPanel
-            stats={stats}
-            loading={statsLoading}
-            selectedRating={ratingFilter}
-            onRatingClick={(star) =>
-              dispatchFilter({
-                type: "setRating",
-                value: ratingFilter === star ? null : star,
-              })
-            }
-            activeFilterCount={activeFilterCount}
-            onClearAll={() => dispatchFilter({ type: "clearAll" })}
-          />
+          {statsError && !stats ? (
+            <ErrorState
+              variant="section"
+              body={t("stats.errorBody")}
+              onRetry={() => dispatch(fetchReviewStatsAction.request())}
+            />
+          ) : (
+            <ReviewsInsightsPanel
+              stats={stats}
+              loading={statsLoading}
+              selectedRating={ratingFilter}
+              onRatingClick={(star) =>
+                dispatchFilter({
+                  type: "setRating",
+                  value: ratingFilter === star ? null : star,
+                })
+              }
+              activeFilterCount={activeFilterCount}
+              onClearAll={() => dispatchFilter({ type: "clearAll" })}
+            />
+          )}
         </aside>
         </div>
       </section>
@@ -745,4 +779,3 @@ function SubTabToggle({
     </div>
   );
 }
-

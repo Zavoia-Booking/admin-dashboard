@@ -16,6 +16,8 @@ export interface CustomersSummary {
 export interface CustomerState {
   isLoading: boolean;
   error: string | null;
+  // List-load failures only — `error` is shared with add/update/remove/fetch flows.
+  listError: string | null;
   customers: Customer[];
   currentCustomer: Customer | null;
   isFetchingCustomer: boolean;

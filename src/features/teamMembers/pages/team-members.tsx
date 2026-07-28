@@ -15,7 +15,8 @@ import type { TeamMember } from '../../../shared/types/team-member';
 import { useDispatch, useSelector } from 'react-redux';
 import { cancelInvitationAction, listTeamMembersAction, resendInvitationAction } from '../actions.ts';
 import BusinessSetupGate from '../../../shared/components/guards/BusinessSetupGate';
-import { selectTeamMembers, selectTeamMembersLoading } from '../selectors';
+import { selectTeamMembers, selectTeamMembersListError, selectTeamMembersLoading } from '../selectors';
+import { ErrorState } from '../../../shared/components/common/ErrorState';
 import { ItemCard, type ItemCardAction } from '../../../shared/components/common/ItemCard';
 import { PersonAvatar } from '../../../shared/components/common/PersonAvatar';
 import { highlightMatches as highlight } from '../../../shared/utils/highlight';
@@ -28,6 +29,7 @@ export default function TeamMembersPage() {
   const text = useTranslation("teamMembers").t;
   const teamMembers = useSelector(selectTeamMembers);
   const isTeamMembersLoading = useSelector(selectTeamMembersLoading);
+  const teamMembersListError = useSelector(selectTeamMembersListError);
   const [isInviteSliderOpen, setIsInviteSliderOpen] = useState(false);
   const [isProfileSliderOpen, setIsProfileSliderOpen] = useState(false);
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
@@ -178,6 +180,12 @@ export default function TeamMembersPage() {
             {/* While team members are loading, show full-page skeleton (including filters) */}
             {isTeamMembersLoading ? (
               <TeamMembersListSkeleton />
+            ) : teamMembersListError && teamMembers.length === 0 ? (
+              <ErrorState
+                variant="page"
+                body={teamMembersListError}
+                onRetry={() => dispatch(listTeamMembersAction.request())}
+              />
             ) : (
               <>
                 {/* Team Member Filters */}

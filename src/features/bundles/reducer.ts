@@ -10,6 +10,7 @@ type Actions = ActionType<typeof actions> | ActionType<typeof logoutRequestActio
 const initialState: BundlesState = {
   bundles: [],
   error: null,
+  listError: null,
   isLoading: false,
   isDeleting: false,
   deleteError: null,
@@ -26,6 +27,12 @@ export const BundlesReducer: Reducer<BundlesState, any> = (
       return { ...initialState };
 
     case getType(actions.listBundlesAction.request):
+      return {
+        ...state,
+        isLoading: true,
+        listError: null,
+      };
+
     case getType(actions.createBundleAction.request):
     case getType(actions.updateBundleAction.request):
       return {
@@ -47,14 +54,14 @@ export const BundlesReducer: Reducer<BundlesState, any> = (
         ...state,
         bundles: action.payload,
         isLoading: false,
-        error: null,
+        listError: null,
       };
 
     case getType(actions.listBundlesAction.failure):
       return {
         ...state,
         isLoading: false,
-        error: action.payload.message || i18n.t("common:errors.generic"),
+        listError: action.payload.message || i18n.t("common:errors.generic"),
       };
 
     case getType(actions.createBundleAction.success):

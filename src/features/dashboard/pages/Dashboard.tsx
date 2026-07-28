@@ -4,6 +4,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { useParams, useNavigate } from "react-router-dom";
 import { AppLayout } from "../../../shared/components/layouts/app-layout";
 import { LocationSelector } from "../../../shared/components/common/LocationSelector";
+import { ErrorState } from "../../../shared/components/common/ErrorState";
 import { Skeleton } from "../../../shared/components/ui/skeleton";
 import { useIsMobile } from "../../../shared/hooks/use-mobile";
 import { Loader2 } from "lucide-react";
@@ -17,7 +18,7 @@ import {
   fetchDashboardDataAction,
 } from "../actions";
 import { listLocationsAction } from "../../locations/actions";
-import { getAllLocationsSelector, getLocationLoadingSelector } from "../../locations/selectors";
+import { getAllLocationsSelector, getLocationListErrorSelector, getLocationLoadingSelector } from "../../locations/selectors";
 import { selectCurrentUser } from "../../auth/selectors";
 import type { RootState } from "../../../app/providers/store";
 import BusinessSetupGate from "../../../shared/components/guards/BusinessSetupGate";
@@ -368,6 +369,7 @@ export default function DashboardPage() {
 
   const locations = useSelector(getAllLocationsSelector);
   const isLoadingLocations = useSelector(getLocationLoadingSelector);
+  const locationsError = useSelector(getLocationListErrorSelector);
   const currentUser = useSelector(selectCurrentUser);
   const businessCurrency = currentUser?.business?.businessCurrency || 'eur';
 
@@ -406,9 +408,23 @@ export default function DashboardPage() {
 
     if (error) {
       return (
-        <div className="flex items-center justify-center h-64">
-          <p className="text-error text-sm">{error}</p>
-        </div>
+        <ErrorState
+          variant="page"
+          body={error}
+          onRetry={locationId ? handleRefreshDashboard : undefined}
+        />
+      );
+    }
+
+    // Locations list failed to load: without it there is no location to select,
+    // so retry re-fetches the list rather than falling through to "no locations".
+    if (locationsError && locations.length === 0) {
+      return (
+        <ErrorState
+          variant="page"
+          body={locationsError}
+          onRetry={() => dispatch(listLocationsAction.request())}
+        />
       );
     }
 

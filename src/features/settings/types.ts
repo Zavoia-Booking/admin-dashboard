@@ -177,6 +177,10 @@ export type SettingsState = {
   customerPortalUrl: string | null;
   plans: AvailablePlan[];
   error: string | null;
+  /** Subscription-summary load failure only. The shared `error` above is also
+   *  written by mutations (checkout, portal, seats), so the billing tab's
+   *  "couldn't load" gate must never key off it. */
+  summaryError: string | null;
   isLoading: {
     subscriptionSummary: boolean;
     checkoutSession: boolean;

@@ -1,4 +1,4 @@
-import { apiClient } from "../../shared/lib/http";
+import { apiClient, READ_REQUEST_TIMEOUT_MS } from "../../shared/lib/http";
 
 export interface Category {
   id: number;
@@ -11,7 +11,8 @@ export interface Category {
 export const listCategoriesApi = async (): Promise<Category[]> => {
   const { data } = await apiClient().post<{ categories: Category[] }>(
     "/categories/list",
-    {}
+    {},
+    { timeout: READ_REQUEST_TIMEOUT_MS },
   );
   return data.categories;
 };

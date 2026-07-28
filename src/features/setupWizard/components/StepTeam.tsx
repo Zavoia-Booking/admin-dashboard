@@ -30,7 +30,7 @@ import {
 } from "../../../shared/components/ui/popover";
 import { useSelector } from "react-redux";
 import { selectCurrentUser } from "../../auth/selectors";
-import { toast } from "sonner";
+import { showUndoToast } from "../../../shared/components/ui/undo-toast";
 import { useTranslation } from "react-i18next";
 import { emailError } from "../../../shared/utils/validation";
 
@@ -182,37 +182,18 @@ const StepTeam = forwardRef<StepHandle, StepProps>(
         const removed = prev[index];
         const next = prev.filter((_, i) => i !== index);
         if (removed) {
-          toast.custom(
-            (t) => (
-              <div className="flex items-center justify-between gap-6 rounded-md border border-border bg-surface px-6 py-3 shadow-sm">
-                <div className="min-w-12">
-                  <p className="text-sm font-medium text-foreground-1 truncate mb-2">
-                    {tw('stepTeam.toasts.inviteRemoved')}
-                  </p>
-                  <p className="text-xs text-foreground-3 dark:text-foreground-2 truncate">
-                    {removed.email}
-                  </p>
-                </div>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  rounded="full"
-                  className="h-7 px-6 cursor-pointer"
-                  onClick={() => {
-                    setLocalTeamMembers((curr) => {
-                      const arr = [...curr];
-                      arr.splice(Math.min(index, arr.length), 0, removed);
-                      return arr;
-                    });
-                    toast.dismiss(t);
-                  }}
-                >
-                  {tw('stepTeam.toasts.undo')}
-                </Button>
-              </div>
-            ),
-            { duration: 5000 }
-          );
+          showUndoToast({
+            title: tw('stepTeam.toasts.inviteRemoved'),
+            description: removed.email,
+            undoLabel: tw('stepTeam.toasts.undo'),
+            onUndo: () => {
+              setLocalTeamMembers((curr) => {
+                const arr = [...curr];
+                arr.splice(Math.min(index, arr.length), 0, removed);
+                return arr;
+              });
+            },
+          });
         }
         return next;
       });

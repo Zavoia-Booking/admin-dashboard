@@ -18,10 +18,10 @@ const API_BASE_URL = config.API_URL;
 export const REFRESH_ENDPOINT = "/auth/refresh";
 export const LOGOUT_ENDPOINT = "/auth/logout";
 export const CSRF_COOKIE_NAME = "csrfToken";
+export const READ_REQUEST_TIMEOUT_MS = 30_000;
 
 // ---- INTERNAL STATE (single-flight refresh) ----
-let isRefreshing = false;
-let refreshQueue: Array<(token: string | null) => void> = [];
+let refreshPromise: Promise<string> | null = null;
 let _storeRef: Store<{ auth: AuthState }> | null = null;
 
 // ---- COOKIE UTILS ----
@@ -49,6 +49,14 @@ export function createApiClient(store: Store<{ auth: AuthState } & any>): AxiosI
 
   // REQUEST: attach Authorization & (if calling refresh/logout) the CSRF header
   client.interceptors.request.use((config: InternalAxiosRequestConfig) => {
+    // Bound GET loads so a hung connection surfaces as an error instead of an
+    // infinite skeleton. Mutations and uploads keep no timeout (slow uploads
+    // and payment flows must never be aborted client-side). Read-style POST
+    // endpoints opt into READ_REQUEST_TIMEOUT_MS in their feature API layer.
+    // (axios defaults timeout to 0 = disabled, so a falsy check is the right guard)
+    if ((config.method ?? "get").toLowerCase() === "get" && !config.timeout) {
+      config.timeout = READ_REQUEST_TIMEOUT_MS;
+    }
     const state = store.getState();
     const accessToken = state.auth.accessToken;
     const url = config.url ?? "";
@@ -184,6 +192,7 @@ async function performRefresh(): Promise<string> {
     {
       withCredentials: true, // send refresh cookie on /auth/refresh (web only)
       headers,
+      timeout: READ_REQUEST_TIMEOUT_MS,
     }
   );
 
@@ -217,47 +226,28 @@ async function performRefresh(): Promise<string> {
   return newAccessToken;
 }
 
-function waitForRefresh(): Promise<string> {
-  return new Promise((resolve, reject) => {
-    refreshQueue.push((token) => {
-      if (!token) {
-        reject(new Error("Session refresh failed"));
-        return;
-      }
-      resolve(token);
-    });
-  });
-}
-
 async function ensureRefreshInFlight(): Promise<string> {
-  if (!isRefreshing) {
-    isRefreshing = true;
-    // kick off the refresh, but do not await it here; callers wait via queue
-    (async () => {
-      try {
-        const token = await performRefresh();
-        refreshQueue.forEach((cb) => cb(token));
-        refreshQueue = [];
-      } catch (e: any) {
-        refreshQueue.forEach((cb) => cb(null));
-        refreshQueue = [];
-        // Server definitively rejected the refresh token (revoked/expired/invalid):
-        // drop the persisted copy on native so it isn't retried after an app
-        // restart. Network errors (no response) keep it - a restart may recover.
-        const rejectedByServer = [400, 401, 403].includes(e?.response?.status);
+  if (!refreshPromise) {
+    refreshPromise = performRefresh()
+      .catch((error: any) => {
+        // Only a definitive token rejection invalidates the session. During a
+        // network outage or a server failure, reject the waiting requests but
+        // keep the current session so the UI can show recoverable load errors.
+        const rejectedByServer = [400, 401, 403].includes(error?.response?.status);
         if (isNativeApp() && rejectedByServer) {
           tokenStorage.clearRefreshToken().catch(() => {});
         }
-        if (_storeRef) {
+        if (_storeRef && rejectedByServer) {
           _storeRef.dispatch(hydrateSessionAction.failure({ message: i18n.t("auth:page.errors.sessionExpired") }));
           _storeRef.dispatch(logoutRequestAction.success());
         }
-      } finally {
-        isRefreshing = false;
-      }
-    })();
+        throw error;
+      })
+      .finally(() => {
+        refreshPromise = null;
+      });
   }
-  return waitForRefresh();
+  return refreshPromise;
 }
 
 export async function refreshSession(): Promise<string> {
