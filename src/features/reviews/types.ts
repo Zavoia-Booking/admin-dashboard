@@ -149,5 +149,8 @@ export interface ReviewsState {
   highlightReviewsLoading: boolean;
   /** True only after the current business's highlight request succeeds, including a valid empty result. */
   highlightReviewsLoaded: boolean;
-  error: string | null;
+  /** Stats fetch failure only — the insights column surfaces it without touching the review feed. */
+  statsError: string | null;
+  /** Replace-fetch failure for the active review list (business or team). Load-more failures toast instead. */
+  listError: string | null;
 }

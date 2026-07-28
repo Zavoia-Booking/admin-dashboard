@@ -6,6 +6,7 @@ import { User, Mail, Phone, Camera, Loader2, Lock, FileText, ChevronRight, LogOu
 import { Button } from '../../../../shared/components/ui/button';
 import { Label } from '../../../../shared/components/ui/label';
 import { Input } from '../../../../shared/components/ui/input';
+import { Skeleton } from '../../../../shared/components/ui/skeleton';
 import {
   AlertDialog,
   AlertDialogContent,
@@ -22,7 +23,7 @@ import {
   modalBodyMuted,
   modalHelperSmall,
   modalFooterRowRight,
-  modalSecondary,
+  modalCancel,
   modalDestructive,
   modalPrimary,
 } from '../../../../shared/components/ui/modal-tokens';
@@ -38,7 +39,7 @@ import {
 } from '../../../auth/api';
 import { fetchCurrentUserAction, logoutRequestAction } from '../../../auth/actions';
 import GoogleAccountManager from '../../../settings/components/GoogleAccountManager';
-import { translateMessageCode, getErrorMessage } from '../../../../shared/utils/error';
+import { getErrorMessage } from '../../../../shared/utils/error';
 import { PasswordStrength } from '../../../auth/components/PasswordStrength';
 import {
   validatePasswordPolicy,
@@ -82,7 +83,7 @@ const MyAccountContent = ({ onDirtyChange, onSavingChange }: MyAccountContentPro
 
   const [formData, setFormData] = useState<ProfileFormData>(initialFormData);
   const [originalFormData, setOriginalFormData] = useState<ProfileFormData>(initialFormData);
-  const [_, setProfileData] = useState<TeamMemberProfile | null>(null);
+  const [, setProfileData] = useState<TeamMemberProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
@@ -131,11 +132,6 @@ const MyAccountContent = ({ onDirtyChange, onSavingChange }: MyAccountContentPro
   const canSubmitPassword = isPasswordPolicyValid && passwordsMatch && confirmPassword.length > 0
     && (!userHasPassword || currentPassword.trim().length > 0);
 
-  // Fetch profile data on mount
-  useEffect(() => {
-    fetchProfile();
-  }, []);
-
   const fetchProfile = async () => {
     try {
       setIsLoading(true);
@@ -152,11 +148,18 @@ const MyAccountContent = ({ onDirtyChange, onSavingChange }: MyAccountContentPro
       setOriginalFormData(newFormData);
     } catch (error: any) {
       console.error('Error fetching profile:', error);
-      toast.error(error?.message || t('profile.toast.loadFailed'));
+      toast.error(getErrorMessage(error, t('profile.toast.loadFailed')));
     } finally {
       setIsLoading(false);
     }
   };
+
+  // Fetch profile data on mount
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void fetchProfile();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleSaveProfile = async () => {
     const next = validateAll();
@@ -180,11 +183,7 @@ const MyAccountContent = ({ onDirtyChange, onSavingChange }: MyAccountContentPro
       // Refresh user data in Redux
       dispatch(fetchCurrentUserAction.request());
     } catch (error: any) {
-      const message = error?.response?.data?.message || error?.message || t('profile.toast.updateFailed');
-      const translatedMessage = Array.isArray(message)
-        ? translateMessageCode(message[0])
-        : translateMessageCode(message);
-      toast.error(translatedMessage);
+      toast.error(getErrorMessage(error, t('profile.toast.updateFailed')));
     } finally {
       setIsSaving(false);
       onSavingChange?.(false);
@@ -257,11 +256,7 @@ const MyAccountContent = ({ onDirtyChange, onSavingChange }: MyAccountContentPro
       } else if (code === 'SAME_EMAIL') {
         setEmailFieldErrors({ newEmail: t('profile.toast.emailSame') });
       } else {
-        const message = error?.response?.data?.message || error?.message || t('profile.toast.emailChangeFailed');
-        const translatedMessage = Array.isArray(message)
-          ? translateMessageCode(message[0])
-          : translateMessageCode(message);
-        toast.error(translatedMessage);
+        toast.error(getErrorMessage(error, t('profile.toast.emailChangeFailed')));
       }
     } finally {
       setIsSavingEmail(false);
@@ -334,11 +329,7 @@ const MyAccountContent = ({ onDirtyChange, onSavingChange }: MyAccountContentPro
       dispatch(fetchCurrentUserAction.request());
     } catch (error: any) {
       console.error('Error uploading profile image:', error);
-      const message = error?.response?.data?.message || error?.message || t('profile.toast.imageUploadFailed');
-      const translatedMessage = Array.isArray(message)
-        ? translateMessageCode(message[0])
-        : translateMessageCode(message);
-      toast.error(translatedMessage);
+      toast.error(getErrorMessage(error, t('profile.toast.imageUploadFailed')));
     } finally {
       setIsUploadingImage(false);
       // Reset file input
@@ -377,23 +368,15 @@ const MyAccountContent = ({ onDirtyChange, onSavingChange }: MyAccountContentPro
       setCurrentPwTouched(false);
       dispatch(fetchCurrentUserAction.request());
     } catch (error: any) {
-      const message = error?.response?.data?.message || error?.message || t('profile.toast.passwordUpdateFailed');
-      const translatedMessage = Array.isArray(message)
-        ? translateMessageCode(message[0])
-        : translateMessageCode(message);
-      toast.error(translatedMessage);
+      toast.error(getErrorMessage(error, t('profile.toast.passwordUpdateFailed')));
     } finally {
       setIsChangingPassword(false);
     }
   };
 
   if (isLoading) {
-    // Inline import to avoid top-level import for skeleton-only usage
-    const Skeleton = React.lazy(() => import('../../../../shared/components/ui/skeleton').then(m => ({ default: m.Skeleton })));
-
     return (
-      <React.Suspense fallback={null}>
-        <div className="profile-grid">
+      <div className="profile-grid">
           <div className="profile-col">
             {/* Hero Skeleton */}
             <div className="profile-hero profile-tone-neutral">
@@ -495,7 +478,6 @@ const MyAccountContent = ({ onDirtyChange, onSavingChange }: MyAccountContentPro
             </div>
           </div>
         </div>
-      </React.Suspense>
     );
   }
 
@@ -1065,11 +1047,7 @@ const AdvancedAccountSection = () => {
         const count = errorData?.details?.activeAppointmentsCount ?? 0;
         setActiveAppointmentsCount(count);
       } else {
-        const message = errorData?.message || error?.message || t('common:errors.failedToLeaveOrganisation');
-        const translatedMessage = Array.isArray(message)
-          ? translateMessageCode(message[0])
-          : translateMessageCode(message);
-        toast.error(translatedMessage);
+        toast.error(getErrorMessage(error, t('common:errors.failedToLeaveOrganisation')));
       }
     } finally {
       setIsLeavingOrganisation(false);
@@ -1095,9 +1073,8 @@ const AdvancedAccountSection = () => {
       await deleteAccountApi();
       toast.success(t('toast.accountDeleted'));
       dispatch(logoutRequestAction.request());
-    } catch (error: any) {
-      const errorData = error?.response?.data;
-      toast.error(errorData?.message || t('toast.failedDelete'));
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error, t('toast.failedDelete')));
     } finally {
       setIsDeleting(false);
     }
@@ -1159,11 +1136,11 @@ const AdvancedAccountSection = () => {
             size="sm"
             rounded="full"
             onClick={handleDeleteClick}
-            disabled={isDeleting}
+            loading={isDeleting}
             className="shrink-0 !h-9 !px-4"
           >
-            <AlertTriangle className={`h-3.5 w-3.5 mr-1.5 ${isDeleting ? 'animate-pulse' : ''}`} />
-            {isDeleting ? t('dangerZone.deleteAccount.deleting') : t('dangerZone.deleteAccount.button')}
+            <AlertTriangle className="h-3.5 w-3.5 mr-1.5" />
+            {t('dangerZone.deleteAccount.button')}
           </Button>
         </div>
       </div>
@@ -1187,7 +1164,7 @@ const AdvancedAccountSection = () => {
             <button
               type="button"
               onClick={() => setShowLeaveOrgConfirm(false)}
-              className={modalSecondary}
+              className={modalCancel}
               disabled={isLeavingOrganisation}
             >
               {t('leaveOrganisation.cancel')}
@@ -1290,7 +1267,7 @@ const AdvancedAccountSection = () => {
             <button
               type="button"
               onClick={() => setShowDeleteConfirm(false)}
-              className={modalSecondary}
+              className={modalCancel}
               disabled={isDeleting}
             >
               {t('deleteAccountDialog.cancel')}

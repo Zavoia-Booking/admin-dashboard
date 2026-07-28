@@ -66,7 +66,7 @@ import { dropRejectHaptic } from "../../haptics.ts";
 
 import { TimeColumn } from "./TimeColumn.tsx";
 import { DroppableColumn } from "./DroppableColumn.tsx";
-import { ConfirmDropDialog } from "./ConfirmDropDialog.tsx";
+import { ConfirmDropDialog, RescheduleConfirmDescription } from "./ConfirmDropDialog.tsx";
 import { OverrideDialog } from "./OverrideDialog.tsx";
 import { useGridDndState } from "./useGridDndState.ts";
 import { displayBlockToSlim, parseDraggableActiveAppointmentId, getBlockOverlapGroups, getTimePosition } from "./overlapUtils.ts";
@@ -611,15 +611,21 @@ export const DayGrid: FC = () => {
   const confirmDescription = (() => {
     if (!pendingDrop) return null;
     if (pendingDrop.type === "reschedule") {
-      const min = pendingDrop.minute ?? 0;
-      const timeStr = `${pendingDrop.hour}:${String(min).padStart(2, "0")}`;
       const sourceCol = pendingDrop.appointment.staffUserIds.length === 0 ? 0 : pendingDrop.appointment.staffUserIds[0];
       const changingColumn = sourceCol !== pendingDrop.columnId;
       const staffLabel = columns.find(c => c.id === pendingDrop.columnId)?.label;
-      if (changingColumn && staffLabel) {
-        return <>Assign &quot;{pendingDrop.appointment.bookedItemName}&quot; to {staffLabel} and move to {pendingDrop.dateKey} at {timeStr}?</>;
-      }
-      return <>Move &quot;{pendingDrop.appointment.bookedItemName}&quot; to {pendingDrop.dateKey} at {timeStr}?</>;
+      return (
+        <RescheduleConfirmDescription
+          name={pendingDrop.appointment.bookedItemName}
+          customerName={pendingDrop.appointment.customerName}
+          sourceScheduledAt={pendingDrop.appointment.scheduledAt}
+          targetDateKey={pendingDrop.dateKey}
+          targetHour={pendingDrop.hour}
+          targetMinute={pendingDrop.minute}
+          timezone={calendarTimezone}
+          targetStaffLabel={changingColumn ? staffLabel : undefined}
+        />
+      );
     }
     if (pendingDrop.type === "reassign") {
       return <>Assign this appointment to {pendingDrop.staffLabel}?</>;

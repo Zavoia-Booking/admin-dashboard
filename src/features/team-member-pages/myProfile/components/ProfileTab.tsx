@@ -17,7 +17,7 @@ import {
   AVAILABLE_LANGUAGES,
   AVAILABLE_INTERESTS,
 } from '../api';
-import { translateMessageCode } from '../../../../shared/utils/error';
+import { getErrorMessage } from '../../../../shared/utils/error';
 
 interface ProfileFormData {
   displayName: string;
@@ -125,10 +125,7 @@ function ProfileTabInner(
       onProfileSaved(response.marketplaceProfile);
       toast.success(t('toast.saveSuccess'));
     } catch (error: any) {
-      const message = error?.response?.data?.message || error?.message || t('toast.saveFailed');
-      const translatedMessage = Array.isArray(message)
-        ? translateMessageCode(message[0])
-        : translateMessageCode(message);
+      const translatedMessage = getErrorMessage(error, t('toast.saveFailed'));
       toast.error(translatedMessage);
     } finally {
       setIsSaving(false);

@@ -21,7 +21,6 @@ export default function ForgotPasswordInline({ isSubmitted, onSubmit, onBack, is
           <CredentialsForm
             onSubmit={({ email }) => onSubmit(email)}
             submitLabel={t('forgotPassword.submitLabel')}
-            loadingLabel={t('forgotPassword.sendingEmail')}
             isLoading={isLoading}
             onEmailChange={setEmail}
             showPasswordField={false}

@@ -12,7 +12,7 @@ import {
   modalTitleCompact,
   modalBody,
   modalFooterRowRight,
-  modalSecondary,
+  modalCancel,
   modalPrimary,
 } from '../../../shared/components/ui/modal-tokens';
 import { toast } from 'sonner';
@@ -225,7 +225,7 @@ const GoogleAccountManager: React.FC<GoogleAccountManagerProps> = ({ className, 
                     setPassword('');
                     setUnlinkAttempted(false);
                   }}
-                  className={modalSecondary}
+                  className={modalCancel}
                 >
                   {t('googleAccount.cancel')}
                 </button>
@@ -289,7 +289,7 @@ const GoogleAccountManager: React.FC<GoogleAccountManagerProps> = ({ className, 
                     setUnlinkAttempted(false);
                   }}
                   disabled={linkingLoading}
-                  className={modalSecondary}
+                  className={modalCancel}
                 >
                   {t('googleAccount.cancel')}
                 </button>

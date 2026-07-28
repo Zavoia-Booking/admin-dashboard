@@ -15,6 +15,7 @@ const initialState: AssignmentsState = {
   isLoading: false,
   isSaving: false,
   isStaffServicesLoading: false,
+  loadError: null,
 };
 
 export const AssignmentsReducer: Reducer<AssignmentsState, any> = (
@@ -41,16 +42,17 @@ export const AssignmentsReducer: Reducer<AssignmentsState, any> = (
       const payload = action.payload;
       const skipLoading =
         typeof payload === "object" && payload.skipLoading === true;
-      return { ...state, isLoading: skipLoading ? false : true };
+      return { ...state, isLoading: skipLoading ? false : true, loadError: null };
     }
     case getType(actions.fetchLocationFullAssignmentAction.success):
       return {
         ...state,
         selectedLocationFullAssignment: action.payload,
         isLoading: false,
+        loadError: null,
       };
     case getType(actions.fetchLocationFullAssignmentAction.failure):
-      return { ...state, isLoading: false };
+      return { ...state, isLoading: false, loadError: action.payload.message };
 
     // Update location services
     case getType(actions.updateLocationServicesAction.request):

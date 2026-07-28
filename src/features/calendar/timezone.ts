@@ -2,8 +2,8 @@ import i18n from "../../shared/lib/i18n";
 
 /** Returns the BCP 47 locale tag for Intl date/time formatting based on current i18n language. */
 export function getCalendarLocale(): string {
-  const lang = i18n.language;
-  if (lang === 'ro') return 'ro-RO';
+  const lang = i18n.resolvedLanguage || i18n.language;
+  if (lang?.toLowerCase().startsWith('ro')) return 'ro-RO';
   return 'en-GB';
 }
 

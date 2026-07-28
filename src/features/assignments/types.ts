@@ -223,4 +223,5 @@ export type AssignmentsState = {
   isLoading: boolean;
   isSaving: boolean;
   isStaffServicesLoading: boolean;
+  loadError: string | null;
 };

@@ -24,7 +24,9 @@ import { listBundlesAction } from "../../../bundles/actions";
 import {
   getBundlesListSelector,
   getBundlesLoadingSelector,
+  getBundlesListErrorSelector,
 } from "../../../bundles/selectors";
+import { ErrorState } from "../../../../shared/components/common/ErrorState";
 import { ItemCard } from "../../../../shared/components/common/ItemCard";
 import type { ItemCardBadge } from "../../../../shared/components/common/ItemCard";
 import { highlightMatches as highlight } from "../../../../shared/utils/highlight";
@@ -47,6 +49,7 @@ export function BundlesTab({ isActive = true }: BundlesTabProps) {
   const dispatch = useDispatch();
   const bundles = useSelector(getBundlesListSelector);
   const isLoading = useSelector(getBundlesLoadingSelector);
+  const listError = useSelector(getBundlesListErrorSelector);
   const currentUser = useSelector(selectCurrentUser);
   const businessCurrency = currentUser?.business?.businessCurrency || "eur";
 
@@ -257,6 +260,12 @@ export function BundlesTab({ isActive = true }: BundlesTabProps) {
       {/* While bundles are loading, show full-page skeleton (including filters) */}
       {isLoading && bundles.length === 0 ? (
         <BundlesListSkeleton />
+      ) : listError && bundles.length === 0 ? (
+        <ErrorState
+          variant="page"
+          body={listError}
+          onRetry={() => dispatch(listBundlesAction.request())}
+        />
       ) : (
         <>
           {/* Bundle Filters */}

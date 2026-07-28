@@ -574,7 +574,7 @@ export const EditLocationMarketplaceDetailsSlider: React.FC<
             onCancel={handleCancel}
             onSubmit={handleSave}
             cancelLabel={t("slider.cancel")}
-            submitLabel={isSaving ? t("slider.saving") : t("slider.save")}
+            submitLabel={t("slider.save")}
             disabled={!isDirty || isLoading || hasError}
             isLoading={isSaving}
           />

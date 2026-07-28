@@ -32,6 +32,11 @@ export const getCustomersErrorSelector = createSelector(
   (state) => state.error
 );
 
+export const getCustomersListErrorSelector = createSelector(
+  getCustomersStateSelector,
+  (state) => state.listError
+);
+
 export const getCurrentCustomerSelector = createSelector(
   getCustomersStateSelector,
   (state) => state.currentCustomer

@@ -9,7 +9,12 @@ export type ServicesState = {
     item: null | Service;
   };
   error: string | null;
+  // List-load failures only — `error` is shared with create/edit flows.
+  listError: string | null;
   isLoading: boolean;
+  // True while a create/edit is in flight — a concurrent list-fetch failure must
+  // not reset the shared isLoading the sliders use to detect their own completion.
+  isMutating: boolean;
   isDeleting: boolean;
   deleteError: string | null;
   deleteResponse?: any | null;

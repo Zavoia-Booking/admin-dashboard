@@ -25,6 +25,21 @@
   "confirmDialog": {
     "defaultTitle": "Are you sure?"
   },
+  "errorState": {
+    "title": "Something went wrong",
+    "body": "We couldn't load this. Check your connection.",
+    "retry": "Try again",
+    "crashBody": "An unexpected error occurred. Reload the page to continue.",
+    "reload": "Reload page",
+    "updateTitle": "A new version is available",
+    "updateBody": "Reload the page to continue."
+  },
+  "locationSelector": {
+    "placeholder": "Select a location",
+    "loading": "Loading locations…",
+    "none": "No locations",
+    "group": "Location"
+  },
   "selection": {
     "select": "Select {{name}}",
     "deselect": "Deselect {{name}}"
@@ -203,23 +218,23 @@
   "description": "Description",
   "deleteConfirmDialog": {
     "loading": {
-      "title": "Checking dependencies",
+      "title": "Just a moment",
       "description": "Verifying if this {{resourceType}} can be deleted..."
     },
     "canDelete": {
       "title": "Delete \"{{resourceName}}\"?",
-      "description": "This {{resourceType}} will be permanently deleted. You can't undo this action.",
+      "description": "This {{resourceType}} will be permanently deleted and can't be recovered.",
       "cancel": "Cancel",
       "delete": "Delete {{resourceType}}",
       "deleting": "Deleting..."
     },
     "cannotDelete": {
-      "title": "{{resourceType}} is currently in use",
-      "descriptionPrefix": "You cannot delete",
-      "descriptionSuffix": "because it is currently assigned to:",
-      "footer": "Please unassign the {{resourceType}} from these items before deleting.",
+      "title": "{{resourceType}} is in use",
+      "descriptionPrefix": "You can't delete",
+      "descriptionSuffix": "because it's assigned to:",
+      "footer": "Remove these assignments, then try again.",
       "manageAssignments": "Manage Assignments",
-      "cancel": "Cancel"
+      "cancel": "Got it"
     },
     "dependencies": {
       "user": "user",

@@ -11,6 +11,7 @@ import { EmptyReviewsState } from "../../../reviews/components/EmptyReviewsState
 import { FirstReviewState } from "../../../reviews/components/FirstReviewState";
 import { MobileClearFiltersFab } from "../../../reviews/components/MobileClearFiltersFab";
 import { ReviewListSkeleton } from "../../../reviews/components/ReviewListSkeleton";
+import { ErrorState } from "../../../../shared/components/common/ErrorState";
 import {
   SortSelect,
   type SortGroup,
@@ -18,6 +19,7 @@ import {
 import type { BusinessReview, ReviewStatsData } from "../../../reviews/types";
 import type { MyStatsData, MyReviewsPayload } from "../api";
 import { getMyReviews, getMyStats } from "../api";
+import { getErrorMessage } from "../../../../shared/utils/error";
 import "../../../reviews/components/Reviews.css";
 
 const PAGE_SIZE = 20;
@@ -39,6 +41,8 @@ export function MyReviewsTab() {
   const [reviews, setReviews] = useState<BusinessReview[]>([]);
   const [total, setTotal] = useState(0);
   const [reviewsLoading, setReviewsLoading] = useState(true);
+  const [reviewsError, setReviewsError] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
   const [loadingMore, setLoadingMore] = useState(false);
   const [ratingFilter, setRatingFilter] = useState<number | null>(null);
   const [sortOrder, setSortOrder] = useState<"DESC" | "ASC">("DESC");
@@ -53,7 +57,7 @@ export function MyReviewsTab() {
       } catch (error: any) {
         if (!cancelled) {
           console.error("Failed to fetch my stats:", error);
-          toast.error(error?.response?.data?.error || t("common:errors.failedToLoadStats"));
+          toast.error(getErrorMessage(error, t("common:errors.failedToLoadStats")));
         }
       } finally {
         if (!cancelled) setStatsLoading(false);
@@ -78,13 +82,18 @@ export function MyReviewsTab() {
         if (!cancelled) {
           setReviews(response.data as BusinessReview[]);
           setTotal(response.pagination.total);
+          setReviewsError(false);
         }
       } catch (error: any) {
         if (!cancelled) {
           console.error("Failed to fetch my reviews:", error);
-          toast.error(
-            error?.response?.data?.error || t("common:errors.failedToLoadReviews"),
-          );
+          // Retained rows (from the previous filter/sort) stay on screen with a
+          // toast; the full ErrorState is reserved for an empty list.
+          if (reviews.length > 0) {
+            toast.error(getErrorMessage(error, t("common:errors.failedToLoadReviews")));
+          } else {
+            setReviewsError(true);
+          }
         }
       } finally {
         if (!cancelled) setReviewsLoading(false);
@@ -92,7 +101,7 @@ export function MyReviewsTab() {
     };
     fetchReviews();
     return () => { cancelled = true; };
-  }, [ratingFilter, sortOrder]);
+  }, [ratingFilter, sortOrder, reloadKey]);
 
   const handleLoadMore = useCallback(async () => {
     try {
@@ -108,7 +117,7 @@ export function MyReviewsTab() {
       setTotal(response.pagination.total);
     } catch (error: any) {
       console.error("Failed to load more reviews:", error);
-      toast.error(error?.response?.data?.error || t("common:errors.failedToLoadReviews"));
+      toast.error(getErrorMessage(error, t("common:errors.failedToLoadReviews")));
     } finally {
       setLoadingMore(false);
     }
@@ -158,7 +167,7 @@ export function MyReviewsTab() {
   // True zero-state: stats loaded and the professional has never received a
   // review. Skip the toolbar + sidebar — just the hero and a first-review CTA.
   const isTrulyEmpty =
-    !statsLoading && stats !== null && stats.totalReviews === 0;
+    !statsLoading && stats !== null && stats.totalReviews === 0 && !reviewsError;
 
   if (isTrulyEmpty) {
     return (
@@ -221,6 +230,13 @@ export function MyReviewsTab() {
             >
               {reviewsLoading ? (
                 <ReviewListSkeleton />
+              ) : reviewsError && reviews.length === 0 ? (
+                <ErrorState
+                  title={t("empty.errorTitle")}
+                  body={t("empty.errorBody")}
+                  onRetry={() => setReloadKey((k) => k + 1)}
+                  retryLabel={t("empty.errorAction")}
+                />
               ) : reviews.length === 0 ? (
                 <EmptyReviewsState
                   kind={ratingFilter !== null ? "filtered" : "none"}

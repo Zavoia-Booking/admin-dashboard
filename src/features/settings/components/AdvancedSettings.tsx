@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { AlertTriangle, CreditCard, Mail } from 'lucide-react';
 import { Button } from '../../../shared/components/ui/button';
+import { Spinner } from '../../../shared/components/ui/spinner';
 import { toast } from 'sonner';
 import {
   AlertDialog,
@@ -24,7 +25,7 @@ import {
   modalBodyMuted,
   modalHelperSmall,
   modalFooterRowRight,
-  modalSecondary,
+  modalCancel,
   modalPrimary,
   modalDestructive,
   ModalArrow,
@@ -33,6 +34,7 @@ import { selectIsOwner } from '../../auth/selectors';
 import { logoutRequestAction } from '../../auth/actions';
 import { deleteAccountApi } from '../../auth/api';
 import type { AccountActionError } from '../../auth/types';
+import { getErrorMessage } from '../../../shared/utils/error';
 
 const AdvancedSettings = () => {
   const dispatch = useDispatch();
@@ -66,7 +68,7 @@ const AdvancedSettings = () => {
       } else if (errorData?.code === 'has_active_subscription') {
         setShowSubscriptionBlocker(true);
       } else {
-        toast.error(errorData?.message || t('toast.failedDelete'));
+        toast.error(getErrorMessage(error, t('toast.failedDelete')));
       }
     } finally {
       setIsDeleting(false);
@@ -100,11 +102,11 @@ const AdvancedSettings = () => {
             size="sm"
             rounded="full"
             onClick={handleDeleteClick}
-            disabled={isDeleting}
+            loading={isDeleting}
             className="shrink-0 !h-9 !px-4"
           >
-            <AlertTriangle className={`h-3.5 w-3.5 mr-1.5 ${isDeleting ? 'animate-pulse' : ''}`} />
-            {isDeleting ? t('dangerZone.deleteAccount.deleting') : t('dangerZone.deleteAccount.button')}
+            <AlertTriangle className="h-3.5 w-3.5 mr-1.5" />
+            {t('dangerZone.deleteAccount.button')}
           </Button>
         </div>
       </div>
@@ -150,7 +152,7 @@ const AdvancedSettings = () => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className={`${modalFooterRowRight} mt-7`}>
-            <button type="button" onClick={() => setShowSubscriptionBlocker(false)} className={modalSecondary}>
+            <button type="button" onClick={() => setShowSubscriptionBlocker(false)} className={modalCancel}>
               {t('subscriptionBlocker.cancel')}
             </button>
             <button type="button" onClick={handleGoToBilling} className={modalPrimary}>
@@ -190,11 +192,11 @@ const AdvancedSettings = () => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className={`${modalFooterRowRight} mt-7`}>
-            <button type="button" onClick={() => setShowDeleteConfirm(false)} className={modalSecondary} disabled={isDeleting}>
+            <button type="button" onClick={() => setShowDeleteConfirm(false)} className={modalCancel} disabled={isDeleting}>
               {t('deleteAccountDialog.cancel')}
             </button>
             <button type="button" onClick={handleDeleteConfirm} className={modalDestructive} disabled={isDeleting}>
-              {isDeleting ? t('deleteAccountDialog.deleting') : t('deleteAccountDialog.confirmDelete')}
+              {isDeleting ? <Spinner size="sm" color="white" /> : t('deleteAccountDialog.confirmDelete')}
             </button>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -1,4 +1,20 @@
+import { isAxiosError } from "axios";
 import i18n from "../lib/i18n";
+
+// Framework-generated text (Nest route 404s, the global filter's 500 body, axios
+// internals) is never meant for users — map it to localized copy. Deliberate
+// backend prose (billing, uploads, guards) must keep passing through verbatim.
+const FRAMEWORK_TEXT: RegExp[] = [
+  /^Cannot (GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS) /,
+  /^Internal server error$/i,
+  /^Request failed with status code \d+$/,
+  /^Network Error$/i,
+  /^timeout of \d+ms exceeded$/i,
+];
+
+function sanitizeServerText(text: string, fallback?: string): string {
+  return FRAMEWORK_TEXT.some((re) => re.test(text)) ? (fallback ?? i18n.t("messages:fallback")) : text;
+}
 
 type GlobalHttpErrorToastReason = "subscription_required";
 
@@ -79,10 +95,21 @@ export function translateMessageCode(code: string): string {
 /**
  * Extracts error message from axios error response
  * Handles various error response formats from the backend
+ *
+ * @param fallbackMessage - optional context-specific message ("We couldn't load X")
+ *   shown instead of the generic fallback when the error carries no usable text
  */
-export function getErrorMessage(error: unknown): string {
+export function getErrorMessage(error: unknown, fallbackMessage?: string): string {
+  const fallback = fallbackMessage ?? i18n.t("messages:fallback");
+
   if (!error) {
-    return i18n.t("messages:fallback");
+    return fallback;
+  }
+
+  // Network / timeout / DNS failures never have a response — axios's own English
+  // ("Network Error", "timeout of Nms exceeded") must not reach the user.
+  if (isAxiosError(error) && !error.response) {
+    return i18n.t("messages:networkError");
   }
 
   // Handle axios errors
@@ -112,33 +139,33 @@ export function getErrorMessage(error: unknown): string {
         if (Array.isArray(message)) {
           return message
             .filter(Boolean)
-            .map((m: string) => translateMessageCode(m))
+            .map((m: string) => sanitizeServerText(translateMessageCode(m), fallback))
             .join("\n");
         }
-        return translateMessageCode(message);
+        return sanitizeServerText(translateMessageCode(message), fallback);
       }
 
       // Fallback to error field
       if (response.data.error) {
-        return translateMessageCode(response.data.error);
+        return sanitizeServerText(translateMessageCode(response.data.error), fallback);
       }
     }
 
-    // Fallback to status text
+    // statusText is always an English framework reason phrase, never curated copy
     if (response?.statusText) {
-      return response.statusText;
+      return fallback;
     }
   }
 
   // Handle Error objects
   if (error instanceof Error) {
-    return translateMessageCode(error.message);
+    return error.message ? sanitizeServerText(translateMessageCode(error.message), fallback) : fallback;
   }
 
   // Handle string errors
   if (typeof error === "string") {
-    return translateMessageCode(error);
+    return sanitizeServerText(translateMessageCode(error), fallback);
   }
 
-  return i18n.t("messages:fallback");
+  return fallback;
 }

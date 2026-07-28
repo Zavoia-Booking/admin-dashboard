@@ -11,7 +11,7 @@ import {
   modalTitleCompact,
   modalBody,
   modalFooterRowRight,
-  modalSecondary,
+  modalCancel,
   modalPrimary,
 } from '../../../shared/components/ui/modal-tokens';
 import { BaseSlider } from '../../../shared/components/common/BaseSlider';
@@ -429,7 +429,7 @@ const InviteTeamMemberSlider: React.FC<InviteTeamMemberSliderProps> = ({
           </AlertDialogHeader>
           <AlertDialogFooter className={`${modalFooterRowRight} mt-7`}>
             <AlertDialogCancel asChild>
-              <button type="button" className={modalSecondary}>
+              <button type="button" className={modalCancel}>
                 {t('inviteSlider.buttons.cancel')}
               </button>
             </AlertDialogCancel>

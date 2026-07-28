@@ -30,7 +30,7 @@ export const modalPanelLarge = `${panelBase} max-w-[520px]`;
 
 export const modalEyebrow =
   'mb-4 text-[11px] font-semibold uppercase tracking-[0.12em] ' +
-  'text-primary-700 dark:text-primary-500';
+  'text-primary-700 dark:text-[oklch(61%_0.14_38)]';
 
 export const modalTitleLarge =
   'm-0 text-[26px] sm:text-[28px] font-semibold leading-[1.15] tracking-[-0.022em] ' +
@@ -71,6 +71,18 @@ export const modalSecondary =
   'text-neutral-900 dark:text-foreground-1 ' +
   'outline-none transition-colors duration-150 ' +
   'hover:bg-neutral-100 hover:border-neutral-400 dark:hover:bg-surface-hover dark:hover:border-foreground-3 ' +
+  'focus-visible:ring-2 focus-visible:ring-primary-500/30 ' +
+  'disabled:opacity-50 disabled:cursor-not-allowed';
+
+// Cancel / dismiss affordance: a muted soft-filled pill. Same shape and height as the
+// primary/destructive pills (rounded-full, px-[22px] py-3) so the two sit as peers in
+// the footer, but recessive — neutral fill, no saturation — so the primary action leads.
+export const modalCancel =
+  'inline-flex cursor-pointer items-center justify-center rounded-full border-0 ' +
+  'px-[22px] py-3 text-[14px] font-medium ' +
+  'bg-neutral-200 text-neutral-700 hover:bg-neutral-300 hover:text-neutral-900 ' +
+  'dark:bg-white/[0.08] dark:text-foreground-2 dark:hover:bg-white/[0.13] dark:hover:text-foreground-1 ' +
+  'outline-none transition-colors duration-150 ' +
   'focus-visible:ring-2 focus-visible:ring-primary-500/30 ' +
   'disabled:opacity-50 disabled:cursor-not-allowed';
 

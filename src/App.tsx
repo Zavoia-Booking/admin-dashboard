@@ -1,5 +1,8 @@
 import { lazy, Suspense } from 'react'
-import { createBrowserRouter, createRoutesFromElements, Navigate, Outlet, Route, RouterProvider, useLocation } from 'react-router-dom'
+import { createBrowserRouter, createRoutesFromElements, Navigate, Outlet, Route, RouterProvider, useLocation, useRouteError } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
+import { ErrorState } from './shared/components/common/ErrorState'
+import { isStaleChunkError } from './shared/components/common/AppErrorBoundary'
 import ProtectedRoute from './features/auth/components/ProtectedRoute'
 import PublicRoute from './features/auth/components/PublicRoute'
 import AccountLinkingModal from './features/auth/components/AccountLinkingModal'
@@ -32,6 +35,7 @@ const AccountWebInfoPage = lazy(() => import('./features/settings/pages/AccountW
 const AssignmentsPage = lazy(() => import('./features/assignments/pages/assignments'))
 const VerifyEmailPage = lazy(() => import('./features/auth/pages/verify-email'))
 const LinkBusinessAccountPage = lazy(() => import('./features/auth/pages/link-business-account'))
+const ModalGalleryPage = lazy(() => import('./features/dev/ModalGalleryPage'))
 const TeamInvitationPage = lazy(() => import('./features/auth/pages/team-invitation'))
 const SupportPage = lazy(() => import('./features/support/pages/support'))
 const CustomersPage = lazy(() => import('./features/customers/pages/customers'))
@@ -51,6 +55,30 @@ function RouteFallback() {
   return (
     <div className="flex min-h-screen items-center justify-center">
       <Spinner size="lg" />
+    </div>
+  )
+}
+
+/**
+ * Router-level crash screen: catches render errors on any route, including
+ * lazy-chunk 404s from a stale tab across a deploy (offered as "new version").
+ */
+function RouteErrorFallback() {
+  const error = useRouteError()
+  const { t } = useTranslation('common')
+  console.error('Route error:', error)
+  const stale = isStaleChunkError(error)
+
+  return (
+    <div className="flex min-h-dvh items-center justify-center px-2">
+      <ErrorState
+        variant="page"
+        title={stale ? t('errorState.updateTitle') : t('errorState.title')}
+        body={stale ? t('errorState.updateBody') : t('errorState.crashBody')}
+        onRetry={() => window.location.reload()}
+        retryLabel={t('errorState.reload')}
+        className="max-w-[34rem] px-0"
+      />
     </div>
   )
 }
@@ -111,7 +139,7 @@ function MarketplaceRoute() {
 // route-aware unsaved-changes guard on /website (and later My Profile) depends on it.
 const router = createBrowserRouter(
   createRoutesFromElements(
-    <Route element={<RootLayout />}>
+    <Route element={<RootLayout />} errorElement={<RouteErrorFallback />}>
       <Route path="/" element={<ProtectedRoute element={<DashboardPage />} />} />
       <Route path="/welcome" element={<ProtectedRoute element={<SetupWizardPage />} />} />
 
@@ -157,6 +185,9 @@ const router = createBrowserRouter(
       <Route path="/info" element={<InfoPageComponent />} />
       <Route path="/account-info" element={<ProtectedRoute element={<AccountWebInfoPage />} />} />
       <Route path="/team-members/invitation-success" element={<ProtectedRoute element={<InvitationSuccessPage />} />} />
+
+      {/* Dev — modal design gallery (not linked from nav) */}
+      <Route path="/dev/modals" element={<ProtectedRoute element={<ModalGalleryPage />} />} />
 
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/calendar" replace />} />

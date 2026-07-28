@@ -21,16 +21,21 @@ import { MobilePullToRefreshIndicator } from "./MobilePullToRefreshIndicator";
 import { MobileClearFiltersFab } from "./MobileClearFiltersFab";
 import { getNativePlatform } from "../../../../app/config/env";
 import { MobileCalendarDragContext } from "./mobileDragContext";
+import { ErrorState } from "../../../../shared/components/common/ErrorState";
 
 
 const SWIPE_THRESHOLD = 50;
 
 interface MobileCalendarLayoutProps {
   onOpenSettings: () => void;
+  loadError?: string | null;
+  onRetryLoad?: () => void;
 }
 
 export const MobileCalendarLayout: FC<MobileCalendarLayoutProps> = ({
   onOpenSettings,
+  loadError,
+  onRetryLoad,
 }) => {
   const { t } = useTranslation("calendar");
   const dispatch = useDispatch();
@@ -218,7 +223,11 @@ export const MobileCalendarLayout: FC<MobileCalendarLayoutProps> = ({
           onTouchStart={isSwipeEnabled ? handleContentTouchStart : undefined}
           onTouchEnd={isSwipeEnabled ? handleContentTouchEnd : undefined}
         >
-          {!selectedLocationId ? (
+          {loadError ? (
+            <div className="flex flex-1 min-h-64 items-center justify-center px-6">
+              <ErrorState body={loadError} onRetry={onRetryLoad} className="w-auto" />
+            </div>
+          ) : !selectedLocationId ? (
             <div className="flex flex-col items-center justify-center h-64 px-6 text-center">
               <p className="text-sm text-muted-foreground">
                 {t("page.appointments.selectLocation")}
@@ -230,7 +239,7 @@ export const MobileCalendarLayout: FC<MobileCalendarLayoutProps> = ({
             </MobileCalendarDragContext.Provider>
           )}
         </div>
-        {selectedLocationId && <MobileClearFiltersFab />}
+        {selectedLocationId && !loadError && <MobileClearFiltersFab />}
       </div>
     </div>
   );

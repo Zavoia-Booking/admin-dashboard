@@ -12,6 +12,8 @@ export interface UpdateLocationResponse {
 export interface LocationState {
   isLoading: boolean;
   error: string | null;
+  // List-load failures only — `error` is shared with create/update/fetch flows.
+  listError: string | null;
   allLocations: LocationType[];
   isDeleting: boolean;
   deleteError: string | null;

@@ -58,10 +58,10 @@
       "publishing": "Publishing..."
     },
     "unsavedChanges": {
-      "title": "Unsaved changes",
-      "description": "You have unsaved changes that will be lost if you leave. Are you sure you want to continue?",
+      "title": "Leave without saving?",
+      "description": "Anything you haven't saved will be lost.",
       "leave": "Leave without saving",
-      "cancel": "Cancel"
+      "cancel": "Keep editing"
     }
   },
   "details": {

@@ -9,6 +9,7 @@ type Actions = ActionType<typeof actions> | ActionType<typeof logoutRequestActio
 const initialState: LocationState = {
   isLoading: false,
   error: null,
+  listError: null,
   allLocations: [],
   isDeleting: false,
   deleteError: null,
@@ -41,13 +42,13 @@ export const LocationsReducer: Reducer<LocationState, any> = (state: LocationSta
       return { ...state, isLoading: false, updateResponse: action.payload.updateResponse, error: null };
 
     case getType(actions.listLocationsAction.request):
-      return { ...state, isLoading: true, error: null };
+      return { ...state, isLoading: true, error: null, listError: null };
 
     case getType(actions.listLocationsAction.success):
-      return { ...state, isLoading: false, allLocations: action.payload.locations, error: null };
+      return { ...state, isLoading: false, allLocations: action.payload.locations, error: null, listError: null };
 
     case getType(actions.listLocationsAction.failure):
-      return { ...state, isLoading: false, error: action.payload.message };
+      return { ...state, isLoading: false, error: action.payload.message, listError: action.payload.message };
 
     case getType(actions.createLocationAction.failure):
       return { ...state, isLoading: false, error: action.payload.message };

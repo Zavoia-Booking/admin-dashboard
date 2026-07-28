@@ -1,0 +1,190 @@
+/* Global Sonner skin — the Website Builder notification design promoted app-wide.
+   Neutral surface card, tone-colored icon, underlined text action, quiet close button.
+   Builder-specific positioning and undo-row rules stay in website-atelier.css.
+
+   Every selector is prefixed with `body` and children include [data-styled="true"]:
+   sonner injects its own stylesheet at runtime AFTER the bundled CSS, so these
+   rules must out-rank sonner's ([data-sonner-toast][data-styled='true'] ...) on
+   specificity, not order. The builder's body:has(.website-atelier-shell) overrides
+   still out-rank this skin. */
+
+body [data-sonner-toaster] {
+  font-family: var(--font-sans);
+}
+
+body [data-sonner-toast][data-styled="true"] {
+  --app-toast-tone: var(--primary);
+  align-items: flex-start;
+  gap: 8px;
+  border: 1px solid var(--border) !important;
+  border-radius: 10px;
+  background: var(--surface) !important;
+  padding: 9px 10px;
+  color: var(--text-primary) !important;
+  box-shadow: 0 6px 18px rgb(28 28 26 / 12%);
+  transition:
+    transform 180ms ease-out,
+    opacity 160ms ease-out,
+    box-shadow 160ms ease-out;
+}
+
+body [data-sonner-toast][data-styled="true"]:has([data-close-button]) {
+  padding-right: 38px;
+}
+
+body [data-sonner-toast][data-type="success"] {
+  --app-toast-tone: var(--success);
+}
+
+body [data-sonner-toast][data-type="info"] {
+  --app-toast-tone: var(--info);
+}
+
+body [data-sonner-toast][data-type="warning"] {
+  --app-toast-tone: var(--warning);
+}
+
+body [data-sonner-toast][data-type="error"] {
+  --app-toast-tone: var(--error);
+}
+
+body [data-sonner-toast][data-styled="true"] [data-icon] {
+  display: flex;
+  width: 18px !important;
+  height: 18px !important;
+  margin: 0 !important;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: var(--app-toast-tone);
+}
+
+body [data-sonner-toast][data-styled="true"] [data-icon] svg {
+  width: 18px;
+  height: 18px;
+  margin: 0 !important;
+}
+
+body [data-sonner-toast][data-styled="true"] [data-content] {
+  min-width: 0;
+  flex: 1;
+  gap: 1px;
+  padding-block: 1px;
+}
+
+body [data-sonner-toast][data-styled="true"] [data-title] {
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+body [data-sonner-toast][data-styled="true"] [data-description] {
+  color: var(--text-secondary) !important;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+body [data-sonner-toast][data-styled="true"] [data-action] {
+  position: relative;
+  min-height: 26px;
+  height: 26px;
+  align-self: center;
+  margin: 0 0 0 auto !important;
+  border: 0 !important;
+  border-radius: 0;
+  background: transparent !important;
+  padding-inline: 2px;
+  color: var(--app-toast-tone) !important;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--app-toast-tone) 46%, transparent);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  transition:
+    color 160ms ease,
+    transform 160ms ease;
+}
+
+body [data-sonner-toast][data-styled="true"] [data-action]::after {
+  position: absolute;
+  inset: -9px -7px;
+  content: "";
+}
+
+body [data-sonner-toast][data-styled="true"] [data-action]:hover {
+  color: var(--text-primary) !important;
+  text-decoration-color: currentcolor;
+}
+
+body [data-sonner-toast][data-styled="true"] [data-action]:active {
+  transform: translateY(1px);
+}
+
+body [data-sonner-toast][data-styled="true"] [data-action]:focus-visible,
+body [data-sonner-toast][data-styled="true"] [data-close-button]:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+body [data-sonner-toast][data-styled="true"] [data-close-button] {
+  top: 7px;
+  right: 7px;
+  left: auto;
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  min-height: 24px;
+  transform: none;
+  border-color: transparent !important;
+  background: transparent !important;
+  color: var(--text-secondary) !important;
+  opacity: 1;
+  visibility: visible;
+}
+
+body [data-sonner-toast][data-styled="true"] [data-close-button] svg {
+  width: 14px;
+  height: 14px;
+}
+
+body [data-sonner-toast][data-styled="true"] [data-close-button]::after {
+  position: absolute;
+  inset: -10px;
+  content: "";
+}
+
+body [data-sonner-toast][data-styled="true"] [data-close-button]:hover {
+  border-color: var(--border) !important;
+  background: var(--surface-hover) !important;
+  color: var(--text-primary) !important;
+}
+
+@media (max-width: 767px) {
+  /* Sonner accepts one position per toaster. On narrow screens the lane becomes
+     full-width, so a desktop top-right toaster reads as top-centred on mobile. */
+  body [data-sonner-toaster] {
+    --width: calc(100vw - 32px) !important;
+    right: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    transform: none !important;
+  }
+
+  body [data-sonner-toaster] [data-sonner-toast] {
+    right: auto !important;
+    left: 16px !important;
+    width: calc(100% - 32px) !important;
+  }
+
+  /* The visible control stays compact; ::after above preserves a 44px hit area. */
+  body [data-sonner-toast][data-styled="true"][data-front="true"] [data-close-button] {
+    border-color: var(--border) !important;
+    background: var(--surface) !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+  }
+}

@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "../../styles/collapsible.css";
+@import "./toast.css";
 @plugin "tailwindcss-animate";
 
 @custom-variant dark (&:is(.dark *));

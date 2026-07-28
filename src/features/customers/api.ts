@@ -11,7 +11,7 @@ import type {
   EditCustomerPayload,
   ListCustomersPayload,
 } from "./types";
-import { apiClient } from "../../shared/lib/http";
+import { apiClient, READ_REQUEST_TIMEOUT_MS } from "../../shared/lib/http";
 
 export const fetchCustomerByIdApi = async (id: number): Promise<Customer> => {
   const { data } = await apiClient().get<Customer>(`/business-customers/${id}`);
@@ -34,7 +34,11 @@ export const removeCustomerApi = async (id: number): Promise<void> => {
 };
 
 export const listCustomersApi = async (payload: ListCustomersPayload): Promise<CustomersListResponse> => {
-  const { data } = await apiClient().post<CustomersListResponse>('/business-customers/list', payload);
+  const { data } = await apiClient().post<CustomersListResponse>(
+    '/business-customers/list',
+    payload,
+    { timeout: READ_REQUEST_TIMEOUT_MS },
+  );
   return data;
 };
 
@@ -44,6 +48,7 @@ export const searchCustomersForPickerApi = async (
 ): Promise<CustomerPickerSearchResponse> => {
   const { data } = await apiClient().post<CustomerPickerSearchResponse>('/business-customers/picker-search', payload, {
     signal: options?.signal,
+    timeout: READ_REQUEST_TIMEOUT_MS,
   });
   return data;
 };

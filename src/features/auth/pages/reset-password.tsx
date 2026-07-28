@@ -35,6 +35,7 @@ export default function ResetPasswordPage() {
   useEffect(() => {
     if (submitted && !isLoading) {
       if (authError) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setSuccess(false);
         setSubmitted(false);
         setLocalError(authError);
@@ -129,14 +130,14 @@ export default function ResetPasswordPage() {
                 <div className="h-5">
                   {confirmPassword.length > 0 && !passwordsMatch && (
                     <p className="mt-1 flex items-center gap-1.5 text-xs text-destructive">
-                      <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                      <AlertCircle className="h-3.5 w-3.5" />
                       <span>{t('resetPassword.errorPasswordsMismatch')}</span>
                     </p>
                   )}
                 </div>
               </div>
-              <Button type="submit" rounded="full" className="w-full" disabled={!canSubmit || isLoading}>
-                {isLoading ? t('resetPassword.resetting') : t('resetPassword.submit')}
+              <Button type="submit" rounded="full" className="w-full" loading={isLoading} disabled={!canSubmit}>
+                {t('resetPassword.submit')}
               </Button>
             </form>
           ) : (

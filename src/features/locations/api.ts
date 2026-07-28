@@ -1,7 +1,7 @@
 import type { LocationType } from "../../shared/types/location";
 import type { EditLocationType, EditLocationWorkingHours } from "./types";
 import type { NewLocationPayload } from "./types";
-import { apiClient } from "../../shared/lib/http";
+import { apiClient, READ_REQUEST_TIMEOUT_MS } from "../../shared/lib/http";
 
 export const getLocationByIdApi = async (locationId: string | number): Promise<LocationType> => {
   const { data } = await apiClient().get<LocationType>(`/locations/${locationId}`);
@@ -20,7 +20,11 @@ export const updateLocationApi = async (location: EditLocationType | EditLocatio
 }
 
 export const listLocationsApi = async (): Promise<LocationType[]> => {
-  const { data } = await apiClient().post<LocationType[]>(`/locations/list`, { filters: [] });
+  const { data } = await apiClient().post<LocationType[]>(
+    `/locations/list`,
+    { filters: [] },
+    { timeout: READ_REQUEST_TIMEOUT_MS },
+  );
   return data;
 }
 

@@ -59,7 +59,7 @@ import { dropRejectHaptic } from "../../haptics.ts";
 
 import { TimeColumn } from "./TimeColumn.tsx";
 import { WeekDayColumnSummary } from "./WeekDayColumnSummary.tsx";
-import { ConfirmDropDialog } from "./ConfirmDropDialog.tsx";
+import { ConfirmDropDialog, RescheduleConfirmDescription } from "./ConfirmDropDialog.tsx";
 import { OverrideDialog } from "./OverrideDialog.tsx";
 import { useGridDndState } from "./useGridDndState.ts";
 import { parseDraggableActiveAppointmentId } from "./overlapUtils.ts";
@@ -482,9 +482,17 @@ export const WeekGrid: FC = () => {
   // Build confirm dialog description
   const confirmDescription = (() => {
     if (!pendingDrop || pendingDrop.type !== "reschedule") return null;
-    const min = pendingDrop.minute ?? 0;
-    const timeStr = `${pendingDrop.hour}:${String(min).padStart(2, "0")}`;
-    return <>Move &quot;{pendingDrop.appointment.bookedItemName}&quot; to {pendingDrop.dateKey} at {timeStr}?</>;
+    return (
+      <RescheduleConfirmDescription
+        name={pendingDrop.appointment.bookedItemName}
+        customerName={pendingDrop.appointment.customerName}
+        sourceScheduledAt={pendingDrop.appointment.scheduledAt}
+        targetDateKey={pendingDrop.dateKey}
+        targetHour={pendingDrop.hour}
+        targetMinute={pendingDrop.minute}
+        timezone={calendarTimezone}
+      />
+    );
   })();
 
   const gridContent = (

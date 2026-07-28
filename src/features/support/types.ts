@@ -64,5 +64,10 @@ export interface SupportState {
   isCreating: boolean;
   isSendingMessage: boolean;
   isClosing: boolean;
+  /** Mutation failures (create/message/close) — already toasted by the saga. */
   error: string | null;
+  /** Ticket-list load failure; drives the page ErrorState. */
+  listError: string | null;
+  /** Single-ticket load failure; drives the conversation-pane ErrorState. */
+  detailError: string | null;
 }

@@ -10,7 +10,7 @@ import {
   modalTitleCompact,
   modalBody,
   modalFooterRowRight,
-  modalSecondary,
+  modalCancel,
   modalPrimary,
   modalDestructive,
 } from '../components/ui/modal-tokens';
@@ -226,13 +226,13 @@ export function useConfirmRadix() {
                                 <>
                                     {showCancel && (useActionWrappers === 'alert' ? (
                                         <Cancel asChild>
-                                            <button onClick={onCancelClick} className={modalSecondary}>
+                                            <button onClick={onCancelClick} className={modalCancel}>
                                                 {cancellationText}
                                             </button>
                                         </Cancel>
                                     ) : (
                                         <Close asChild>
-                                            <button onClick={onCancelClick} className={modalSecondary}>
+                                            <button onClick={onCancelClick} className={modalCancel}>
                                                 {cancellationText}
                                             </button>
                                         </Close>

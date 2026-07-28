@@ -2,9 +2,8 @@ import { lazy, Suspense, useEffect, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import { AlertTriangle, RotateCcw } from "lucide-react";
 import BusinessSetupGate from "../../../shared/components/guards/BusinessSetupGate";
-import { Button } from "../../../shared/components/ui/button";
+import { ErrorState } from "../../../shared/components/common/ErrorState";
 import { Spinner } from "../../../shared/components/ui/spinner";
 import { selectBusinessId } from "../../auth/selectors";
 import { enterWebsiteBuilderAction, fetchWebsiteBuilderAction } from "../actions";
@@ -32,11 +31,13 @@ function WebsiteStateShell({
   businessName,
   brandColor,
   scroll = false,
+  stateAlignment = "center",
 }: {
   children: ReactNode;
   businessName?: string | null;
   brandColor?: string | null;
   scroll?: boolean;
+  stateAlignment?: "center" | "start";
 }) {
   const navigate = useNavigate();
   const headerProps = { businessName, brandColor, publishStatus: "draft" as const, saveStatus: "saved" as const };
@@ -52,7 +53,13 @@ function WebsiteStateShell({
         />
       }
     >
-      <div className={scroll ? "website-atelier-scrollbar h-full overflow-y-auto p-3 min-[920px]:p-5" : "website-atelier-state"}>
+      <div
+        className={
+          scroll
+            ? "website-atelier-scrollbar h-full overflow-y-auto p-3 min-[920px]:p-5"
+            : `website-atelier-state${stateAlignment === "start" ? " website-atelier-state--start" : ""}`
+        }
+      >
         {children}
       </div>
     </WebsiteAtelierShell>
@@ -119,20 +126,14 @@ export default function WebsiteAtelierPage() {
 
   if (error && !draft) {
     return (
-      <WebsiteStateShell businessName={identity?.name}>
+      <WebsiteStateShell businessName={identity?.name} stateAlignment="start">
         <BusinessSetupGate>
-          <div className="website-atelier-state-card flex flex-col items-center gap-4 px-6 py-8 text-center">
-            <AlertTriangle className="h-8 w-8 text-amber-500" aria-hidden />
-            <p className="text-sm text-muted-foreground">{t("page.loadError")}</p>
-            <Button
-              variant="outline"
-              onClick={() => dispatch(fetchWebsiteBuilderAction.request())}
-              className="gap-1.5"
-            >
-              <RotateCcw className="h-4 w-4" />
-              {t("page.retry")}
-            </Button>
-          </div>
+          <ErrorState
+            body={t("page.loadError")}
+            onRetry={() => dispatch(fetchWebsiteBuilderAction.request())}
+            retryLabel={t("page.retry")}
+            className="max-w-xl py-0"
+          />
         </BusinessSetupGate>
       </WebsiteStateShell>
     );
@@ -140,11 +141,18 @@ export default function WebsiteAtelierPage() {
 
   if (!identity || !draft || !access) {
     return (
-      <WebsiteStateShell businessName={identity?.name} brandColor={draft?.brandColorHex}>
+      <WebsiteStateShell
+        businessName={identity?.name}
+        brandColor={draft?.brandColorHex}
+        stateAlignment="start"
+      >
         <BusinessSetupGate>
-          <div className="website-atelier-state-card px-6 py-8 text-center">
-            <p className="text-muted-foreground">{t("page.loadError")}</p>
-          </div>
+          <ErrorState
+            body={t("page.loadError")}
+            onRetry={() => dispatch(fetchWebsiteBuilderAction.request())}
+            retryLabel={t("page.retry")}
+            className="max-w-xl py-0"
+          />
         </BusinessSetupGate>
       </WebsiteStateShell>
     );

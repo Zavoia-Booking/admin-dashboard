@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams, useNavigate, useLocation } from 'react-router-dom';
-import { Save, Loader2, AlertTriangle } from 'lucide-react';
-import { toast } from 'sonner';
+import { Save, Loader2 } from 'lucide-react';
 import { AppLayout } from '../../../../shared/components/layouts/app-layout';
 import { HeaderRightSlot } from '../../../../shared/components/layouts/HeaderRightSlot';
 import { Button } from '../../../../shared/components/ui/button';
@@ -17,6 +16,7 @@ import { MarketplaceVisibilitySection } from '../components/MarketplaceVisibilit
 import { PortfolioImagesSection } from '../components/PortfolioImagesSection';
 import { MyReviewsTab } from '../components/MyReviewsTab';
 import { getMarketplaceProfile, type MarketplaceProfile } from '../api';
+import { ErrorState } from '../../../../shared/components/common/ErrorState';
 
 type MyProfileTab = 'profile' | 'portfolio' | 'reviews';
 
@@ -58,6 +58,8 @@ export default function MyProfilePage() {
   const [profile, setProfile] = useState<MarketplaceProfile | null>(null);
   const [hiddenFromMarketplace, setHiddenFromMarketplace] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
   const [hasProfile, setHasProfile] = useState(false);
   const [showProfileForm, setShowProfileForm] = useState(false);
   
@@ -82,7 +84,7 @@ export default function MyProfilePage() {
 
   const [activeTab, setActiveTab] = useState<MyProfileTab>(getInitialTab());
 
-  // Fetch profile on mount
+  // Fetch profile on mount (and on retry via reloadKey)
   useEffect(() => {
     const fetchProfile = async () => {
       try {
@@ -95,15 +97,17 @@ export default function MyProfilePage() {
         } else {
           setHasProfile(false);
         }
+        setLoadError(false);
       } catch (error: any) {
         console.error('Error fetching marketplace profile:', error);
-        toast.error(error?.message || t('toast.loadFailed'));
+        // A failed fetch must not render the "create your profile" onboarding view
+        setLoadError(true);
       } finally {
         setIsLoading(false);
       }
     };
     fetchProfile();
-  }, []);
+  }, [reloadKey]);
 
   // Sync with URL changes
   useEffect(() => {
@@ -238,6 +242,19 @@ export default function MyProfilePage() {
     );
   }
 
+  // Fetch failed with nothing loaded — don't fall through to the onboarding view
+  if (loadError && !hasProfile) {
+    return (
+      <AppLayout>
+        <ErrorState
+          variant="page"
+          body={t('toast.loadFailed')}
+          onRetry={() => setReloadKey((k) => k + 1)}
+        />
+      </AppLayout>
+    );
+  }
+
   // Show "No Profile Yet" marketing view when not created and user hasn't clicked "Create Profile"
   if (!hasProfile && !showProfileForm) {
     return (
@@ -365,13 +382,7 @@ export default function MyProfilePage() {
         confirmTitle={t('unsavedDialog.leave')}
         cancelTitle={t('unsavedDialog.stay')}
         variant="destructive"
-        icon={AlertTriangle}
-        iconBgColor="transparent"
-        iconColor="text-destructive"
         showCloseButton
-        footerClassName=""
-        cancelClassName="w-auto md:w-44"
-        confirmClassName="w-auto md:w-32"
       />
     </AppLayout>
   );

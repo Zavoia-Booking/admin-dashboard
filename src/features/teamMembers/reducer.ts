@@ -9,6 +9,8 @@ type TeamMembersState = {
   summary: TeamMemberSummary | null;
   currentTeamMember: TeamMember | null;
   error: string | null;
+  // List-load failures only — `error` is shared with invite/fetch flows.
+  listError: string | null;
   inviteResponse: InviteTeamMemberResponse | null;
   isInviting: boolean;
   isResending: boolean;
@@ -28,6 +30,7 @@ const initialState: TeamMembersState = {
   summary: null,
   currentTeamMember: null,
   error: null,
+  listError: null,
   inviteResponse: null,
   isInviting: false,
   isResending: false,
@@ -61,13 +64,13 @@ export default function teamMembersReducer(state: TeamMembersState = initialStat
       return { ...state, inviteResponse: null, error: null };
 
     case getType(listTeamMembersAction.request):
-      return { ...state, isLoading: true, error: null };
+      return { ...state, isLoading: true, error: null, listError: null };
 
     case getType(listTeamMembersAction.success):
-      return { ...state, isLoading: false, teamMembers: action.payload.teamMembers, summary: action.payload.summary, error: null };
+      return { ...state, isLoading: false, teamMembers: action.payload.teamMembers, summary: action.payload.summary, error: null, listError: null };
 
     case getType(listTeamMembersAction.failure):
-      return { ...state, isLoading: false, error: action.payload.message };
+      return { ...state, isLoading: false, error: action.payload.message, listError: action.payload.message };
 
     case getType(resendInvitationAction.request):
       return { ...state, isResending: true, resendError: null };

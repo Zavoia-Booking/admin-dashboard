@@ -33,7 +33,8 @@ const initialState: ReviewsState = {
   highlightReviews: [],
   highlightReviewsLoading: false,
   highlightReviewsLoaded: false,
-  error: null,
+  statsError: null,
+  listError: null,
 };
 
 function normalizeScopeBusinessId(value: number | string | null | undefined): string | null {
@@ -77,22 +78,22 @@ export const ReviewsReducer: Reducer<ReviewsState, any> = (
         highlightReviews: [],
         highlightReviewsLoading: false,
         highlightReviewsLoaded: false,
-        error: null,
+        statsError: null,
       };
 
     // Stats
     case getType(actions.fetchReviewStatsAction.request):
-      return { ...state, statsLoading: true, error: null };
+      return { ...state, statsLoading: true, statsError: null };
     case getType(actions.fetchReviewStatsAction.success):
       if (action.payload.scopeBusinessId !== state.scopeBusinessId) return state;
       return { ...state, statsLoading: false, stats: action.payload };
     case getType(actions.fetchReviewStatsAction.failure):
       if (action.payload.scopeBusinessId !== state.scopeBusinessId) return state;
-      return { ...state, statsLoading: false, error: action.payload.message };
+      return { ...state, statsLoading: false, statsError: action.payload.message };
 
     // Business reviews (replace)
     case getType(actions.fetchBusinessReviewsAction.request):
-      return { ...state, businessReviewsLoading: true, error: null };
+      return { ...state, businessReviewsLoading: true, listError: null };
     case getType(actions.fetchBusinessReviewsAction.success):
       if (action.payload.scopeBusinessId !== state.scopeBusinessId) return state;
       return {
@@ -106,13 +107,15 @@ export const ReviewsReducer: Reducer<ReviewsState, any> = (
       return {
         ...state,
         businessReviewsLoading: false,
-        error: action.payload.message,
+        listError: action.payload.message,
       };
 
     // Business reviews (append for "load more") — uses *MoreLoading so the
     // list skeleton doesn't flash over rows the user just expanded.
+    // Append failures leave listError untouched (the loaded rows are still
+    // valid); the saga toasts them instead.
     case getType(actions.fetchMoreBusinessReviewsAction.request):
-      return { ...state, businessReviewsMoreLoading: true, error: null };
+      return { ...state, businessReviewsMoreLoading: true };
     case getType(actions.fetchMoreBusinessReviewsAction.success):
       if (action.payload.scopeBusinessId !== state.scopeBusinessId) return state;
       return {
@@ -126,12 +129,11 @@ export const ReviewsReducer: Reducer<ReviewsState, any> = (
       return {
         ...state,
         businessReviewsMoreLoading: false,
-        error: action.payload.message,
       };
 
     // Team member reviews (replace)
     case getType(actions.fetchTeamMemberReviewsAction.request):
-      return { ...state, teamMemberReviewsLoading: true, error: null };
+      return { ...state, teamMemberReviewsLoading: true, listError: null };
     case getType(actions.fetchTeamMemberReviewsAction.success):
       if (action.payload.scopeBusinessId !== state.scopeBusinessId) return state;
       return {
@@ -145,12 +147,12 @@ export const ReviewsReducer: Reducer<ReviewsState, any> = (
       return {
         ...state,
         teamMemberReviewsLoading: false,
-        error: action.payload.message,
+        listError: action.payload.message,
       };
 
     // Team member reviews (append for "load more") — uses *MoreLoading.
     case getType(actions.fetchMoreTeamMemberReviewsAction.request):
-      return { ...state, teamMemberReviewsMoreLoading: true, error: null };
+      return { ...state, teamMemberReviewsMoreLoading: true };
     case getType(actions.fetchMoreTeamMemberReviewsAction.success):
       if (action.payload.scopeBusinessId !== state.scopeBusinessId) return state;
       return {
@@ -167,7 +169,6 @@ export const ReviewsReducer: Reducer<ReviewsState, any> = (
       return {
         ...state,
         teamMemberReviewsMoreLoading: false,
-        error: action.payload.message,
       };
 
     // Highlight reviews (business-page preview). Failure is intentionally silent — it must not surface

@@ -7,7 +7,7 @@ import { cancelInvitationApi, deleteTeamMemberApi, fetchTeamMemberByIdApi, invit
 import type { InviteTeamMemberResponse } from "./types";
 import { toast } from "sonner";
 import type { DeleteResponse } from "../../shared/types/delete-response";
-import { getErrorMessage, translateMessageCode } from "../../shared/utils/error";
+import { getErrorMessage } from "../../shared/utils/error";
 import i18n from "../../shared/lib/i18n";
 
 function* handleInviteTeamMember(action: ReturnType<typeof inviteTeamMemberAction.request>) {
@@ -16,12 +16,8 @@ function* handleInviteTeamMember(action: ReturnType<typeof inviteTeamMemberActio
     yield put(inviteTeamMemberAction.success(response));
     yield put(listTeamMembersAction.request());
  
-  } catch (error: any) {
-    const resp = error?.response?.data;
-    const rawMessage = Array.isArray(resp?.message)
-      ? resp.message.map((m: string) => translateMessageCode(m)).join(' ')
-      : translateMessageCode(resp?.message ?? '');
-    const message = rawMessage || translateMessageCode(resp?.error ?? '') || error?.message || i18n.t('teamMembers:toasts.inviteFailed');
+  } catch (error: unknown) {
+    const message = getErrorMessage(error, i18n.t('teamMembers:toasts.inviteFailed'));
     yield put(inviteTeamMemberAction.failure({ message }));
   }
 }
@@ -30,8 +26,8 @@ function* handleListTeamMembers() {
   try {
     const response: { summary: TeamMemberSummary; teamMembers: TeamMember[] } = yield call(listTeamMembersApi);
     yield put(listTeamMembersAction.success(response));
-  } catch (error: any) {
-    const message = error?.response?.data?.error || error?.message || i18n.t('teamMembers:toasts.listFailed');
+  } catch (error: unknown) {
+    const message = getErrorMessage(error, i18n.t('teamMembers:toasts.listFailed'));
     yield put(listTeamMembersAction.failure({ message }));
   }
 }
@@ -90,8 +86,8 @@ function* handleDeleteTeamMember(action: ReturnType<typeof deleteTeamMemberActio
       toast.success(i18n.t('teamMembers:toasts.removeSuccess'));
       yield put(listTeamMembersAction.request());
     }
-  } catch (error: any) {
-    const message = error?.response?.data?.error || error?.message || i18n.t('teamMembers:toasts.removeFailed');
+  } catch (error: unknown) {
+    const message = getErrorMessage(error, i18n.t('teamMembers:toasts.removeFailed'));
     toast.error(message);
     yield put(deleteTeamMemberAction.failure({ message }));
   }
@@ -101,8 +97,8 @@ function* handleFetchTeamMemberById(action: ReturnType<typeof fetchTeamMemberByI
   try {
     const teamMember: TeamMember = yield call(fetchTeamMemberByIdApi, action.payload.id);
     yield put(fetchTeamMemberByIdAction.success({ teamMember }));
-  } catch (error: any) {
-    const message = error?.response?.data?.error || error?.message || i18n.t('teamMembers:toasts.fetchFailed');
+  } catch (error: unknown) {
+    const message = getErrorMessage(error, i18n.t('teamMembers:toasts.fetchFailed'));
     toast.error(message);
     yield put(fetchTeamMemberByIdAction.failure({ message }));
   }

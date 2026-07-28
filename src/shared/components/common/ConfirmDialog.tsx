@@ -1,19 +1,20 @@
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "../ui/alert-dialog.tsx";
+import * as AlertDialog from "@radix-ui/react-alert-dialog";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { X } from "lucide-react";
 import { cn } from "../../lib/utils";
 import type { LucideIcon } from "lucide-react";
 import { Spinner } from "../ui/spinner.tsx";
+import {
+  modalScrim,
+  modalPanel,
+  modalTitleCompact,
+  modalBody,
+  modalFooterRowRight,
+  modalCancel,
+  modalPrimary,
+  modalDestructive,
+} from "../ui/modal-tokens";
 
 export interface ConfirmDialogProps {
   open: boolean;
@@ -38,6 +39,13 @@ export interface ConfirmDialogProps {
   confirmClassName?: string;
 }
 
+/**
+ * Shared confirmation dialog. Built on the dashboard `modal-tokens` design language
+ * (cream panel, terracotta pills, refined type) so it matches the app's other modals —
+ * SubscriptionBlocker, link-business, and the useConfirmRadix panel. The full prop API
+ * (icon, close button, busy state, destructive variant, custom class overrides) is kept
+ * intact for the ~13 call sites that depend on it.
+ */
 const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   open,
   onConfirm,
@@ -65,96 +73,98 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
 
   const handleConfirm = () => {
     if (isConfirmDisabled) return;
-
     onConfirm();
-    if (onOpenChange) {
-      onOpenChange(false);
-    }
+    onOpenChange?.(false);
   };
 
   const handleCancel = () => {
     onCancel();
-    if (onOpenChange) {
-      onOpenChange(false);
-    }
+    onOpenChange?.(false);
   };
 
-  const isDestructive = variant === "destructive";
+  const confirmPill = variant === "destructive" ? modalDestructive : modalPrimary;
+  const hasBadge = Boolean(Icon) && iconBgColor !== "transparent";
 
   return (
-    <AlertDialog open={open} onOpenChange={onOpenChange || handleCancel}>
-      <AlertDialogContent className={cn("bg-surface border-border dark:border-border-subtle sm:max-w-lg cursor-default", className)}>
-        {showCloseButton && (
-          <button
-            type="button"
-            onClick={handleCancel}
-            className={cn(
-              "absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-md",
-              "text-foreground-2 hover:text-foreground-1",
-              "active:bg-surface-active",
-              "transition-colors duration-200",
-              "focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-              "disabled:pointer-events-none",
-              "cursor-pointer"
-            )}
-          >
-            <X className="h-6 w-6" />
-            <span className="sr-only">{t("aria.close")}</span>
-          </button>
-        )}
-        <AlertDialogHeader className={cn("space-y-3 text-left pr-6 cursor-default", headerClassName)}>
-          <AlertDialogTitle className="text-lg md:text-xl font-semibold text-foreground-1 cursor-default flex items-center gap-3">
+    <AlertDialog.Root open={open} onOpenChange={onOpenChange || handleCancel}>
+      <AlertDialog.Portal>
+        <AlertDialog.Overlay className={modalScrim} />
+        <AlertDialog.Content className={cn(modalPanel, "text-left", className)}>
+          {showCloseButton && (
+            <button
+              type="button"
+              onClick={handleCancel}
+              aria-label={t("aria.close")}
+              className={cn(
+                "absolute right-4 top-4 inline-flex h-8 w-8 items-center justify-center rounded-lg",
+                "text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-800",
+                "dark:text-foreground-3 dark:hover:bg-surface-hover dark:hover:text-foreground-1",
+                "cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/30",
+              )}
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+
+          <div className={cn("flex items-start gap-3.5", showCloseButton && "pr-8", headerClassName)}>
             {Icon && (
-              <div
+              <span
                 className={cn(
-                  "inline-flex items-center justify-center rounded-xl",
-                  iconBgColor === "transparent" ? "" : "w-10 h-10",
-                  iconBgColor,
+                  "inline-flex shrink-0 items-center justify-center",
+                  hasBadge && "h-10 w-10 rounded-full",
+                  hasBadge ? iconBgColor : "",
                   iconColor.includes("text-") ? "" : iconColor,
-                  "cursor-default shrink-0"
                 )}
               >
                 <Icon
-                  className={cn(
-                    "h-6 w-6",
-                    iconColor.includes("text-") ? iconColor : "text-primary"
-                  )}
+                  className={cn("h-5 w-5", iconColor.includes("text-") ? iconColor : "text-primary")}
+                  aria-hidden="true"
                 />
-              </div>
+              </span>
             )}
-            <span>{title}</span>
-          </AlertDialogTitle>
-          <AlertDialogDescription className={cn("text-sm py-1 text-foreground-3 dark:text-foreground-2 cursor-default", !description && "sr-only")}>
-            {description || title}
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter className={cn("flex-col-reverse sm:flex-row gap-2 sm:gap-2 sm:justify-end", footerClassName)}>
-          {cancelTitle !== null && (
-            <AlertDialogCancel
-              onClick={handleCancel}
-              className={cn("rounded-full h-11 px-6 border-border bg-surface-hover hover:bg-surface-active text-foreground-1 font-medium cursor-pointer", cancelClassName)}
-            >
-              {cancelTitle || `Cancel`}
-            </AlertDialogCancel>
-          )}
-          <AlertDialogAction
-            onClick={handleConfirm}
-            disabled={isConfirmDisabled}
-            aria-busy={confirmBusy || undefined}
-            className={cn(
-              "rounded-full h-11 px-6 font-semibold cursor-pointer",
-              isDestructive
-                ? "bg-destructive hover:bg-destructive/90 text-white"
-                : "bg-primary hover:bg-primary-hover text-white",
-              confirmClassName
+            <div className="min-w-0 flex-1">
+              <AlertDialog.Title className={modalTitleCompact}>{title}</AlertDialog.Title>
+              <AlertDialog.Description asChild>
+                {description ? (
+                  <div className={cn(modalBody, "mt-2")}>{description}</div>
+                ) : (
+                  <span className="sr-only">{title}</span>
+                )}
+              </AlertDialog.Description>
+            </div>
+          </div>
+
+          <div className={cn("mt-7", modalFooterRowRight, footerClassName)}>
+            {cancelTitle !== null && (
+              <AlertDialog.Cancel asChild>
+                <button
+                  type="button"
+                  onClick={handleCancel}
+                  className={cn(modalCancel, cancelClassName)}
+                >
+                  {cancelTitle || "Cancel"}
+                </button>
+              </AlertDialog.Cancel>
             )}
-          >
-            {confirmBusy ? <Spinner size="sm" color="white" /> : null}
-            {confirmTitle || `Confirm`}
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+            <AlertDialog.Action asChild>
+              <button
+                type="button"
+                onClick={handleConfirm}
+                disabled={isConfirmDisabled}
+                aria-busy={confirmBusy || undefined}
+                className={cn(confirmPill, confirmClassName)}
+              >
+                {confirmBusy ? (
+                  <Spinner size="sm" color="white" />
+                ) : (
+                  <span>{confirmTitle || "Confirm"}</span>
+                )}
+              </button>
+            </AlertDialog.Action>
+          </div>
+        </AlertDialog.Content>
+      </AlertDialog.Portal>
+    </AlertDialog.Root>
   );
 };
 

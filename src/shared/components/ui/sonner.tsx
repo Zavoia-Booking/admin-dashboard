@@ -4,15 +4,16 @@ const Toaster = ({ ...props }: ToasterProps) => {
   return (
     <Sonner
       theme="light"
-      richColors
+      closeButton
       className="toaster group"
       toastOptions={{
         className: "cursor-default",
       }}
       style={
         {
-          "--normal-bg": "var(--popover)",
-          "--normal-text": "var(--popover-foreground)",
+          "--width": "min(320px, calc(100vw - 32px))",
+          "--normal-bg": "var(--surface)",
+          "--normal-text": "var(--text-primary)",
           "--normal-border": "var(--border)",
         } as React.CSSProperties
       }

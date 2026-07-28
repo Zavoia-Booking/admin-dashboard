@@ -15,6 +15,8 @@ const initialState: SupportState = {
   isSendingMessage: false,
   isClosing: false,
   error: null,
+  listError: null,
+  detailError: null,
 };
 
 export const SupportReducer: Reducer<SupportState, any> = (
@@ -27,19 +29,19 @@ export const SupportReducer: Reducer<SupportState, any> = (
 
     // List tickets
     case getType(actions.listTicketsAction.request):
-      return { ...state, isLoading: true, error: null };
+      return { ...state, isLoading: true, listError: null };
     case getType(actions.listTicketsAction.success):
-      return { ...state, isLoading: false, tickets: action.payload, error: null };
+      return { ...state, isLoading: false, tickets: action.payload, listError: null };
     case getType(actions.listTicketsAction.failure):
-      return { ...state, isLoading: false, error: action.payload.message };
+      return { ...state, isLoading: false, listError: action.payload.message };
 
     // Get ticket by ID
     case getType(actions.getTicketByIdAction.request):
-      return { ...state, isFetchingTicket: true, error: null };
+      return { ...state, isFetchingTicket: true, detailError: null };
     case getType(actions.getTicketByIdAction.success):
-      return { ...state, isFetchingTicket: false, currentTicket: action.payload, error: null };
+      return { ...state, isFetchingTicket: false, currentTicket: action.payload, detailError: null };
     case getType(actions.getTicketByIdAction.failure):
-      return { ...state, isFetchingTicket: false, error: action.payload.message };
+      return { ...state, isFetchingTicket: false, detailError: action.payload.message };
 
     // Create ticket
     case getType(actions.createTicketAction.request):
@@ -76,7 +78,7 @@ export const SupportReducer: Reducer<SupportState, any> = (
 
     // Clear
     case getType(actions.clearCurrentTicketAction):
-      return { ...state, currentTicket: null, error: null };
+      return { ...state, currentTicket: null, error: null, detailError: null };
 
     default:
       return state;

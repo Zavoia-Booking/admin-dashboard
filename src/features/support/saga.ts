@@ -1,4 +1,4 @@
-import { takeLatest, call, put, all } from "redux-saga/effects";
+import { takeLatest, call, put, all, select } from "redux-saga/effects";
 import {
   listTicketsAction,
   getTicketByIdAction,
@@ -18,14 +18,23 @@ import type { ActionType } from "typesafe-actions";
 import { toast } from "sonner";
 import { getErrorMessage } from "../../shared/utils/error";
 import i18n from "../../shared/lib/i18n";
+import type { RootState } from "../../app/providers/store";
 
-function* handleListTickets() {
+function* handleListTickets(): Generator<any, void, any> {
   try {
     const response: SupportApiResponse<SupportTicket[]> = yield call(listTicketsApi);
     yield put(listTicketsAction.success(response.data));
   } catch (error: unknown) {
     const message = getErrorMessage(error);
     yield put(listTicketsAction.failure({ message }));
+    // With retained tickets the list stays visible, so a toast is the feedback;
+    // on an empty list the page renders an ErrorState with retry instead.
+    const hasRetainedTickets: boolean = yield select(
+      (state: RootState) => state.support.tickets.length > 0,
+    );
+    if (hasRetainedTickets) {
+      toast.error(message);
+    }
   }
 }
 

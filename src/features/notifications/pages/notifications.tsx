@@ -1,11 +1,12 @@
 import { useEffect, useCallback, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
-import { Bell, CheckCheck, Loader2, Trash2 } from "lucide-react";
+import { Bell, CheckCheck, Trash2 } from "lucide-react";
 import { AppLayout } from "../../../shared/components/layouts/app-layout";
 import { Button } from "../../../shared/components/ui/button";
 import { Skeleton } from "../../../shared/components/ui/skeleton";
 import { EmptyState } from "../../../shared/components/common/EmptyState";
+import { ErrorState } from "../../../shared/components/common/ErrorState";
 import ConfirmDialog from "../../../shared/components/common/ConfirmDialog";
 import { NotificationItem } from "../components/NotificationItem";
 import {
@@ -77,6 +78,7 @@ export default function NotificationsPage() {
     isMarkingAllRead,
     isDeleting,
     hasMore,
+    error,
   } = useSelector((state: RootState) => state.notifications);
 
   const unreadCount = useSelector(
@@ -140,15 +142,11 @@ export default function NotificationsPage() {
               variant="outline"
               size="sm"
               onClick={() => setShowDeleteConfirm(true)}
-              disabled={isDeleting}
+              loading={isDeleting}
               className="font-medium hover:text-destructive hover:border-destructive/40 hover:bg-destructive/5"
             >
-              {isDeleting ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Trash2 className="mr-2 h-4 w-4" />
-              )}
-              {isDeleting ? t("deleting") : t("deleteAllLoaded")}
+              <Trash2 className="mr-2 h-4 w-4" />
+              {t("deleteAllLoaded")}
             </Button>
 
             {hasUnread && (
@@ -156,14 +154,10 @@ export default function NotificationsPage() {
                 variant="outline"
                 size="sm"
                 onClick={handleMarkAllRead}
-                disabled={isMarkingAllRead}
+                loading={isMarkingAllRead}
                 className="font-medium hover:text-primary hover:border-primary/40 hover:bg-primary/5"
               >
-                {isMarkingAllRead ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <CheckCheck className="mr-2 h-4 w-4" />
-                )}
+                <CheckCheck className="mr-2 h-4 w-4" />
                 {t("markAllAsRead")}
               </Button>
             )}
@@ -173,6 +167,14 @@ export default function NotificationsPage() {
         {/* Notifications list */}
         {isLoading ? (
           <NotificationsSkeleton />
+        ) : error && notifications.length === 0 ? (
+          <ErrorState
+            variant="page"
+            body={error}
+            onRetry={() =>
+              dispatch(listNotificationsAction.request({ offset: 0, limit: LIMIT }))
+            }
+          />
         ) : notifications.length === 0 ? (
           <EmptyState
             icon={Bell}
@@ -204,12 +206,9 @@ export default function NotificationsPage() {
                   size="sm"
                   className="font-medium border-border-strong hover:bg-surface-hover hover:text-foreground-1 transition-colors"
                   onClick={handleLoadMore}
-                  disabled={isLoadingMore}
+                  loading={isLoadingMore}
                 >
-                  {isLoadingMore && (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  )}
-                  {isLoadingMore ? t("loadingMore") : t("loadMore")}
+                  {t("loadMore")}
                 </Button>
               </div>
             )}

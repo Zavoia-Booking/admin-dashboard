@@ -251,8 +251,7 @@ export default function LinkBusinessAccountPage() {
               type="submit"
               disabled={submitting}
             >
-              {submitting ? <Spinner size="sm" color="white" /> : null}
-              <span>{submitting ? t('linkBusiness.confirming') : t('linkBusiness.confirmSubmit')}</span>
+              {submitting ? <Spinner size="sm" color="white" /> : <span>{t('linkBusiness.confirmSubmit')}</span>}
             </Button>
             {info.googleLinked && (
               <div className="mt-4 space-y-4">

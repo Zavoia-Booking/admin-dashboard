@@ -69,6 +69,10 @@ export const getLocationContextLoading = createSelector(getCalendarViewStateSele
     return state.locationContextLoading;
 })
 
+export const getLocationContextError = createSelector(getCalendarViewStateSelector, (state) => {
+    return state.locationContextError;
+})
+
 /** Staff members assigned to the selected location */
 export const getLocationStaff = createSelector(getLocationContext, (context) => {
     return context?.staff ?? [];
@@ -113,6 +117,10 @@ export const getSummaryLoading = createSelector(getCalendarViewStateSelector, (s
     return state.summaryLoading;
 })
 
+export const getSummaryError = createSelector(getCalendarViewStateSelector, (state) => {
+    return state.summaryError;
+})
+
 /** Day data (appointments + blocks for the selected day) */
 export const getDayData = createSelector(getCalendarViewStateSelector, (state) => {
     return state.dayData;
@@ -120,6 +128,10 @@ export const getDayData = createSelector(getCalendarViewStateSelector, (state) =
 
 export const getDayDataLoading = createSelector(getCalendarViewStateSelector, (state) => {
     return state.dayDataLoading;
+})
+
+export const getDayDataError = createSelector(getCalendarViewStateSelector, (state) => {
+    return state.dayDataError;
 })
 
 /** The selected date for navigation */
@@ -271,6 +283,10 @@ export const getWeekData = createSelector(getCalendarViewStateSelector, (state) 
 
 export const getWeekDataLoading = createSelector(getCalendarViewStateSelector, (state) => {
     return state.weekDataLoading;
+})
+
+export const getWeekDataError = createSelector(getCalendarViewStateSelector, (state) => {
+    return state.weekDataError;
 })
 
 /** Calendar sidebar open state (for mobile) */

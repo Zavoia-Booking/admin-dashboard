@@ -11,7 +11,8 @@ import AddLocationSlider from '../components/AddLocationSlider';
 import EditLocationSlider from '../components/EditLocationSlider';
 import { LocationFilters } from '../components/LocationFilters';
 import type { LocationType } from '../../../shared/types/location';
-import { getAllLocationsSelector, getLocationLoadingSelector } from '../selectors';
+import { getAllLocationsSelector, getLocationListErrorSelector, getLocationLoadingSelector } from '../selectors';
+import { ErrorState } from '../../../shared/components/common/ErrorState';
 import { ItemCard, type ItemCardMetadata, type ItemCardBadge } from '../../../shared/components/common/ItemCard';
 import { highlightMatches as highlight } from '../../../shared/utils/highlight';
 import LocationsListSkeleton from '../components/LocationsListSkeleton';
@@ -25,6 +26,7 @@ export default function LocationsPage() {
 
   const allLocations: LocationType[] = useSelector(getAllLocationsSelector);
   const isLocationsLoading = useSelector(getLocationLoadingSelector);
+  const locationsListError = useSelector(getLocationListErrorSelector);
   const user = useSelector(selectCurrentUser);
 
   const [isCreateSliderOpen, setIsCreateSliderOpen] = useState(false);
@@ -89,6 +91,12 @@ export default function LocationsPage() {
             {/* While locations are loading, show full-page skeleton (including filters) */}
             {isLocationsLoading ? (
               <LocationsListSkeleton />
+            ) : locationsListError && allLocations.length === 0 ? (
+              <ErrorState
+                variant="page"
+                body={locationsListError}
+                onRetry={() => dispatch(listLocationsAction.request())}
+              />
             ) : (
               <>
                 {/* Location Filters */}

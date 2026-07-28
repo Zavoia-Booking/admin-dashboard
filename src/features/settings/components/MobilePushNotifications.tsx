@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Switch } from '../../../shared/components/ui/switch';
-import { translateMessageCode } from '../../../shared/utils/error';
+import { getErrorMessage } from '../../../shared/utils/error';
 import {
   getMobilePushPreference,
   updateMobilePushPreference,
@@ -67,12 +67,7 @@ const MobilePushNotifications: React.FC = () => {
       toast.success(t('profile.mobilePush.saved'));
     } catch (error: any) {
       setPreference(previous);
-      const message = error?.response?.data?.message || error?.message;
-      toast.error(
-        message
-          ? translateMessageCode(Array.isArray(message) ? message[0] : message)
-          : t('profile.mobilePush.saveFailed'),
-      );
+      toast.error(getErrorMessage(error, t('profile.mobilePush.saveFailed')));
     } finally {
       setSaving(false);
     }

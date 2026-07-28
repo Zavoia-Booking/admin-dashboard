@@ -1,10 +1,9 @@
 import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
-import { AlertTriangle, RotateCcw } from "lucide-react";
 import { AppLayout } from "../../../shared/components/layouts/app-layout";
 import BusinessSetupGate from "../../../shared/components/guards/BusinessSetupGate";
-import { Button } from "../../../shared/components/ui/button";
+import { ErrorState } from "../../../shared/components/common/ErrorState";
 import { Spinner } from "../../../shared/components/ui/spinner";
 import { selectBusinessId } from "../../auth/selectors";
 import { fetchWebsiteBuilderAction } from "../actions";
@@ -58,18 +57,12 @@ export default function WebsiteLegacyPage() {
     return (
       <AppLayout contentClassName="md:max-w-[1600px]">
         <BusinessSetupGate>
-          <div className="flex h-[calc(100vh-200px)] flex-col items-center justify-center gap-4 px-4 text-center">
-            <AlertTriangle className="h-8 w-8 text-amber-500" aria-hidden />
-            <p className="text-sm text-muted-foreground">{t("page.loadError")}</p>
-            <Button
-              variant="outline"
-              onClick={() => dispatch(fetchWebsiteBuilderAction.request())}
-              className="gap-1.5"
-            >
-              <RotateCcw className="h-4 w-4" />
-              {t("page.retry")}
-            </Button>
-          </div>
+          <ErrorState
+            variant="page"
+            body={t("page.loadError")}
+            onRetry={() => dispatch(fetchWebsiteBuilderAction.request())}
+            retryLabel={t("page.retry")}
+          />
         </BusinessSetupGate>
       </AppLayout>
     );
@@ -79,9 +72,12 @@ export default function WebsiteLegacyPage() {
     return (
       <AppLayout contentClassName="md:max-w-[1600px]">
         <BusinessSetupGate>
-          <div className="flex h-[calc(100vh-200px)] items-center justify-center">
-            <p className="text-muted-foreground">{t("page.loadError")}</p>
-          </div>
+          <ErrorState
+            variant="page"
+            body={t("page.loadError")}
+            onRetry={() => dispatch(fetchWebsiteBuilderAction.request())}
+            retryLabel={t("page.retry")}
+          />
         </BusinessSetupGate>
       </AppLayout>
     );

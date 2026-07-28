@@ -25,6 +25,21 @@
   "confirmDialog": {
     "defaultTitle": "Ești sigur?"
   },
+  "errorState": {
+    "title": "Ceva nu a funcționat",
+    "body": "Nu am putut încărca datele. Verifică conexiunea.",
+    "retry": "Încearcă din nou",
+    "crashBody": "A apărut o eroare neașteptată. Reîncarcă pagina pentru a continua.",
+    "reload": "Reîncarcă pagina",
+    "updateTitle": "Este disponibilă o versiune nouă",
+    "updateBody": "Reîncarcă pagina pentru a continua."
+  },
+  "locationSelector": {
+    "placeholder": "Selectează o locație",
+    "loading": "Se încarcă locațiile…",
+    "none": "Nicio locație",
+    "group": "Locație"
+  },
   "selection": {
     "select": "Selectează {{name}}",
     "deselect": "Deselectează {{name}}"
@@ -99,7 +114,7 @@
     "blockerEyebrowOwner": "Abonament · Expirat",
     "blockerEyebrowMember": "Acces · Limitat",
     "blockerOwnerTitle": "Abonamentul tău a expirat",
-    "blockerOwnerDescription": "Reînnoiește abonamentul pentru a recăpăta acces complet la dashboard și a continua să îți administrezi afacerea.",
+    "blockerOwnerDescription": "Reînnoiește abonamentul ca să ai din nou acces complet la dashboard și să continui să-ți administrezi afacerea.",
     "blockerOwnerCta": "Reînnoiește abonamentul",
     "blockerOwnerSecondaryCta": "Mergi la cont",
     "blockerMemberTitle": "Acces limitat",
@@ -203,23 +218,23 @@
   "description": "Descriere",
   "deleteConfirmDialog": {
     "loading": {
-      "title": "Verificare dependențe",
+      "title": "Un moment",
       "description": "Se verifică dacă acest {{resourceType}} poate fi șters..."
     },
     "canDelete": {
       "title": "Ștergi \"{{resourceName}}\"?",
-      "description": "Acest {{resourceType}} va fi șters permanent. Nu poți anula această acțiune.",
+      "description": "Acest {{resourceType}} va fi șters definitiv. Nu îl vei putea recupera.",
       "cancel": "Anulează",
       "delete": "Șterge {{resourceType}}",
       "deleting": "Se șterge..."
     },
     "cannotDelete": {
-      "title": "{{resourceType}} este activ",
+      "title": "{{resourceType}} este folosit",
       "descriptionPrefix": "Nu poți șterge",
-      "descriptionSuffix": "deoarece este folosit în prezent de:",
-      "footer": "Te rugăm să elimini aceste asocieri înainte de a șterge {{resourceType}}.",
+      "descriptionSuffix": "deoarece este asociat cu:",
+      "footer": "Elimină mai întâi aceste asocieri, apoi încearcă din nou.",
       "manageAssignments": "Vezi asocierile",
-      "cancel": "Anulează"
+      "cancel": "Am înțeles"
     },
     "dependencies": {
       "user": "utilizator",

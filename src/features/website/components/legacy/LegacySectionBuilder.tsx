@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { toast } from "sonner";
+import { showUndoToast } from "../../../../shared/components/ui/undo-toast";
 import {
   DndContext,
   closestCenter,
@@ -79,42 +79,6 @@ const PREVIEW_DEVICE_PREF_KEY = "zavoia:website-builder-preview-device";
 type PreviewScope = "page" | "section";
 type PreviewDevice = "desktop" | "tablet" | "mobile";
 type WorkspacePane = "editor" | "preview";
-
-interface UndoToastOptions {
-  title: string;
-  description?: string;
-  undoLabel: string;
-  onUndo: () => void;
-}
-
-const showUndoToast = ({ title, description, undoLabel, onUndo }: UndoToastOptions) => {
-  toast.custom(
-    (toastId) => (
-      <div className="flex w-[min(420px,calc(100vw-2rem))] items-center justify-between gap-5 rounded-md border border-border bg-surface px-4 py-3 shadow-sm">
-        <div className="min-w-0">
-          <p className="truncate text-sm font-medium text-foreground-1">{title}</p>
-          {description ? (
-            <p className="mt-1 truncate text-xs text-foreground-3 dark:text-foreground-2">{description}</p>
-          ) : null}
-        </div>
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          rounded="default"
-          className="h-8 shrink-0 px-3 text-xs font-semibold"
-          onClick={() => {
-            onUndo();
-            toast.dismiss(toastId);
-          }}
-        >
-          {undoLabel}
-        </Button>
-      </div>
-    ),
-    { duration: 5000 },
-  );
-};
 
 interface LegacySectionBuilderProps {
   /** Workspace request (publish-blocker chips) to open/scroll to a section; nonce re-fires it. */

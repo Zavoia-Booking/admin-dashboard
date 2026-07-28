@@ -2,6 +2,7 @@ import type { RootState } from "../../app/providers/store.ts";
 
 // Loading states
 export const getIsLoadingSelector = (state: RootState) => state.assignments.isLoading;
+export const getLoadErrorSelector = (state: RootState) => state.assignments.loadError;
 export const getIsSavingSelector = (state: RootState) => state.assignments.isSaving;
 
 // Location selectors

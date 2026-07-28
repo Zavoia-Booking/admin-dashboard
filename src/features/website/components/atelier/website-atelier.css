@@ -80,27 +80,9 @@ body:has(.website-atelier-shell) [data-sonner-toaster] {
   font-family: var(--font-sans);
 }
 
-body:has(.website-atelier-shell) [data-sonner-toast][data-styled="true"] {
-  --website-toast-tone: var(--primary);
-  align-items: flex-start;
-  gap: 8px;
-  border: 1px solid var(--border) !important;
-  border-radius: 10px;
-  background: var(--surface) !important;
-  padding: 9px 10px;
-  color: var(--text-primary) !important;
-  box-shadow: 0 6px 18px rgb(28 28 26 / 12%);
-  transition:
-    transform 180ms ease-out,
-    opacity 160ms ease-out,
-    box-shadow 160ms ease-out;
-}
-
-body:has(.website-atelier-shell)
-  [data-sonner-toast][data-styled="true"]:has([data-close-button]) {
-  padding-right: 38px;
-}
-
+/* The card, icon, action, and close-button styling now lives in the app-wide skin
+   (src/shared/styles/toast.css); only builder-specific lane placement and the
+   one-line Undo row remain scoped here. */
 body:has(.website-atelier-shell) [data-sonner-toast].website-toast--undo {
   width: fit-content !important;
   max-width: min(320px, calc(100vw - 32px));
@@ -108,88 +90,6 @@ body:has(.website-atelier-shell) [data-sonner-toast].website-toast--undo {
 
 body:has(.website-atelier-shell) [data-sonner-toast].website-toast--undo [data-content] {
   flex: 0 1 auto;
-}
-
-body:has(.website-atelier-shell) [data-sonner-toast][data-type="success"] {
-  --website-toast-tone: var(--success);
-}
-
-body:has(.website-atelier-shell) [data-sonner-toast][data-type="info"] {
-  --website-toast-tone: var(--info);
-}
-
-body:has(.website-atelier-shell) [data-sonner-toast][data-type="warning"] {
-  --website-toast-tone: var(--warning);
-}
-
-body:has(.website-atelier-shell) [data-sonner-toast][data-type="error"] {
-  --website-toast-tone: var(--error);
-}
-
-body:has(.website-atelier-shell) [data-sonner-toast] [data-icon] {
-  display: flex;
-  width: 16px !important;
-  height: 16px !important;
-  margin: 0 !important;
-  flex: none;
-  align-items: center;
-  justify-content: center;
-  background: transparent;
-  color: var(--website-toast-tone);
-}
-
-body:has(.website-atelier-shell) [data-sonner-toast] [data-icon] svg {
-  width: 16px;
-  height: 16px;
-  margin: 0 !important;
-}
-
-body:has(.website-atelier-shell) [data-sonner-toast] [data-content] {
-  min-width: 0;
-  flex: 1;
-  gap: 1px;
-  padding-block: 1px;
-}
-
-body:has(.website-atelier-shell) [data-sonner-toast] [data-title] {
-  color: var(--text-primary);
-  font-size: 12.5px;
-  font-weight: 600;
-  line-height: 1.4;
-}
-
-body:has(.website-atelier-shell) [data-sonner-toast] [data-description] {
-  color: var(--text-secondary) !important;
-  font-size: 12px;
-  line-height: 1.35;
-}
-
-body:has(.website-atelier-shell) [data-sonner-toast] [data-action] {
-  position: relative;
-  min-height: 26px;
-  height: 26px;
-  align-self: center;
-  margin: 0 0 0 auto !important;
-  border: 0 !important;
-  border-radius: 0;
-  background: transparent !important;
-  padding-inline: 2px;
-  color: var(--website-toast-tone) !important;
-  font-size: 12px;
-  font-weight: 600;
-  text-decoration: underline;
-  text-decoration-color: color-mix(in srgb, var(--website-toast-tone) 46%, transparent);
-  text-decoration-thickness: 1px;
-  text-underline-offset: 3px;
-  transition:
-    color 160ms ease,
-    transform 160ms ease;
-}
-
-body:has(.website-atelier-shell) [data-sonner-toast] [data-action]::after {
-  position: absolute;
-  inset: -9px -7px;
-  content: "";
 }
 
 /* Undo rows are deliberately one line: align the action with the message rather than
@@ -200,53 +100,13 @@ body:has(.website-atelier-shell)
   height: 18px;
   align-self: flex-start;
   margin: 1px 0 0 auto !important;
-  font-size: 12.5px;
+  font-size: 13px;
   line-height: 18px;
 }
 
 body:has(.website-atelier-shell)
   [data-sonner-toast].website-toast--undo [data-action]::after {
   inset: -13px -7px;
-}
-
-body:has(.website-atelier-shell) [data-sonner-toast] [data-action]:hover {
-  color: var(--text-primary) !important;
-  text-decoration-color: currentcolor;
-}
-
-body:has(.website-atelier-shell) [data-sonner-toast] [data-action]:active {
-  transform: translateY(1px);
-}
-
-body:has(.website-atelier-shell) [data-sonner-toast] [data-action]:focus-visible,
-body:has(.website-atelier-shell) [data-sonner-toast] [data-close-button]:focus-visible {
-  outline: 2px solid var(--border-focus);
-  outline-offset: 2px;
-  box-shadow: none;
-}
-
-body:has(.website-atelier-shell) [data-sonner-toast] [data-close-button] {
-  top: 7px;
-  right: 7px;
-  left: auto;
-  width: 24px;
-  height: 24px;
-  transform: none;
-  border-color: transparent !important;
-  background: transparent !important;
-  color: var(--text-secondary) !important;
-}
-
-body:has(.website-atelier-shell) [data-sonner-toast] [data-close-button]::after {
-  position: absolute;
-  inset: -10px;
-  content: "";
-}
-
-body:has(.website-atelier-shell) [data-sonner-toast] [data-close-button]:hover {
-  border-color: var(--border) !important;
-  background: var(--surface-hover) !important;
-  color: var(--text-primary) !important;
 }
 
 @media (max-width: 919px) {
@@ -257,8 +117,7 @@ body:has(.website-atelier-shell) [data-sonner-toast] [data-close-button]:hover {
 }
 
 @media (max-width: 767px) {
-  /* Sonner's default mobile right positioning works for the dashboard, but the compact
-     Website Builder preview reads better with its notification lane centred. */
+  /* Match the app-wide mobile lane while keeping Builder notifications below its header. */
   body:has(.website-atelier-shell) [data-sonner-toaster][data-x-position="right"] {
     right: 0 !important;
     left: 0 !important;
@@ -269,12 +128,14 @@ body:has(.website-atelier-shell) [data-sonner-toast] [data-close-button]:hover {
   body:has(.website-atelier-shell)
     [data-sonner-toaster][data-x-position="right"] [data-sonner-toast] {
     right: auto !important;
-    left: 50% !important;
-    translate: -50% 0;
+    left: 16px !important;
+    width: calc(100% - 32px) !important;
+    translate: 0 0;
   }
 
   body:has(.website-atelier-shell) [data-sonner-toast].website-toast--undo {
-    width: fit-content !important;
+    width: calc(100% - 32px) !important;
+    max-width: none;
   }
 }
 
@@ -361,6 +222,11 @@ body:has(.website-atelier-shell) [data-sonner-toast] [data-close-button]:hover {
   place-items: center;
   padding: 24px;
   background: var(--atelier-stage);
+}
+
+.website-atelier-state--start {
+  place-items: start;
+  padding: clamp(32px, 8vh, 72px) clamp(20px, 4vw, 48px);
 }
 
 .website-atelier-state-card {
@@ -1651,7 +1517,7 @@ body:has(.website-atelier-shell) [data-sonner-toast] [data-close-button]:hover {
 }
 
 .atelier-unsaved-dialog {
-  max-width: 420px !important;
+  max-width: 520px !important;
   max-height: calc(100dvh - 32px);
   gap: 0 !important;
   overflow-y: auto;
@@ -1766,8 +1632,7 @@ body:has(.website-atelier-shell) [data-sonner-toast] [data-close-button]:hover {
 }
 
 .atelier-unsaved-dialog__footer {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  display: flex;
   align-items: stretch;
   gap: 8px;
   border-top: 1px solid var(--atelier-border-soft);
@@ -1782,16 +1647,17 @@ body:has(.website-atelier-shell) [data-sonner-toast] [data-close-button]:hover {
   font-size: 12.5px;
   font-weight: 600;
   line-height: 1.2;
-  white-space: normal;
+  white-space: nowrap;
 }
 
 .atelier-unsaved-dialog .atelier-unsaved-dialog__danger {
-  width: 100%;
+  width: auto;
+  margin-right: auto;
   padding-inline: 8px;
 }
 
 .atelier-unsaved-dialog .atelier-unsaved-dialog__button {
-  width: 100%;
+  width: auto;
   padding-inline: 10px;
 }
 
@@ -1841,15 +1707,27 @@ body:has(.website-atelier-shell) [data-sonner-toast] [data-close-button]:hover {
   }
 
   .atelier-unsaved-dialog__footer {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    display: flex;
+    flex-direction: column;
     padding: 13px 16px calc(15px + env(safe-area-inset-bottom));
   }
 
   .atelier-unsaved-dialog .atelier-unsaved-dialog__danger {
-    grid-column: 1 / -1;
-    justify-self: center;
-    width: auto;
-    min-width: 44px;
+    order: 3;
+    width: 100%;
+    margin-right: 0;
+  }
+
+  .atelier-unsaved-dialog .atelier-unsaved-dialog__button {
+    width: 100%;
+  }
+
+  .atelier-unsaved-dialog .atelier-unsaved-dialog__button--secondary {
+    order: 2;
+  }
+
+  .atelier-unsaved-dialog .atelier-unsaved-dialog__button--primary {
+    order: 1;
   }
 }
 
@@ -1858,14 +1736,6 @@ body:has(.website-atelier-shell) [data-sonner-toast] [data-close-button]:hover {
     margin-left: 0;
   }
 
-  .atelier-unsaved-dialog__footer {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .atelier-unsaved-dialog .atelier-unsaved-dialog__danger {
-    grid-column: auto;
-    width: 100%;
-  }
 }
 
 @media (min-width: 920px) {

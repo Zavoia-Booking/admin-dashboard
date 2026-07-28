@@ -6,7 +6,6 @@ import {
   ResponsiveTabs,
   type ResponsiveTabItem,
 } from "../../../shared/components/ui/responsive-tabs";
-import { AlertTriangle } from "lucide-react";
 import type {
   Business,
   LocationWithAssignments,
@@ -386,13 +385,7 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
         confirmTitle={t("configuration.unsavedChanges.leave")}
         cancelTitle={t("configuration.unsavedChanges.cancel")}
         variant="destructive"
-        icon={AlertTriangle}
-        iconBgColor="transparent"
-        iconColor="text-destructive"
         showCloseButton
-        footerClassName=""
-        cancelClassName="w-auto md:w-44"
-        confirmClassName="w-auto md:w-32"
       />
     </>
   );

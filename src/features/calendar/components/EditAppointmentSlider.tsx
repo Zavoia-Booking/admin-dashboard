@@ -48,7 +48,7 @@ import {
   modalBody,
   modalBodyMuted,
   modalFooterRowRight,
-  modalSecondary,
+  modalCancel,
   modalDestructive,
 } from "../../../shared/components/ui/modal-tokens";
 import {
@@ -1702,7 +1702,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                   setNotificationMethod("both");
                   setCancelDialogOpen(false);
                 }}
-                className={modalSecondary}
+                className={modalCancel}
               >
                 {t("page.appointments.back")}
               </button>

@@ -11,6 +11,7 @@ import { getStatusBadge } from '../../calendar/components/utils';
 import { formatActivityTimelineDateTime } from '../../calendar/timezone';
 import { getCalendarTimezone } from '../../calendar/selectors';
 import { fetchAllCustomerHistoryApi, fetchCustomerHistoryApi } from '../api';
+import { getErrorMessage } from '../../../shared/utils/error';
 import { buildCustomerHistoryPdfBlob } from '../buildCustomerHistoryPdf';
 import { useFormatPrice } from '../../../shared/hooks/useFormatPrice';
 import { formatDuration } from '../../../shared/utils/formatDuration';
@@ -208,10 +209,7 @@ const CustomerHistorySlider: React.FC<CustomerHistorySliderProps> = ({
       link.remove();
       URL.revokeObjectURL(pdfUrl);
     } catch (err) {
-      const description =
-        err instanceof Error && err.message
-          ? err.message
-          : t('details.history.downloadFailedDescription');
+      const description = getErrorMessage(err, t('details.history.downloadFailedDescription'));
       toast.error(t('details.history.downloadFailed'), { description });
     } finally {
       setIsDownloadingHistory(false);

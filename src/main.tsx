@@ -6,6 +6,7 @@ import App from './App.tsx'
 import { Provider } from 'react-redux'
 import { store } from './app/providers/store.ts'
 import { GoogleOAuthProvider } from '@react-oauth/google'
+import { AppErrorBoundary } from './shared/components/common/AppErrorBoundary.tsx'
 import './shared/lib/i18n'
 
 // @capacitor-community/safe-area v7 auto-enables when viewport-fit=cover is set in index.html.
@@ -22,9 +23,11 @@ import './shared/lib/i18n'
 const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
 
 createRoot(document.getElementById('root')!).render(
-  <Provider store={store}>
-    <GoogleOAuthProvider clientId={googleClientId}>
-      <App />
-    </GoogleOAuthProvider>
-  </Provider>
+  <AppErrorBoundary>
+    <Provider store={store}>
+      <GoogleOAuthProvider clientId={googleClientId}>
+        <App />
+      </GoogleOAuthProvider>
+    </Provider>
+  </AppErrorBoundary>
 )

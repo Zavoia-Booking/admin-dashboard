@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { Card, CardContent } from '../../../../shared/components/ui/card';
 import { Switch } from '../../../../shared/components/ui/switch';
 import { updateMarketplaceVisibility } from '../api';
-import { translateMessageCode } from '../../../../shared/utils/error';
+import { getErrorMessage } from '../../../../shared/utils/error';
 
 export interface MarketplaceVisibilitySectionProps {
   hidden: boolean;
@@ -28,10 +28,7 @@ export function MarketplaceVisibilitySection({ hidden, onChanged }: MarketplaceV
       onChanged(response.hiddenFromMarketplace);
       toast.success(checked ? t('visibility.hiddenToast') : t('visibility.visibleToast'));
     } catch (error: any) {
-      const message = error?.response?.data?.message || error?.message || t('visibility.updateFailed');
-      const translatedMessage = Array.isArray(message)
-        ? translateMessageCode(message[0])
-        : translateMessageCode(message);
+      const translatedMessage = getErrorMessage(error, t('visibility.updateFailed'));
       toast.error(translatedMessage);
     } finally {
       setIsUpdating(false);

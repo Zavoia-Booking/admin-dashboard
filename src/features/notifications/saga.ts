@@ -1,4 +1,4 @@
-import { all, call, put, takeLatest } from "redux-saga/effects";
+import { all, call, put, select, takeLatest } from "redux-saga/effects";
 import {
   listNotificationsAction,
   loadMoreNotificationsAction,
@@ -18,6 +18,7 @@ import type { ActionType } from "typesafe-actions";
 import { toast } from "sonner";
 import { getErrorMessage } from "../../shared/utils/error";
 import type { ListNotificationsResponse, MarkAllReadResponse } from "./types";
+import type { RootState } from "../../app/providers/store";
 
 function* handleListNotifications(
   action: ActionType<typeof listNotificationsAction.request>
@@ -33,8 +34,15 @@ function* handleListNotifications(
     }
   } catch (error: unknown) {
     const errorMessage = getErrorMessage(error);
-    toast.error(errorMessage);
     yield put(listNotificationsAction.failure({ message: errorMessage }));
+    // With retained rows the list stays visible, so a toast is the feedback;
+    // on an empty list the page renders an ErrorState with retry instead.
+    const hasRetainedNotifications: boolean = yield select(
+      (state: RootState) => state.notifications.notifications.length > 0,
+    );
+    if (hasRetainedNotifications) {
+      toast.error(errorMessage);
+    }
   }
 }
 
