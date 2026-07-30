@@ -3170,6 +3170,14 @@ body:has(.website-atelier-shell)
     white-space: nowrap;
   }
 
+  /* The pill floats over the preview canvas, so it carries its own surface rather
+     than a token — dark mode needs the inverse plate or the ink goes white-on-white. */
+  .dark .website-atelier .atelier-mobile-preview-open {
+    background: rgb(36 35 31 / 96%);
+    box-shadow: 0 4px 12px rgb(0 0 0 / 45%);
+    color: var(--atelier-ink);
+  }
+
   /* The Atelier phone sheet presents styles as a horizontal two-card peek. The desktop
      inspector remains a compact 2-up grid; only the compact presentation becomes a rail. */
   .atelier-style-options {

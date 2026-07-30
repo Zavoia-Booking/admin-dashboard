@@ -1,7 +1,7 @@
 {
   "dataImport": {
     "title": "Import date",
-    "description": "Importă datele afacerii din fișiere CSV sau Excel pentru a-ți popula contul.",
+    "description": "Importă datele businessului din fișiere CSV sau Excel pentru a-ți popula contul.",
     "importCustomers": "Importă clienți",
     "importAppointments": "Importă programări",
     "importServices": "Importă servicii",
@@ -20,7 +20,7 @@
     },
     "deleteAccount": {
       "title": "Șterge contul",
-      "description": "Șterge definitiv contul. Vor fi anulate toate programările, revocat accesul tuturor membrilor echipei, ștearsă afacerea și anunțul din marketplace, iar toate datele vor fi pierdute pentru totdeauna.",
+      "description": "Șterge definitiv contul. Vor fi anulate toate programările, revocat accesul tuturor membrilor echipei, șters businessul și anunțul din marketplace, iar toate datele vor fi pierdute pentru totdeauna.",
       "irreversible": "Această acțiune este imediată și nu poate fi anulată.",
       "subscriptionHint": "Dacă ai un abonament activ, trebuie să îl anulezi înainte de a putea șterge contul.",
       "deleting": "Se șterge…",
@@ -48,30 +48,30 @@
     "bullets": {
       "appointments": "Anularea tuturor programărilor",
       "teamMembers": "Revocarea accesului tuturor membrilor echipei",
-      "businessData": "Ștergerea afacerii, serviciilor și locațiilor",
+      "businessData": "Ștergerea businessului, serviciilor și locațiilor",
       "marketplace": "Ștergerea anunțului din marketplace",
       "account": "Ștergerea contului tău"
     },
     "irreversibleWarning": "Acțiunea nu poate fi anulată. Toate datele vor fi pierdute pentru totdeauna.",
-    "otherAccountsHint": "Dacă acest email este folosit și ca client sau ca membru al echipei la o altă afacere, acele conturi vor fi păstrate.",
+    "otherAccountsHint": "Dacă acest email este folosit și ca client sau ca membru al echipei la un alt business, acele conturi vor fi păstrate.",
     "cancel": "Anulare",
     "deleting": "Se șterge…",
     "confirmDelete": "Șterge definitiv"
   },
   "leaveOrganisation": {
     "title": "Părăsește organizația",
-    "cardDescription": "Retrage-te din această afacere. Trebuie să anulezi sau să realoci toate programările tale active mai întâi.",
-    "cardHint": "Cere proprietarului afacerii să-ți realoce programările unui alt membru al echipei sau anulează-le tu însuți.",
+    "cardDescription": "Retrage-te din acest business. Trebuie să anulezi sau să realoci toate programările tale active mai întâi.",
+    "cardHint": "Cere proprietarului businessului să-ți realoce programările unui alt membru al echipei sau anulează-le tu însuți.",
     "confirmEyebrow": "Apartenență organizație",
     "confirmTitle": "Părăsești această organizație?",
-    "confirmMessage": "Vei pierde accesul la această afacere și la tot ce este legat de ea — programări, clienți și date despre echipă.",
+    "confirmMessage": "Vei pierde accesul la acest business și la tot ce este legat de el — programări, clienți și date despre echipă.",
     "confirmHint": "Acțiunea este definitivă. Vei avea nevoie de o nouă invitație pentru a reveni.",
     "confirmButton": "Părăsește organizația",
     "leaving": "Se părăsește…",
     "cancel": "Anulare",
     "successEyebrow": "Gata",
     "successTitle": "Ai părăsit organizația",
-    "successMessage": "Accesul tău la această afacere a fost revocat.",
+    "successMessage": "Accesul tău la acest business a fost revocat.",
     "successHint": "Te vom deconecta acum. Te poți autentifica oricând cu un alt cont sau cu o invitație nouă.",
     "successButton": "Am înțeles"
   },
@@ -80,7 +80,7 @@
     "title": "Mai ai programări active",
     "message_one": "Există 1 programare activă alocată ție. Rezolv-o înainte de a părăsi organizația.",
     "message_other": "Există {{count}} programări active alocate ție. Rezolvă-le înainte de a părăsi organizația.",
-    "hint": "Anulează programările în așteptare tu însuți sau cere proprietarului afacerii să le realoce unui alt membru al echipei.",
+    "hint": "Anulează programările în așteptare tu însuți sau cere proprietarului businessului să le realoce unui alt membru al echipei.",
     "understood": "Am înțeles"
   },
   "common": {

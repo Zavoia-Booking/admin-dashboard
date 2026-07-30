@@ -63,9 +63,12 @@
     "healthy": "Healthy",
     "high": "High",
     "available": "available",
-    "booked": "booked"
+    "booked": "booked",
+    "notMeasured": "Not measurable"
   },
   "locationCapacity": {
+    "subtitle": "Bookings at this location for today, this week and this month — the revenue they would bring in, and how much of your team's opening hours is already filled.",
+    "capacityUnavailableHelper": "Set opening hours and assign staff to this location to measure it.",
     "potential": "Potential",
     "revenueToday": "revenue today",
     "period": "Period",
@@ -83,7 +86,9 @@
     "noPotentialLine": "No revenue scheduled yet",
     "nextAppointmentLabel": "Next",
     "staffEmptyTitle": "No team members yet",
-    "staffEmptyHelper": "Invite your first member to start scheduling."
+    "staffEmptyHelper": "Invite your first member to start scheduling.",
+    "staffPending": "Pending",
+    "staffPendingHelper": "Invitation sent — waiting to be accepted"
   },
   "appointmentBreakdown": {
     "title": "Appointment Breakdown",
@@ -110,7 +115,9 @@
     "customer": "Customer",
     "staff": "Staff",
     "service": "Service",
-    "time": "Time",
+    "when": "When",
+    "today": "Today",
+    "tomorrow": "Tomorrow",
     "duration": "Duration",
     "price": "Price",
     "seeAll": "See all",

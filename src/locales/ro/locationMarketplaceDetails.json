@@ -25,8 +25,8 @@
       }
     },
     "values": {
-      "title": "Identitatea afacerii",
-      "helper": "Alege ce descrie cu adevărat afacerea ta.",
+      "title": "Identitatea businessului",
+      "helper": "Alege ce descrie cu adevărat businessul tău.",
       "subgroups": {
         "ownership": "Proprietate",
         "sustainability": "Sustenabilitate"
@@ -74,8 +74,8 @@
       "women-owned": "Deținut de femei",
       "lgbtq-owned": "Deținut LGBTQ+",
       "disability-owned": "Deținut de persoane cu dizabilități",
-      "family-business": "Afacere de familie",
-      "independent-business": "Afacere independentă",
+      "family-business": "Business de familie",
+      "independent-business": "Business independent",
       "eco-conscious": "Practici sustenabile",
       "zero-waste": "Zero deșeuri",
       "plastic-free": "Fără plastic",

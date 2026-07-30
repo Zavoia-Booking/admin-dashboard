@@ -129,6 +129,8 @@ export interface AuthState {
   status: AuthStatusEnum;
   error: string | null;
   lastRefreshAt: number | null;
+  /** When `user` was last populated from the server. Null = never / stale. */
+  lastUserFetchAt: number | null;
   isAccountLinkingModalOpen?: boolean;
   pendingLinkTxId?: string;
   pendingLinkEmail?: string | null;

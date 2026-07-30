@@ -151,7 +151,9 @@ export default function CustomersPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-2">
             {filteredCustomers.map((customer) => {
-              const displayName = `${customer.firstName} ${customer.lastName}`.trim();
+              // filter(Boolean) — lastName is null for first-name-only customers;
+              // naive interpolation would render "Test null".
+              const displayName = [customer.firstName, customer.lastName].filter(Boolean).join(' ');
 
               const thumbnail = (
                 <PersonAvatar

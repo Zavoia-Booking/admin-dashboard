@@ -136,8 +136,6 @@ const BOOKING_SETTINGS_UPDATE_KEYS = [
   'allowCustomerCancellation',
   'allowCustomerReschedule',
   'autoConfirmBookings',
-  'allowStaffSelection',
-  'showAnyStaffOption',
   'allowStaffCancelWithoutConfirmation',
   'allowStaffRescheduleWithoutConfirmation',
   'allowStaffBlockCalendarWithoutConfirmation',

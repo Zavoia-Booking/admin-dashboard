@@ -115,6 +115,20 @@ export function NeedsAttentionWidget({
   const unresolvedAppointments = unresolvedItem?.appointments ?? [];
   const unresolvedCount = unresolvedItem?.count ?? 0;
 
+  // Pending bookings awaiting confirmation (earliest first, from the API). When the
+  // payload carries them, "Review" deep-links to the actual appointment — same
+  // `date`+`appointmentUuid` convention as the Upcoming list. A single pending
+  // booking opens its detail slider directly; several land on the earliest one's day.
+  const pendingItem = needsAttentionItems.find(item => item.type === 'pending_bookings');
+  const pendingList = pendingItem?.appointments ?? [];
+  const pendingCount = pendingItem ? pendingItem.count : pendingAppointments;
+  const firstPending = pendingList[0];
+  const pendingActionPath = firstPending
+    ? pendingList.length === 1
+      ? `/calendar?date=${encodeURIComponent(firstPending.scheduledAt)}&appointmentUuid=${firstPending.uuid}`
+      : `/calendar?date=${encodeURIComponent(firstPending.scheduledAt)}`
+    : '/calendar';
+
   const items: AttentionItem[] = [];
 
   if (unresolvedCount > 0) {
@@ -133,17 +147,17 @@ export function NeedsAttentionWidget({
     });
   }
 
-  if (pendingAppointments > 0) {
+  if (pendingCount > 0) {
     items.push({
       id: 'pending',
       type: 'pending',
       title:
-        pendingAppointments === 1
-          ? t('needsAttention.pendingBookings', { count: pendingAppointments })
-          : t('needsAttention.pendingBookingsPlural', { count: pendingAppointments }),
+        pendingCount === 1
+          ? t('needsAttention.pendingBookings', { count: pendingCount })
+          : t('needsAttention.pendingBookingsPlural', { count: pendingCount }),
       description: t('needsAttention.pendingDescription'),
       actionLabel: t('needsAttention.review'),
-      actionPath: '/calendar',
+      actionPath: pendingActionPath,
       color: 'warning',
     });
   }
@@ -462,10 +476,12 @@ function UnresolvedAppointmentRow({
     'text-success hover:bg-success-bg active:bg-success-bg/80',
     'focus-visible:ring-success/30',
   );
+  // Warning tokens = the no-show amber from the appointment-breakdown pie
+  // (#E8B44C family), same as the bulk no-show actions below.
   const noShowGhostClasses = cn(
     ghostButtonBase,
-    'text-foreground-3 hover:text-foreground-1 hover:bg-surface-active/60 active:bg-surface-active',
-    'focus-visible:ring-border-strong/40',
+    'text-warning hover:bg-warning-bg active:bg-warning-bg/80',
+    'focus-visible:ring-warning/30',
   );
 
   // Subtle filled "primary feel" for mobile Completed — success-tinted pill with border.
@@ -807,10 +823,10 @@ function UnresolvedAppointmentsDialog({
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         const customer = appt.customerSnapshot
-          ? `${appt.customerSnapshot.firstName} ${appt.customerSnapshot.lastName}`.toLowerCase()
+          ? [appt.customerSnapshot.firstName, appt.customerSnapshot.lastName].filter(Boolean).join(' ').toLowerCase()
           : '';
         const staff = appt.staffSnapshot[0]
-          ? `${appt.staffSnapshot[0].firstName} ${appt.staffSnapshot[0].lastName}`.toLowerCase()
+          ? [appt.staffSnapshot[0].firstName, appt.staffSnapshot[0].lastName].filter(Boolean).join(' ').toLowerCase()
           : '';
         if (!customer.includes(q) && !staff.includes(q)) return false;
       }

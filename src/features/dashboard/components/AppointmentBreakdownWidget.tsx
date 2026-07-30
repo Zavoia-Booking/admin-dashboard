@@ -57,6 +57,21 @@ function getInsight(dist: AppointmentDistribution, total: number, t: (key: strin
 
 const RADIAN = Math.PI / 180;
 
+// Keep in sync with the donut wrapper's h-/w- classes below. ResponsiveContainer only
+// learns its size from a ResizeObserver in an effect, so without a seed the first render
+// is -1x-1: recharts logs a warning (in prod too) and paints an empty frame.
+const DONUT_SIZE_SM = 180;
+const DONUT_SIZE_MD = 230;
+const MD_BREAKPOINT = 768;
+
+function getInitialDonutSize() {
+  const size =
+    typeof window !== 'undefined' && window.matchMedia(`(min-width: ${MD_BREAKPOINT}px)`).matches
+      ? DONUT_SIZE_MD
+      : DONUT_SIZE_SM;
+  return { width: size, height: size };
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function renderPercentageLabel(props: any) {
   const { cx, cy, midAngle, outerRadius, percent, fill } = props;
@@ -156,16 +171,32 @@ export function AppointmentBreakdownWidget({
 
   const next3 = upcomingAppointments.slice(0, 3);
 
+  const dateLocale = locale === 'ro' ? 'ro-RO' : 'en-US';
+
   const formatTime = (isoString: string) =>
-    new Date(isoString).toLocaleTimeString(locale === 'ro' ? 'ro-RO' : 'en-US', {
+    new Date(isoString).toLocaleTimeString(dateLocale, {
       hour: '2-digit',
       minute: '2-digit',
     });
+
+  // The next few appointments can sit days apart, so an hour on its own is ambiguous.
+  // Relative wording covers the common case; anything further out gets a short
+  // "12 Aug" that stays unambiguous without eating column width.
+  const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const formatDay = (isoString: string) => {
+    const date = new Date(isoString);
+    const dayDiff = Math.round((startOfDay(date) - startOfDay(new Date())) / 86_400_000);
+    if (dayDiff === 0) return t('upcomingAppointments.today');
+    if (dayDiff === 1) return t('upcomingAppointments.tomorrow');
+    return date.toLocaleDateString(dateLocale, { day: 'numeric', month: 'short' });
+  };
 
   const { formatPrice } = useFormatPrice();
   const formatCurrency = (cents: number) => formatPrice(cents, businessCurrency);
 
   const activeStatusCount = STATUS_CONFIG.filter(s => dist[s.key] > 0).length;
+
+  const [initialDonutSize] = useState(getInitialDonutSize);
 
   return (
     <div className="flex flex-col gap-4 h-full">
@@ -201,7 +232,13 @@ export function AppointmentBreakdownWidget({
           {/* Donut with floating percentage pills */}
           <div className="flex justify-center">
             <div className="relative h-[180px] w-[180px] md:h-[230px] md:w-[230px]">
-              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+              <ResponsiveContainer
+                width="100%"
+                height="100%"
+                minWidth={0}
+                minHeight={0}
+                initialDimension={initialDonutSize}
+              >
                 <PieChart>
                   <defs>
                     <filter id="pill-shadow" x="-50%" y="-50%" width="200%" height="200%">
@@ -291,7 +328,7 @@ export function AppointmentBreakdownWidget({
                 <span className="text-xs font-medium text-foreground-3">{t('upcomingAppointments.customer')}</span>
                 <span className="text-xs font-medium text-foreground-3">{t('upcomingAppointments.staff')}</span>
                 <span className="text-xs font-medium text-foreground-3">{t('upcomingAppointments.service')}</span>
-                <span className="text-xs font-medium text-foreground-3 w-14 text-right">{t('upcomingAppointments.time')}</span>
+                <span className="text-xs font-medium text-foreground-3 w-16 text-right">{t('upcomingAppointments.when')}</span>
                 <span className="text-xs font-medium text-foreground-3 w-12 text-right">{t('upcomingAppointments.duration')}</span>
                 <span className="text-xs font-medium text-foreground-3 w-16 text-right">{t('upcomingAppointments.price')}</span>
               </div>
@@ -311,7 +348,14 @@ export function AppointmentBreakdownWidget({
                   return (
                     <div
                       key={appt.uuid}
-                      onClick={() => navigate(`/calendar?appointmentUuid=${appt.uuid}`)}
+                      // Both params on purpose: `date` lands on the right day without waiting
+                      // on a request, `appointmentUuid` opens the drawer once the detail
+                      // resolves. If that request fails you still get the correct day.
+                      onClick={() =>
+                        navigate(
+                          `/calendar?date=${encodeURIComponent(appt.scheduledAt)}&appointmentUuid=${appt.uuid}`,
+                        )
+                      }
                       className={`cursor-pointer hover:bg-surface-active/40 active:bg-surface-active/60 active:scale-[0.995] rounded transition-[background-color,transform] duration-150 ${IOS_EASE}`}
                     >
                       {/* Desktop row */}
@@ -329,7 +373,14 @@ export function AppointmentBreakdownWidget({
                         </div>
                         <span className="text-xs text-foreground-3 truncate">{staffName}</span>
                         <span className="text-xs text-foreground-3 truncate">{appt.bookedItemName}</span>
-                        <span className="text-xs text-foreground-2 tabular-nums w-14 text-right">{formatTime(appt.scheduledAt)}</span>
+                        <div className="w-16 text-right">
+                          <span className="block text-[11px] text-foreground-3 truncate leading-tight">
+                            {formatDay(appt.scheduledAt)}
+                          </span>
+                          <span className="block text-xs text-foreground-2 tabular-nums leading-tight">
+                            {formatTime(appt.scheduledAt)}
+                          </span>
+                        </div>
                         <span className="text-xs text-foreground-3 tabular-nums w-12 text-right">{appt.duration}m</span>
                         <span className="text-xs font-medium text-success tabular-nums w-16 text-right">{formatCurrency(appt.price)}</span>
                       </div>
@@ -348,7 +399,9 @@ export function AppointmentBreakdownWidget({
                           <p className="text-xs text-foreground-3 truncate">{appt.bookedItemName} &middot; {staffName}</p>
                         </div>
                         <div className="text-right shrink-0">
-                          <p className="text-xs text-foreground-2 tabular-nums">{formatTime(appt.scheduledAt)}</p>
+                          <p className="text-xs text-foreground-2 tabular-nums whitespace-nowrap">
+                            {formatDay(appt.scheduledAt)} &middot; {formatTime(appt.scheduledAt)}
+                          </p>
                           <p className="text-xs font-medium text-success tabular-nums">{formatCurrency(appt.price)}</p>
                         </div>
                       </div>

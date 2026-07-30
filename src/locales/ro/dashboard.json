@@ -63,9 +63,12 @@
     "healthy": "Sănătoasă",
     "high": "Ridicată",
     "available": "disponibil",
-    "booked": "rezervat"
+    "booked": "rezervat",
+    "notMeasured": "Nu se poate calcula"
   },
   "locationCapacity": {
+    "subtitle": "Programările acestei locații pentru azi, săptămâna și luna curentă — venitul pe care l-ar aduce și cât din programul de lucru al echipei este deja ocupat.",
+    "capacityUnavailableHelper": "Setează programul de lucru și repartizează personal la această locație pentru a o putea calcula.",
     "potential": "Potențial",
     "revenueToday": "venit azi",
     "period": "Perioadă",
@@ -84,7 +87,9 @@
     "noPotentialLine": "Niciun venit programat încă",
     "nextAppointmentLabel": "Următor",
     "staffEmptyTitle": "Niciun membru încă",
-    "staffEmptyHelper": "Invită primul membru ca să începi programările."
+    "staffEmptyHelper": "Invită primul membru ca să începi programările.",
+    "staffPending": "În așteptare",
+    "staffPendingHelper": "Invitație trimisă — așteaptă acceptarea"
   },
   "appointmentBreakdown": {
     "title": "Detaliu programări",
@@ -111,7 +116,9 @@
     "customer": "Client",
     "staff": "Angajat",
     "service": "Serviciu",
-    "time": "Ora",
+    "when": "Când",
+    "today": "Azi",
+    "tomorrow": "Mâine",
     "duration": "Durată",
     "price": "Preț",
     "seeAll": "Vezi toate",

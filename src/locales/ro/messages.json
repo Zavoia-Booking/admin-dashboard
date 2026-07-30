@@ -16,9 +16,9 @@
     "E14": "Parola trebuie să aibă cel puțin 8 caractere",
     "E15": "Parola este deja setată. Folosește butonul Schimbă parola",
     "E16": "Folosește autentificarea cu Google",
-    "E17": "Selectează o afacere",
+    "E17": "Selectează un business",
     "E18": "Este necesară verificarea Google",
-    "E19": "Ai deja o afacere",
+    "E19": "Ai deja un business",
     "E20": "Există deja un cont cu acest email",
     "E21": "Ai o invitație în așteptare",
     "E22": "Nu am găsit un cont. Înregistrează-te",
@@ -46,7 +46,7 @@
     "E02": "Rolul contului nu a fost găsit",
     "E03": "Nu poți face această acțiune",
     "E05": "Finalizează sau anulează programările active înainte să pleci",
-    "E06": "Nu am putut părăsi afacerea. Încearcă din nou",
+    "E06": "Nu am putut părăsi businessul. Încearcă din nou",
     "E09": "Anulează abonamentul înainte să ștergi contul"
   },
   "LOCATION": {
@@ -55,11 +55,11 @@
     "E03": "Nu am putut actualiza locația. Încearcă din nou",
     "E04": "Nu am putut șterge locația. Încearcă din nou",
     "E05": "Selecție invalidă de locații",
-    "E06": "Această locație nu aparține afacerii tale",
+    "E06": "Această locație nu aparține businessului tău",
     "E07": "Această locație nu poate fi ștearsă pentru că este în uz",
-    "E08": "Selecție invalidă de etichete",
-    "E09": "Nu am putut încărca etichetele de marketplace. Încearcă din nou",
-    "E10": "Nu am putut salva etichetele de marketplace. Încearcă din nou",
+    "E08": "Selecție invalidă de specializări",
+    "E09": "Nu am putut încărca specializările de marketplace. Încearcă din nou",
+    "E10": "Nu am putut salva specializările de marketplace. Încearcă din nou",
     "E11": "Fotografiile acestei locații sunt folosite pe site-ul publicat. Actualizează mai întâi site-ul, apoi șterge locația"
   },
   "SERVICE": {
@@ -78,10 +78,10 @@
     "E03": "Nu ai acces la acest membru",
     "E04": "Nu am putut actualiza membrul. Încearcă din nou",
     "E05": "Contul nu a fost găsit",
-    "E06": "Poți anula doar invitațiile din afacerea ta",
+    "E06": "Poți anula doar invitațiile din businessul tău",
     "E07": "Acest utilizator este deja activ",
     "E08": "Nu am putut anula invitația. Încearcă din nou",
-    "E09": "Utilizatorul are deja acces la această afacere",
+    "E09": "Utilizatorul are deja acces la acest business",
     "E10": "Poți retrimite invitația o dată la 24 de ore",
     "E11": "Nu am putut retrimite invitația. Încearcă din nou",
     "E12": "Invitație invalidă sau utilizator deja înregistrat",
@@ -113,7 +113,7 @@
     "E06": "Link de invitație invalid",
     "E07": "Acest link a fost deja folosit",
     "E08": "Acest link a expirat",
-    "E09": "Afacerea nu a fost găsită"
+    "E09": "Businessul nu a fost găsit"
   },
   "ASSIGNMENTS": {
     "E01": "Nu am putut încărca alocările echipei. Încearcă din nou",
@@ -124,14 +124,14 @@
     "E06": "Nu am putut actualiza alocările locației. Încearcă din nou"
   },
   "MARKETPLACE_LISTING": {
-    "E01": "Afacerea nu a fost găsită",
+    "E01": "Businessul nu a fost găsit",
     "E02": "Nu am putut încărca listarea. Încearcă din nou",
     "E03": "Nu am putut actualiza listarea. Încearcă din nou",
     "E04": "Nu am putut publica listarea. Încearcă din nou",
-    "E05": "Unele locații nu aparțin afacerii tale",
-    "E06": "Unele servicii nu aparțin afacerii tale",
-    "E07": "Unele categorii nu aparțin afacerii tale",
-    "E08": "Unii membri nu aparțin afacerii tale",
+    "E05": "Unele locații nu aparțin businessului tău",
+    "E06": "Unele servicii nu aparțin businessului tău",
+    "E07": "Unele categorii nu aparțin businessului tău",
+    "E08": "Unii membri nu aparțin businessului tău",
     "E09": "Selecție invalidă de locații",
     "E10": "Selecție invalidă de servicii",
     "E11": "Selecție invalidă de categorii",
@@ -190,7 +190,7 @@
     "E01": "Constructorul de site necesită planul Plus. Poți face upgrade din Cont > Facturare",
     "E02": "Este disponibilă o versiune mai nouă a site-ului. Reîncarcă pentru a continua",
     "E03": "Unele elemente necesită atenție înainte de salvare. Verifică secțiunile marcate și încearcă din nou",
-    "E04": "Unele locații selectate nu mai sunt disponibile pentru această afacere. Reîncarcă, apoi actualizează secțiunea Locații",
+    "E04": "Unele locații selectate nu mai sunt disponibile pentru acest business. Reîncarcă, apoi actualizează secțiunea Locații",
     "E05": "Nu am putut încărca site-ul. Reîncarcă și încearcă din nou",
     "E06": "Nu am putut actualiza site-ul. Încearcă din nou",
     "E07": "Unele secțiuni vizibile folosesc opțiuni premium care nu sunt deblocate",
@@ -214,9 +214,9 @@
     "E15": "Nu am putut încărca istoricul clientului. Încearcă din nou"
   },
   "BUSINESS": {
-    "E01": "Afacerea nu a fost găsită",
-    "E02": "Nu am putut actualiza afacerea. Încearcă din nou",
-    "E03": "Nu am putut încărca afacerea. Încearcă din nou",
+    "E01": "Businessul nu a fost găsit",
+    "E02": "Nu am putut actualiza businessul. Încearcă din nou",
+    "E03": "Nu am putut încărca businessul. Încearcă din nou",
     "E04": "Industria nu a fost găsită"
   },
   "BUNDLE": {

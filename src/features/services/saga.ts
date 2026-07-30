@@ -70,7 +70,8 @@ function* handleCreateServices(
       action.payload
     );
     if (response.data) {
-      toast.success(i18n.t("services:toasts.services.createSuccess"));
+      // Success toast is handled in the component: it carries a router-driven
+      // "Go to Assignments" action, so it needs navigation the saga can't reach.
       yield put(getServicesAction.request());
       // Refresh categories in case a new one was created during service creation
       yield put(listCategoriesAction.request());

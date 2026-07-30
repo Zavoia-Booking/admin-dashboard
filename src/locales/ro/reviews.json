@@ -12,14 +12,14 @@
     "totalReviews_other": "{{count}} de recenzii",
     "overallTitle": "Rating Public",
     "overallBadge": "Vizibil pentru clienți",
-    "businessTitle": "Recenzii Afacere",
+    "businessTitle": "Recenzii Business",
     "teamTitle": "Membrii Echipei",
     "locationsTitle": "Locații",
     "noRating": "Niciun rating încă",
     "totalReviewsAcrossLocations_one": "{{count}} recenzie în {{locations}} locație",
     "totalReviewsAcrossLocations_few": "{{count}} recenzii în {{locations}} locații",
     "totalReviewsAcrossLocations_other": "{{count}} de recenzii în {{locations}} locații",
-    "infoText": "Ratingul public este media combinată a recenziilor afacerii și a tuturor recenziilor membrilor echipei. Acesta este scorul pe care clienții îl văd pe profilul tău.",
+    "infoText": "Ratingul public este media combinată a recenziilor businessului și a tuturor recenziilor membrilor echipei. Acesta este scorul pe care clienții îl văd pe profilul tău.",
     "distributionEyebrow": "Distribuție",
     "insightsEyebrow": "Statistici",
     "insightsCollapsed": "Arată distribuția și detaliile",
@@ -30,7 +30,7 @@
     "positiveShareCaption_other": "din {{count}} de recenzii",
     "aboutEyebrow": "Despre acest scor",
     "calculationNote": "Combinat din toate recenziile primite pe locațiile și membrii echipei tale.",
-    "audienceNote": "Acesta este ratingul pe care clienții îl văd pe profilul afacerii tale.",
+    "audienceNote": "Acesta este ratingul pe care clienții îl văd pe profilul businessului tău.",
     "calculationNotePersonal": "Combinat din toate recenziile primite de la clienții tăi.",
     "audienceNotePersonal": "Acesta este ratingul pe care clienții îl văd pe profilul tău public.",
     "errorBody": "Nu am putut încărca statisticile recenziilor. Verifică conexiunea și încearcă din nou."
@@ -62,7 +62,7 @@
   },
   "section": {
     "reviewsTitle": "Recenzii",
-    "reviewsHelper": "Feedback-ul primit de la clienți pentru afacere și membrii echipei.",
+    "reviewsHelper": "Feedback-ul primit de la clienți pentru business și membrii echipei.",
     "insightsDistributionTitle": "Distribuția ratingului",
     "insightsDistributionHelper": "Treci cu mouse-ul peste o bară pentru a vedea numărul exact.",
     "insightsLocationsTitle": "După locație",
@@ -72,7 +72,7 @@
     "collapse": "Arată mai puțin"
   },
   "subTabs": {
-    "business": "Afacere",
+    "business": "Business",
     "teamMembers": "Membri echipă"
   },
   "filter": {
@@ -121,7 +121,7 @@
   },
   "card": {
     "reviewFor": "Recenzie pentru",
-    "businessWide": "Pentru întreaga afacere"
+    "businessWide": "Pentru întregul business"
   },
   "empty": {
     "title": "Nicio recenzie încă",

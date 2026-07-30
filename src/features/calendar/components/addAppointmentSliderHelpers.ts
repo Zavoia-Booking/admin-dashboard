@@ -152,6 +152,39 @@ export function allItemsHaveStaff(items: AppointmentItem[]): boolean {
   return items.length > 0 && items.every((item) => item.staffUserId != null);
 }
 
+/**
+ * Staff user ids allowed to perform an item, straight from the location context.
+ * An empty array means nobody is assigned — the item cannot be booked until
+ * someone is assigned to it on the Assignments page. `null` means the item could
+ * not be resolved against the location context (e.g. an already-booked service
+ * that is no longer offered here), in which case eligibility is unknown and the
+ * caller should not narrow the roster.
+ */
+export function getItemAllowedStaffIds(
+  item: Pick<AppointmentItem, 'serviceId' | 'bundleId'>,
+  services: Array<{ serviceId: number; staffIds?: number[] }>,
+  bundles: Array<{ bundleId: number; staffIds?: number[] }>,
+): number[] | null {
+  if (item.serviceId != null) {
+    const service = services.find((s) => s.serviceId === item.serviceId);
+    return service ? (service.staffIds ?? []) : null;
+  }
+  if (item.bundleId != null) {
+    const bundle = bundles.find((b) => b.bundleId === item.bundleId);
+    return bundle ? (bundle.staffIds ?? []) : null;
+  }
+  return null;
+}
+
+/** Team members that can perform an item; empty when the item has no assignments. */
+export function getEligibleTeamMembers<T extends { userId: number }>(
+  allowedStaffIds: number[] | null,
+  teamMembers: T[],
+): T[] {
+  if (allowedStaffIds == null) return teamMembers;
+  return teamMembers.filter((member) => allowedStaffIds.includes(member.userId));
+}
+
 export function getGroupItemsForPayload(
   appointmentItems: AppointmentItem[],
 ): Array<

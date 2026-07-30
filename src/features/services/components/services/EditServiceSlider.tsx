@@ -29,6 +29,7 @@ import {
 } from "../../../../shared/utils/currency";
 import { selectCurrentUser } from "../../../auth/selectors";
 import { editServicesAction, deleteServicesAction } from "../../actions.ts";
+import { SERVICE_NAME_MAX_LENGTH } from "../../utils.ts";
 import type { EditServicePayload } from "../../types.ts";
 import {
   getEditFormSelector,
@@ -135,7 +136,11 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
     const v = (value ?? "").trim();
     if (!v) return text("addService.form.validation.name.required");
     if (v.length < 2) return text("addService.form.validation.name.minLength");
-    if (v.length > 70) return text("addService.form.validation.name.maxLength");
+    if (v.length > SERVICE_NAME_MAX_LENGTH) {
+      return text("addService.form.validation.name.maxLength", {
+        max: SERVICE_NAME_MAX_LENGTH,
+      });
+    }
     const NAME_PATTERN = /^[A-Za-zÀ-ÿ0-9\s\-'&.()]+$/;
     if (!NAME_PATTERN.test(v)) {
       return text("addService.form.validation.name.invalidChars");
@@ -520,7 +525,7 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
                         placeholder={text("addService.form.name.placeholder")}
                         required
                         id="name"
-                        maxLength={70}
+                        maxLength={SERVICE_NAME_MAX_LENGTH}
                         icon={Layers2}
                       />
 

@@ -1,18 +1,13 @@
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { ArrowUpRight, ChevronRight, MapPin, UserPlus } from 'lucide-react';
-import type { LocationStaffMember, UpcomingAppointment } from '../actions';
+import type { CapacityPeriod, LocationStaffMember, UpcomingAppointment } from '../actions';
 import { useFormatPrice } from '../../../shared/hooks/useFormatPrice';
 import { formatPhone } from '../../../shared/utils/phone';
 import { usePermissions } from '../../../shared/hooks/usePermissions';
 import { Permission } from '../../../shared/lib/permissions';
 import { DashedDivider } from '../../../shared/components/common/DashedDivider';
 import { PersonAvatar } from '../../../shared/components/common/PersonAvatar';
-
-interface PeriodCapacity {
-  filledPercentage: number;
-  availablePercentage: number;
-}
 
 interface LocationCapacityWidgetProps {
   locationId: number;
@@ -26,9 +21,9 @@ interface LocationCapacityWidgetProps {
   potentialRevenueThisWeek: number;
   potentialRevenueThisMonth: number;
   capacity: {
-    today: PeriodCapacity;
-    week: PeriodCapacity;
-    month: PeriodCapacity;
+    today: CapacityPeriod;
+    week: CapacityPeriod;
+    month: CapacityPeriod;
   };
   nextAppointment?: UpcomingAppointment | null;
   businessCurrency: string;
@@ -49,9 +44,21 @@ function capacityTier(pct: number): Tier {
   return { labelKey: 'capacityUtilization.high', colorVar: 'var(--error)', textClass: 'text-error', bgClass: 'bg-error' };
 }
 
-function CapacityBar({ pct, tier }: { pct: number; tier: Tier }) {
+function CapacityBar({ pct, tier, measured }: { pct: number; tier: Tier; measured: boolean }) {
   const t = useTranslation('dashboard').t;
   const safe = Math.max(0, Math.min(100, pct));
+
+  // Nothing to divide by — no opening hours, or nobody assigned to work them.
+  // An empty bar reading "0% booked" would claim the period is wide open.
+  if (!measured) {
+    return (
+      <div className="w-full">
+        <div className="h-2 w-full rounded-full border border-dashed border-border-strong/60" />
+        <p className="mt-1 text-[11px] text-foreground-3">{t('capacityUtilization.notMeasured')}</p>
+      </div>
+    );
+  }
+
   return (
     <div className="w-full">
       <div className="relative h-2 w-full rounded-full bg-surface-active overflow-hidden">
@@ -110,11 +117,18 @@ export function LocationCapacityWidget({
       hour: '2-digit',
       minute: '2-digit',
     });
-  const nextCustomerName = nextAppointment?.customerSnapshot
-    ? `${nextAppointment.customerSnapshot.firstName} ${nextAppointment.customerSnapshot.lastName}`.trim()
-    : t('upcomingAppointments.guestCustomer');
+  const nextCustomerName =
+    (nextAppointment?.customerSnapshot
+      ? [nextAppointment.customerSnapshot.firstName, nextAppointment.customerSnapshot.lastName]
+          .filter(Boolean)
+          .join(' ')
+      : '') || t('upcomingAppointments.guestCustomer');
 
   const todayTier = capacityTier(capacity.today.filledPercentage);
+  // Older API responses carry no flag; treat those as measured so the widget
+  // keeps rendering percentages instead of flipping everything to "unknown".
+  const isMeasured = (period: CapacityPeriod) => period.hasCapacityData !== false;
+  const todayMeasured = isMeasured(capacity.today);
 
   const periods = [
     {
@@ -123,6 +137,7 @@ export function LocationCapacityWidget({
       appts: appointmentsToday,
       revenue: potentialRevenueToday,
       pct: capacity.today.filledPercentage,
+      measured: todayMeasured,
     },
     {
       key: 'week',
@@ -130,6 +145,7 @@ export function LocationCapacityWidget({
       appts: appointmentsThisWeek,
       revenue: potentialRevenueThisWeek,
       pct: capacity.week.filledPercentage,
+      measured: isMeasured(capacity.week),
     },
     {
       key: 'month',
@@ -137,6 +153,7 @@ export function LocationCapacityWidget({
       appts: appointmentsThisMonth,
       revenue: potentialRevenueThisMonth,
       pct: capacity.month.filledPercentage,
+      measured: isMeasured(capacity.month),
     },
   ];
 
@@ -150,7 +167,7 @@ export function LocationCapacityWidget({
   return (
     <div className="flex flex-col gap-5">
       {/* Header — mobile (real title hierarchy + distinct navigate button) */}
-      <div className="md:hidden flex items-center justify-between gap-3">
+      <div className="md:hidden flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <h3 className="truncate text-[22px] font-semibold -tracking-[0.02em] text-foreground-1 leading-[1.1]">
             {locationName}
@@ -167,6 +184,9 @@ export function LocationCapacityWidget({
               {isCurrentlyOpen ? t('todayOverview.openNow') : t('todayOverview.closed')}
             </span>
           </p>
+          <p className="mt-2 text-xs leading-relaxed text-foreground-3">
+            {t('locationCapacity.subtitle')}
+          </p>
         </div>
         {canSeeLocation && (
           <button
@@ -182,8 +202,8 @@ export function LocationCapacityWidget({
 
       {/* Header — desktop (MapPin + title + see-location link) */}
       <div className="hidden md:flex items-start justify-between gap-3">
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-primary/10 text-primary shrink-0">
+        <div className="flex items-start gap-3 min-w-0">
+          <div className="flex h-9 w-9 items-center justify-center text-primary shrink-0">
             <MapPin className="h-[18px] w-[18px]" />
           </div>
           <div className="min-w-0">
@@ -193,6 +213,9 @@ export function LocationCapacityWidget({
               </h3>
               <StatusPill open={isCurrentlyOpen} />
             </div>
+            <p className="mt-1 max-w-[68ch] text-xs leading-relaxed text-foreground-3">
+              {t('locationCapacity.subtitle')}
+            </p>
           </div>
         </div>
         {canSeeLocation && (
@@ -221,7 +244,11 @@ export function LocationCapacityWidget({
               : t('locationCapacity.noPotentialLine')}
           </p>
         </div>
-        <CapacityBar pct={capacity.today.filledPercentage} tier={todayTier} />
+        <CapacityBar
+          pct={capacity.today.filledPercentage}
+          tier={todayTier}
+          measured={todayMeasured}
+        />
         {nextAppointment && (
           <p className="flex items-baseline gap-1.5 text-xs leading-tight">
             <span className="text-foreground-3 shrink-0">
@@ -283,7 +310,16 @@ export function LocationCapacityWidget({
         </div>
         <div className="border-l border-border-subtle pl-5">
           <p className={EYEBROW}>{t('capacityUtilization.title')}</p>
-          {capacity.today.filledPercentage > 0 ? (
+          {!todayMeasured ? (
+            <>
+              <p className="mt-1.5 text-sm font-medium text-foreground-2">
+                {t('capacityUtilization.notMeasured')}
+              </p>
+              <p className="mt-1 text-xs leading-relaxed text-foreground-3">
+                {t('locationCapacity.capacityUnavailableHelper')}
+              </p>
+            </>
+          ) : capacity.today.filledPercentage > 0 ? (
             <>
               <p className="mt-1.5 text-2xl font-semibold leading-none text-foreground-1 tabular-nums">
                 {Math.round(capacity.today.filledPercentage)}%
@@ -328,7 +364,7 @@ export function LocationCapacityWidget({
               <span className="text-sm font-semibold text-foreground-1 tabular-nums">
                 {formatCurrency(p.revenue)}
               </span>
-              <CapacityBar pct={p.pct} tier={tier} />
+              <CapacityBar pct={p.pct} tier={tier} measured={p.measured} />
             </div>
           );
         })}
@@ -354,7 +390,7 @@ export function LocationCapacityWidget({
                   </strong>
                 </span>
               </div>
-              <CapacityBar pct={p.pct} tier={tier} />
+              <CapacityBar pct={p.pct} tier={tier} measured={p.measured} />
             </div>
           );
         })}
@@ -377,36 +413,69 @@ export function LocationCapacityWidget({
         </div>
         {staff && staff.length > 0 ? (
           <div className="flex flex-col divide-y divide-border-subtle">
-            {staff.map((member) => (
-              <button
-                key={member.email}
-                type="button"
-                onClick={() => navigate(`/calendar?staffEmail=${encodeURIComponent(member.email)}`)}
-                className={`group/row flex w-full items-center gap-3 py-2.5 cursor-pointer rounded transition-all hover:bg-surface-active/40 active:scale-[0.995] ${IOS_EASE}`}
-              >
-                <PersonAvatar
-                  id={member.email}
-                  firstName={member.firstName}
-                  lastName={member.lastName}
-                  profileImage={member.profileImage}
-                  className="h-9 w-9"
-                  initialsClassName="text-[11px] font-semibold"
-                />
-                <div className="flex-1 min-w-0 text-left">
-                  <p className="text-sm font-semibold text-foreground-1 leading-tight truncate">
-                    {member.firstName} {member.lastName}
-                  </p>
-                  <div className="mt-0.5 hidden md:flex items-center gap-3 text-xs text-foreground-3">
-                    <span className="truncate max-w-[260px]">{member.email}</span>
-                    <span className="tabular-nums">{formatPhone(member.phone)}</span>
+            {staff.map((member) => {
+              // A pending invite is a placeholder row: no name, no phone, no calendar to
+              // open yet — so it identifies itself by email and links to the team list.
+              const isPending = member.invitationPending === true;
+              const fullName = `${member.firstName ?? ''} ${member.lastName ?? ''}`.trim();
+              return (
+                <button
+                  key={member.email}
+                  type="button"
+                  onClick={() =>
+                    navigate(
+                      isPending
+                        ? '/team-members'
+                        : `/calendar?staffEmail=${encodeURIComponent(member.email)}`,
+                    )
+                  }
+                  className={`group/row flex w-full items-center gap-3 py-2.5 cursor-pointer rounded transition-all hover:bg-surface-active/40 active:scale-[0.995] ${IOS_EASE}`}
+                >
+                  <PersonAvatar
+                    id={member.email}
+                    firstName={member.firstName}
+                    lastName={member.lastName}
+                    profileImage={member.profileImage}
+                    className={`h-9 w-9 ${isPending ? 'opacity-60' : ''}`}
+                    initialsClassName="text-[11px] font-semibold"
+                  />
+                  <div className="flex-1 min-w-0 text-left">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <p
+                        className={`text-sm font-semibold leading-tight truncate ${
+                          isPending ? 'text-foreground-2' : 'text-foreground-1'
+                        }`}
+                      >
+                        {fullName || member.email}
+                      </p>
+                      {isPending && (
+                        <span className="shrink-0 rounded-full bg-warning/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-warning">
+                          {t('locationCapacity.staffPending')}
+                        </span>
+                      )}
+                    </div>
+                    {isPending ? (
+                      <p className="mt-0.5 text-xs text-foreground-3 truncate">
+                        {fullName
+                          ? member.email
+                          : t('locationCapacity.staffPendingHelper')}
+                      </p>
+                    ) : (
+                      <>
+                        <div className="mt-0.5 hidden md:flex items-center gap-3 text-xs text-foreground-3">
+                          <span className="truncate max-w-[260px]">{member.email}</span>
+                          <span className="tabular-nums">{formatPhone(member.phone)}</span>
+                        </div>
+                        <p className="mt-0.5 text-[11px] text-foreground-3 md:hidden truncate tabular-nums">
+                          {formatPhone(member.phone)}
+                        </p>
+                      </>
+                    )}
                   </div>
-                  <p className="mt-0.5 text-[11px] text-foreground-3 md:hidden truncate tabular-nums">
-                    {formatPhone(member.phone)}
-                  </p>
-                </div>
-                <ChevronRight className="h-4 w-4 text-foreground-3/50 transition-colors group-hover/row:text-primary" />
-              </button>
-            ))}
+                  <ChevronRight className="h-4 w-4 text-foreground-3/50 transition-colors group-hover/row:text-primary" />
+                </button>
+              );
+            })}
           </div>
         ) : (
           <div className="rounded-xl border border-dashed border-border-strong/40 bg-surface-active/30 px-4 py-5 text-center">

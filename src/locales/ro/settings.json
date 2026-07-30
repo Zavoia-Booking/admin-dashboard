@@ -33,8 +33,8 @@
   "profile": {
     "requiredHint": "Câmpuri obligatorii",
     "hero": {
-      "eyebrow": "Profil afacere",
-      "placeholderName": "Afacerea ta",
+      "eyebrow": "Profil business",
+      "placeholderName": "Businessul tău",
       "ownerBadge": "Proprietar",
       "emailNotVerified": "Email neverificat"
     },
@@ -54,41 +54,41 @@
       }
     },
     "basicInfo": {
-      "subtitle": "Aceste detalii apar în profilul afacerii tale.",
+      "subtitle": "Aceste detalii apar în profilul businessului tău.",
       "title": "Informații de bază",
-      "description": "Descrierea afacerii",
+      "description": "Descrierea businessului",
       "descriptionTip": "Sfat: menționează serviciul principal, locația și tipul de client pe care îl ajuți.",
-      "logo": "Logoul afacerii",
+      "logo": "Logoul businessului",
       "logoDescription": "Logoul tău apare pe pagina de rezervare și în comunicări.",
       "uploading": "Se încarcă…",
       "edit": "Editează",
-      "businessName": "Numele afacerii",
-      "businessNamePlaceholder": "Introdu numele afacerii",
+      "businessName": "Numele businessului",
+      "businessNamePlaceholder": "Introdu numele businessului",
       "industry": "Industrie",
       "industryPlaceholder": "Selectează industria",
       "changingIndustry": "Schimbi industria",
       "industryWarning1": "Dacă ai un anunț activ în marketplace, va fi setat temporar ca invizibil.",
       "industryWarning2": "După ce salvezi această modificare, mergi la anunțul tău din marketplace ca să actualizezi categoriile și să-l faci vizibil din nou.",
-      "industryWarning3": "Astfel, afacerea ta nu apare în categoria greșită și clienții te găsesc mai ușor.",
+      "industryWarning3": "Astfel, businessul tău nu apare în categoria greșită și clienții te găsesc mai ușor.",
       "descriptionPlaceholder": "Descrie ce oferi, cui te adresezi și zona în care activezi.",
       "currency": "Moneda implicită *",
       "currencyDescription": "Folosită pentru prețuri, facturi și programări.",
-      "phone": "Telefonul afacerii",
+      "phone": "Telefonul businessului",
       "phonePlaceholder": "+40 7XX XXX XXX"
     },
     "social": {
       "title": "Linkuri social media",
       "description": "Adaugă linkurile unde clienții te pot găsi online.",
       "instagram": "Instagram",
-      "instagramPlaceholder": "https://instagram.com/afacereata",
+      "instagramPlaceholder": "https://instagram.com/businessultau",
       "facebook": "Facebook",
-      "facebookPlaceholder": "https://facebook.com/afacereata",
+      "facebookPlaceholder": "https://facebook.com/businessultau",
       "tiktok": "TikTok",
-      "tiktokPlaceholder": "https://tiktok.com/@afacereata",
+      "tiktokPlaceholder": "https://tiktok.com/@businessultau",
       "website": "Website",
-      "websitePlaceholder": "https://afacereata.ro",
+      "websitePlaceholder": "https://businessultau.ro",
       "pinterest": "Pinterest",
-      "pinterestPlaceholder": "https://pinterest.com/afacereata"
+      "pinterestPlaceholder": "https://pinterest.com/businessultau"
     },
     "security": {
       "title": "Securitatea contului",
@@ -150,7 +150,7 @@
     },
     "advancedSettings": {
       "title": "Șterge contul",
-      "description": "Șterge definitiv afacerea și datele contului."
+      "description": "Șterge definitiv businessul și datele contului."
     },
     "toast": {
       "invalidImage": "Te rugăm selectează un fișier imagine valid (JPEG, PNG, WebP, SVG sau AVIF)",
@@ -580,9 +580,9 @@
     }
   },
   "businessSetupGate": {
-    "title": "Finalizează Configurarea Afacerii",
+    "title": "Finalizează Configurarea Businessului",
     "subtitle": "Configurare Necesară",
-    "message": "Înainte de a invita membri în echipă, de a crea servicii sau de a adăuga locații, te rugăm finalizează configurarea informațiilor afacerii tale.",
+    "message": "Înainte de a invita membri în echipă, de a crea servicii sau de a adăuga locații, te rugăm finalizează configurarea informațiilor businessului tău.",
     "button": "Continuă Configurarea"
   },
   "infoPages": {

@@ -176,8 +176,6 @@ export interface BookingSettings {
   allowCustomerCancellation: boolean;
   allowCustomerReschedule: boolean;
   autoConfirmBookings: boolean;
-  allowStaffSelection: boolean;
-  showAnyStaffOption: boolean;
   allowStaffCancelWithoutConfirmation: boolean;
   allowStaffRescheduleWithoutConfirmation: boolean;
   allowStaffBlockCalendarWithoutConfirmation: boolean;

@@ -137,10 +137,6 @@ export function ManageTeamMemberDrawer({
     }
   }, [localServices, filter]);
 
-  // Stats
-  const enabledCount = localServices.filter((s) => s.canPerform).length;
-  const customCount = localServices.filter(hasCustomValues).length;
-
   // Check for changes
   const hasChanges = useMemo(() => {
     if (localServices.length !== initialServices.length) return true;
@@ -341,13 +337,6 @@ export function ManageTeamMemberDrawer({
             ? t("page.manageTeamMemberDrawer.emptyState.noEnabled")
             : t("page.manageTeamMemberDrawer.emptyState.noServices")}
         </h3>
-        <p className="text-xs text-foreground-3 dark:text-foreground-2 leading-relaxed">
-          {filter === "custom"
-            ? t("page.manageTeamMemberDrawer.emptyState.noCustomDescription")
-            : filter === "enabled"
-            ? t("page.manageTeamMemberDrawer.emptyState.noEnabledDescription")
-            : t("page.manageTeamMemberDrawer.emptyState.noServicesDescription")}
-        </p>
       </div>
     </div>
   );
@@ -469,8 +458,7 @@ export function ManageTeamMemberDrawer({
                   )}
                 >
                   <span className="text-xs">
-                    {t("page.manageTeamMemberDrawer.filters.enabled")} (
-                    {enabledCount})
+                    {t("page.manageTeamMemberDrawer.filters.enabled")}
                   </span>
                 </button>
                 <button
@@ -490,8 +478,7 @@ export function ManageTeamMemberDrawer({
                   )}
                 >
                   <span className="text-xs">
-                    {t("page.manageTeamMemberDrawer.filters.customRates")}{" "}
-                    ({customCount})
+                    {t("page.manageTeamMemberDrawer.filters.customRates")}
                   </span>
                 </button>
 
@@ -787,8 +774,7 @@ export function ManageTeamMemberDrawer({
                         )}
                       >
                         <span className="text-sm">
-                          {t("page.manageTeamMemberDrawer.filters.enabled")} (
-                          {enabledCount})
+                          {t("page.manageTeamMemberDrawer.filters.enabled")}
                         </span>
                       </button>
                       <button
@@ -808,8 +794,7 @@ export function ManageTeamMemberDrawer({
                         )}
                       >
                         <span className="text-sm">
-                          {t("page.manageTeamMemberDrawer.filters.customRates")}{" "}
-                          ({customCount})
+                          {t("page.manageTeamMemberDrawer.filters.customRates")}
                         </span>
                       </button>
 

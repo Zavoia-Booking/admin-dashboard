@@ -16,10 +16,10 @@
   "businessSetupGate": {
     "ownerEyebrow": "Configurare · Necesară",
     "restrictedEyebrow": "Acces · Restricționat",
-    "ownerTitle": "Finalizează configurarea afacerii",
-    "restrictedTitle": "Afacere indisponibilă",
-    "ownerMessage": "Înainte de a invita membrii echipei, de a crea servicii sau de a adăuga locații, te rugăm să finalizezi configurarea informațiilor afacerii tale.",
-    "restrictedMessage": "Accesul tău la această afacere pare să fie inactiv. Este posibil să nu mai faci parte din afacere sau afacerea să fi fost ștearsă. Te rugăm să contactezi administratorul afacerii.",
+    "ownerTitle": "Finalizează configurarea businessului",
+    "restrictedTitle": "Business indisponibil",
+    "ownerMessage": "Înainte de a invita membrii echipei, de a crea servicii sau de a adăuga locații, te rugăm să finalizezi configurarea informațiilor businessului tău.",
+    "restrictedMessage": "Accesul tău la acest business pare să fie inactiv. Este posibil să nu mai faci parte din business sau businessul să fi fost șters. Te rugăm să contactezi administratorul businessului.",
     "ownerCta": "Finalizează configurarea"
   },
   "confirmDialog": {
@@ -69,7 +69,7 @@
     "showingCount": "Se afișează {{shown}} din {{total}} fusuri orare..."
   },
   "logoUpload": {
-    "altPreview": "Previzualizare logo afacere",
+    "altPreview": "Previzualizare logo business",
     "dropZone": {
       "dropHere": "Plasează logo-ul aici",
       "uploadYour": "Încarcă logo-ul tău",
@@ -114,11 +114,11 @@
     "blockerEyebrowOwner": "Abonament · Expirat",
     "blockerEyebrowMember": "Acces · Limitat",
     "blockerOwnerTitle": "Abonamentul tău a expirat",
-    "blockerOwnerDescription": "Reînnoiește abonamentul ca să ai din nou acces complet la dashboard și să continui să-ți administrezi afacerea.",
+    "blockerOwnerDescription": "Reînnoiește abonamentul ca să ai din nou acces complet la dashboard și să continui să-ți administrezi businessul.",
     "blockerOwnerCta": "Reînnoiește abonamentul",
     "blockerOwnerSecondaryCta": "Mergi la cont",
     "blockerMemberTitle": "Acces limitat",
-    "blockerMemberDescription": "Administratorul afacerii trebuie să reînnoiască abonamentul. Te rugăm să îl contactezi pentru a restabili accesul.",
+    "blockerMemberDescription": "Administratorul businessului trebuie să reînnoiască abonamentul. Te rugăm să îl contactezi pentru a restabili accesul.",
     "blockerMemberCta": "Contactează suportul",
     "blockerMemberSecondaryCta": "Mergi la contul meu",
     "blockerSignOut": "Deconectare"
@@ -298,7 +298,7 @@
     "minLength2Generic": "Introduceți cel puțin 2 caractere",
     "minLength2Use": "Folosiți cel puțin 2 caractere",
     "maxLengthGeneric": "Maximum {{max}} caractere permise",
-    "businessName": "Introduceți numele afacerii",
+    "businessName": "Introduceți numele businessului",
     "locationName": "Introduceți numele locației",
     "categoryName": "Introduceți numele categoriei",
     "nameSpecialChars": "Eliminați caracterele speciale (sunt permise doar - ' & . ( ))",
@@ -311,11 +311,11 @@
     "phoneRequired": "Numărul de telefon este obligatoriu",
     "phoneInvalid": "Introduceți un număr de telefon valid",
     "industryRequired": "Te rugăm să selectezi o industrie",
-    "industryTagsRequired": "Te rugăm să selectezi cel puțin o etichetă de industrie",
+    "industryTagsRequired": "Te rugăm să selectezi cel puțin o specializare",
     "currencyInvalid": "Te rugăm să selectezi o monedă validă",
     "fields": {
       "email": "emailul",
-      "businessEmail": "emailul afacerii",
+      "businessEmail": "emailul businessului",
       "firstName": "prenumele",
       "lastName": "numele",
       "streetAddress": "adresa străzii",

@@ -197,7 +197,7 @@
         "noMatchingMembers": "Niciun membru al echipei nu se potrivește căutării dvs.",
         "noMembersWithOverrides": "Niciun membru al echipei nu are personalizări.",
         "noTeamMembersInBusiness": "Nu există membri ai echipei disponibili",
-        "noTeamMembersInBusinessDescription": "Adăugați mai întâi membri ai echipei în afacerea dvs. pentru a-i aloca locațiilor."
+        "noTeamMembersInBusinessDescription": "Adăugați mai întâi membri ai echipei în businessul dvs. pentru a-i aloca locațiilor."
       }
     },
     "ariaLabels": {
@@ -247,11 +247,8 @@
       "deselectAll": "Deselectează tot",
       "emptyState": {
         "noServices": "Niciun serviciu disponibil la această locație.",
-        "noServicesDescription": "Niciun serviciu disponibil la această locație.",
         "noEnabled": "Niciun serviciu activat pentru acest membru.",
-        "noEnabledDescription": "Niciun serviciu nu este activat pentru acest membru.",
-        "noCustom": "Niciun serviciu nu are prețuri personalizate.",
-        "noCustomDescription": "Niciun serviciu nu are prețuri personalizate."
+        "noCustom": "Niciun serviciu nu are prețuri personalizate."
       }
     },
     "toasts": {

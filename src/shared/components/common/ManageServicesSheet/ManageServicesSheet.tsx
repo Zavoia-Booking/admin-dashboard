@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect, useLayoutEffect, useRef } from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { PortalContainerContext } from "../../../contexts/PortalContainerContext";
 import { useSelector } from "react-redux";
@@ -305,18 +305,18 @@ export function ManageServicesSheet({
   const isEmptyState = filteredCategoryGroups.length === 0;
   const isFilteredEmpty = isEmptyState && allServices.length > 0 && hasActiveFilters;
 
-  useEffect(() => {
+  // The open accordion keeps the animated height (animation-fill-mode: forwards)
+  // while clipping its overflow, so an undersized measurement crops the tail of a
+  // category with no way to scroll to it. scrollHeight — not a sum of child
+  // offsetHeights — is the only measure that includes the `space-y-1` margins
+  // between rows and the wrapper's own padding. Same approach as
+  // [LocationServicesSection] and [MyAssignmentServicesSection].
+  // Layout effect, not passive: the var must be right before the browser starts
+  // the expand animation, otherwise the first frames animate toward a stale height.
+  useLayoutEffect(() => {
     contentRefs.current.forEach((el) => {
-      if (el) {
-        const innerContent = el.firstElementChild as HTMLElement;
-        if (innerContent) {
-          const fullHeight = Array.from(innerContent.children).reduce(
-            (acc, child) => acc + (child as HTMLElement).offsetHeight,
-            0
-          );
-          el.style.setProperty("--radix-collapsible-content-height", `${fullHeight}px`);
-        }
-      }
+      if (!el) return;
+      el.style.setProperty("--radix-collapsible-content-height", `${el.scrollHeight}px`);
     });
   }, [filteredCategoryGroups, expandedCategories]);
 

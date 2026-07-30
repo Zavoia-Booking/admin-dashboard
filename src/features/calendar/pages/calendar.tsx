@@ -12,7 +12,6 @@ import {
   hydrateCalendarDisplayPreferencesAction,
   setStaffFilter,
   setDayFiltersAction,
-  setSelectedLocationAction,
   setSelectedDateAction,
   setScrollToNow,
   setDisplayedWeekAction,
@@ -285,26 +284,50 @@ const Calendar = () => {
     );
   }, [dispatch, isMobile]);
 
+  // Deep links into the calendar: `date` and `appointmentUuid` from the dashboard's
+  // upcoming list, `appointmentId` from notifications. Handled in one effect and consumed
+  // with a surgical delete — two effects each clearing the whole query string would race,
+  // the second write resurrecting the param the first had just consumed and re-running it.
   useEffect(() => {
-    const appointmentIdParam = searchParams.get("appointmentId");
-    if (!appointmentIdParam) return;
+    const dateParam = searchParams.get("date");
+    // uuid preferred; the numeric form stays supported for links already in the wild.
+    const appointmentRef =
+      searchParams.get("appointmentUuid") ?? searchParams.get("appointmentId");
+    if (!dateParam && !appointmentRef) return;
 
-    const appointmentId = Number(appointmentIdParam);
-    if (Number.isNaN(appointmentId)) return;
+    const next = new URLSearchParams(searchParams);
+    next.delete("date");
+    next.delete("appointmentUuid");
+    next.delete("appointmentId");
+    setSearchParams(next, { replace: true });
 
-    setSearchParams({}, { replace: true });
+    // Select the day first — it needs no network, and selecting it is what fetches it
+    // (handleSetSelectedDate → refetchCalendarForCurrentView). So the day is right even
+    // if the detail request below fails.
+    const date = dateParam ? new Date(dateParam) : null;
+    if (date && !Number.isNaN(date.getTime())) {
+      dispatchSelectDateAndDayView(
+        dispatch,
+        date,
+        store.getState().calendarView.viewMode,
+        store.getState().calendarView.selectedDate,
+      );
+    }
 
-    getAppointmentDetailRequest(appointmentId)
+    if (!appointmentRef) return;
+
+    getAppointmentDetailRequest(appointmentRef)
       .then((appointment) => {
-        if (appointment) {
-          dispatchSelectDateAndDayView(
-            dispatch,
-            new Date(appointment.scheduledAt),
-            store.getState().calendarView.viewMode,
-            store.getState().calendarView.selectedDate,
-          );
-          dispatch(toggleEditFormAction({ open: true, item: appointment }));
-        }
+        if (!appointment) return;
+        // A no-op when `date` already moved us here (same-day guard inside); still does the
+        // work for id-only links, which have no date to go on.
+        dispatchSelectDateAndDayView(
+          dispatch,
+          new Date(appointment.scheduledAt),
+          store.getState().calendarView.viewMode,
+          store.getState().calendarView.selectedDate,
+        );
+        dispatch(toggleEditFormAction({ open: true, item: appointment }));
       })
       .catch(() => {});
   }, [searchParams, setSearchParams, dispatch]);
@@ -315,7 +338,11 @@ const Calendar = () => {
     const staffEmailParam = searchParams.get("staffEmail");
     if (!staffEmailParam) return;
 
-    setSearchParams({}, { replace: true });
+    // Consume only this key, for the same reason as the deep-link effect above: clearing
+    // the whole query string here would stomp a param another effect hasn't read yet.
+    const next = new URLSearchParams(searchParams);
+    next.delete("staffEmail");
+    setSearchParams(next, { replace: true });
     pendingStaffEmail.current = staffEmailParam;
   }, [searchParams, setSearchParams]);
 
@@ -368,7 +395,18 @@ const Calendar = () => {
     }
   }, [dispatch, locationStaff, staffFilter, dayFilters]);
 
-  // Refetch location context and current view when re-entering the calendar (already have a selected location and cached context)
+  // Refetch location context and current view when re-entering the calendar (already have a
+  // selected location and cached context).
+  //
+  // Deliberately NOT setSelectedLocationAction: that action means "the location changed", and
+  // its reducer wipes locationContext, dayData, dayFilters and staffFilter. Re-dispatching it
+  // for the *same* location silently discarded the user's filters, and — because the wipe is
+  // synchronous while the saga that reads the state runs after — left handleSetSelectedLocation
+  // computing the fetch range from getCalendarTimezone with locationContext already null. That
+  // falls back to the business timezone (or UTC), and since selected dates are browser-local
+  // midnight, formatting one in UTC yields the *previous* calendar day for any zone east of it.
+  // So returning to a previously selected date requested the wrong day and rendered "nothing
+  // scheduled" until you nudged the date, which refetched with the context intact.
   useEffect(() => {
     if (
       selectedLocationId != null &&
@@ -376,9 +414,13 @@ const Calendar = () => {
       !hasRefetchedOnEnter.current
     ) {
       hasRefetchedOnEnter.current = true;
-      dispatch(setSelectedLocationAction(selectedLocationId));
+      // Refreshes working hours/staff without clearing the cached context...
+      dispatch(fetchLocationContext.request(selectedLocationId));
+      // ...and re-runs the view-aware fetch for the current date, keeping filters. Same
+      // trick handleRetryCalendarLoad uses.
+      dispatch(setDayFiltersAction(dayFilters));
     }
-  }, [dispatch, selectedLocationId, locationContext]);
+  }, [dispatch, selectedLocationId, locationContext, dayFilters]);
 
   const handleCloseAddForm = useCallback(() => {
     dispatch(toggleAddForm({ open: false }))

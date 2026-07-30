@@ -141,7 +141,7 @@
     },
     "duplicate": {
       "title": "Duplicat detectat",
-      "description": "Acest client are date de profil duplicate în afacerea ta.",
+      "description": "Acest client are date de profil duplicate în businessul tău.",
       "explanation": "Ai adăugat manual acest client, dar acesta are și un cont pe marketplace cu același email. Poți rezolva acest lucru combinând ambele profiluri într-unul singur.",
       "badge": "Duplicat detectat",
       "benefit1": "Istoric unificat al programărilor într-un singur loc",

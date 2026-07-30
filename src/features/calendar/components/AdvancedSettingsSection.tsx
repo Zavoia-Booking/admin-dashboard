@@ -24,12 +24,19 @@ const BUFFER_QUICK_ACTIONS: (number | "other")[] = [0, 5, 15, 30, "other"];
 const CANCELLATION_WINDOW_QUICK_ACTIONS: (number | "other")[] = [0, 60, 1440, 10080, "other"];
 const RESCHEDULE_WINDOW_QUICK_ACTIONS: (number | "other")[] = [0, 60, 1440, 10080, "other"];
 const STAFF_BLOCK_CALENDAR_TYPES = ["holidays", "timeOff", "sickDays"];
+/**
+ * Team calendar permissions card (staff cancel/reschedule/block-calendar toggles
+ * + block types) is hidden for now: the backend keeps the flags (default true,
+ * still enforced) so a future approval-queue feature can revive this UI by
+ * flipping this to true. Do not delete the guarded JSX below.
+ */
+const SHOW_TEAM_CALENDAR_PERMISSIONS = false;
 /** Hour options when reminders are enabled (0 = disabled is handled by switch). */
 const REMINDER_HOURS_OPTIONS = [1, 2, 4, 12, 24, 48] as const;
 
 const DEFAULT_SETTINGS: UpdateBookingSettingsPayload = {
-  minAdvanceBookingMinutes: 60,
-  maxAdvanceBookingMinutes: 43200,
+  minAdvanceBookingMinutes: 0,
+  maxAdvanceBookingMinutes: 86400,
   slotIntervalMinutes: 15,
   bufferTimeMinutes: 0,
   cancellationWindowMinutes: 1440,
@@ -37,8 +44,6 @@ const DEFAULT_SETTINGS: UpdateBookingSettingsPayload = {
   allowCustomerCancellation: true,
   allowCustomerReschedule: true,
   autoConfirmBookings: true,
-  allowStaffSelection: true,
-  showAnyStaffOption: true,
   allowStaffCancelWithoutConfirmation: true,
   allowStaffRescheduleWithoutConfirmation: true,
   allowStaffBlockCalendarWithoutConfirmation: true,
@@ -124,7 +129,10 @@ export const AdvancedSettingsSection = forwardRef<
       }
     }
 
+    // Only validated while the team-permissions card is visible — a hidden
+    // invalid state must never block saving the rest of the form.
     if (
+      SHOW_TEAM_CALENDAR_PERMISSIONS &&
       formData.allowStaffBlockCalendarWithoutConfirmation &&
       (!formData.staffBlockCalendarTypes ||
         formData.staffBlockCalendarTypes.length === 0)
@@ -208,8 +216,6 @@ export const AdvancedSettingsSection = forwardRef<
   const handleAllowCustomerCancellation = useCallback((checked: boolean) => updateField("allowCustomerCancellation", checked), [updateField]);
   const handleAllowCustomerReschedule = useCallback((checked: boolean) => updateField("allowCustomerReschedule", checked), [updateField]);
   const handleAutoConfirmBookings = useCallback((checked: boolean) => updateField("autoConfirmBookings", checked), [updateField]);
-  const handleAllowStaffSelection = useCallback((checked: boolean) => updateField("allowStaffSelection", checked), [updateField]);
-  const handleShowAnyStaffOption = useCallback((checked: boolean) => updateField("showAnyStaffOption", checked), [updateField]);
   const handleAllowStaffCancel = useCallback((checked: boolean) => updateField("allowStaffCancelWithoutConfirmation", checked), [updateField]);
   const handleAllowStaffReschedule = useCallback((checked: boolean) => updateField("allowStaffRescheduleWithoutConfirmation", checked), [updateField]);
   const handleAllowStaffBlock = useCallback((checked: boolean) => updateField("allowStaffBlockCalendarWithoutConfirmation", checked), [updateField]);
@@ -470,70 +476,9 @@ export const AdvancedSettingsSection = forwardRef<
               </div>
             </div>
 
-            <div className="group relative bg-surface dark:bg-neutral-900/30 rounded-2xl border border-border hover:border-border-strong transition-all duration-300 shadow-sm p-3 md:p-4 overflow-hidden">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 dark:bg-primary/20 rounded-full -translate-y-10 translate-x-10 group-hover:scale-125 transition-transform duration-500"></div>
-              <div className="relative space-y-4">
-                <div className="space-y-1.5">
-                  <h3 className="text-base font-semibold text-foreground-1 flex items-center gap-2">
-                    {t("confirmation.staffSelection.title")}
-                  </h3>
-                  <p className="text-sm text-foreground-3 dark:text-foreground-2">
-                    {t(
-                      "confirmation.staffSelection.description"
-                    )}
-                  </p>
-                </div>
-
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between p-3 rounded-xl border border-border bg-muted/20 hover:border-border-strong">
-                    <div className="space-y-1">
-                      <Label
-                        className="text-sm font-medium cursor-pointer"
-                        htmlFor="allowStaffSelection"
-                      >
-                        {t(
-                          "confirmation.allowStaffSelection.label"
-                        )}
-                      </Label>
-                      <p className="text-[11px] text-foreground-3 dark:text-foreground-2">
-                        {t(
-                          "confirmation.allowStaffSelection.description"
-                        )}
-                      </p>
-                    </div>
-                    <Switch
-                      id="allowStaffSelection"
-                      checked={formData.allowStaffSelection}
-                      onCheckedChange={handleAllowStaffSelection}
-                    />
-                  </div>
-                  <div className="flex items-center justify-between p-3 rounded-xl border border-border bg-muted/20 hover:border-border-strong">
-                    <div className="space-y-1">
-                      <Label
-                        className="text-sm font-medium cursor-pointer"
-                        htmlFor="showAnyStaffOption"
-                      >
-                        {t(
-                          "confirmation.showAnyStaffOption.label"
-                        )}
-                      </Label>
-                      <p className="text-[11px] text-foreground-3 dark:text-foreground-2">
-                        {t(
-                          "confirmation.showAnyStaffOption.description"
-                        )}
-                      </p>
-                    </div>
-                    <Switch
-                      id="showAnyStaffOption"
-                      checked={formData.showAnyStaffOption}
-                      onCheckedChange={handleShowAnyStaffOption}
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Calendar Settings / Team Availability */}
+            {/* Calendar Settings / Team Availability — hidden pending the
+                approval-queue implementation (see SHOW_TEAM_CALENDAR_PERMISSIONS). */}
+            {SHOW_TEAM_CALENDAR_PERMISSIONS && (
             <div className="group relative bg-surface dark:bg-neutral-900/30 rounded-2xl border border-border hover:border-border-strong transition-all duration-300 shadow-sm p-3 md:p-4 overflow-hidden">
               <div className="absolute top-0 right-0 w-24 h-24 bg-purple-500/5 rounded-full -translate-y-10 translate-x-10 group-hover:scale-125 transition-transform duration-500"></div>
               <div className="relative space-y-4">
@@ -676,6 +621,7 @@ export const AdvancedSettingsSection = forwardRef<
                 </div>
               </div>
             </div>
+            )}
 
             {/* Admin Booking Override */}
             <div className="group relative bg-surface dark:bg-neutral-900/30 rounded-2xl border border-border hover:border-border-strong transition-all duration-300 shadow-sm p-3 md:p-4 overflow-hidden">

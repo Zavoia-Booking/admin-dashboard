@@ -8,6 +8,7 @@ import { Breadcrumbs } from '../Breadcrumbs';
 import { useBreadcrumbs } from '../../hooks/useBreadcrumbs';
 import { LimitedAccessBanner } from '../common/subscription/LimitedAccessBanner';
 import { HeaderRightSlotProvider, useHeaderRightSlotValue } from './HeaderRightSlot';
+import { APP_SCROLL_CONTAINER_ATTR } from '../../utils/scroll';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -67,7 +68,10 @@ function AppLayoutInner({ children, contentClassName, headerRightContent, noPadd
         <AppSidebar />
 
         <SidebarInset>
-          <main className={`flex-1 bg-transparent overflow-y-auto ${isMobile ? 'pb-19' : 'pb-0'} [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]`}>
+          <main
+            {...{ [APP_SCROLL_CONTAINER_ATTR]: '' }}
+            className={`flex-1 bg-transparent overflow-y-auto ${isMobile ? 'pb-19' : 'pb-0'} [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]`}
+          >
             <div className={`w-full bg-transparent max-w-full content-container ${contentClassName ?? 'md:max-w-220'}`}>
               <div
                 className="sticky top-0 z-50 md:hidden bg-surface"

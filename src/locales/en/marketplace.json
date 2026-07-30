@@ -85,9 +85,9 @@
     },
     "description": {
       "label": "Description",
-      "placement": "Shown on your marketplace card when people search or browse.",
-      "useBusinessDescription": "Pulled automatically from your global profile and shown on your marketplace card.",
-      "customDescription": "A short pitch for your marketplace card — what you offer and why clients should choose you. Keep it to a sentence or two.",
+      "placement": "Appears on your public page in the marketplace, where clients read about you before booking.",
+      "useBusinessDescription": "Taken automatically from your business profile and shown on your public page in the marketplace.",
+      "customDescription": "A short introduction for your public page in the marketplace — what you offer and why clients should choose you. Keep it to a sentence or two.",
       "placeholder": "What do you offer, and why should people choose you?",
       "noDescription": "No profile description found. To keep your branding consistent, update your business settings—or switch to custom mode to write a tailored version for the marketplace.",
       "custom": "Custom"
@@ -240,7 +240,7 @@
       }
     },
     "confirmation": {
-      "title": "Confirmation and staff selection",
+      "title": "Confirmation and permissions",
       "bookingConfirmation": {
         "title": "Booking confirmation",
         "description": "Choose whether bookings are automatically confirmed or require manual approval."
@@ -249,18 +249,6 @@
         "label": "Booking approval",
         "autoConfirm": "Bookings are confirmed automatically.",
         "manualConfirm": "You'll manually approve each booking request."
-      },
-      "staffSelection": {
-        "title": "Staff selection",
-        "description": "Configure how team members are presented and selected during booking."
-      },
-      "allowStaffSelection": {
-        "label": "Allow staff selection",
-        "description": "Let clients choose a specific team member during booking."
-      },
-      "showAnyStaffOption": {
-        "label": "Show \"Any staff\" option",
-        "description": "Display a default option allowing clients to be matched with any available team member."
       },
       "calendarSettings": {
         "title": "Team calendar permissions",

@@ -2,8 +2,9 @@ import React, { useState, useEffect, useRef, useCallback, useMemo, type ReactNod
 import { useTranslation } from 'react-i18next';
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from './button';
-import { Popover, PopoverContent, PopoverTrigger } from './popover';
+import { ResponsivePopover } from './responsive-popover';
 import { cn } from '../../lib/utils';
+import { useIsMobile } from '../../hooks/use-mobile';
 import { getCalendarLocale } from '../../../features/calendar/timezone';
 
 interface DatePickerProps {
@@ -29,6 +30,8 @@ interface DatePickerProps {
   popoverHeaderSlot?: ReactNode;
   /** When true, month navigation, Today, and date selection are non-interactive and visually muted (e.g. “No end date” on). */
   calendarDisabled?: boolean;
+  /** Heading for the mobile bottom sheet; defaults to `placeholder`. Prefer the field's own label. */
+  mobileTitle?: string;
 }
 
 const DatePicker: React.FC<DatePickerProps> = ({
@@ -46,9 +49,11 @@ const DatePicker: React.FC<DatePickerProps> = ({
   contentClassName,
   popoverHeaderSlot,
   calendarDisabled = false,
+  mobileTitle,
 }) => {
   const { t } = useTranslation("calendar");
   const locale = getCalendarLocale();
+  const isMobile = useIsMobile();
   const fallbackDate = value ?? new Date();
   const [isOpen, setIsOpen] = useState(false);
   const [closingAnimation, setClosingAnimation] = useState(false);
@@ -82,7 +87,9 @@ const DatePicker: React.FC<DatePickerProps> = ({
     };
   }, [connectedPopover]);
 
-  const showOpenBorder = connectedPopover && (isOpen || closingAnimation);
+  // The fused trigger/panel border only makes sense when a panel is actually
+  // attached below the trigger — on mobile the calendar is a bottom sheet.
+  const showOpenBorder = connectedPopover && !isMobile && (isOpen || closingAnimation);
   const [currentMonth, setCurrentMonth] = useState(fallbackDate);
   const [currentYear, setCurrentYear] = useState(fallbackDate.getFullYear());
 
@@ -295,8 +302,11 @@ const DatePicker: React.FC<DatePickerProps> = ({
   ], [t]);
 
   return (
-    <Popover open={isOpen} onOpenChange={handleOpenChange}>
-      <PopoverTrigger asChild>
+    <ResponsivePopover
+      open={isOpen}
+      onOpenChange={handleOpenChange}
+      title={mobileTitle ?? placeholder}
+      trigger={
         <Button
           id={triggerId}
           aria-invalid={invalid || undefined}
@@ -319,22 +329,21 @@ const DatePicker: React.FC<DatePickerProps> = ({
             </span>
           </div>
         </Button>
-      </PopoverTrigger>
-      <PopoverContent
-        className={cn(
-          "p-0 z-[90]",
-          connectedPopover &&
-            "!w-[var(--radix-popover-trigger-width)] max-w-[var(--radix-popover-trigger-width)] max-h-[calc(100vh-6rem)] box-border add-appointment-popover-expand -mt-px border border-t-0 rounded-t-none rounded-b-[16px] shadow-none overflow-hidden flex flex-col",
-          connectedPopover &&
-            (showOpenBorder ? "border-border-strong dark:border-border-strong" : "border-input dark:border-border"),
-          !connectedPopover && "w-[320px]",
-          contentClassName
-        )}
-        align="start"
-        side="bottom"
-        sideOffset={connectedPopover ? 0 : undefined}
-        avoidCollisions={connectedPopover ? false : undefined}
-      >
+      }
+      contentClassName={cn(
+        "p-0 z-[90]",
+        connectedPopover &&
+          "!w-[var(--radix-popover-trigger-width)] max-w-[var(--radix-popover-trigger-width)] max-h-[calc(100vh-6rem)] box-border add-appointment-popover-expand -mt-px border border-t-0 rounded-t-none rounded-b-[16px] shadow-none overflow-hidden flex flex-col",
+        connectedPopover &&
+          (showOpenBorder ? "border-border-strong dark:border-border-strong" : "border-input dark:border-border"),
+        !connectedPopover && "w-[320px]",
+        contentClassName
+      )}
+      align="start"
+      side="bottom"
+      sideOffset={connectedPopover ? 0 : undefined}
+      avoidCollisions={connectedPopover ? false : undefined}
+    >
         <div className={cn("p-3 overflow-y-auto min-h-0", connectedPopover && "flex-1")}>
           {popoverHeaderSlot != null ? (
             <div className="-mx-3 -mt-1 border-b border-border px-3 pb-3 pt-1 mb-3">
@@ -497,8 +506,7 @@ const DatePicker: React.FC<DatePickerProps> = ({
             )}
           </div>
         </div>
-      </PopoverContent>
-    </Popover>
+    </ResponsivePopover>
   );
 };
 

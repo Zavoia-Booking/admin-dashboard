@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { Spinner } from "../../../shared/components/ui/spinner";
 import { cn } from "../../../shared/lib/utils";
 import { getErrorMessage } from "../../../shared/utils/error";
+import { scrollAppContentToElement } from "../../../shared/utils/scroll";
 import { FullScreenImageCarousel } from "./FullScreenImageCarousel";
 import {
   uploadMarketplaceImageApi,
@@ -138,9 +139,15 @@ export function MarketplaceImagesSection({
   const [attentionActive, setAttentionActive] = useState(false);
 
   const triggerAttention = useCallback(() => {
-    // Next frame, so a just-mounted/just-shown panel has laid out before scrolling.
+    // Two frames, not one: the panel may have only just been revealed (the tabs keep
+    // every panel mounted behind `display:none`) or mounted by the master-list drill-in,
+    // and one frame isn't reliably enough for it to have laid out on a phone — measuring
+    // too early yields a stale offset and the pane lands nowhere near the card.
     requestAnimationFrame(() => {
-      uploadCardRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      requestAnimationFrame(() => {
+        const card = uploadCardRef.current;
+        if (card) scrollAppContentToElement(card, { block: "center" });
+      });
     });
     if (attentionTimerRef.current) window.clearTimeout(attentionTimerRef.current);
     // Let the smooth scroll land first so the shake is actually seen; it runs

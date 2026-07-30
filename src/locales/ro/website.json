@@ -63,15 +63,15 @@
       "cancelled": "Plata a fost anulată. Selecția rămâne neschimbată.",
       "timeout": "Confirmarea plății durează mai mult decât estimat. Încearcă din nou în curând.",
       "unavailable": "Nu am putut confirma starea plății. Selecția rămâne neschimbată.",
-      "businessMismatch": "Această plată aparține altei afaceri. Revino la afacerea folosită la plată pentru confirmare.",
+      "businessMismatch": "Această plată aparține altui business. Revino la businessul folosit la plată pentru confirmare.",
       "retry": "Reîncearcă verificarea",
-      "switchBusiness": "Schimbă afacerea"
+      "switchBusiness": "Schimbă businessul"
     },
     "actions": {
       "backToDashboard": "Înapoi la panou",
       "skipToBuilder": "Sari la editorul site-ului",
       "save": "Salvează",
-      "saveChanges": "Salvează modificările",
+      "saveChanges": "Salvează",
       "discardChanges": "Renunță la modificări",
       "retrySave": "Reîncearcă salvarea",
       "reload": "Încarcă versiunea nouă",
@@ -128,9 +128,9 @@
       "cancel": "Continuă editarea"
     },
     "identity": {
-      "title": "Profilul afacerii",
-      "edit": "Editează profilul afacerii",
-      "fallbackName": "Afacerea ta"
+      "title": "Profilul businessului",
+      "edit": "Editează profilul businessului",
+      "fallbackName": "Businessul tău"
     },
     "unpublishConfirm": {
       "title": "Anulezi publicarea?",
@@ -342,11 +342,11 @@
       "kitLabel": "Brand",
       "tagline": {
         "label": "Subtitlu",
-        "placeholder": "Un rând scurt care surprinde ce oferă afacerea ta"
+        "placeholder": "Un rând scurt care surprinde ce oferă businessul tău"
       },
       "hero": {
         "label": "Imagine de copertă",
-        "description": "Alege o imagine panoramică reprezentativă pentru afacerea ta.",
+        "description": "Alege o imagine panoramică reprezentativă pentru businessul tău.",
         "alt": "Imaginea de copertă a site-ului",
         "uploadCta": "Adaugă o imagine de copertă",
         "uploadDescription": "JPG, PNG, WEBP sau AVIF · până la 10 MB",
@@ -403,15 +403,15 @@
     },
     "about": {
       "titleLabel": "Titlu",
-      "titlePlaceholder": "Rezumă ce face afacerea ta o alegere potrivită.",
+      "titlePlaceholder": "Rezumă ce face businessul tău o alegere potrivită.",
       "titleHelp": "Apare vizibil în partea de sus. Se așază automat pe rânduri.",
       "bodyLabel": "Poveste",
       "bodyPlaceholder": "Prezintă cum lucrezi, ce oferi și la ce se pot aștepta oamenii.",
       "storyWritingHelp": "Folosește 2–4 paragrafe scurte despre ce faci, cum lucrezi și la ce se pot aștepta vizitatorii.",
       "headlineRequired": "Adaugă un titlu sau restaurează textul implicit înainte de publicare.",
-      "storyRequired": "Spune-le vizitatorilor despre afacerea ta. Scrie o poveste sau folosește descrierea din profil.",
+      "storyRequired": "Spune-le vizitatorilor despre businessul tău. Scrie o poveste sau folosește descrierea din profil.",
       "combinedLengthError": "Titlul și Povestea trebuie să aibă împreună cel mult {{max}} de caractere.",
-      "storySource": "Actualizează detaliile afacerii, inclusiv descrierea, în Profilul afacerii.",
+      "storySource": "Actualizează detaliile businessului, inclusiv descrierea, în Profilul businessului.",
       "storySourceLink": "Gestionează profilul ↗",
       "storyUseProfile": "Folosește descrierea din profil",
       "establishedYearLabel": "Anul înființării",
@@ -419,9 +419,9 @@
       "establishedYearPlaceholder": "de ex. 2014",
       "establishedYearHelp": "Apare în stilurile Despre care includ anul înființării.",
       "establishedYearError": "Introdu un an din patru cifre între {{minYear}} și {{maxYear}}.",
-      "statsLabel": "Reperele afacerii",
+      "statsLabel": "Reperele businessului",
       "statsHelp": "Afișează locațiile, membrii echipei, evaluarea medie și anul înființării, când sunt disponibile.",
-      "statsToggle": "Afișează reperele afacerii",
+      "statsToggle": "Afișează reperele businessului",
       "photo": {
         "label": "Fotografie",
         "help": "Apare în stilurile Editorial și Poveste.",
@@ -447,7 +447,7 @@
       },
       "hero": {
         "label": "Hero",
-        "description": "Prezintă afacerea prin imaginea de copertă, nume, subtitlu și butonul de programare."
+        "description": "Prezintă businessul prin imaginea de copertă, nume, subtitlu și butonul de programare."
       },
       "marquee": {
         "label": "Bandă",
@@ -455,7 +455,7 @@
       },
       "about": {
         "label": "Despre",
-        "description": "Spune ce face afacerea ta o alegere potrivită."
+        "description": "Spune ce face businessul tău o alegere potrivită."
       },
       "services": {
         "label": "Servicii",
@@ -556,19 +556,19 @@
         },
         "hero": {
           "default": "Câmp de accent fără copertă; un panou text peste coperta ta după ce o adaugi.",
-          "cinematic": "Fotografie de copertă pe tot ecranul, cu numele afacerii jos-stânga.",
+          "cinematic": "Fotografie de copertă pe tot ecranul, cu numele businessului jos-stânga.",
           "poster": "Nume supradimensionat, stivuit, peste o cortină de lumină întunecată.",
           "portal": "Un portret arcuit care se deschide pe tot ecranul la derulare.",
           "drift": "O plasă auroră lentă în spatele unei declarații cu majuscule.",
-          "tumble": "Numele afacerii cade ca niște litere de cerneală pe hârtie caldă."
+          "tumble": "Numele businessului cade ca niște litere de cerneală pe hârtie caldă."
         },
         "marquee": {
           "scroll": "Serviciile se mișcă odată cu pagina când vizitatorii derulează.",
           "loop": "Serviciile se mișcă încontinuu, într-un ritm calm și uniform."
         },
         "about": {
-          "manifesto": "Un mesaj centrat pe fundal întunecat, cu informații actualizate despre afacere.",
-          "editorial": "Un articol de revistă cu antet delimitat, letrină, fotografie din locație și informații actualizate despre afacere.",
+          "manifesto": "Un mesaj centrat pe fundal întunecat, cu informații actualizate despre business.",
+          "editorial": "Un articol de revistă cu antet delimitat, letrină, fotografie din locație și informații actualizate despre business.",
           "sticky": "Un titlu fixat lângă fragmente numerotate și o linie animată de progres al lecturii."
         },
         "services": {
@@ -717,12 +717,12 @@
         "hidden": "Ascunsă",
         "needsContent": "Necesită atenție",
         "noData": "Fără conținut",
-        "generated": "Folosește informațiile afacerii",
+        "generated": "Folosește informațiile businessului",
         "newerVersion": "Creată într-o versiune mai nouă",
         "pageLinks_one": "{{count}} link către pagină",
         "pageLinks_few": "{{count}} linkuri către pagină",
         "pageLinks_other": "{{count}} de linkuri către pagină",
-        "heroEssentials": "Numele afacerii · Buton de programare",
+        "heroEssentials": "Numele businessului · Buton de programare",
         "footerEssentials": "Programare și date de contact",
         "noMessage": "Niciun mesaj încă",
         "addCover": "Adaugă o fotografie de copertă",
@@ -803,7 +803,7 @@
           },
           "about": {
             "title": "Adaugă povestea secțiunii Despre",
-            "body": "Spune-le vizitatorilor ce face afacerea ta și la ce se pot aștepta înainte de publicare.",
+            "body": "Spune-le vizitatorilor ce face businessul tău și la ce se pot aștepta înainte de publicare.",
             "action": "Adaugă povestea",
             "headlineTitle": "Adaugă titlul secțiunii Despre",
             "headlineAction": "Adaugă titlul"
@@ -883,7 +883,7 @@
           "footerNoLocationsBody": "Acest stil include o coloană Locații. Adaugă o locație sau alege un stil de subsol care nu depinde de ea.",
           "footerNoContactTitle": "Adaugă o metodă de contact",
           "footerNoContactBody": "Acest stil include o coloană Contact. Adaugă un e-mail, un număr de telefon sau un site pentru ca aceasta să nu rămână goală.",
-          "editBusinessProfileAction": "Editează profilul afacerii"
+          "editBusinessProfileAction": "Editează profilul businessului"
         },
         "addLocationAction": "Adaugă locație",
         "locationsHint": "Alege ce locații apar pe site.",
@@ -1045,21 +1045,21 @@
         "footerDescriptionOptional": "Opțional",
         "footerDescriptionPlaceholder": "Adaugă o scurtă descriere de încheiere",
         "footerDescriptionHint": "Lasă câmpul gol pentru a ascunde descrierea din subsol.",
-        "navSource": "Numele și logo-ul provin din profilul afacerii. Linkurile meniului urmează secțiunile afișate momentan pe site.",
+        "navSource": "Numele și logo-ul provin din profilul businessului. Linkurile meniului urmează secțiunile afișate momentan pe site.",
         "reviewsSource": "Recenziile clienților apar automat. Această secțiune folosește comentariile eligibile de cinci stele pentru citate.",
         "viewReviews": "Vezi recenziile ↗",
-        "editBusinessProfile": "Editează profilul afacerii ↗",
-        "footerSourceBusinessTitle": "Profilul afacerii",
+        "editBusinessProfile": "Editează profilul businessului ↗",
+        "footerSourceBusinessTitle": "Profilul businessului",
         "footerSourceBusinessBody": "Brandul, datele de contact și orice linkuri sociale opționale pe care alegi să le adaugi.",
         "footerSourceLocationsTitle": "Locații",
         "footerSourceLocationsBody": "Numele locațiilor, adresele, programul și numerele de telefon.",
-        "footerLogoTitle": "Logo-ul afacerii",
-        "footerLogoToggle": "Afișează logo-ul afacerii",
-        "footerLogoHint": "Folosește logo-ul din profilul afacerii. Când este ascuns, apare în schimb numele afacerii.",
+        "footerLogoTitle": "Logo-ul businessului",
+        "footerLogoToggle": "Afișează logo-ul businessului",
+        "footerLogoHint": "Folosește logo-ul din profilul businessului. Când este ascuns, apare în schimb numele businessului.",
         "noSettings": "Această secțiune nu are setări suplimentare.",
-        "viewOnlyHint": "Se generează automat din informațiile afacerii.",
-        "profileSync": "Detaliile se sincronizează din profilul afacerii.",
-        "profileLink": "Profilul afacerii ↗"
+        "viewOnlyHint": "Se generează automat din informațiile businessului.",
+        "profileSync": "Detaliile se sincronizează din profilul businessului.",
+        "profileLink": "Profilul businessului ↗"
       },
       "faq": {
         "add": "Adaugă altă întrebare",
@@ -1136,12 +1136,12 @@
       "hero": {
         "eyebrowTitle": "Rezumat locații",
         "eyebrowToggle": "Afișează rezumatul locațiilor",
-        "eyebrowHint": "Arată numărul locațiilor deasupra numelui afacerii.",
+        "eyebrowHint": "Arată numărul locațiilor deasupra numelui businessului.",
         "eyebrowCopyLabel": "Text introductiv",
         "coverRequired": "Obligatoriu",
         "ratingTitle": "Rating și recenzii",
         "ratingToggle": "Arată ratingul și recenziile",
-        "ratingHint": "Apare după ce afacerea ta are recenzii."
+        "ratingHint": "Apare după ce businessul tău are recenzii."
       },
       "preview": {
         "allHidden": "Toate secțiunile sunt ascunse. Afișează cel puțin una pentru previzualizare.",
@@ -1170,7 +1170,7 @@
           "previousTeamMember": "Membrul anterior al echipei",
           "nextTeamMember": "Membrul următor al echipei"
         },
-        "businessNamePlaceholder": "Afacerea ta",
+        "businessNamePlaceholder": "Businessul tău",
         "aboutTitle": "Despre noi",
         "aboutGhostLede": "Ce facem și de ce contează.",
         "aboutGhostBody": "Descoperă cum lucrăm, ce oferim și la ce te poți aștepta când ne alegi.",
@@ -1329,7 +1329,7 @@
           "locations_one": "Găsești mai jos adresa, programul și datele noastre de contact.",
           "locations_few": "Alege o locație pentru a vedea adresa, programul și datele de contact.",
           "locations_other": "Alege o locație pentru a vedea adresa, programul și datele de contact.",
-          "team": "Cunoaște oamenii din spatele afacerii."
+          "team": "Cunoaște oamenii din spatele businessului."
         },
         "kicker": {
           "about": "Despre",

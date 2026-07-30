@@ -15,7 +15,8 @@ import { Label } from '../../../shared/components/ui/label';
 import { Input } from '../../../shared/components/ui/input';
 import { Switch } from '../../../shared/components/ui/switch';
 import { PersonAvatar } from '../../../shared/components/common/PersonAvatar';
-import { Popover, PopoverContent, PopoverTrigger } from '../../../shared/components/ui/popover';
+import { ResponsivePopover, SelectDrawer } from '../../../shared/components/ui/responsive-popover';
+import { useIsMobile } from '../../../shared/hooks/use-mobile';
 import { Pill } from '../../../shared/components/ui/pill';
 import {
   Command,
@@ -115,6 +116,7 @@ function BlockDrawerTimeSlotSelect({
   disabled?: boolean;
 }) {
   const { t } = useTranslation("calendar");
+  const isMobile = useIsMobile();
   const [open, setOpen] = useState(false);
   const [closingAnimation, setClosingAnimation] = useState(false);
   const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -190,8 +192,11 @@ function BlockDrawerTimeSlotSelect({
       >
         {label}
       </Label>
-      <Popover open={open && !disabled} onOpenChange={handleOpenChange}>
-        <PopoverTrigger asChild>
+      <ResponsivePopover
+        open={open && !disabled}
+        onOpenChange={handleOpenChange}
+        title={label}
+        trigger={
           <Button
             type="button"
             variant="outline"
@@ -200,7 +205,7 @@ function BlockDrawerTimeSlotSelect({
               'w-full h-12 text-base justify-between font-normal border bg-surface hover:bg-surface-hover rounded-full px-4',
               disabled
                 ? 'border-border dark:border-border-subtle'
-                : open || closingAnimation
+                : !isMobile && (open || closingAnimation)
                   ? '!rounded-b-none !rounded-t-[16px] border-x border-t border-b-0 border-border-strong dark:border-border-strong shadow-none'
                   : 'border-border-strong dark:border-border-strong',
             )}
@@ -212,20 +217,20 @@ function BlockDrawerTimeSlotSelect({
             )}
             <Clock className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
-        </PopoverTrigger>
-        <PopoverContent
-          className={cn(
-            'add-appointment-popover-expand !w-[var(--radix-popover-trigger-width)] max-w-[var(--radix-popover-trigger-width)] max-h-[calc(100vh-6rem)] box-border -mt-px border border-t-0 rounded-t-none rounded-b-[16px] shadow-none p-0 z-[90] overflow-hidden flex flex-col',
-            open || closingAnimation
-              ? 'border-border-strong dark:border-border-strong'
-              : 'border-input dark:border-border',
-          )}
-          side="bottom"
-          align="start"
-          sideOffset={0}
-          avoidCollisions={false}
-        >
-          <div className="min-h-0 flex-1 max-h-60 overflow-y-auto py-1">
+        }
+        contentClassName={cn(
+          'add-appointment-popover-expand !w-[var(--radix-popover-trigger-width)] max-w-[var(--radix-popover-trigger-width)] max-h-[calc(100vh-6rem)] box-border -mt-px border border-t-0 rounded-t-none rounded-b-[16px] shadow-none p-0 z-[90] overflow-hidden flex flex-col',
+          open || closingAnimation
+            ? 'border-border-strong dark:border-border-strong'
+            : 'border-input dark:border-border',
+        )}
+        side="bottom"
+        align="start"
+        sideOffset={0}
+        avoidCollisions={false}
+      >
+          {/* The sheet supplies its own scroll box, so cap the list only in the popover. */}
+          <div className={cn('min-h-0 flex-1 overflow-y-auto py-1', !isMobile && 'max-h-60')}>
             <div className="px-3 pt-2 pb-1.5">
               <p className="text-xs font-medium text-foreground-3 dark:text-foreground-2">{workingHoursLabel}</p>
             </div>
@@ -290,8 +295,7 @@ function BlockDrawerTimeSlotSelect({
               </>
             )}
           </div>
-        </PopoverContent>
-      </Popover>
+      </ResponsivePopover>
     </div>
   );
 }
@@ -340,6 +344,7 @@ function BlockRepeatWeekdaysCombo({
   disabled?: boolean;
 }) {
   const { t } = useTranslation("calendar");
+  const isMobile = useIsMobile();
   const [open, setOpen] = useState(false);
   const [listMounted, setListMounted] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -367,8 +372,10 @@ function BlockRepeatWeekdaysCombo({
     return () => window.clearTimeout(timer);
   }, [open]);
 
+  // Desktop only: the sheet is portaled outside `rootRef`, so this would read
+  // every tap inside it as an outside click and close on the first weekday.
   useEffect(() => {
-    if (!open) return;
+    if (!open || isMobile) return;
     const onPointerDown = (event: MouseEvent | TouchEvent) => {
       const target = event.target as Node | null;
       if (!target) return;
@@ -381,34 +388,89 @@ function BlockRepeatWeekdaysCombo({
       document.removeEventListener('mousedown', onPointerDown);
       document.removeEventListener('touchstart', onPointerDown);
     };
-  }, [open]);
+  }, [open, isMobile]);
 
-  const showListContainer = listMounted && !disabled;
+  const showListContainer = !isMobile && listMounted && !disabled;
   const lastDayIdx = WEEKDAY_VALUES.length - 1;
+
+  const triggerButton = (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={() => setOpen((o) => !o)}
+      aria-expanded={open}
+      aria-haspopup="listbox"
+      className={cn(
+        'relative flex h-11 w-full min-w-0 items-center justify-between gap-2 bg-surface px-4 text-left text-base font-normal text-foreground-1 transition-colors dark:bg-neutral-900',
+        'cursor-pointer disabled:cursor-not-allowed',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+        showListContainer
+          ? '!rounded-b-none !rounded-t-[22px] border-x border-t border-b border-border-strong shadow-none dark:border-border-strong'
+          : '!rounded-full border border-border-strong dark:border-border-strong',
+      )}
+    >
+      <span className="min-w-0 flex-1 truncate">{summary}</span>
+      <ChevronDown
+        className={cn('h-4 w-4 shrink-0 text-foreground-3 transition-transform', open && 'rotate-180')}
+        aria-hidden
+      />
+    </button>
+  );
+
+  const weekdayList = (
+    <Command shouldFilter={false} className="w-full min-w-0 max-w-full bg-transparent">
+      <CommandList
+        className={cn(
+          'w-full min-w-0 max-w-full overflow-x-hidden overflow-y-auto',
+          // The sheet supplies its own scroll box; cap the list only in the inline panel.
+          !isMobile && 'max-h-[min(260px,40vh)]',
+        )}
+      >
+        <CommandGroup heading={listGroupHeading}>
+          {WEEKDAY_VALUES.map(({ value }, index) => {
+            const selected = selectedDays.includes(value);
+            return (
+              <CommandItem
+                key={value}
+                value={`wd-${value}`}
+                onSelect={() => onToggleDay(value)}
+                className={cn(
+                  'flex cursor-pointer items-center gap-2 p-3',
+                  selected && 'bg-muted/50',
+                  !isMobile && index === lastDayIdx && 'rounded-b-[18px]',
+                )}
+              >
+                <RepeatWeekdayListRowCheck visible={selected} />
+                <span className="min-w-0 flex-1 text-sm font-medium text-foreground-1">{weekdayLabelMap[value]}</span>
+              </CommandItem>
+            );
+          })}
+        </CommandGroup>
+      </CommandList>
+    </Command>
+  );
+
+  // Multi-select: the sheet stays open across taps, so it needs no extra dismiss
+  // affordance beyond the overlay and the drag handle.
+  if (isMobile) {
+    return (
+      <div className={cn(disabled && 'pointer-events-none opacity-50')}>
+        <SelectDrawer
+          open={open && !disabled}
+          onOpenChange={setOpen}
+          trigger={triggerButton}
+          title={listGroupHeading}
+          description={t("page.blocks.create.selectWeekdays")}
+        >
+          {weekdayList}
+        </SelectDrawer>
+      </div>
+    );
+  }
 
   return (
     <div ref={rootRef} className={cn('relative', disabled && 'pointer-events-none opacity-50')}>
-      <button
-        type="button"
-        disabled={disabled}
-        onClick={() => setOpen((o) => !o)}
-        aria-expanded={open}
-        aria-haspopup="listbox"
-        className={cn(
-          'relative flex h-11 w-full min-w-0 items-center justify-between gap-2 bg-surface px-4 text-left text-base font-normal text-foreground-1 transition-colors dark:bg-neutral-900',
-          'cursor-pointer disabled:cursor-not-allowed',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-          showListContainer
-            ? '!rounded-b-none !rounded-t-[22px] border-x border-t border-b border-border-strong shadow-none dark:border-border-strong'
-            : '!rounded-full border border-border-strong dark:border-border-strong',
-        )}
-      >
-        <span className="min-w-0 flex-1 truncate">{summary}</span>
-        <ChevronDown
-          className={cn('h-4 w-4 shrink-0 text-foreground-3 transition-transform', open && 'rotate-180')}
-          aria-hidden
-        />
-      </button>
+      {triggerButton}
       {showListContainer ? (
         <div
           data-state={open ? 'open' : 'closed'}
@@ -416,30 +478,7 @@ function BlockRepeatWeekdaysCombo({
             'add-appointment-popover-expand absolute left-0 right-0 top-full z-[85] -mt-px box-border max-h-[min(320px,50vh)] w-full overflow-hidden rounded-b-[22px] rounded-t-none border border-t-0 border-border-strong bg-surface p-0 shadow-md dark:border-border-strong dark:bg-neutral-900',
           )}
         >
-          <Command shouldFilter={false} className="w-full min-w-0 max-w-full">
-            <CommandList className="max-h-[min(260px,40vh)] w-full min-w-0 max-w-full overflow-x-hidden overflow-y-auto">
-              <CommandGroup heading={listGroupHeading}>
-                {WEEKDAY_VALUES.map(({ value }, index) => {
-                  const selected = selectedDays.includes(value);
-                  return (
-                    <CommandItem
-                      key={value}
-                      value={`wd-${value}`}
-                      onSelect={() => onToggleDay(value)}
-                      className={cn(
-                        'flex cursor-pointer items-center gap-2 p-3',
-                        selected && 'bg-muted/50',
-                        index === lastDayIdx && 'rounded-b-[18px]',
-                      )}
-                    >
-                      <RepeatWeekdayListRowCheck visible={selected} />
-                      <span className="min-w-0 flex-1 text-sm font-medium text-foreground-1">{weekdayLabelMap[value]}</span>
-                    </CommandItem>
-                  );
-                })}
-              </CommandGroup>
-            </CommandList>
-          </Command>
+          {weekdayList}
         </div>
       ) : null}
     </div>
@@ -1159,6 +1198,7 @@ export const CreateBlockDrawer: React.FC = () => {
                       connectedPopover
                       className={cn(datePickerClass)}
                       placeholder={t("page.blocks.create.selectDate")}
+                      mobileTitle={t("page.blocks.create.startDate")}
                     />
                   </div>
                   <div className="space-y-2">
@@ -1170,6 +1210,7 @@ export const CreateBlockDrawer: React.FC = () => {
                       connectedPopover
                       className={cn(datePickerClass)}
                       placeholder={t("page.blocks.create.selectDate")}
+                      mobileTitle={t("page.blocks.create.endDate")}
                     />
                   </div>
                 </div>
@@ -1314,6 +1355,7 @@ export const CreateBlockDrawer: React.FC = () => {
                             calendarDisabled={form.repeatEndDate == null}
                             className={cn(datePickerClass)}
                             placeholder={t("page.blocks.create.noEndDate")}
+                            mobileTitle={t("page.blocks.create.ends")}
                             popoverHeaderSlot={
                               <div className="flex items-center justify-between gap-3">
                                 <Label

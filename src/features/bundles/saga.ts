@@ -40,7 +40,8 @@ function* handleCreateBundle(
       action.payload
     );
     if (response.data) {
-      toast.success(i18n.t("services:toasts.bundles.createSuccess"));
+      // Success toast is handled in the component: it carries a router-driven
+      // "Go to Assignments" action, so it needs navigation the saga can't reach.
       yield put(createBundleAction.success(response.data));
       // Refresh bundles list after creation
       yield put(listBundlesAction.request());

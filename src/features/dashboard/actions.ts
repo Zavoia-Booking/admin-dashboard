@@ -45,6 +45,8 @@ export interface LocationStaffMember {
   profileImage: string | null;
   email: string;
   phone: string;
+  /** Invited but has not accepted yet — no name, no phone, no bookings. */
+  invitationPending?: boolean;
 }
 
 export interface UnresolvedAppointment {
@@ -64,6 +66,17 @@ export interface NeedsAttentionItem {
   appointments: UnresolvedAppointment[];
 }
 
+export interface CapacityPeriod {
+  filledPercentage: number;
+  availablePercentage: number;
+  /**
+   * False when the period has no capacity to measure against — no opening hours,
+   * or nobody assigned to work them. Optional so a response from an API that
+   * predates the flag is treated as "measured" rather than "unknown".
+   */
+  hasCapacityData?: boolean;
+}
+
 export interface DashboardApiResponse {
   locationWidget: {
     name: string;
@@ -78,9 +91,9 @@ export interface DashboardApiResponse {
     potentialRevenueThisMonth: number;
   };
   capacityUtilizationWidget: {
-    today: { filledPercentage: number; availablePercentage: number };
-    week: { filledPercentage: number; availablePercentage: number };
-    month: { filledPercentage: number; availablePercentage: number };
+    today: CapacityPeriod;
+    week: CapacityPeriod;
+    month: CapacityPeriod;
   };
   appointmentWidget: {
     today: AppointmentDistribution;

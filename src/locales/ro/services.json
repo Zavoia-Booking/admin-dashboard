@@ -50,7 +50,7 @@
   },
   "addService": {
     "title": "Adaugă Serviciu Nou",
-    "subtitle": "Creați un serviciu nou pentru afacerea dvs. Completați detaliile de mai jos pentru a începe",
+    "subtitle": "Creați un serviciu nou pentru businessul dvs. Completați detaliile de mai jos pentru a începe",
     "sections": {
       "serviceInfo": "Informații Serviciu",
       "serviceInfoDescription": "Furnizați informațiile esențiale care identifică și descriu serviciul dvs",
@@ -91,6 +91,10 @@
       },
       "pricingNote": {
         "text": "Implicit pentru toți angajații. Poți seta prețuri și durate personalizate per membru al echipei în",
+        "link": "Alocări"
+      },
+      "assignmentNote": {
+        "text": "După creare, alocă acest serviciu unui membru al echipei pentru ca clienții să îl poată rezerva. Poți face asta în",
         "link": "Alocări"
       },
       "locations": {
@@ -164,7 +168,7 @@
         "name": {
           "required": "Vă rugăm să introduceți un nume de serviciu",
           "minLength": "Introduceți cel puțin 2 caractere",
-          "maxLength": "Sunt permise maximum 70 de caractere",
+          "maxLength": "Sunt permise maximum {{max}} de caractere",
           "invalidChars": "Vă rugăm să eliminați caracterele speciale (sunt permise doar - ' & . ( ))"
         },
         "description": {
@@ -186,7 +190,7 @@
     },
     "location": {
       "currentLocation": "Alocare la locația curentă: {{locationName}}. Schimbați locația în antet pentru a o aplica la o altă locație.",
-      "allLocations": "Acest serviciu va fi creat în toate locațiile afacerii. Schimbați la o locație specifică în antet pentru a-l crea doar acolo."
+      "allLocations": "Acest serviciu va fi creat în toate locațiile businessului. Schimbați la o locație specifică în antet pentru a-l crea doar acolo."
     },
     "buttons": {
       "cancel": "Anulează",
@@ -245,7 +249,7 @@
     },
     "location": {
       "currentLocation": "Actualizare pentru locația curentă: {{locationName}}. Schimbați locația în antet pentru a edita acest serviciu în altă locație.",
-      "allLocations": "Această actualizare se va aplica în toate locațiile afacerii. Schimbați la o locație specifică în antet pentru a ținti doar acea locație."
+      "allLocations": "Această actualizare se va aplica în toate locațiile businessului. Schimbați la o locație specifică în antet pentru a ținti doar acea locație."
     },
     "buttons": {
       "cancel": "Anulează",
@@ -341,6 +345,10 @@
         "pricingDescription": "Alege metoda de calcul pentru prețul pachetului",
         "services": "Servicii",
         "servicesDescription": "Alege serviciile incluse în acest pachet. Clienții le vor rezerva împreună."
+      },
+      "assignmentNote": {
+        "text": "După creare, alocă acest pachet unui membru al echipei pentru ca clienții să îl poată rezerva. Poți face asta în",
+        "link": "Alocări"
       },
       "form": {
         "name": {
@@ -512,19 +520,22 @@
     "services": {
       "loadFailed": "Nu s-au putut încărca serviciile",
       "loadDetailsFailed": "Nu s-au putut încărca detaliile serviciului",
-      "createSuccess": "Serviciul a fost creat cu succes",
+      "createSuccess": "Serviciul a fost creat",
       "deleteSuccess": "Serviciul a fost șters cu succes",
       "deleteFailed": "Nu s-a putut șterge serviciul",
       "editSuccess": "Serviciul a fost actualizat cu succes"
     },
     "bundles": {
       "loadFailed": "Nu s-au putut încărca pachetele",
-      "createSuccess": "Pachetul a fost creat cu succes",
+      "createSuccess": "Pachetul a fost creat",
       "createFailed": "Nu s-a putut crea pachetul",
       "updateSuccess": "Pachetul a fost actualizat cu succes",
       "updateFailed": "Nu s-a putut actualiza pachetul",
       "deleteSuccess": "Pachetul a fost șters cu succes",
       "deleteFailed": "Nu s-a putut șterge pachetul"
+    },
+    "actions": {
+      "goToAssignments": "Mergi la Alocări"
     }
   },
   "badges": {

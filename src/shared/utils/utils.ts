@@ -15,5 +15,6 @@ export const getTeamMemberById = (list: Array<TeamMember>, id: number): TeamMemb
 }
 
 export const getUserFullName = (item: any): string => {
-  return `${item.firstName} ${item.lastName}`
+  // Null-safe: customers may have no lastName; naive interpolation renders "null".
+  return [item?.firstName, item?.lastName].filter(Boolean).join(' ')
 }

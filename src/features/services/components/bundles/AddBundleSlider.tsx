@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { useForm, useController } from "react-hook-form";
 import { useDispatch, useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 import {
   Package,
   AlertCircle,
@@ -32,6 +33,7 @@ import type { Service } from "../../../../shared/types/service";
 import { Badge } from "../../../../shared/components/ui/badge";
 import { Button } from "../../../../shared/components/ui/button";
 import { ManageServicesSheet } from "../../../../shared/components/common/ManageServicesSheet";
+import { AssignmentReminderNote } from "../AssignmentReminderNote";
 import {
   priceToStorage,
   priceFromStorage,
@@ -67,6 +69,7 @@ const AddBundleSlider: React.FC<AddBundleSliderProps> = ({
 }) => {
   const text = useTranslation("services").t;
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const allServices = useSelector(getServicesListSelector);
   const currentUser = useSelector(selectCurrentUser);
   const businessCurrency = currentUser?.business?.businessCurrency || "eur";
@@ -311,9 +314,17 @@ const AddBundleSlider: React.FC<AddBundleSliderProps> = ({
     if (!isBundlesLoading && isSubmitting && !bundlesError) {
       setIsSubmitting(false);
       onClose();
-      // Optionally refresh bundles list here when implemented
+      // Toasted here rather than in the saga so the shortcut can use the router
+      // instead of a full page load. A fresh bundle has no team member yet.
+      toast.success(text("toasts.bundles.createSuccess"), {
+        duration: 6000,
+        action: {
+          label: text("toasts.actions.goToAssignments"),
+          onClick: () => navigate("/assignments"),
+        },
+      });
     }
-  }, [isBundlesLoading, isSubmitting, bundlesError, onClose]);
+  }, [isBundlesLoading, isSubmitting, bundlesError, onClose, navigate, text]);
 
   // Autofocus fixed price input when Fixed Price option is selected
   useEffect(() => {
@@ -390,6 +401,12 @@ const AddBundleSlider: React.FC<AddBundleSliderProps> = ({
         >
           <div className="flex-1 overflow-y-auto p-1 py-6 pt-0 md:p-6 md:pt-0 bg-surface">
             <div className="max-w-2xl mx-auto space-y-8 cursor-default">
+              <AssignmentReminderNote
+                text={text("bundles.addBundle.assignmentNote.text")}
+                linkLabel={text("bundles.addBundle.assignmentNote.link")}
+                onNavigate={onClose}
+              />
+
               {/* Bundle Information Section */}
               <div className="space-y-5">
                 <div className="space-y-1">

@@ -2,13 +2,14 @@ import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useTranslation } from 'react-i18next';
 import {
   ArrowRight, Calendar, CalendarClock, CalendarPlus, Check, ChevronsUpDown, Clock, Footprints,
-  Loader2, Percent, Phone, Plus, PlusCircle, ShieldCheck, Tag, X,
+  Loader2, Percent, Phone, Plus, PlusCircle, ShieldCheck, Tag, TriangleAlert, X,
 } from 'lucide-react';
 import { Button } from '../../../shared/components/ui/button';
 import { Label } from '../../../shared/components/ui/label';
 import { Input } from '../../../shared/components/ui/input';
 import { Command, CommandItem, CommandList } from '../../../shared/components/ui/command';
-import { Popover, PopoverContent, PopoverTrigger } from '../../../shared/components/ui/popover';
+import { ResponsivePopover } from '../../../shared/components/ui/responsive-popover';
+import { useIsMobile } from '../../../shared/hooks/use-mobile';
 import { Badge } from '../../../shared/components/ui/badge';
 import { Pill } from '../../../shared/components/ui/pill';
 import { PersonAvatar } from '../../../shared/components/common/PersonAvatar';
@@ -22,7 +23,7 @@ import { ManageServicesSheet } from '../../../shared/components/common/ManageSer
 import { ManageBundlesSheet } from '../../../shared/components/common/ManageBundlesSheet/ManageBundlesSheet';
 import { useDispatch, useSelector } from 'react-redux';
 import { PriceDisplay } from '../../../shared/components/common/PriceDisplay';
-import { selectCurrentUser } from '../../auth/selectors';
+import { selectCurrentUser, selectIsTeamMember } from '../../auth/selectors';
 import {
   adminCreateAppointmentGroup,
   beginAddFormCloseAfterMutations,
@@ -60,6 +61,8 @@ import {
   getConfirmDialogTitle,
   getConfirmButtonTitle,
   isValidAppointmentItem,
+  getItemAllowedStaffIds,
+  getEligibleTeamMembers,
   getGroupItemsForPayload,
   getGroupTotalDurationMinutes,
   getGroupTotalPriceMajor,
@@ -72,6 +75,7 @@ import {
   type EditAppointmentPayload,
 } from './addAppointmentSliderHelpers';
 import CustomerSearchPicker from './CustomerSearchPicker';
+import { AssignmentReminderNote } from '../../services/components/AssignmentReminderNote';
 import type { Service as ManageSheetService } from '../../../shared/components/common/ManageServicesSheet/types';
 import type { Bundle as ManageSheetBundle } from '../../../shared/components/common/ManageBundlesSheet/types';
 import { buildZonedDateFromDateKey, formatDateInTimezone, getCalendarLocale } from '../timezone';
@@ -147,6 +151,11 @@ interface AppointmentItemRowProps {
   currency: string;
   onUpdateStaff: (index: number, staffUserId: number | null) => void;
   onRemoveItem: (index: number) => void;
+  /** Assignments deep link used by the "nobody can perform this" notice, which
+   *  is a dead end without it. */
+  assignmentsPath: string;
+  /** Closes the slider before the notice navigates away. */
+  onNavigateAway: () => void;
   /** When true, the staff picker gets a soft "next step" pulse — only one row in
    *  the list should receive this at a time (the first one still unassigned). */
   isFirstUnassigned?: boolean;
@@ -161,6 +170,8 @@ function AppointmentItemRow({
   currency,
   onUpdateStaff,
   onRemoveItem,
+  assignmentsPath,
+  onNavigateAway,
   isFirstUnassigned = false,
 }: AppointmentItemRowProps) {
   const { t } = useTranslation('assignments');
@@ -168,16 +179,11 @@ function AppointmentItemRow({
   const serviceForRow = locationServices.find((s) => s.serviceId === item.serviceId);
   const bundleForRow = locationBundles.find((b) => b.bundleId === item.bundleId);
   const staffForRow = locationTeamMembers.find((t) => t.userId === item.staffUserId);
-  const eligibleTeamMembersForRow =
-    serviceForRow
-      ? (serviceForRow.staffIds?.length
-          ? locationTeamMembers.filter((t) => serviceForRow.staffIds!.includes(t.userId))
-          : [])
-      : bundleForRow
-        ? (bundleForRow.staffIds?.length
-            ? locationTeamMembers.filter((t) => bundleForRow.staffIds!.includes(t.userId))
-            : [])
-        : locationTeamMembers;
+  const allowedStaffIdsForRow = getItemAllowedStaffIds(item, locationServices, locationBundles);
+  const eligibleTeamMembersForRow = getEligibleTeamMembers(allowedStaffIdsForRow, locationTeamMembers);
+  /** Nobody is assigned to this service/bundle here — it cannot be booked until
+   *  someone is assigned on the Assignments page. */
+  const hasNoEligibleStaff = allowedStaffIdsForRow != null && eligibleTeamMembersForRow.length === 0;
   const rowLabel = serviceForRow ? serviceForRow.serviceName : bundleForRow ? bundleForRow.bundleName : (item as { itemName?: string }).itemName ?? tCal('page.appointments.add.unknownItem');
   const staffOverride = serviceForRow?.staffOverrides?.length && item.staffUserId != null
     ? serviceForRow.staffOverrides.find((o) => o.userId === item.staffUserId)
@@ -201,6 +207,7 @@ function AppointmentItemRow({
   const itemTypeLabel = serviceForRow ? tCal('page.appointments.edit.service') : tCal('page.appointments.edit.bundle');
   const isService = !!serviceForRow;
   const hasCustomRates = isService && (hasLocationCustom || hasStaffCustom);
+  const isMobile = useIsMobile();
   const [staffPopoverOpen, setStaffPopoverOpen] = useState(false);
   const [closingAnimation, setClosingAnimation] = useState(false);
   const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -226,187 +233,214 @@ function AppointmentItemRow({
     if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
   }, []);
 
-  const showOpenBorder = staffPopoverOpen || closingAnimation;
+  // No panel is attached below the trigger on mobile — the list is a bottom sheet.
+  const showOpenBorder = !isMobile && (staffPopoverOpen || closingAnimation);
   // Pulse only when: this row is the focus target, a staff hasn't been picked,
   // and the popover is fully closed (no pulse fighting the open-state border).
   const pulseStaffPicker =
     isFirstUnassigned &&
     !item.staffUserId &&
+    !hasNoEligibleStaff &&
     !staffPopoverOpen &&
     !closingAnimation;
 
   return (
-    <div className="group flex flex-col sm:flex-row sm:items-stretch gap-3 rounded-lg border border-border bg-white dark:bg-surface px-4 py-3 hover:border-border-strong">
-      <div className="flex-1 min-w-0 space-y-2">
-        <div className="flex items-center gap-2 min-w-0">
-          <span className="truncate text-sm font-medium text-foreground-1">{rowLabel}</span>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <Badge
-            variant="secondary"
-            className={cn(
-              'text-[11px] px-2 py-0.5 rounded-full font-medium flex items-center gap-1.5 shrink-0',
-              isService
-                ? 'bg-green-50 border-green-200 hover:bg-green-100'
-                : 'bg-purple-50 border-purple-200 hover:bg-purple-100',
-            )}
-          >
-            <div className={cn('h-2 w-2 rounded-full', isService ? 'bg-green-500' : 'bg-purple-500')} />
-            <span className="text-neutral-900">{itemTypeLabel}</span>
-          </Badge>
-          {isService && serviceForRow?.category?.name && (
+    <div className="group rounded-lg border border-border bg-white dark:bg-surface hover:border-border-strong">
+      <div className="flex flex-col sm:flex-row sm:items-stretch gap-3 px-4 py-3">
+        <div className="flex-1 min-w-0 space-y-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="truncate text-sm font-medium text-foreground-1">{rowLabel}</span>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
             <Badge
               variant="secondary"
               className={cn(
-                "text-[11px] px-2 py-0.5 rounded-full font-medium shrink-0 border-border text-neutral-900 dark:text-neutral-900",
-                !serviceForRow.category?.color && "bg-muted/80 text-foreground-2"
+                'text-[11px] px-2 py-0.5 rounded-full font-medium flex items-center gap-1.5 shrink-0',
+                isService
+                  ? 'bg-green-50 border-green-200 hover:bg-green-100'
+                  : 'bg-purple-50 border-purple-200 hover:bg-purple-100',
               )}
-              style={
-                serviceForRow.category?.color
-                  ? { backgroundColor: serviceForRow.category.color }
-                  : undefined
-              }
             >
-              {serviceForRow.category.name}
+              <div className={cn('h-2 w-2 rounded-full', isService ? 'bg-green-500' : 'bg-purple-500')} />
+              <span className="text-neutral-900">{itemTypeLabel}</span>
             </Badge>
-          )}
-          {!isService && bundleForRow?.priceType && (() => {
-            const priceTypeConfig: Record<string, { label: string; color: string; Icon: typeof PlusCircle }> = {
-              sum: { label: tCal('page.appointments.add.sum'), color: 'var(--color-info-100)', Icon: PlusCircle },
-              fixed: { label: tCal('page.appointments.add.fixed'), color: 'var(--color-success-100)', Icon: Tag },
-              discount: { label: tCal('page.appointments.add.discount'), color: 'var(--color-primary-100)', Icon: Percent },
-            };
-            const config = priceTypeConfig[bundleForRow.priceType];
-            if (!config) return null;
-            const { label, color: bgColor, Icon } = config;
-            return (
+            {isService && serviceForRow?.category?.name && (
               <Badge
                 variant="secondary"
                 className={cn(
-                  "text-[11px] px-2 py-0.5 rounded-full font-medium shrink-0 border-border text-neutral-900 dark:text-neutral-900 inline-flex items-center justify-center gap-1 leading-none",
-                  !bgColor && "bg-muted/80 text-foreground-2"
+                  "text-[11px] px-2 py-0.5 rounded-full font-medium shrink-0 border-border text-neutral-900 dark:text-neutral-900",
+                  !serviceForRow.category?.color && "bg-muted/80 text-foreground-2"
                 )}
-                style={bgColor ? { backgroundColor: bgColor } : undefined}
+                style={
+                  serviceForRow.category?.color
+                    ? { backgroundColor: serviceForRow.category.color }
+                    : undefined
+                }
               >
-                <Icon className="h-3 w-3 shrink-0" />
-                <span className="leading-none">{label}</span>
+                {serviceForRow.category.name}
               </Badge>
-            );
-          })()}
-        </div>
-        <div className="flex items-center mt-6 gap-3 flex-wrap text-sm text-foreground-2">
-          {durationMinutes > 0 && (
-            <span>{durationMinutes} min</span>
+            )}
+            {!isService && bundleForRow?.priceType && (() => {
+              const priceTypeConfig: Record<string, { label: string; color: string; Icon: typeof PlusCircle }> = {
+                sum: { label: tCal('page.appointments.add.sum'), color: 'var(--color-info-100)', Icon: PlusCircle },
+                fixed: { label: tCal('page.appointments.add.fixed'), color: 'var(--color-success-100)', Icon: Tag },
+                discount: { label: tCal('page.appointments.add.discount'), color: 'var(--color-primary-100)', Icon: Percent },
+              };
+              const config = priceTypeConfig[bundleForRow.priceType];
+              if (!config) return null;
+              const { label, color: bgColor, Icon } = config;
+              return (
+                <Badge
+                  variant="secondary"
+                  className={cn(
+                    "text-[11px] px-2 py-0.5 rounded-full font-medium shrink-0 border-border text-neutral-900 dark:text-neutral-900 inline-flex items-center justify-center gap-1 leading-none",
+                    !bgColor && "bg-muted/80 text-foreground-2"
+                  )}
+                  style={bgColor ? { backgroundColor: bgColor } : undefined}
+                >
+                  <Icon className="h-3 w-3 shrink-0" />
+                  <span className="leading-none">{label}</span>
+                </Badge>
+              );
+            })()}
+          </div>
+          <div className="flex items-center mt-6 gap-3 flex-wrap text-sm text-foreground-2">
+            {durationMinutes > 0 && (
+              <span>{durationMinutes} min</span>
+            )}
+            <PriceDisplay
+              amountDecimal={price}
+              currency={currency}
+              className="ml-auto gap-1 font-medium text-foreground-1"
+              iconClassName="h-3.5 w-3.5 text-foreground-1"
+            />
+          </div>
+          {hasCustomRates && (
+            <div className="mt-2">
+              <Badge
+                variant="secondary"
+                className="text-[11px] px-2 py-0.5 rounded-full font-medium inline-flex items-center gap-1.5 bg-purple-50 border-purple-200 shrink-0"
+              >
+                <div className="h-2 w-2 rounded-full bg-purple-500" />
+                <span className="text-neutral-900">
+                  {t('page.locationService.badge.custom')}
+                </span>
+              </Badge>
+            </div>
           )}
-          <PriceDisplay
-            amountDecimal={price}
-            currency={currency}
-            className="ml-auto gap-1 font-medium text-foreground-1"
-            iconClassName="h-3.5 w-3.5 text-foreground-1"
+        </div>
+        <div className="flex items-center gap-2 sm:shrink-0 sm:self-stretch w-full sm:w-auto">
+          {hasNoEligibleStaff ? (
+            // No assignable team member: a picker here would open onto an empty
+            // list, so state the reason inline instead.
+            <div className="flex h-8 w-full sm:w-[280px] items-center gap-2 rounded-full border border-amber-300/70 bg-amber-50 px-3 text-xs font-medium text-amber-700 dark:border-amber-800/50 dark:bg-amber-950/30 dark:text-amber-300">
+              <TriangleAlert className="h-3.5 w-3.5 shrink-0" aria-hidden />
+              <span className="truncate">{tCal('page.appointments.add.noStaffAssigned')}</span>
+            </div>
+          ) : (
+            <ResponsivePopover
+              open={staffPopoverOpen}
+              onOpenChange={handleStaffPopoverOpenChange}
+              title={tCal('page.appointments.add.assignStaff')}
+              trigger={
+                    <Button
+                      variant="ghost"
+                      rounded="full"
+                      size="sm"
+                      className={cn(
+                        "h-8 w-full sm:w-[280px] justify-between !px-3 border border-border hover:border-border-strong text-foreground-3 dark:text-foreground-2 hover:text-primary dark:hover:text-primary dark:group-hover:text-primary group-hover:text-primary group-hover:bg-info-100/20 dark:hover:bg-muted-foreground/10",
+                        showOpenBorder && "!rounded-b-none !rounded-t-[16px] border-x border-t border-b-0 border-border-strong dark:border-border-strong shadow-none",
+                        pulseStaffPicker && "staff-picker-pulse"
+                      )}
+                    >
+                      <span className="flex items-center gap-2 min-w-0 flex-1">
+                        {staffForRow && (
+                          <PersonAvatar
+                            key={staffForRow.userId}
+                            id={staffForRow.userId}
+                            firstName={staffForRow.firstName}
+                            lastName={staffForRow.lastName}
+                            profileImage={staffForRow.profileImage}
+                            className="size-5"
+                            initialsClassName="text-[9px] font-semibold"
+                          />
+                        )}
+                        <span className="truncate">
+                          {staffForRow ? `${staffForRow.firstName} ${staffForRow.lastName}` : tCal('page.appointments.add.assignStaff')}
+                        </span>
+                      </span>
+                      <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 opacity-70" />
+                    </Button>
+              }
+              contentClassName={cn(
+                "w-[var(--radix-popover-trigger-width)] md:w-[var(--radix-popover-trigger-width)] box-border -mt-px border border-t-0 bg-surface dark:bg-neutral-900 shadow-none p-0 z-[80] rounded-t-none rounded-b-[16px]",
+                "add-appointment-popover-expand",
+                showOpenBorder ? "border-border-strong dark:border-border-strong" : "border-input dark:border-border",
+              )}
+              side="bottom"
+              align="end"
+              sideOffset={0}
+              avoidCollisions={false}
+            >
+                    <Command shouldFilter={false} className="bg-transparent">
+                      <CommandList>
+                        {eligibleTeamMembersForRow.map((t, teamIndex) => {
+                          return (
+                            <CommandItem
+                              key={t.userId}
+                              value={`${t.firstName} ${t.lastName}`}
+                              onSelect={() => {
+                                onUpdateStaff(index, t.userId);
+                                handleStaffPopoverOpenChange(false);
+                              }}
+                              className={cn(
+                                "h-9 cursor-pointer transition-colors duration-200 gap-2",
+                                teamIndex === eligibleTeamMembersForRow.length - 1 && "rounded-b-[12px]",
+                              )}
+                            >
+                              <Check className={cn('h-4 w-4 shrink-0', item.staffUserId === t.userId ? 'opacity-100' : 'opacity-0')} />
+                              <PersonAvatar
+                                id={t.userId}
+                                firstName={t.firstName}
+                                lastName={t.lastName}
+                                profileImage={t.profileImage}
+                                className="size-6"
+                                initialsClassName="text-[10px] font-semibold"
+                              />
+                              <span className="truncate">{t.firstName} {t.lastName}</span>
+                            </CommandItem>
+                          );
+                        })}
+                      </CommandList>
+                    </Command>
+            </ResponsivePopover>
+          )}
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            rounded="full"
+            className="shrink-0 h-8 w-8 text-foreground-3 dark:text-foreground-2 hover:text-destructive hover:bg-destructive/10"
+            onClick={() => onRemoveItem(index)}
+            aria-label={tCal('page.appointments.add.removeRow')}
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+      {hasNoEligibleStaff && (
+        <div className="px-3 pb-3">
+          <AssignmentReminderNote
+            text={tCal(isService
+              ? 'page.appointments.add.noStaffForService'
+              : 'page.appointments.add.noStaffForBundle')}
+            linkLabel={tCal('page.appointments.add.assignmentsLink')}
+            to={assignmentsPath}
+            onNavigate={onNavigateAway}
+            tone="warning"
           />
         </div>
-        {hasCustomRates && (
-          <div className="mt-2">
-            <Badge
-              variant="secondary"
-              className="text-[11px] px-2 py-0.5 rounded-full font-medium inline-flex items-center gap-1.5 bg-purple-50 border-purple-200 shrink-0"
-            >
-              <div className="h-2 w-2 rounded-full bg-purple-500" />
-              <span className="text-neutral-900">
-                {t('page.locationService.badge.custom')}
-              </span>
-            </Badge>
-          </div>
-        )}
-      </div>
-      <div className="flex items-center gap-2 sm:shrink-0 sm:self-stretch w-full sm:w-auto">
-        <Popover open={staffPopoverOpen} onOpenChange={handleStaffPopoverOpenChange}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="ghost"
-                  rounded="full"
-                  size="sm"
-                  className={cn(
-                    "h-8 w-full sm:w-[280px] justify-between !px-3 border border-border hover:border-border-strong text-foreground-3 dark:text-foreground-2 hover:text-primary dark:hover:text-primary dark:group-hover:text-primary group-hover:text-primary group-hover:bg-info-100/20 dark:hover:bg-muted-foreground/10",
-                    showOpenBorder && "!rounded-b-none !rounded-t-[16px] border-x border-t border-b-0 border-border-strong dark:border-border-strong shadow-none",
-                    pulseStaffPicker && "staff-picker-pulse"
-                  )}
-                >
-                  <span className="flex items-center gap-2 min-w-0 flex-1">
-                    {staffForRow && (
-                      <PersonAvatar
-                        key={staffForRow.userId}
-                        id={staffForRow.userId}
-                        firstName={staffForRow.firstName}
-                        lastName={staffForRow.lastName}
-                        profileImage={staffForRow.profileImage}
-                        className="size-5"
-                        initialsClassName="text-[9px] font-semibold"
-                      />
-                    )}
-                    <span className="truncate">
-                      {staffForRow ? `${staffForRow.firstName} ${staffForRow.lastName}` : tCal('page.appointments.add.assignStaff')}
-                    </span>
-                  </span>
-                  <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 opacity-70" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent
-                className={cn(
-                  "w-[var(--radix-popover-trigger-width)] md:w-[var(--radix-popover-trigger-width)] box-border -mt-px border border-t-0 bg-surface dark:bg-neutral-900 shadow-none p-0 z-[80] rounded-t-none rounded-b-[16px]",
-                  "add-appointment-popover-expand",
-                  showOpenBorder ? "border-border-strong dark:border-border-strong" : "border-input dark:border-border",
-                )}
-                side="bottom"
-                align="end"
-                sideOffset={0}
-                avoidCollisions={false}
-              >
-                <Command shouldFilter={false}>
-                  <CommandList>
-                    {eligibleTeamMembersForRow.map((t, teamIndex) => {
-                      return (
-                        <CommandItem
-                          key={t.userId}
-                          value={`${t.firstName} ${t.lastName}`}
-                          onSelect={() => {
-                            onUpdateStaff(index, t.userId);
-                            handleStaffPopoverOpenChange(false);
-                          }}
-                          className={cn(
-                            "h-9 cursor-pointer transition-colors duration-200 gap-2",
-                            teamIndex === eligibleTeamMembersForRow.length - 1 && "rounded-b-[12px]",
-                          )}
-                        >
-                          <Check className={cn('h-4 w-4 shrink-0', item.staffUserId === t.userId ? 'opacity-100' : 'opacity-0')} />
-                          <PersonAvatar
-                            id={t.userId}
-                            firstName={t.firstName}
-                            lastName={t.lastName}
-                            profileImage={t.profileImage}
-                            className="size-6"
-                            initialsClassName="text-[10px] font-semibold"
-                          />
-                          <span className="truncate">{t.firstName} {t.lastName}</span>
-                        </CommandItem>
-                      );
-                    })}
-                  </CommandList>
-                </Command>
-              </PopoverContent>
-        </Popover>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          rounded="full"
-          className="shrink-0 h-8 w-8 text-foreground-3 dark:text-foreground-2 hover:text-destructive hover:bg-destructive/10"
-          onClick={() => onRemoveItem(index)}
-          aria-label={tCal('page.appointments.add.removeRow')}
-        >
-          <X className="h-4 w-4" />
-        </Button>
-      </div>
+      )}
     </div>
   );
 }
@@ -418,6 +452,7 @@ function AppointmentItemRow({
 const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onClose }) => {
   const { t } = useTranslation('calendar');
   const dispatch = useDispatch();
+  const isMobile = useIsMobile();
 
   // Redux state
   const selectedLocationId = useSelector(getSelectedLocationId);
@@ -427,12 +462,23 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
   const bookingSettings = useSelector(getBookingSettings);
   const prefill = useSelector(getAddFormPrefill);
   const locationServices = useSelector(getLocationServices);
-  const locationTeamMembers = useSelector(getLocationTeamMembers);
+  const allLocationTeamMembers = useSelector(getLocationTeamMembers);
   const locationBundles = useSelector(getLocationBundles);
   const servicesLoading = useSelector(getLocationContextLoading);
   const calendarTimezone = useSelector(getCalendarTimezone);
   const currentUser = useSelector(selectCurrentUser);
+  const isTeamMember = useSelector(selectIsTeamMember);
   const businessCurrency = currentUser?.business?.businessCurrency ?? 'eur';
+
+  // Team members can only create/assign appointments for THEMSELVES, so the
+  // assignable-staff pool is just the current user (backend enforces the same).
+  const locationTeamMembers = useMemo(
+    () =>
+      isTeamMember && currentUser?.id != null
+        ? allLocationTeamMembers.filter((t) => t.userId === currentUser.id)
+        : allLocationTeamMembers,
+    [allLocationTeamMembers, isTeamMember, currentUser?.id],
+  );
 
   const pendingGroupSubmitRef = useRef<Parameters<typeof adminCreateAppointmentGroup.request>[0] | null>(null);
   const pendingUpdateRef = useRef<{
@@ -543,6 +589,24 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
       setIsManageBundlesSheetOpen(false);
     }
   }, [isOpen, prefill, selectedLocationId]);
+
+  // Drop staff picks the location context says cannot perform the item — a
+  // prefill from a staff column, or assignments edited while the form is open.
+  // Edit mode is left alone: an existing booking keeps the staff it was made with.
+  useEffect(() => {
+    if (isEditMode) return;
+    setAppointmentItems((prev) => {
+      let changed = false;
+      const next = prev.map((item) => {
+        if (item.staffUserId == null) return item;
+        const allowed = getItemAllowedStaffIds(item, locationServices, locationBundles);
+        if (allowed == null || allowed.includes(item.staffUserId)) return item;
+        changed = true;
+        return { ...item, staffUserId: null };
+      });
+      return changed ? next : prev;
+    });
+  }, [isEditMode, locationServices, locationBundles]);
 
   // Fetch available slots when location, date, and service chain are set (create mode only)
   const slotDurationMinutes = useMemo(
@@ -684,19 +748,27 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
     }));
   }, [locationBundles, prefillStaffFilter]);
 
-  const getAutoStaffForService = useCallback((serviceId: number): number | null => {
-    const service = locationServices.find((item) => item.serviceId === serviceId);
-    if (service?.staffIds?.length === 1) return service.staffIds[0];
-    if (locationStaff.length === 1) return locationStaff[0].id;
+  /** Auto-pick only from staff actually assigned to the item — a lone team member
+   *  is not implicitly eligible for a service nobody was assigned to. */
+  const pickAutoStaff = useCallback((allowedStaffIds: number[] | null): number | null => {
+    if (allowedStaffIds == null) {
+      return locationStaff.length === 1 ? locationStaff[0].id : null;
+    }
+    if (allowedStaffIds.length === 0) return null;
+    if (allowedStaffIds.length === 1) return allowedStaffIds[0];
+    if (locationStaff.length === 1 && allowedStaffIds.includes(locationStaff[0].id)) {
+      return locationStaff[0].id;
+    }
     return null;
-  }, [locationServices, locationStaff]);
+  }, [locationStaff]);
 
-  const getAutoStaffForBundle = useCallback((bundleId: number): number | null => {
-    const bundle = locationBundles.find((item) => item.bundleId === bundleId);
-    if (bundle?.staffIds?.length === 1) return bundle.staffIds[0];
-    if (locationStaff.length === 1) return locationStaff[0].id;
-    return null;
-  }, [locationBundles, locationStaff]);
+  const getAutoStaffForService = useCallback((serviceId: number): number | null => (
+    pickAutoStaff(getItemAllowedStaffIds({ serviceId, bundleId: null }, locationServices, locationBundles))
+  ), [locationServices, locationBundles, pickAutoStaff]);
+
+  const getAutoStaffForBundle = useCallback((bundleId: number): number | null => (
+    pickAutoStaff(getItemAllowedStaffIds({ serviceId: null, bundleId }, locationServices, locationBundles))
+  ), [locationServices, locationBundles, pickAutoStaff]);
 
   const selectedServiceIds = useMemo(
     () => appointmentItems
@@ -727,11 +799,12 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
       if (areNumberArraysEqual(prevIds, validServiceIds)) return prev;
       const nextServiceItems: AppointmentItem[] = validServiceIds.map((serviceId) => {
         const existing = existingServices.find((item) => item.serviceId === serviceId);
-        const service = locationServices.find((item) => item.serviceId === serviceId);
-        const allowedStaffIds = service?.staffIds ?? [];
+        // null = unknown eligibility (service missing from the context); an empty
+        // array means nobody is assigned, so no staff may be carried over.
+        const allowedStaffIds = getItemAllowedStaffIds({ serviceId, bundleId: null }, locationServices, locationBundles);
         const existingStaff = existing?.staffUserId ?? null;
-        const isExistingStaffValid = existingStaff != null && (allowedStaffIds.length === 0 || allowedStaffIds.includes(existingStaff));
-        const isPrefillStaffValid = prefillStaffFilter != null && (allowedStaffIds.length === 0 || allowedStaffIds.includes(prefillStaffFilter));
+        const isExistingStaffValid = existingStaff != null && (allowedStaffIds == null || allowedStaffIds.includes(existingStaff));
+        const isPrefillStaffValid = prefillStaffFilter != null && (allowedStaffIds == null || allowedStaffIds.includes(prefillStaffFilter));
         return {
           serviceId,
           bundleId: null,
@@ -745,7 +818,7 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
       const nextItems = [...nextServiceItems, ...bundleItems];
       return nextItems;
     });
-  }, [getAutoStaffForService, locationServices, prefillStaffFilter]);
+  }, [getAutoStaffForService, locationServices, locationBundles, prefillStaffFilter]);
 
   const handleSelectSingleService = useCallback((serviceId: number) => {
     applySelectedServices([serviceId]);
@@ -774,9 +847,8 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
       const existingBundleItems = prev.filter((item) => item.bundleId != null && item.serviceId == null);
       const nextBundleItems: AppointmentItem[] = bundleIds.map((bundleId) => {
         const existing = existingBundleItems.find((item) => item.bundleId === bundleId);
-        const bundle = locationBundles.find((b) => b.bundleId === bundleId);
-        const allowedStaffIds = bundle?.staffIds ?? [];
-        const isPrefillStaffValid = prefillStaffFilter != null && (allowedStaffIds.length === 0 || allowedStaffIds.includes(prefillStaffFilter));
+        const allowedStaffIds = getItemAllowedStaffIds({ serviceId: null, bundleId }, locationServices, locationBundles);
+        const isPrefillStaffValid = prefillStaffFilter != null && (allowedStaffIds == null || allowedStaffIds.includes(prefillStaffFilter));
         return {
           serviceId: null,
           bundleId,
@@ -787,7 +859,7 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
       return nextItems;
     });
     setIsManageBundlesSheetOpen(false);
-  }, [getAutoStaffForBundle, locationBundles, prefillStaffFilter]);
+  }, [getAutoStaffForBundle, locationServices, locationBundles, prefillStaffFilter]);
 
   // ─────────────────────────────────────────────────────────────
   // Derived data
@@ -1232,6 +1304,20 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
   const isStaffReadyForSlots = allItemsHaveStaff(appointmentItems);
   const canSelectDateTime = isStaffReadyForSlots && !durationExceedsOneDay;
 
+  /** At least one selected item has nobody assigned to it at this location, so
+   *  it can never get a staff member here — the fix lives on Assignments. */
+  const hasItemWithoutEligibleStaff = useMemo(
+    () => appointmentItems.some((item) => {
+      const allowed = getItemAllowedStaffIds(item, locationServices, locationBundles);
+      return allowed != null && getEligibleTeamMembers(allowed, locationTeamMembers).length === 0;
+    }),
+    [appointmentItems, locationServices, locationBundles, locationTeamMembers],
+  );
+
+  const assignmentsPath = selectedLocationId != null
+    ? `/assignments?locationId=${selectedLocationId}`
+    : '/assignments';
+
   // ─────────────────────────────────────────────────────────────
   // Render
   // ─────────────────────────────────────────────────────────────
@@ -1431,7 +1517,12 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
                     // Track which row is the "next step" to draw attention to —
                     // the first item without an assigned staff. Only one row
                     // pulses at a time so the UI doesn't turn into a light show.
-                    const firstUnassignedIdx = appointmentItems.findIndex((it) => it.staffUserId == null);
+                    // Rows nobody can perform are skipped: there is nothing to pick.
+                    const firstUnassignedIdx = appointmentItems.findIndex((it) => {
+                      if (it.staffUserId != null) return false;
+                      const allowed = getItemAllowedStaffIds(it, locationServices, locationBundles);
+                      return allowed == null || getEligibleTeamMembers(allowed, locationTeamMembers).length > 0;
+                    });
                     return appointmentItems.map((item, idx) => (
                       <AppointmentItemRow
                         key={`${item.serviceId ?? 'b'}-${item.bundleId ?? 's'}-${idx}`}
@@ -1443,6 +1534,8 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
                         currency={businessCurrency}
                         onUpdateStaff={handleUpdateItemStaff}
                         onRemoveItem={handleRemoveItem}
+                        assignmentsPath={assignmentsPath}
+                        onNavigateAway={onClose}
                         isFirstUnassigned={idx === firstUnassignedIdx}
                       />
                     ));
@@ -1488,7 +1581,11 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
               )}
               {hasSelectedAnyItem && !isStaffReadyForSlots && (
                 <div className="p-3 rounded-lg bg-surface-hover text-foreground-3 dark:text-foreground-2 text-sm">
-                  {t('page.appointments.add.lockedNeedStaff')}
+                  {/* Asking for a staff pick is useless when an item has none to
+                      pick from — point at Assignments instead. */}
+                  {hasItemWithoutEligibleStaff
+                    ? t('page.appointments.add.lockedNeedAssignments')
+                    : t('page.appointments.add.lockedNeedStaff')}
                 </div>
               )}
 
@@ -1521,19 +1618,23 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
                       canSelectDateTime ? "border-border-strong dark:border-border-strong" : "border-border dark:border-border-subtle"
                     )}
                     placeholder={t('page.appointments.add.selectDate')}
+                    mobileTitle={t('page.appointments.add.dateLabel')}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label className="text-sm font-medium text-foreground-1">{t('page.appointments.add.timeLabel')}</Label>
                   {displayTimeSlots.length > 0 ? (
-                    <Popover open={hourOpen} onOpenChange={handleHourOpenChange}>
-                      <PopoverTrigger asChild>
+                    <ResponsivePopover
+                      open={hourOpen}
+                      onOpenChange={handleHourOpenChange}
+                      title={t('page.appointments.add.timeLabel')}
+                      trigger={
                         <Button
                           type="button"
                           variant="outline"
                           className={cn(
                             "w-full h-12 text-base justify-between font-normal border bg-surface hover:bg-surface-hover rounded-full px-4",
-                            (hourOpen || hourClosingAnimation)
+                            !isMobile && (hourOpen || hourClosingAnimation)
                               ? "!rounded-b-none !rounded-t-[16px] border-x border-t border-b-0 border-border-strong dark:border-border-strong shadow-none"
                               : (availableSlotsLoading || !canSelectDateTime || !form.date)
                                 ? "border-border dark:border-border-subtle"
@@ -1552,18 +1653,18 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
                           )}
                           {!availableSlotsLoading && <Clock className="ml-2 h-4 w-4 shrink-0 opacity-50" />}
                         </Button>
-                      </PopoverTrigger>
-                      <PopoverContent
-                        className={cn(
-                          "add-appointment-popover-expand !w-[var(--radix-popover-trigger-width)] max-w-[var(--radix-popover-trigger-width)] max-h-[calc(100vh-6rem)] box-border -mt-px border border-t-0 rounded-t-none rounded-b-[16px] shadow-none p-0 z-[90] overflow-hidden flex flex-col",
-                          (hourOpen || hourClosingAnimation) ? "border-border-strong dark:border-border-strong" : "border-input dark:border-border"
-                        )}
-                        side="bottom"
-                        align="start"
-                        sideOffset={0}
-                        avoidCollisions={false}
-                      >
-                        <div className="min-h-0 flex-1 max-h-60 overflow-y-auto py-1">
+                      }
+                      contentClassName={cn(
+                        "add-appointment-popover-expand !w-[var(--radix-popover-trigger-width)] max-w-[var(--radix-popover-trigger-width)] max-h-[calc(100vh-6rem)] box-border -mt-px border border-t-0 rounded-t-none rounded-b-[16px] shadow-none p-0 z-[90] overflow-hidden flex flex-col",
+                        (hourOpen || hourClosingAnimation) ? "border-border-strong dark:border-border-strong" : "border-input dark:border-border"
+                      )}
+                      side="bottom"
+                      align="start"
+                      sideOffset={0}
+                      avoidCollisions={false}
+                    >
+                        {/* The sheet supplies its own scroll box, so cap the list only in the popover. */}
+                        <div className={cn("min-h-0 flex-1 overflow-y-auto py-1", !isMobile && "max-h-60")}>
                           <div className="px-3 pt-2 pb-1.5">
                             <p className="text-xs font-medium text-foreground-3 dark:text-foreground-2">
                               {workingHoursLabel}
@@ -1630,8 +1731,7 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
                             </>
                           )}
                         </div>
-                      </PopoverContent>
-                    </Popover>
+                    </ResponsivePopover>
                   ) : (
                     <div
                       className={cn(

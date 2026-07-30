@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useLocation } from "react-router-dom";
 import { AppLayout } from "../../../shared/components/layouts/app-layout";
@@ -25,6 +25,7 @@ import { ListingConfigurationSkeleton } from "../components/ListingConfiguration
 import BusinessSetupGate from "../../../shared/components/guards/BusinessSetupGate";
 import { selectCurrentUser } from "../../auth/selectors";
 import { ErrorState } from "../../../shared/components/common/ErrorState";
+import { scrollAppContentToTop } from "../../../shared/utils/scroll";
 
 export default function MarketplacePage() {
   const dispatch = useDispatch();
@@ -55,6 +56,15 @@ export default function MarketplacePage() {
     if (!hasBusiness) return;
     dispatch(fetchMarketplaceListingAction.request());
   }, [dispatch, location.pathname, hasBusiness]); // Refetch when pathname changes
+
+  // The marketing view and the configuration view swap in place under the same AppLayout, so
+  // <main> stays mounted and keeps its scroll offset. Someone who read the marketing page to the
+  // bottom before tapping "Publish my listing" (the CTA lives in the sticky mobile header, so it's
+  // reachable from anywhere) would land mid-page in the configuration form. Reset before paint.
+  useLayoutEffect(() => {
+    if (!showConfiguration) return;
+    scrollAppContentToTop();
+  }, [showConfiguration]);
 
   const handleStartListing = () => {
     setShowConfiguration(true);

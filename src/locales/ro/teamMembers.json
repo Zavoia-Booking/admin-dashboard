@@ -77,8 +77,8 @@
     "confirmDialog": {
       "eyebrow": "Echipă · Invitație",
       "title": "Invită membru în echipă",
-      "description_one": "{{email}} va primi o invitație pentru a se alătura afacerii {{businessName}} și va avea acces la locația selectată.",
-      "description_other": "{{email}} va primi o invitație pentru a se alătura afacerii {{businessName}} și va avea acces la locațiile selectate.",
+      "description_one": "{{email}} va primi o invitație pentru a se alătura businessului {{businessName}} și va avea acces la locația selectată.",
+      "description_other": "{{email}} va primi o invitație pentru a se alătura businessului {{businessName}} și va avea acces la locațiile selectate.",
       "acceptanceNote": "După ce acceptă invitația, va putea folosi contul de business."
     }
   },

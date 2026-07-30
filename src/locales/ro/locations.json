@@ -1,13 +1,13 @@
 {
   "page": {
     "title": "Locații",
-    "subtitle": "Gestionează locațiile afacerii tale",
+    "subtitle": "Gestionează locațiile businessului tău",
     "actions": {
       "addLocation": "Adaugă locație"
     },
     "emptyState": {
       "noLocations": "Nu ai creat încă nicio locație",
-      "noLocationsDescription": "Creează prima ta locație pentru a începe să gestionezi locațiile afacerii tale.",
+      "noLocationsDescription": "Creează prima ta locație pentru a începe să gestionezi locațiile businessului tău.",
       "noResults": "Nu s-au găsit locații care să corespundă căutării tale.",
       "noResultsDescription": "Încearcă să ajustezi căutarea pentru a găsi ceea ce cauți."
     },
@@ -30,16 +30,16 @@
     "searchPlaceholder": "Caută locații după nume, adresă sau email..."
   },
   "address": {
-    "countryRestrictionInfo": "Căutarea adreselor este limitată la țara afacerii tale ({{countryCode}}). Folosește modul Manual pentru adrese din afara acestei regiuni."
+    "countryRestrictionInfo": "Căutarea adreselor este limitată la țara businessului tău ({{countryCode}}). Folosește modul Manual pentru adrese din afara acestei regiuni."
   },
   "mapDialogShared": {
     "searchPlaceholder": "Caută adresa corectă...",
     "addressWarningTitle": "Confirmă poziția pinului",
-    "addressWarningDescription": "Am plasat pinul pe baza adresei tale. Dacă este corect, dă click pe \"Confirmă locația\". Dacă nu, poți căuta adresa corectă, da click pe hartă sau trage pinul pentru a ajusta. Clienții îți vor găsi afacerea pe baza poziției pinului."
+    "addressWarningDescription": "Am plasat pinul pe baza adresei tale. Dacă este corect, dă click pe \"Confirmă locația\". Dacă nu, poți căuta adresa corectă, da click pe hartă sau trage pinul pentru a ajusta. Clienții îți vor găsi businessul pe baza poziției pinului."
   },
   "addLocation": {
     "title": "Adaugă locație nouă",
-    "subtitle": "Creează o locație nouă pentru afacerea ta",
+    "subtitle": "Creează o locație nouă pentru businessul tău",
     "form": {
       "nameLabel": "Nume locație",
       "descriptionLabel": "Descriere",
@@ -48,8 +48,8 @@
       "contactTitle": "Informații contact",
       "emailLabel": "Email locație *",
       "phoneLabel": "Telefon locație *",
-      "inheritedLabel": "afacerea ta",
-      "helperTextOn": "Informațiile de contact ale afacerii tale vor fi folosite pentru această locație.",
+      "inheritedLabel": "businessul tău",
+      "helperTextOn": "Informațiile de contact ale businessului tău vor fi folosite pentru această locație.",
       "helperTextOff": "Furnizează detalii de contact diferite pentru această locație.",
       "descriptionPlaceholder": "Descrie această locație (ex. Birou principal cu parcare)",
       "workingHoursLabel": "Program",
@@ -110,8 +110,8 @@
       "contactTitle": "Informații contact",
       "emailLabel": "Email locație *",
       "phoneLabel": "Telefon locație *",
-      "inheritedLabel": "afacerea ta",
-      "helperTextOn": "Informațiile de contact ale afacerii tale vor fi folosite pentru această locație.",
+      "inheritedLabel": "businessul tău",
+      "helperTextOn": "Informațiile de contact ale businessului tău vor fi folosite pentru această locație.",
       "helperTextOff": "Furnizează detalii de contact diferite pentru această locație.",
       "descriptionLabel": "Descriere",
       "descriptionPlaceholder": "Descrie această locație (ex. Birou principal cu parcare)",

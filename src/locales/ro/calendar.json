@@ -196,6 +196,10 @@
         "selectBundles": "Selectează pachetele",
         "selectBundlesDesc": "Alege unul sau mai multe pachete pentru această rezervare.",
         "assignStaff": "Alocă personal",
+        "noStaffAssigned": "Niciun membru alocat",
+        "noStaffForService": "Niciun membru al echipei nu este alocat acestui serviciu în această locație, așa că nu poate fi rezervat încă. Alocă cel puțin un membru al echipei în",
+        "noStaffForBundle": "Niciun membru al echipei nu poate efectua toate serviciile din acest pachet în această locație, așa că nu poate fi rezervat încă. Verifică ce membri ai echipei sunt alocați acelor servicii în",
+        "assignmentsLink": "Alocări",
         "removeRow": "Elimină rândul",
         "dateAndTime": "Dată și oră",
         "dateAndTimeDesc": "Alege când va avea loc programarea.",
@@ -236,8 +240,9 @@
         "totalLabel": "Total",
         "lockedNeedItems": "Selectează cel puțin un serviciu sau un pachet pentru a debloca alegerea datei și a orei.",
         "lockedNeedStaff": "Alocă un membru al echipei fiecărui element selectat pentru a încărca disponibilitatea corectă.",
+        "lockedNeedAssignments": "Unul sau mai multe elemente selectate nu au niciun membru al echipei alocat. Alocă pe cineva în pagina Alocări înainte de a alege data și ora.",
         "durationExceedsDay": "Durata totală depășește o zi întreagă și s-ar întinde pe mai multe zile. Elimină câteva servicii pentru ca programarea să încapă într-o singură zi (până la miezul nopții).",
-        "businessClosedNotice": "Afacerea este închisă în această zi. Poți face totuși o programare; ți se va cere să o confirmi.",
+        "businessClosedNotice": "Businessul este închis în această zi. Poți face totuși o programare; ți se va cere să o confirmi.",
         "dateLabel": "Dată",
         "timeLabel": "Oră",
         "noInHoursSlots": "Niciun interval în programul de lucru în această zi",
@@ -252,7 +257,7 @@
         "outOfHoursCreate": "Ora selectată este în afara programului de lucru. Sigur vrei să creezi această programare?",
         "onBlockReschedule": "Ora selectată se suprapune cu un interval blocat. Sigur vrei să reprogramezi?",
         "onBlockCreate": "Ora selectată se suprapune cu un interval blocat. Sigur vrei să creezi această programare?",
-        "reminderNote": "Mementourile nu sunt trimise clienților între 22:00 și 08:00, în funcție de fusul orar al afacerii.",
+        "reminderNote": "Mementourile nu sunt trimise clienților între 22:00 și 08:00, în funcție de fusul orar al businessului.",
         "cancel": "Anulează",
         "reasonLabel": "Motiv (opțional)",
         "reasonPlaceholder": "ex. La cererea clientului, Urgență"
@@ -304,12 +309,12 @@
       "scope": {
         "locationBlock": "Blocare locație",
         "staffTimeOff": "Absență personal",
-        "businessBlock": "Blocare afacere",
+        "businessBlock": "Blocare business",
         "entireLocation": "Întreaga locație",
         "allLocations": "Toate locațiile",
         "locationWide": "La nivel de locație",
         "staffMember": "Membru al echipei",
-        "businessWide": "La nivel de afacere"
+        "businessWide": "La nivel de business"
       },
       "detailLabels": {
         "reason": "Motiv",
@@ -317,7 +322,7 @@
         "notes": "Note",
         "assignedStaff": "Personal alocat",
         "location": "Locație",
-        "business": "Afacere",
+        "business": "Business",
         "appliesTo": "Se aplică la"
       },
       "reasons": {
@@ -348,7 +353,7 @@
         "staffUnavailability": "Indisponibilitate personal",
         "staffUnavailabilityDesc": "Blochează rezervările doar pentru personalul selectat.",
         "applyToAllLocations": "Aplică tuturor locațiilor",
-        "applyToAllLocationsDesc": "Aplică această blocare în toate locațiile afacerii.",
+        "applyToAllLocationsDesc": "Aplică această blocare în toate locațiile businessului.",
         "staff": "Personal",
         "staffDesc": "Alege cine este indisponibil.",
         "staffLabel": "Membrul echipei pentru această blocare",

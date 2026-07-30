@@ -137,7 +137,6 @@ export interface LocationContextOverrides {
     slotIntervalMinutes: number
     bufferTimeMinutes: number
     autoConfirmBookings: boolean
-    allowStaffSelection: boolean
     allowStaffCancelWithoutConfirmation: boolean
     allowStaffRescheduleWithoutConfirmation: boolean
     allowStaffBlockCalendarWithoutConfirmation: boolean
@@ -176,7 +175,6 @@ export function sampleLocationContext(o: LocationContextOverrides = {}) {
       slotIntervalMinutes: 15,
       bufferTimeMinutes: 0,
       autoConfirmBookings: true,
-      allowStaffSelection: true,
       allowStaffCancelWithoutConfirmation: true,
       allowStaffRescheduleWithoutConfirmation: true,
       allowStaffBlockCalendarWithoutConfirmation: true,

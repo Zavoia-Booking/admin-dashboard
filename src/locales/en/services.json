@@ -93,6 +93,10 @@
         "text": "Default for all staff. You can set custom prices and durations per team member in",
         "link": "Assignments"
       },
+      "assignmentNote": {
+        "text": "Once created, assign this service to a team member so customers can book it. You can do that in",
+        "link": "Assignments"
+      },
       "locations": {
         "emptyMessage": "No locations found.",
         "helperTextNone": "Not available at any location",
@@ -164,7 +168,7 @@
         "name": {
           "required": "Please enter a service name",
           "minLength": "Enter at least 2 characters",
-          "maxLength": "Maximum 70 characters allowed",
+          "maxLength": "Maximum {{max}} characters allowed",
           "invalidChars": "Please remove special characters (only - ' & . ( ) allowed)"
         },
         "description": {
@@ -342,6 +346,10 @@
         "services": "Services",
         "servicesDescription": "Pick the services that are part of this bundle. Customers will book them together."
       },
+      "assignmentNote": {
+        "text": "Once created, assign this bundle to a team member so customers can book it. You can do that in",
+        "link": "Assignments"
+      },
       "form": {
         "name": {
           "label": "Bundle Name",
@@ -512,19 +520,22 @@
     "services": {
       "loadFailed": "Failed to load services",
       "loadDetailsFailed": "Failed to load service details",
-      "createSuccess": "Service created successfully",
+      "createSuccess": "Service created",
       "deleteSuccess": "Service deleted successfully",
       "deleteFailed": "Failed to delete service",
       "editSuccess": "Service edited successfully"
     },
     "bundles": {
       "loadFailed": "Failed to load bundles",
-      "createSuccess": "Bundle created successfully",
+      "createSuccess": "Bundle created",
       "createFailed": "Failed to create bundle",
       "updateSuccess": "Bundle updated successfully",
       "updateFailed": "Failed to update bundle",
       "deleteSuccess": "Bundle deleted successfully",
       "deleteFailed": "Failed to delete bundle"
+    },
+    "actions": {
+      "goToAssignments": "Go to Assignments"
     }
   },
   "badges": {

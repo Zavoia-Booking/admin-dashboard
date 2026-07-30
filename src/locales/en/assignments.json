@@ -250,11 +250,8 @@
       "deselectAll": "Deselect all",
       "emptyState": {
         "noServices": "No services available at this location.",
-        "noServicesDescription": "No services available at this location.",
         "noEnabled": "No services enabled for this member.",
-        "noEnabledDescription": "No services are enabled for this member.",
-        "noCustom": "No services have custom pricing.",
-        "noCustomDescription": "No services have custom pricing."
+        "noCustom": "No services have custom pricing."
       }
     },
     "toasts": {

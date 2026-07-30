@@ -128,7 +128,6 @@ export interface CalendarBookingSettings {
   slotIntervalMinutes: number;
   bufferTimeMinutes: number;
   autoConfirmBookings: boolean;
-  allowStaffSelection: boolean;
   allowStaffCancelWithoutConfirmation: boolean;
   allowStaffRescheduleWithoutConfirmation: boolean;
   allowStaffBlockCalendarWithoutConfirmation: boolean;

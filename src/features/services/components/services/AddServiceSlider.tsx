@@ -19,12 +19,14 @@ import { TextField } from "../../../../shared/components/forms/fields/TextField"
 import { TextareaField } from "../../../../shared/components/forms/fields/TextareaField";
 import { PriceField } from "../../../../shared/components/forms/fields/PriceField";
 import { Pill } from "../../../../shared/components/ui/pill";
+import { AssignmentReminderNote } from "../AssignmentReminderNote";
 import { CategorySection } from "./CategorySection";
 import { getCurrencyDisplay } from "../../../../shared/utils/currency";
 import { getAllLocationsSelector } from "../../../locations/selectors";
 import { selectCurrentUser } from "../../../auth/selectors";
 import { listLocationsAction } from "../../../locations/actions";
 import { createServicesAction } from "../../actions.ts";
+import { SERVICE_NAME_MAX_LENGTH } from "../../utils.ts";
 import type { CreateServicePayload } from "../../types.ts";
 import type { Category } from "./CategorySection";
 import {
@@ -107,7 +109,11 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
     const v = (value ?? "").trim();
     if (!v) return text("addService.form.validation.name.required");
     if (v.length < 2) return text("addService.form.validation.name.minLength");
-    if (v.length > 70) return text("addService.form.validation.name.maxLength");
+    if (v.length > SERVICE_NAME_MAX_LENGTH) {
+      return text("addService.form.validation.name.maxLength", {
+        max: SERVICE_NAME_MAX_LENGTH,
+      });
+    }
     const NAME_PATTERN = /^[A-Za-zÀ-ÿ0-9\s\-'&.()]+$/;
     if (!NAME_PATTERN.test(v)) {
       return text("addService.form.validation.name.invalidChars");
@@ -304,8 +310,17 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
       // Reset isSubmitting immediately to prevent effect from running again
       setIsSubmitting(false);
       onClose();
+      // Toasted here rather than in the saga so the shortcut can use the router
+      // instead of a full page load. A fresh service has no team member yet.
+      toast.success(text("toasts.services.createSuccess"), {
+        duration: 6000,
+        action: {
+          label: text("toasts.actions.goToAssignments"),
+          onClick: () => navigate("/assignments"),
+        },
+      });
     }
-  }, [isServicesLoading, isSubmitting, servicesError, onClose, isOpen]);
+  }, [isServicesLoading, isSubmitting, servicesError, onClose, isOpen, navigate, text]);
 
   // no per-form location state when All locations
 
@@ -397,6 +412,12 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
               <ServiceFormSkeleton />
             ) : (
               <div className="max-w-2xl mx-auto space-y-8 cursor-default">
+                <AssignmentReminderNote
+                  text={text("addService.form.assignmentNote.text")}
+                  linkLabel={text("addService.form.assignmentNote.link")}
+                  onNavigate={onClose}
+                />
+
                 {/* Essential Fields */}
                 <div className="space-y-0 mb-0">
                   {/* Service Information Section */}
@@ -419,7 +440,7 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
                         placeholder={text("addService.form.name.placeholder")}
                         required
                         id="name"
-                        maxLength={70}
+                        maxLength={SERVICE_NAME_MAX_LENGTH}
                         icon={Layers2}
                       />
 

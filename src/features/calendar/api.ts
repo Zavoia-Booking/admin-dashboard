@@ -98,9 +98,12 @@ export const getAvailableSlotsRequest = async (
     return data;
 }
 
-/** GET /appointments/:id (existing endpoint, for appointment detail) */
-export const getAppointmentDetailRequest = async (appointmentId: number): Promise<any> => {
-    const { data } = await apiClient().get(`/appointments/${appointmentId}`);
+/** GET /appointments/:id — takes the numeric id or the uuid; prefer the uuid for anything
+ *  that ends up in a URL, since it is non-sequential and discloses nothing. */
+export const getAppointmentDetailRequest = async (
+    appointmentRef: number | string,
+): Promise<any> => {
+    const { data } = await apiClient().get(`/appointments/${appointmentRef}`);
     return data;
 }
 

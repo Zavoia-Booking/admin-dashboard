@@ -485,11 +485,23 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
     bookingLastEndMs != null &&
     isAppointmentEndInPast(new Date(bookingLastEndMs), new Date());
 
+  /** Team members can only act on appointments assigned to THEM — colleagues' are read-only. */
+  const isAssignedToCurrentUser = useMemo(() => {
+    if (currentUser?.id == null) return false;
+    const ids: number[] =
+      displayAppointment?.teamMembers?.map((tm: any) => tm.id ?? tm) ?? [];
+    return ids.includes(currentUser.id);
+  }, [displayAppointment?.teamMembers, currentUser?.id]);
+
   const canCancel =
-    (!isTeamMember || !!bookingSettings?.allowStaffCancelWithoutConfirmation) &&
+    (!isTeamMember ||
+      (!!bookingSettings?.allowStaffCancelWithoutConfirmation &&
+        isAssignedToCurrentUser)) &&
     !isBookingInPast;
   const canReschedule =
-    !isTeamMember || !!bookingSettings?.allowStaffRescheduleWithoutConfirmation;
+    !isTeamMember ||
+    (!!bookingSettings?.allowStaffRescheduleWithoutConfirmation &&
+      isAssignedToCurrentUser);
 
   /** Items to show in Services section: the appointment with name, duration, price, type. */
   const serviceDetailItems = useMemo(() => {
@@ -842,7 +854,9 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
               ) : (
                 <div className="space-y-4">
                   <div>
-                    {!isTerminal && (isBookingInPast || canCancel) && (
+                    {!isTerminal &&
+                      (!isTeamMember || isAssignedToCurrentUser) &&
+                      (isBookingInPast || canCancel) && (
                       <div className="rounded-xl border border-border bg-white p-3 shadow-sm dark:bg-card md:p-4">
                         <Label className="text-sm font-semibold text-foreground-1">
                           {t("page.appointments.updateStatus")}

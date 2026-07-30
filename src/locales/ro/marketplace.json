@@ -44,7 +44,7 @@
   },
   "configuration": {
     "tabs": {
-      "business": "Pagina afacerii",
+      "business": "Pagina businessului",
       "website": "Constructor site",
       "locations": "Locații"
     },
@@ -69,8 +69,8 @@
     "businessName": {
       "notAvailable": "Necompletat",
       "label": "Numele businessului",
-      "useBusinessDescription": "Folosește numele principal al afacerii pentru listarea ta în marketplace. Asta păstrează brandul tău consistent pentru clienți.",
-      "customDescription": "Creează un nume de brand unic pentru această listare. Folosește-l pentru a ieși în evidență în marketplace și a-l separa de profilul tău principal de afacere.",
+      "useBusinessDescription": "Folosește numele principal al businessului pentru listarea ta în marketplace. Asta păstrează brandul tău consistent pentru clienți.",
+      "customDescription": "Creează un nume de brand unic pentru această listare. Folosește-l pentru a ieși în evidență în marketplace și a-l separa de profilul tău principal de business.",
       "customLabel": "Numele afișat în marketplace",
       "placeholder": "ex. Sarah's Salon & Spa",
       "custom": "Personalizat"
@@ -80,38 +80,38 @@
       "emailLabel": "Email public",
       "phoneLabel": "Telefon public",
       "helperTextOn": "Folosește detaliile tale principale de contact pentru ca clienții să te poată contacta. Toate solicitările vor merge la canalele tale principale.",
-      "helperTextOff": "Adaugă informații de contact doar pentru clienții potențiali din marketplace. Te ajută să urmărești solicitările separat de afacerea ta principală.",
-      "inheritedLabel": "profilul afacerii tale"
+      "helperTextOff": "Adaugă informații de contact doar pentru clienții potențiali din marketplace. Te ajută să urmărești solicitările separat de businessul tău principal.",
+      "inheritedLabel": "profilul businessului tău"
     },
     "description": {
       "label": "Descriere",
-      "placement": "Apare pe cardul tău din marketplace, când oamenii caută sau explorează.",
-      "useBusinessDescription": "Preluat automat din profilul tău global și afișat pe cardul din marketplace.",
-      "customDescription": "Un pitch scurt pentru cardul tău din marketplace — ce oferi și de ce ar trebui să te aleagă clienții. Păstrează-l la una–două propoziții.",
+      "placement": "Apare pe pagina ta publică din marketplace, acolo unde clienții citesc despre tine înainte să rezerve.",
+      "useBusinessDescription": "Preluată automat din profilul businessului tău și afișată pe pagina ta publică din marketplace.",
+      "customDescription": "O prezentare scurtă pentru pagina ta publică din marketplace — ce oferi și de ce ar trebui să te aleagă clienții. Păstrează-o la una–două propoziții.",
       "placeholder": "Ce oferi și de ce ar trebui oamenii să te aleagă?",
-      "noDescription": "Nicio descriere de profil găsită. Pentru a păstra brandul tău consistent, actualizează setările afacerii — sau schimbă pe modul personalizat pentru a scrie o versiune adaptată pentru marketplace.",
+      "noDescription": "Nicio descriere de profil găsită. Pentru a păstra brandul tău consistent, actualizează setările businessului — sau schimbă pe modul personalizat pentru a scrie o versiune adaptată pentru marketplace.",
       "custom": "Personalizat"
     }
   },
   "industry": {
-    "title": "Industrie și etichete",
+    "title": "Industrie și specializări",
     "primaryIndustry": {
       "label": "Industrie principală",
-      "description": "Aceasta este industria principală a afacerii tale. Te ajută să apari în rezultatele de căutare relevante. Pentru modificări, accesează <settingsLink>Setări</settingsLink>.",
+      "description": "Aceasta este industria principală a businessului tău. Te ajută să apari în rezultatele de căutare relevante. Pentru modificări, accesează <settingsLink>Setări</settingsLink>.",
       "settingsLink": "Setări"
     },
     "tags": {
-      "label": "Etichete marketplace",
-      "description": "Etichetele îi ajută pe clienți să te găsească mai ușor. Alege-le pe cele care descriu cel mai bine serviciile tale.",
-      "addAtLeastOne": "Adaugă cel puțin o etichetă înainte de publicare."
+      "label": "Specializări marketplace",
+      "description": "Specializările îi ajută pe clienți să te găsească mai ușor. Alege-le pe cele care descriu cel mai bine serviciile tale.",
+      "addAtLeastOne": "Adaugă cel puțin o specializare înainte de publicare."
     }
   },
   "statusStrip": {
     "live": "Activ pe marketplace",
     "toGoLive": "Pentru a publica:",
     "checklist": {
-      "industryTag": "Cel puțin o etichetă de industrie",
-      "detailsValid": "Detaliile afacerii sunt valide",
+      "industryTag": "Cel puțin o specializare",
+      "detailsValid": "Detaliile businessului sunt valide",
       "websiteBuilder": "Constructorul site-ului este valid",
       "locationPhoto": "Cel puțin o fotografie a locației",
       "locationImages": "Fiecare locație vizibilă are o fotografie"
@@ -119,7 +119,7 @@
     "locationsVisible": "{{visible}} din {{total}} locații vizibile",
     "noLocationLive": "Nicio locație nu este activă încă",
     "locationNeedsImage": "O locație nu are fotografii — adaugă cel puțin una",
-    "locationsWaitingPublish": "Locațiile publice vor apărea după ce publici pagina afacerii."
+    "locationsWaitingPublish": "Locațiile publice vor apărea după ce publici pagina businessului."
   },
   "locations": {
     "managePage": "Gestionează pagina",
@@ -176,7 +176,7 @@
     "dragAndDrop": "Trage și plasează sau apasă pentru a selecta",
     "releaseNow": "Lansează acum",
     "professionalGallery": "Galerie foto",
-    "uploadDescription": "Încarcă până la {{count}} fotografii pentru a prezenta afacerea ta.",
+    "uploadDescription": "Încarcă până la {{count}} fotografii pentru a prezenta businessul tău.",
     "images": "Imagini",
     "errors": {
       "unsupportedFormat": "Format de fișier neacceptat ({{extension}}). Te rugăm să folosești {{formats}}.",
@@ -241,7 +241,7 @@
       }
     },
     "confirmation": {
-      "title": "Confirmare și alegerea personalului",
+      "title": "Confirmare și permisiuni",
       "bookingConfirmation": {
         "title": "Confirmare rezervare",
         "description": "Alege dacă rezervările sunt confirmate automat sau necesită aprobare manuală."
@@ -250,18 +250,6 @@
         "label": "Aprobare rezervare",
         "autoConfirm": "Rezervările sunt confirmate automat.",
         "manualConfirm": "Vei aproba manual fiecare solicitare de rezervare."
-      },
-      "staffSelection": {
-        "title": "Selecție personal",
-        "description": "Configurează cum sunt prezentați membrii echipei și cum pot fi selectați în timpul rezervării."
-      },
-      "allowStaffSelection": {
-        "label": "Permite selecția personalului",
-        "description": "Lasă clienții să aleagă un membru specific al echipei la rezervare."
-      },
-      "showAnyStaffOption": {
-        "label": "Afișează opțiunea „Oricare membru al echipei”",
-        "description": "Adaugă o opțiune implicită care le permite clienților să rezerve cu orice membru disponibil."
       },
       "calendarSettings": {
         "title": "Permisiuni calendar pentru echipă",

@@ -18,6 +18,7 @@ import {
 import type { RootState } from "../../../app/providers/store";
 import type { BusinessNotification } from "../types";
 import BusinessSetupGate from "../../../shared/components/guards/BusinessSetupGate";
+import { selectCurrentUser } from "../../auth/selectors";
 
 const LIMIT = 20;
 
@@ -85,9 +86,16 @@ export default function NotificationsPage() {
     (state: RootState) => state.auth.user?.unreadNotificationsCount ?? 0
   );
 
+  // Mirrors BusinessSetupGate's condition. The list fetch lives at page level, outside the
+  // gate, so without this it fires while the setup prompt is up and the guaranteed 403
+  // ("You need a business account…") toasts over a screen that already says the same thing.
+  const currentUser = useSelector(selectCurrentUser);
+  const hasBusiness = Boolean(currentUser?.businessId);
+
   useEffect(() => {
+    if (!hasBusiness) return;
     dispatch(listNotificationsAction.request({ offset: 0, limit: LIMIT }));
-  }, [dispatch]);
+  }, [dispatch, hasBusiness]);
 
   const handleLoadMore = useCallback(() => {
     if (!isLoadingMore && hasMore) {

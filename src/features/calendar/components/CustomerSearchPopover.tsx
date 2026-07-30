@@ -354,7 +354,7 @@ export function CustomerSearchPopover({ onSelectCustomer, resetTrigger, rightSlo
                       />
                       <div className="flex-1">
                         <div className="font-medium text-foreground-1">
-                          {highlightMatches(`${customer.firstName} ${customer.lastName}`, highlightedCustomerSearch)}
+                          {highlightMatches([customer.firstName, customer.lastName].filter(Boolean).join(' '), highlightedCustomerSearch)}
                         </div>
                         {customer.email && (
                           <div className="text-sm text-foreground-3 dark:text-foreground-2">

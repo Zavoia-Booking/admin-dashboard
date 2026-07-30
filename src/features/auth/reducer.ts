@@ -19,6 +19,7 @@ const initialState: AuthState = {
   status: AuthStatusEnum.IDLE,
   error: null,
   lastRefreshAt: null,
+  lastUserFetchAt: null,
   isAccountLinkingModalOpen: false,
   pendingLinkTxId: undefined,
   linkingLoading: false,
@@ -142,6 +143,10 @@ export const AuthReducer: Reducer<AuthState, any> = (state: AuthState = initialS
         user: action.payload.user,
         businessId: action.payload.user?.businessId?.toString() ?? state.businessId,
         status: action.payload ? AuthStatusEnum.AUTHENTICATED : AuthStatusEnum.UNAUTHENTICATED,
+        // Every fresh user object lands here (login, Google, /me). Stamping it
+        // is what lets the native resume handler tell a stale snapshot from a
+        // current one - see nativeSessionResume.
+        lastUserFetchAt: action.payload.user ? Date.now() : null,
       };
     }
 
