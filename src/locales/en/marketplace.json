@@ -108,6 +108,7 @@
   },
   "statusStrip": {
     "live": "Live on marketplace",
+    "notListed": "Not on the marketplace yet",
     "toGoLive": "To go live:",
     "checklist": {
       "industryTag": "At least one industry tag",
@@ -122,8 +123,29 @@
     "locationsWaitingPublish": "Public locations will appear once you publish your business page."
   },
   "locations": {
-    "managePage": "Manage page",
+    "title": "Locations",
+    "description": "Select a location to manage its visibility, online booking, photos, and marketplace details.",
+    "listLabel": "Marketplace locations",
+    "listHeading": "Your locations",
     "backToAll": "All locations",
+    "visible": "Visible",
+    "hidden": "Hidden",
+    "bookingOn": "Online booking on",
+    "bookingOff": "Online booking off",
+    "needsPhoto": "Add photos",
+    "photoCount_one": "{{count}} photo",
+    "photoCount_other": "{{count}} photos",
+    "emptyWorkspaceTitle": "Choose a location",
+    "emptyWorkspaceDescription": "Select a location from the list to manage its marketplace page.",
+    "workspace": {
+      "visibilityTitle": "Marketplace visibility",
+      "visibilityDescription": "Control whether clients can discover and book this location.",
+      "autoSave": "Visibility and booking changes save automatically.",
+      "locationDetails": "Location details",
+      "servicesAndTeam": "Services & team",
+      "marketplaceDetails": "Marketplace details",
+      "marketplaceDetailsDescription": "Amenities, accessibility, payment methods, and languages."
+    },
     "reviews": {
       "title": "Reviews",
       "count_one": "{{count}} review",

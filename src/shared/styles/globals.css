@@ -1110,6 +1110,35 @@ button.sidebar-menu-button-compact {
   animation: dnd-lift 180ms cubic-bezier(0.2, 0, 0, 1) both;
 }
 
+/* Marketplace location workspace swap — incoming sections materialize: they
+   rise in the direction of travel while scaling up from 98.5% and resolving
+   from a soft defocus to sharp. `from`-only keyframes: nothing (transform and
+   filter included) lingers once the animation ends. */
+@keyframes ws-section-in {
+  from {
+    opacity: 0;
+    transform: translateY(var(--ws-shift, 16px)) scale(0.985);
+    filter: blur(5px);
+  }
+}
+[data-ws-swap] > div > * {
+  animation: ws-section-in 400ms var(--ease-out-strong) backwards;
+  transform-origin: 50% 0;
+}
+[data-ws-swap] > div > *:nth-child(2) { animation-delay: 60ms; }
+[data-ws-swap] > div > *:nth-child(3) { animation-delay: 120ms; }
+[data-ws-swap] > div > *:nth-child(n + 4) { animation-delay: 180ms; }
+
+@keyframes ws-section-in-reduced {
+  from { opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-ws-swap] > div > * {
+    animation: ws-section-in-reduced 120ms ease-out backwards;
+    animation-delay: 0ms !important;
+  }
+}
+
 /* Warm, double-layer elevation for a lifted-out card (section builder open surface).
    Lighter than the modal shadow — it sits inline, not over a scrim. */
 .shadow-elevated-card {

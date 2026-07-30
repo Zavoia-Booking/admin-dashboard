@@ -106,6 +106,8 @@ interface MarketplaceImagesSectionProps {
   locationId: number | null;
   featuredImageId?: string | null;
   portfolioImages?: PortfolioImage[];
+  /** Uses a three-column gallery when rendered inside the Marketplace split pane. */
+  compact?: boolean;
   onFeaturedImageChange: (tempId: string | null) => void;
   onPortfolioImagesChange: (
     images: PortfolioImage[] | ((prev: PortfolioImage[]) => PortfolioImage[]),
@@ -116,6 +118,7 @@ export function MarketplaceImagesSection({
   locationId,
   featuredImageId,
   portfolioImages,
+  compact = false,
   onFeaturedImageChange,
   onPortfolioImagesChange,
 }: MarketplaceImagesSectionProps) {
@@ -519,7 +522,9 @@ export function MarketplaceImagesSection({
 
   return (
     <div className="max-w-5xl mb-0 md:mb-8">
-      <Card className="border-none pt-0 pb-2 sm:border shadow-none sm:shadow-sm bg-transparent md:bg-surface overflow-hidden">
+      {/* border-0 (not border-none): border-none zeroes the Tailwind border-style
+          var, which silently kills the sm:border re-enable. */}
+      <Card className="border-0 rounded-2xl pt-0 pb-2 sm:border sm:border-border shadow-none sm:shadow-sm bg-transparent md:bg-surface overflow-hidden">
         <CardContent className="p-0 sm:p-4 space-y-6">
           <div className="relative p-0 sm:p-2">
             {/* Background Decoration */}
@@ -577,7 +582,10 @@ export function MarketplaceImagesSection({
                     return (
                       <div
                         key="featured-container"
-                        className="relative w-full h-102 md:h-125 overflow-hidden rounded-2xl border bg-surface dark:bg-neutral-900 shadow-lg group/featured"
+                        className={cn(
+                          "relative w-full h-102 overflow-hidden rounded-2xl border bg-surface dark:bg-neutral-900 shadow-lg group/featured",
+                          compact ? "md:h-80" : "md:h-125",
+                        )}
                         onClick={() => openCarouselByTempId(featuredImg.tempId)}
                         role="button"
                       >
@@ -627,7 +635,7 @@ export function MarketplaceImagesSection({
                               variant="secondary"
                               rounded="full"
                               className={cn(
-                                "absolute top-4 right-4 z-20 h-10 w-10 rounded-full",
+                                "absolute top-4 right-4 z-20 h-11 w-11 rounded-full xl:h-10 xl:w-10",
                                 "shadow-xl active:scale-95 transition-all duration-200",
                                 // Match grid tile X button + darker background
                                 "backdrop-blur-md bg-black/60 hover:bg-black/70 border border-white/15 text-white",
@@ -657,9 +665,17 @@ export function MarketplaceImagesSection({
               <div className="space-y-4">
                 <div
                   className={cn(
-                    "grid gap-4 grid-cols-2 md:grid-cols-5 auto-rows-[184px] md:auto-rows-[180px]",
+                    "grid gap-4 grid-cols-2 auto-rows-[184px]",
+                    compact
+                      ? "md:grid-cols-3 md:auto-rows-[160px]"
+                      : "md:grid-cols-5 md:auto-rows-[180px]",
                     images.length === 0 &&
-                      "min-h-58 md:min-h-78 grid-rows-1 grid-cols-1 md:max-w-1/2 mt-8 md:mb-14",
+                      cn(
+                        "min-h-58 grid-rows-1 grid-cols-1 mt-8 md:mb-14",
+                        compact
+                          ? "md:min-h-64 md:max-w-full"
+                          : "md:min-h-78 md:max-w-1/2",
+                      ),
                   )}
                 >
                   {images.map((image, index) => {
@@ -715,7 +731,7 @@ export function MarketplaceImagesSection({
                                 type="button"
                                 variant="secondary"
                                 size="sm"
-                                className="font-bold rounded-full mt-1 h-6 px-2 text-[8px]"
+                                className="mt-1 h-11 rounded-full px-3 text-xs font-bold xl:h-6 xl:px-2 xl:text-[8px]"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   handleRemovePortfolioImage(image.tempId);
@@ -760,7 +776,7 @@ export function MarketplaceImagesSection({
                                     variant="secondary"
                                     rounded="full"
                                     className={cn(
-                                      "group/cover absolute bottom-2 left-2 !min-h-0 !h-8 px-3",
+                                      "group/cover absolute bottom-2 left-2 !h-11 !min-h-11 px-3 xl:!h-8 xl:!min-h-0",
                                       "shadow-xl active:scale-95",
                                       "!bg-black/35 hover:!bg-black/45 !text-white",
                                       "border border-white/15 hover:border-white/25",
@@ -794,7 +810,7 @@ export function MarketplaceImagesSection({
                                   variant="secondary"
                                   rounded="full"
                                   className={cn(
-                                    "absolute top-2 right-2 !min-h-8 !min-w-8 ",
+                                    "absolute top-2 right-2 !h-11 !w-11 !min-h-11 !min-w-11 xl:!h-8 xl:!w-8 xl:!min-h-8 xl:!min-w-8",
                                     "shadow-xl active:scale-95 transition-all duration-200 backdrop-blur-md",
                                     // Darker background for better contrast over images
                                     "bg-black/60 hover:bg-black/70 border border-white/15 text-white",
@@ -826,7 +842,10 @@ export function MarketplaceImagesSection({
                       className={cn(
                         "group relative cursor-pointer mt-1.5 transition-all duration-300",
                         images.length === 0
-                          ? "col-span-2 md:col-span-5 aspect-video md:aspect-auto"
+                          ? cn(
+                              "col-span-2 aspect-video md:aspect-auto",
+                              compact ? "md:col-span-3" : "md:col-span-5",
+                            )
                           : getBentoGridClass(images.length),
                         attentionActive &&
                           "rounded-2xl ring-2 ring-primary/40 ring-offset-2 ring-offset-background animate-attention-shake",

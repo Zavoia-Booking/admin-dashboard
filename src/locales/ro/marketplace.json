@@ -108,6 +108,7 @@
   },
   "statusStrip": {
     "live": "Activ pe marketplace",
+    "notListed": "Încă nu ești pe marketplace",
     "toGoLive": "Pentru a publica:",
     "checklist": {
       "industryTag": "Cel puțin o specializare",
@@ -122,8 +123,30 @@
     "locationsWaitingPublish": "Locațiile publice vor apărea după ce publici pagina businessului."
   },
   "locations": {
-    "managePage": "Gestionează pagina",
+    "title": "Locații",
+    "description": "Selectează o locație pentru a-i gestiona vizibilitatea, programările online, fotografiile și detaliile din marketplace.",
+    "listLabel": "Locații în marketplace",
+    "listHeading": "Locațiile tale",
     "backToAll": "Toate locațiile",
+    "visible": "Vizibilă",
+    "hidden": "Ascunsă",
+    "bookingOn": "Programări online active",
+    "bookingOff": "Programări online inactive",
+    "needsPhoto": "Adaugă fotografii",
+    "photoCount_one": "{{count}} fotografie",
+    "photoCount_few": "{{count}} fotografii",
+    "photoCount_other": "{{count}} de fotografii",
+    "emptyWorkspaceTitle": "Alege o locație",
+    "emptyWorkspaceDescription": "Selectează o locație din listă pentru a-i gestiona pagina din marketplace.",
+    "workspace": {
+      "visibilityTitle": "Vizibilitate în marketplace",
+      "visibilityDescription": "Controlează dacă această locație poate fi descoperită și rezervată de clienți.",
+      "autoSave": "Modificările de vizibilitate și programare se salvează automat.",
+      "locationDetails": "Detaliile locației",
+      "servicesAndTeam": "Servicii și echipă",
+      "marketplaceDetails": "Detalii marketplace",
+      "marketplaceDetailsDescription": "Facilități, accesibilitate, metode de plată și limbi vorbite."
+    },
     "reviews": {
       "title": "Recenzii",
       "count_one": "{{count}} recenzie",

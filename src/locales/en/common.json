@@ -30,9 +30,7 @@
     "body": "We couldn't load this. Check your connection.",
     "retry": "Try again",
     "crashBody": "An unexpected error occurred. Reload the page to continue.",
-    "reload": "Reload page",
-    "updateTitle": "A new version is available",
-    "updateBody": "Reload the page to continue."
+    "reload": "Reload page"
   },
   "locationSelector": {
     "placeholder": "Select a location",

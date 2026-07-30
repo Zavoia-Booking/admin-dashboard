@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { Check, Circle, BadgeCheck, ArrowRight, Save, MapPin } from "lucide-react";
+import { Circle, CircleCheck, ArrowRight, Save } from "lucide-react";
 import { Button } from "../../../shared/components/ui/button";
 import { cn } from "../../../shared/lib/utils";
 import type { LocationWithAssignments } from "../types";
@@ -20,6 +20,8 @@ interface MarketplacePublishStatusStripProps {
   onPublish: () => void;
   /** Invoked instead of onPublish when photos are the blocker — jumps to the upload area */
   onPhotosNeeded: () => void;
+  /** Replaces the full checklist with a compact completion action below xl. */
+  compactOnMobile?: boolean;
 }
 
 function ChecklistItem({ ok, label }: { ok: boolean; label: string }) {
@@ -33,7 +35,7 @@ function ChecklistItem({ ok, label }: { ok: boolean; label: string }) {
       )}
     >
       {ok ? (
-        <Check className="size-3.5" strokeWidth={2.2} />
+        <CircleCheck className="size-3.5" strokeWidth={2} />
       ) : (
         <Circle className="size-3.5" strokeWidth={1.8} />
       )}
@@ -60,6 +62,7 @@ export function MarketplacePublishStatusStrip({
   locations,
   onPublish,
   onPhotosNeeded,
+  compactOnMobile = false,
 }: MarketplacePublishStatusStripProps) {
   const { t } = useTranslation("marketplace");
 
@@ -83,106 +86,149 @@ export function MarketplacePublishStatusStrip({
   const publishDisabled =
     isPublishing || (isListed && !isDirty) || hasValidationErrors || !industryTagOk;
 
+  const renderActionButton = (compact = false) =>
+    canWrite ? (
+      <Button
+        onClick={() => (photosBlocked ? onPhotosNeeded() : onPublish())}
+        disabled={publishDisabled}
+        rounded="full"
+        className={cn(
+          "group shrink-0 px-4 text-sm font-semibold shadow-xs",
+          "transition-[transform,box-shadow,background-color] duration-150 ease-out active:scale-[0.98]",
+          compact
+            ? "!h-11 !min-h-11 w-full sm:w-auto"
+            : "!h-11 !min-h-11 w-full sm:w-auto sm:px-5 md:!h-10 md:!min-h-0",
+          publishDisabled ? "shadow-none" : "shadow-primary/15",
+        )}
+      >
+        {isPublishing ? (
+          <>
+            <div className="size-3.5 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+            <span>{buttonLabel}</span>
+          </>
+        ) : (
+          <>
+            <span>{buttonLabel}</span>
+            <span
+              className={cn(
+                "size-6 place-items-center rounded-full bg-white/15 transition-transform duration-150 ease-out group-hover:translate-x-0.5 group-active:scale-95",
+                compact ? "grid" : "hidden md:grid",
+              )}
+              aria-hidden
+            >
+              {isListed ? (
+                <Save className="size-3.5" strokeWidth={1.9} />
+              ) : (
+                <ArrowRight className="size-3.5" strokeWidth={1.9} />
+              )}
+            </span>
+          </>
+        )}
+      </Button>
+    ) : null;
+
+  const showCompactAction = !isListed || isDirty;
+
   return (
-    <div className="overflow-hidden rounded-[1.125rem] border border-border bg-surface shadow-xs">
-      <div className="grid gap-3 px-4 py-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
-        <div className="min-w-0 space-y-2">
-          {isListed ? (
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-              <span className="inline-flex items-center gap-2 text-[14px] font-semibold text-foreground-1">
-                <span className="grid size-5 place-items-center rounded-full bg-green-50 ring-1 ring-green-100 dark:bg-green-950/30 dark:ring-green-900/40">
-                  <span className="size-2 rounded-full bg-green-500" aria-hidden />
-                </span>
-                <BadgeCheck className="size-4 text-green-600 dark:text-green-500" strokeWidth={2} />
-                {t("statusStrip.live")}
-              </span>
-              <span className="hidden h-4 w-px bg-border-subtle sm:block" aria-hidden />
-              <span className="inline-flex min-w-0 items-center gap-1.5 text-[12px] text-foreground-3 dark:text-foreground-2">
-                <MapPin className="size-3.5 shrink-0" strokeWidth={1.8} />
-                <span>{t("statusStrip.locationsVisible", { visible: publicCount, total })}</span>
-              </span>
-              {publicCount === 0 && (
-                <span className="text-xs font-medium text-amber-600 dark:text-amber-500">
-                  {t("statusStrip.noLocationLive")}
-                </span>
-              )}
-              {photosBlocked && (
-                <span className="text-xs font-medium text-amber-600 dark:text-amber-500">
-                  {t("statusStrip.locationNeedsImage")}
-                </span>
-              )}
-            </div>
-          ) : (
-            <div className="space-y-2">
+    <>
+      {compactOnMobile && (
+        <div className="rounded-[1.125rem] border border-border bg-surface px-4 py-3 shadow-xs xl:hidden">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
               <p className="text-sm font-semibold text-foreground-1">
-                {t("statusStrip.toGoLive")}
+                {isListed ? t("statusStrip.live") : t("statusStrip.toGoLive")}
               </p>
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
-                <ChecklistItem ok={industryTagOk} label={t("statusStrip.checklist.industryTag")} />
-                <ChecklistItem ok={businessDetailsOk} label={t("statusStrip.checklist.detailsValid")} />
-                <ChecklistItem
-                  ok={hasLocationPhoto}
-                  label={t("statusStrip.checklist.locationPhoto")}
-                />
-                {/* Only meaningful once a location is set public — vacuously true otherwise */}
-                {publicCount > 0 && (
-                  <ChecklistItem ok={locationImagesOk} label={t("statusStrip.checklist.locationImages")} />
+              <p
+                className={cn(
+                  "mt-1 text-xs leading-5",
+                  photosBlocked
+                    ? "text-warning"
+                    : "text-foreground-3 dark:text-foreground-2",
                 )}
-              </div>
+              >
+                {photosBlocked
+                  ? t("statusStrip.locationNeedsImage")
+                  : t("statusStrip.locationsVisible", {
+                      visible: publicCount,
+                      total,
+                    })}
+              </p>
             </div>
-          )}
+            {showCompactAction && renderActionButton(true)}
+          </div>
+        </div>
+      )}
 
-          {!isListed && (
-            <div className="flex items-center gap-1.5 text-xs text-foreground-3 dark:text-foreground-2">
-              <MapPin className="size-3.5 shrink-0" strokeWidth={1.8} />
-              <span>{t("statusStrip.locationsVisible", { visible: publicCount, total })}</span>
-            </div>
-          )}
+      <div
+        className={cn(
+          "overflow-hidden rounded-[1.125rem] border border-border bg-surface shadow-xs",
+          compactOnMobile && "max-xl:hidden",
+        )}
+      >
+        {/* Top row — both states share the same grammar: status chip,
+            hairline, location count, action on the right. */}
+        <div className="grid gap-3 px-4 py-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+          <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
+            <span className="inline-flex items-center gap-2 text-[14px] font-semibold text-foreground-1">
+              <span
+                className={cn(
+                  "grid size-5 place-items-center rounded-full ring-1",
+                  isListed
+                    ? "bg-green-50 ring-green-100 dark:bg-green-950/30 dark:ring-green-900/40"
+                    : "bg-amber-50 ring-amber-100 dark:bg-amber-950/30 dark:ring-amber-900/40",
+                )}
+              >
+                <span
+                  className={cn(
+                    "size-2 rounded-full",
+                    isListed ? "bg-green-500" : "bg-amber-500",
+                  )}
+                  aria-hidden
+                />
+              </span>
+              {isListed ? t("statusStrip.live") : t("statusStrip.notListed")}
+            </span>
+            {isListed && publicCount === 0 && (
+              <span className="text-xs font-medium text-amber-600 dark:text-amber-500">
+                {t("statusStrip.noLocationLive")}
+              </span>
+            )}
+            {isListed && photosBlocked && (
+              <span className="text-xs font-medium text-amber-600 dark:text-amber-500">
+                {t("statusStrip.locationNeedsImage")}
+              </span>
+            )}
+          </div>
 
-          {/* Public locations won't actually show until the business page is published. */}
-          {!isListed && publicCount > 0 && (
-            <p className="text-xs text-amber-600 dark:text-amber-500 leading-relaxed">
-              {t("statusStrip.locationsWaitingPublish")}
-            </p>
-          )}
+          {renderActionButton()}
         </div>
 
-        {canWrite && (
-          <Button
-            onClick={() => (photosBlocked ? onPhotosNeeded() : onPublish())}
-            disabled={publishDisabled}
-            rounded="full"
-            className={cn(
-              "group !h-10 !min-h-0 w-full shrink-0 px-4 text-sm font-semibold shadow-xs",
-              "transition-[transform,box-shadow,background-color] duration-150 ease-out active:scale-[0.98]",
-              "sm:w-auto sm:px-5",
-              publishDisabled ? "shadow-none" : "shadow-primary/15",
-            )}
-          >
-            {isPublishing ? (
-              <>
-                <div className="size-3.5 rounded-full border-2 border-white/30 border-t-white animate-spin" />
-                <span>{buttonLabel}</span>
-              </>
-            ) : (
-              <>
-                <span>{buttonLabel}</span>
-                <span
-                  className="hidden size-6 place-items-center rounded-full bg-white/15 transition-transform duration-150 ease-out group-hover:translate-x-0.5 group-active:scale-95 md:grid"
-                  aria-hidden
-                >
-                  {isListed ? (
-                    <Save className="size-3.5" strokeWidth={1.9} />
-                  ) : (
-                    <ArrowRight className="size-3.5" strokeWidth={1.9} />
-                  )}
-                </span>
-              </>
-            )}
-          </Button>
+        {/* Publish-gate band — supporting detail under the status, quiet
+            tinted footer with the checklist and any pre-publish caveat. */}
+        {!isListed && (
+          <div className="border-t border-border-subtle bg-muted/20 px-4 py-3">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-foreground-3">
+                {/* Reuse the sentence string minus its trailing colon — as an
+                    uppercase group label the colon reads as a typo. */}
+                {t("statusStrip.toGoLive").replace(/:\s*$/, "")}
+              </span>
+              <ChecklistItem ok={industryTagOk} label={t("statusStrip.checklist.industryTag")} />
+              <ChecklistItem ok={businessDetailsOk} label={t("statusStrip.checklist.detailsValid")} />
+              <ChecklistItem
+                ok={hasLocationPhoto}
+                label={t("statusStrip.checklist.locationPhoto")}
+              />
+              {/* Only meaningful once a location is set public — vacuously true otherwise */}
+              {publicCount > 0 && (
+                <ChecklistItem ok={locationImagesOk} label={t("statusStrip.checklist.locationImages")} />
+              )}
+            </div>
+
+          </div>
         )}
       </div>
-    </div>
+    </>
   );
 }
 

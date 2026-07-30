@@ -1,8 +1,8 @@
 import { lazy, Suspense } from 'react'
 import { createBrowserRouter, createRoutesFromElements, Navigate, Outlet, Route, RouterProvider, useLocation, useRouteError } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { ErrorState } from './shared/components/common/ErrorState'
-import { isStaleChunkError } from './shared/components/common/AppErrorBoundary'
+import { AlertCircle, RotateCcw } from 'lucide-react'
+import { Button } from './shared/components/ui/button'
 import ProtectedRoute from './features/auth/components/ProtectedRoute'
 import PublicRoute from './features/auth/components/PublicRoute'
 import AccountLinkingModal from './features/auth/components/AccountLinkingModal'
@@ -66,18 +66,32 @@ function RouteErrorFallback() {
   const error = useRouteError()
   const { t } = useTranslation('common')
   console.error('Route error:', error)
-  const stale = isStaleChunkError(error)
 
   return (
-    <div className="flex min-h-dvh items-center justify-center px-2">
-      <ErrorState
-        variant="page"
-        title={stale ? t('errorState.updateTitle') : t('errorState.title')}
-        body={stale ? t('errorState.updateBody') : t('errorState.crashBody')}
-        onRetry={() => window.location.reload()}
-        retryLabel={t('errorState.reload')}
-        className="max-w-[34rem] px-0"
-      />
+    <div
+      role="alert"
+      aria-atomic="true"
+      className="flex min-h-dvh flex-col items-center justify-center px-6 pb-[10vh] text-center"
+    >
+      <div className="flex items-center gap-2">
+        <AlertCircle className="size-5 shrink-0 text-error" aria-hidden="true" />
+        <h1 className="text-lg font-semibold tracking-tight text-foreground-1">
+          {t('errorState.title')}
+        </h1>
+      </div>
+      <p className="mt-1.5 max-w-sm text-balance text-sm leading-relaxed text-foreground-2">
+        {t('errorState.crashBody')}
+      </p>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={() => window.location.reload()}
+        className="mt-6 min-h-10 font-medium md:min-h-9"
+      >
+        <RotateCcw className="size-3.5" aria-hidden="true" />
+        {t('errorState.reload')}
+      </Button>
     </div>
   )
 }

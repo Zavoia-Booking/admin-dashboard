@@ -30,9 +30,7 @@
     "body": "Nu am putut încărca datele. Verifică conexiunea.",
     "retry": "Încearcă din nou",
     "crashBody": "A apărut o eroare neașteptată. Reîncarcă pagina pentru a continua.",
-    "reload": "Reîncarcă pagina",
-    "updateTitle": "Este disponibilă o versiune nouă",
-    "updateBody": "Reîncarcă pagina pentru a continua."
+    "reload": "Reîncarcă pagina"
   },
   "locationSelector": {
     "placeholder": "Selectează o locație",

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import { useCanWrite } from "../../../shared/components/common/subscription/useCanWrite";
 import { LimitedAccessBanner } from "../../../shared/components/common/subscription/LimitedAccessBanner";
@@ -22,6 +22,11 @@ import { MarketplacePublishStatusStrip } from "./MarketplacePublishStatusStrip";
 import { ReviewsTab } from "../../reviews/components/ReviewsTab";
 
 type MarketplaceTab = "business" | "locations" | "reviews";
+
+interface MarketplaceNavigationState {
+  marketplaceLocationsOrigin?: boolean;
+  marketplaceReviewReturnLocationId?: number;
+}
 
 const validTabs: MarketplaceTab[] = [
   "business",
@@ -61,9 +66,20 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
 
   const navigate = useNavigate();
   const location = useLocation();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const rawTab = searchParams.get("tab");
   const activeTab = resolveMarketplaceTab(rawTab);
+  const selectedLocationId = Number.parseInt(
+    searchParams.get("locationId") ?? "",
+    10,
+  );
+  const isLocationDetail =
+    activeTab === "locations" &&
+    locationsWithAssignments.length > 1 &&
+    !Number.isNaN(selectedLocationId) &&
+    locationsWithAssignments.some(
+      (locationItem) => locationItem.id === selectedLocationId,
+    );
 
   // State for unsaved changes confirmation dialog
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
@@ -252,7 +268,47 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
 
   const handleTabChange = (tabId: string) => {
     const tab = tabId as MarketplaceTab;
-    navigate(`/marketplace?tab=${tab}`, { replace: true });
+    if (tab === activeTab) return;
+
+    const next = new URLSearchParams(searchParams);
+    next.set("tab", tab);
+    const currentState =
+      location.state && typeof location.state === "object"
+        ? (location.state as MarketplaceNavigationState)
+        : {};
+
+    const reviewReturnId = currentState.marketplaceReviewReturnLocationId;
+    if (
+      tab === "locations" &&
+      reviewReturnId != null &&
+      locationsWithAssignments.some(
+        (locationItem) => locationItem.id === reviewReturnId,
+      )
+    ) {
+      next.set("locationId", String(reviewReturnId));
+      const nextState = { ...currentState };
+      delete nextState.marketplaceReviewReturnLocationId;
+      navigate(`/marketplace?${next.toString()}`, {
+        replace: true,
+        state: nextState,
+      });
+      return;
+    }
+
+    if (tab === "locations" && currentState.marketplaceLocationsOrigin) {
+      navigate(-1);
+      return;
+    }
+
+    // A normal tab click is unscoped. Location-scoped Reviews is entered only
+    // through the explicit View reviews action in the location workspace.
+    next.delete("locationId");
+    const nextState = { ...currentState };
+    delete nextState.marketplaceReviewReturnLocationId;
+    navigate(`/marketplace?${next.toString()}`, {
+      replace: true,
+      state: nextState,
+    });
   };
 
   const handleCombinedSave = () => {
@@ -267,6 +323,18 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
     const id = parseInt(raw, 10);
     return Number.isNaN(id) ? null : id;
   })();
+
+  // Mirror the user's location-filter changes back into the URL so a cleared
+  // filter doesn't resurrect on refresh, and a picked one survives it.
+  const handleReviewsLocationScopeChange = useCallback(
+    (nextLocationId: number | null) => {
+      const next = new URLSearchParams(searchParams);
+      if (nextLocationId == null) next.delete("locationId");
+      else next.set("locationId", String(nextLocationId));
+      setSearchParams(next, { replace: true });
+    },
+    [searchParams, setSearchParams],
+  );
 
   const industryTagOk = form.selectedIndustryTags.length > 0;
   const businessDetailsOk = !(
@@ -284,6 +352,12 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
   const hasLocationPhoto =
     locationsWithAssignments.length === 0 ||
     locationsWithAssignments.some((l) => (l.portfolioImages?.length ?? 0) > 0);
+  // Tab attention badge: any location without photos — visible or not — shows
+  // the add-photos nag inside the tab, so the badge tracks the same condition
+  // (a superset of both publish gates above).
+  const someLocationMissingPhotos = locationsWithAssignments.some(
+    (l) => (l.portfolioImages?.length ?? 0) === 0,
+  );
 
   // Publish clicked while photos are missing: deep-link into the offending
   // location's panel and pulse its upload card (works from any tab, any viewport).
@@ -295,7 +369,7 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
       locationsWithAssignments.find((l) => (l.portfolioImages?.length ?? 0) === 0) ??
       locationsWithAssignments[0];
     if (!target) return;
-    navigate(`/marketplace?tab=locations&locationId=${target.id}`, { replace: true });
+    navigate(`/marketplace?tab=locations&locationId=${target.id}`);
     requestPortfolioAttention(target.id);
   };
   // Persistent business-level go-live status strip. Rendered at the top of every
@@ -316,6 +390,7 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
         onPhotosNeeded={handlePhotosNeeded}
         locations={locationsWithAssignments}
         onPublish={handleCombinedSave}
+        compactOnMobile={isLocationDetail}
       />
     </div>
   );
@@ -341,11 +416,14 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
     {
       id: "locations",
       label: t("configuration.tabs.locations"),
-      showBadge: !locationImagesOk,
+      showBadge: someLocationMissingPhotos,
       content: (
         <>
           {statusStrip}
-          <LocationsTab locations={locationsWithAssignments} />
+          <LocationsTab
+            locations={locationsWithAssignments}
+            isActive={activeTab === "locations"}
+          />
         </>
       ),
     },
@@ -357,7 +435,10 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
           <>
             {statusStrip}
             <LimitedAccessBanner className="!px-0 !pt-0" />
-            <ReviewsTab locationId={reviewsLocationId} />
+            <ReviewsTab
+              locationId={reviewsLocationId}
+              onLocationScopeChange={handleReviewsLocationScopeChange}
+            />
           </>
         ) : null,
     },
