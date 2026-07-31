@@ -155,7 +155,9 @@ const EditCustomerSlider: React.FC<EditCustomerSliderProps> = ({
   useEffect(() => {
     if (customerError && isSubmitting) {
       toast.error(t("editCustomer.toasts.updateFailed"), {
-        description: t("editCustomer.toasts.updateFailedDescription"),
+        // Prefer the specific server reason (e.g. "email already exists") over
+        // the generic retry hint — the saga already localized it.
+        description: customerError || t("editCustomer.toasts.updateFailedDescription"),
         icon: undefined,
       });
       setIsSubmitting(false);

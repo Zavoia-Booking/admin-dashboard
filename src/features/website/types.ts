@@ -102,9 +102,6 @@ export interface WebsiteBuilderLocation {
   averageRating: number | null;
   totalReviews: number;
   amenityTagIds: number[];
-  audienceTagIds: number[];
-  valueTagIds: number[];
-  accessibilityTagIds: number[];
   paymentMethodTagIds: number[];
   languageTagIds: number[];
   services: WebsiteBuilderService[];

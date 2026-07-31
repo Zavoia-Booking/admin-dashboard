@@ -1,9 +1,16 @@
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Button } from "../ui/button";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
+import { toast } from "sonner";
 import { googleLoginAction, googleRegisterAction } from "../../../features/auth/actions";
+import { selectAuthIsLoading } from "../../../features/auth/selectors";
 import { useGoogleLogin } from "@react-oauth/google";
 import { getGoogleRedirectUri, setOauthContext } from "../../lib/oauth.ts";
+import { nativeGoogleSignIn, isNativeGoogleCancel } from "../../../features/auth/lib/nativeGoogleAuth";
+import { usePlatform } from "../../hooks/usePlatform";
 import { useTranslation } from "react-i18next";
+import { Spinner } from "../ui/spinner";
 
 type GoogleSignInButtonProps = {
   context: 'login' | 'register';
@@ -16,7 +23,19 @@ type GoogleSignInButtonProps = {
 export function GoogleSignInButton({ context, disabled, className, onBeforeStart }: GoogleSignInButtonProps) {
   const { t } = useTranslation('auth');
   const dispatch = useDispatch();
+  const { isNative } = usePlatform();
+  const [nativeBusy, setNativeBusy] = useState(false);
+  // Keeps the blocking overlay up after the account picker resolves, while the
+  // saga is talking to the backend (login / funnel email / collision modal).
+  const [nativeAwaitingAuth, setNativeAwaitingAuth] = useState(false);
+  const authIsLoading = useSelector(selectAuthIsLoading);
   const redirectUri = getGoogleRedirectUri();
+
+  useEffect(() => {
+    if (nativeAwaitingAuth && !nativeBusy && !authIsLoading) {
+      setNativeAwaitingAuth(false);
+    }
+  }, [nativeAwaitingAuth, nativeBusy, authIsLoading]);
 
   const googleLogin = useGoogleLogin({
     onSuccess: (codeResponse) => {
@@ -35,18 +54,60 @@ export function GoogleSignInButton({ context, disabled, className, onBeforeStart
     redirect_uri: redirectUri,
   })
 
+  // The webview can't run Google's web OAuth (disallowed_useragent), so native
+  // uses the on-device account picker and posts the ID token instead.
+  const startNativeSignIn = async () => {
+    setNativeBusy(true);
+    try {
+      const { idToken } = await nativeGoogleSignIn();
+      setNativeAwaitingAuth(true);
+      if (context === 'register') {
+        dispatch(googleRegisterAction.request({ idToken }));
+      } else {
+        dispatch(googleLoginAction.request({ idToken }));
+      }
+    } catch (error) {
+      if (!isNativeGoogleCancel(error)) {
+        console.error('Native Google sign-in error:', error);
+        toast.error(t('google.nativeError'));
+      }
+    } finally {
+      setNativeBusy(false);
+    }
+  };
+
+  // Full-screen click shield while the native flow is in progress — the page
+  // must not be interactable between picking an account and the auth outcome.
+  const nativeOverlay = (nativeBusy || nativeAwaitingAuth) && createPortal(
+    <div
+      className="fixed inset-0 z-[1000] flex flex-col items-center justify-center gap-4 bg-background/80 backdrop-blur-sm"
+      role="status"
+      aria-live="polite"
+    >
+      <Spinner size="lg" color="info" />
+      <p className="text-sm font-medium text-foreground-2">{t('google.connecting')}</p>
+    </div>,
+    document.body,
+  );
+
   return (
+    <>
+    {nativeOverlay}
     <Button
       variant="outline"
       type="button"
       onClick={() => {
         if (onBeforeStart && !onBeforeStart()) return;
+        if (isNative) {
+          void startNativeSignIn();
+          return;
+        }
         try {
           setOauthContext(context);
         } catch {}
         googleLogin();
       }}
-      disabled={disabled}
+      disabled={disabled || nativeBusy}
       className={"w-full bg-surface text-foreground-1 border-border hover:bg-surface-hover flex items-center justify-center gap-3 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed" + (className ? ` ${className}` : '')}
     >
       <svg className="w-6 h-6" viewBox="0 0 24 24">
@@ -57,9 +118,8 @@ export function GoogleSignInButton({ context, disabled, className, onBeforeStart
       </svg>
       {t('google.label')}
     </Button>
+    </>
   )
 }
 
 export default GoogleSignInButton;
-
-

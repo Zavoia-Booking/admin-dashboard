@@ -105,9 +105,6 @@ const CustomerDetailsPopup: React.FC<CustomerDetailsPopupProps> = ({
   hasOverlayOpen = false,
 }) => {
   const { t } = useTranslation('customers');
-  // getStatusBadge resolves `page.common.statuses.*` from the CALENDAR namespace;
-  // passing the customers-scoped `t` renders raw keys.
-  const { t: tCalendar } = useTranslation('calendar');
   const mergeBenefits = [
     t('details.duplicate.benefit1'),
     t('details.duplicate.benefit2'),
@@ -441,7 +438,7 @@ const CustomerDetailsPopup: React.FC<CustomerDetailsPopupProps> = ({
                                   </span>
                                   {item.type === 'appointment' && item.status && (
                                     <span className="shrink-0 [&_*]:text-[10px]">
-                                      {getStatusBadge(item.status, tCalendar)}
+                                      {getStatusBadge(item.status, t)}
                                     </span>
                                   )}
                                 </div>

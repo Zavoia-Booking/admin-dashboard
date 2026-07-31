@@ -71,6 +71,11 @@ if [ ! -d "$WINDOWS_ANDROID_PATH" ] || [ "$FULL_SYNC" == true ]; then
     # Copy entire android folder
     echo "   Copying android project..."
     cp -r android "$WINDOWS_ANDROID_PATH"
+
+    # Drop WSL-side build artifacts: they are signed with the WSL debug
+    # keystore and masquerade as Windows build outputs (stale APKs with the
+    # wrong signing cert), and Android Studio rebuilds them anyway.
+    rm -rf "$WINDOWS_ANDROID_PATH/app/build" "$WINDOWS_ANDROID_PATH/build" "$WINDOWS_ANDROID_PATH/.gradle"
     
     # Copy Capacitor Android library
     echo "   Copying Capacitor Android library..."
@@ -88,8 +93,9 @@ EOF
 
     # Copy each Capacitor plugin that has an android/ folder.
     # Discover every @capacitor* scope dynamically (covers @capacitor, @capacitor-community,
-    # @capacitor-firebase, and any future scopes).
-    for SCOPE_DIR in node_modules/@capacitor*/; do
+    # @capacitor-firebase) plus @capgo (capacitor-social-login) — @capgo does NOT match
+    # the @capacitor* glob, so it must be listed explicitly.
+    for SCOPE_DIR in node_modules/@capacitor*/ node_modules/@capgo/; do
         [ -d "$SCOPE_DIR" ] || continue
         SCOPE=$(basename "$SCOPE_DIR" | sed 's/^@//')
         for PLUGIN_DIR in "$SCOPE_DIR"*/; do

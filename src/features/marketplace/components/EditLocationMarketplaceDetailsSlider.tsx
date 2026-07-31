@@ -31,9 +31,6 @@ const isDraftDirty = (
 ): boolean => {
   return (
     !arraysShallowEqual(saved.amenityTagIds, draft.amenityTagIds) ||
-    !arraysShallowEqual(saved.audienceTagIds, draft.audienceTagIds) ||
-    !arraysShallowEqual(saved.valueTagIds, draft.valueTagIds) ||
-    !arraysShallowEqual(saved.accessibilityTagIds, draft.accessibilityTagIds) ||
     !arraysShallowEqual(
       saved.paymentMethodTagIds,
       draft.paymentMethodTagIds,
@@ -41,30 +38,6 @@ const isDraftDirty = (
     !arraysShallowEqual(saved.languageTagIds, draft.languageTagIds)
   );
 };
-
-const OWNERSHIP_SLUGS = new Set([
-  "women-owned",
-  "lgbtq-owned",
-  "disability-owned",
-  "family-business",
-  "independent-business",
-]);
-
-// Audience tags split into two conceptual families: access *rules* (hard
-// policies — adults-only, gender-restricted) vs. inclusivity *signals*
-// (welcoming statements). Sub-grouped visually so owners don't confuse a
-// restriction with a welcome.
-const AUDIENCE_ACCESS_SLUGS = new Set([
-  "adults-only",
-  "women-only",
-  "men-only",
-]);
-
-// Mutually exclusive within Access rules — a location cannot be both
-// women-only and men-only. Selecting one deselects the other.
-const MUTEX_AUDIENCE_PAIRS: Array<[string, string]> = [
-  ["women-only", "men-only"],
-];
 
 // Frontend display order overriding the DB seed order. Ordered by likelihood
 // of selection across Zavoia's verticals (beauty, fitness, wellness,
@@ -84,33 +57,6 @@ const CHIP_PRIORITY: Record<string, string[]> = {
     "bike-parking",
     "showers",
     "lockers",
-  ],
-  audience: ["adults-only", "women-only", "men-only", "lgbtq-friendly"],
-  values: [
-    // Ownership sub-group
-    "independent-business",
-    "family-business",
-    "women-owned",
-    "lgbtq-owned",
-    "disability-owned",
-    // Sustainability sub-group
-    "eco-conscious",
-    "locally-sourced",
-    "plastic-free",
-    "cruelty-free",
-    "vegan",
-    "zero-waste",
-  ],
-  accessibility: [
-    "step-free-entrance",
-    "accessible-parking",
-    "accessible-restroom",
-    "service-animals-welcome",
-    "mobility-aids-available",
-    "sensory-friendly",
-    "large-print-materials",
-    "sign-language-available",
-    "hearing-loop",
   ],
   paymentMethods: [
     "card",
@@ -240,23 +186,6 @@ const SectionHeader: React.FC<SectionHeaderProps> = ({
       </p>
     )}
   </header>
-);
-
-interface SubGroupLabelProps {
-  label: string;
-  count?: number;
-}
-
-const SubGroupLabel: React.FC<SubGroupLabelProps> = ({ label, count }) => (
-  <div className="flex items-baseline gap-1.5 text-xs text-foreground-3">
-    <span className="font-medium">{label}</span>
-    {count !== undefined && count > 0 && (
-      <>
-        <span className="text-foreground-3/50">·</span>
-        <span className="tabular-nums">{count}</span>
-      </>
-    )}
-  </div>
 );
 
 // Language picker. Pins 6 common languages (en/ro/de/fr/it/es) inline so the
@@ -415,12 +344,6 @@ export const EditLocationMarketplaceDetailsSlider: React.FC<
     if (!dictionaries) return null;
     return {
       amenities: sortByChipPriority(dictionaries.amenities, "amenities"),
-      audience: sortByChipPriority(dictionaries.audience, "audience"),
-      values: sortByChipPriority(dictionaries.values, "values"),
-      accessibility: sortByChipPriority(
-        dictionaries.accessibility,
-        "accessibility",
-      ),
       paymentMethods: sortByChipPriority(
         dictionaries.paymentMethods,
         "paymentMethods",
@@ -429,119 +352,11 @@ export const EditLocationMarketplaceDetailsSlider: React.FC<
     };
   }, [dictionaries]);
 
-  const { ownership, sustainability, ownershipIds, sustainabilityIds } =
-    useMemo(() => {
-      const values = sortedDictionaries?.values ?? [];
-      const own = values.filter((o) => OWNERSHIP_SLUGS.has(o.slug));
-      const sus = values.filter((o) => !OWNERSHIP_SLUGS.has(o.slug));
-      return {
-        ownership: own,
-        sustainability: sus,
-        ownershipIds: new Set(own.map((o) => o.id)),
-        sustainabilityIds: new Set(sus.map((o) => o.id)),
-      };
-    }, [sortedDictionaries]);
-
-  const {
-    accessRules,
-    inclusivity,
-    accessRulesIds,
-    inclusivityIds,
-    mutexAudienceIdPairs,
-  } = useMemo(() => {
-    const aud = sortedDictionaries?.audience ?? [];
-    const access = aud.filter((o) => AUDIENCE_ACCESS_SLUGS.has(o.slug));
-    const incl = aud.filter((o) => !AUDIENCE_ACCESS_SLUGS.has(o.slug));
-    const bySlug = new Map(aud.map((o) => [o.slug, o.id]));
-    const pairs = MUTEX_AUDIENCE_PAIRS.flatMap<[number, number]>(([a, b]) => {
-      const idA = bySlug.get(a);
-      const idB = bySlug.get(b);
-      return idA !== undefined && idB !== undefined ? [[idA, idB]] : [];
-    });
-    return {
-      accessRules: access,
-      inclusivity: incl,
-      accessRulesIds: new Set(access.map((o) => o.id)),
-      inclusivityIds: new Set(incl.map((o) => o.id)),
-      mutexAudienceIdPairs: pairs,
-    };
-  }, [sortedDictionaries]);
-
-  const ownershipSelected = useMemo(
-    () => draft.valueTagIds.filter((id) => ownershipIds.has(id)),
-    [draft.valueTagIds, ownershipIds],
-  );
-  const sustainabilitySelected = useMemo(
-    () => draft.valueTagIds.filter((id) => sustainabilityIds.has(id)),
-    [draft.valueTagIds, sustainabilityIds],
-  );
-
-  const handleOwnershipChange = (ids: number[]) => {
-    setDraft((d) => ({
-      ...d,
-      valueTagIds: [
-        ...d.valueTagIds.filter((id) => !ownershipIds.has(id)),
-        ...ids,
-      ],
-    }));
-  };
-  const handleSustainabilityChange = (ids: number[]) => {
-    setDraft((d) => ({
-      ...d,
-      valueTagIds: [
-        ...d.valueTagIds.filter((id) => !sustainabilityIds.has(id)),
-        ...ids,
-      ],
-    }));
-  };
-
-  const accessRulesSelected = useMemo(
-    () => draft.audienceTagIds.filter((id) => accessRulesIds.has(id)),
-    [draft.audienceTagIds, accessRulesIds],
-  );
-  const inclusivitySelected = useMemo(
-    () => draft.audienceTagIds.filter((id) => inclusivityIds.has(id)),
-    [draft.audienceTagIds, inclusivityIds],
-  );
-
-  const handleAccessRulesChange = (ids: number[]) => {
-    // Enforce mutex pairs: if a side of a pair was just added, drop the other.
-    // Pairs are slug-driven and resolved to IDs at dictionary-load time.
-    let next = ids;
-    for (const [idA, idB] of mutexAudienceIdPairs) {
-      const justAddedA =
-        ids.includes(idA) && !accessRulesSelected.includes(idA);
-      const justAddedB =
-        ids.includes(idB) && !accessRulesSelected.includes(idB);
-      if (justAddedA) next = next.filter((id) => id !== idB);
-      else if (justAddedB) next = next.filter((id) => id !== idA);
-    }
-    setDraft((d) => ({
-      ...d,
-      audienceTagIds: [
-        ...d.audienceTagIds.filter((id) => !accessRulesIds.has(id)),
-        ...next,
-      ],
-    }));
-  };
-  const handleInclusivityChange = (ids: number[]) => {
-    setDraft((d) => ({
-      ...d,
-      audienceTagIds: [
-        ...d.audienceTagIds.filter((id) => !inclusivityIds.has(id)),
-        ...ids,
-      ],
-    }));
-  };
-
   const handleSave = async () => {
     if (!location?.id) return;
     try {
       await save({
         amenityTagIds: draft.amenityTagIds,
-        audienceTagIds: draft.audienceTagIds,
-        valueTagIds: draft.valueTagIds,
-        accessibilityTagIds: draft.accessibilityTagIds,
         paymentMethodTagIds: draft.paymentMethodTagIds,
         languageTagIds: draft.languageTagIds,
       });
@@ -607,93 +422,6 @@ export const EditLocationMarketplaceDetailsSlider: React.FC<
                       selected={draft.amenityTagIds}
                       onChange={(ids) =>
                         setDraft((d) => ({ ...d, amenityTagIds: ids }))
-                      }
-                      disabled={isSaving}
-                    />
-                  </section>
-
-                  <section className={sectionClass}>
-                    <SectionHeader
-                      title={t("sections.audience.title")}
-                      helper={t("sections.audience.helper")}
-                      selectedCount={draft.audienceTagIds.length}
-                      countLabel={countLabel}
-                    />
-                    <div className="space-y-7">
-                      <div className="space-y-2 border-l-2 border-foreground-1/10 pl-4">
-                        <SubGroupLabel
-                          label={t("sections.audience.subgroups.accessRules")}
-                          count={accessRulesSelected.length}
-                        />
-                        <ChipMultiSelect
-                          options={accessRules}
-                          selected={accessRulesSelected}
-                          onChange={handleAccessRulesChange}
-                          disabled={isSaving}
-                        />
-                      </div>
-                      <div className="space-y-2 border-l-2 border-foreground-1/10 pl-4">
-                        <SubGroupLabel
-                          label={t("sections.audience.subgroups.inclusivity")}
-                          count={inclusivitySelected.length}
-                        />
-                        <ChipMultiSelect
-                          options={inclusivity}
-                          selected={inclusivitySelected}
-                          onChange={handleInclusivityChange}
-                          disabled={isSaving}
-                        />
-                      </div>
-                    </div>
-                  </section>
-
-                  <section className={sectionClass}>
-                    <SectionHeader
-                      title={t("sections.values.title")}
-                      helper={t("sections.values.helper")}
-                      selectedCount={draft.valueTagIds.length}
-                      countLabel={countLabel}
-                    />
-                    <div className="space-y-7">
-                      <div className="space-y-2 border-l-2 border-foreground-1/10 pl-4">
-                        <SubGroupLabel
-                          label={t("sections.values.subgroups.ownership")}
-                          count={ownershipSelected.length}
-                        />
-                        <ChipMultiSelect
-                          options={ownership}
-                          selected={ownershipSelected}
-                          onChange={handleOwnershipChange}
-                          disabled={isSaving}
-                        />
-                      </div>
-                      <div className="space-y-2 border-l-2 border-foreground-1/10 pl-4">
-                        <SubGroupLabel
-                          label={t("sections.values.subgroups.sustainability")}
-                          count={sustainabilitySelected.length}
-                        />
-                        <ChipMultiSelect
-                          options={sustainability}
-                          selected={sustainabilitySelected}
-                          onChange={handleSustainabilityChange}
-                          disabled={isSaving}
-                        />
-                      </div>
-                    </div>
-                  </section>
-
-                  <section className={sectionClass}>
-                    <SectionHeader
-                      title={t("sections.accessibility.title")}
-                      helper={t("sections.accessibility.helper")}
-                      selectedCount={draft.accessibilityTagIds.length}
-                      countLabel={countLabel}
-                    />
-                    <ChipMultiSelect
-                      options={sortedDictionaries.accessibility}
-                      selected={draft.accessibilityTagIds}
-                      onChange={(ids) =>
-                        setDraft((d) => ({ ...d, accessibilityTagIds: ids }))
                       }
                       disabled={isSaving}
                     />

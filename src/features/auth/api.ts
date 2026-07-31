@@ -1,4 +1,4 @@
-import type { RegisterOwnerPayload, AuthResponse, AuthUser, CheckTeamInvitationResponse, CompleteTeamInvitationPayload, CompleteTeamInvitationResponse, AccountActionResponse, MobileRegisterRequestResponse, MobileRegisterTokenValidation, BusinessLinkTokenValidation } from "./types";
+import type { RegisterOwnerPayload, AuthResponse, AuthUser, CheckTeamInvitationResponse, CompleteTeamInvitationPayload, CompleteTeamInvitationResponse, AccountActionResponse, MobileRegisterRequestResponse, MobileRegisterTokenValidation, BusinessLinkTokenValidation, GoogleNativeRegisterResponse } from "./types";
 import { apiClient } from "../../shared/lib/http";
 import i18n from "../../shared/lib/i18n";
 
@@ -60,6 +60,19 @@ export const googleLoginApi = async (payload: { code: string, redirectUri: strin
 // Google OAuth register - for creating a new business owner account
 export const googleRegisterApi = async (payload: { code: string, redirectUri: string }): Promise<AuthResponse> => {
     const { data } = await apiClient().post<AuthResponse>('/auth/google', { ...payload, intent: 'register_business_owner' });
+    return data;
+};
+
+// Native (Capacitor) Google sign-in with an ID token from the on-device picker.
+export const googleNativeLoginApi = async (payload: { idToken: string }): Promise<AuthResponse> => {
+    const { data } = await apiClient().post<AuthResponse>('/auth/google/native', { ...payload, intent: 'login' });
+    return data;
+};
+
+// Native Google register never creates the account in-app: known emails may log
+// in, everything else resolves to the same "continue on web" email funnel.
+export const googleNativeRegisterApi = async (payload: { idToken: string }): Promise<GoogleNativeRegisterResponse> => {
+    const { data } = await apiClient().post<GoogleNativeRegisterResponse>('/auth/google/native', { ...payload, intent: 'register', locale: currentLocale() });
     return data;
 };
 

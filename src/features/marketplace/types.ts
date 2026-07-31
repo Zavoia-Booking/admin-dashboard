@@ -126,9 +126,6 @@ export interface LocationWithAssignments extends Location {
   totalReviews?: number;
   // Per-location marketplace tag IDs, one array per group (resolved to labels via useLocationTagDictionaries).
   amenityTagIds?: number[];
-  audienceTagIds?: number[];
-  valueTagIds?: number[];
-  accessibilityTagIds?: number[];
   paymentMethodTagIds?: number[];
   languageTagIds?: number[];
 }

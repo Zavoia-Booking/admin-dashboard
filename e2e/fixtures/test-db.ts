@@ -140,20 +140,21 @@ export async function markWizardComplete(userId: number): Promise<void> {
  */
 export async function bootstrapBusinessForOwner(userId: number): Promise<number> {
   return withTestDb(async (client) => {
-    // Ensure a BASE plan exists — billing.service requires it to render
+    // Ensure a STANDARD plan exists — billing.service requires it to render
     // /billing/subscription-summary, which the seat_overflow gate depends on
     // for `dataReady`. Plans are not seeded by the truncate-and-migrate flow,
-    // so the first call inserts one.
+    // so the first call inserts one. (Tier values are STANDARD/PLUS/CUSTOM
+    // since the tiered-plans rework — 'BASE' no longer exists in the enum.)
     let planId: number | null = null
     const existingPlan = await client.query<{ id: number }>(
-      `SELECT id FROM plan WHERE tier = 'BASE' LIMIT 1`,
+      `SELECT id FROM plan WHERE tier = 'STANDARD' LIMIT 1`,
     )
     if (existingPlan.rows[0]) {
       planId = existingPlan.rows[0].id
     } else {
       const planInsert = await client.query<{ id: number }>(
         `INSERT INTO plan (name, tier, "maxLocations", "maxTeamMembers")
-         VALUES ('Base', 'BASE', 5, 10)
+         VALUES ('Standard', 'STANDARD', 5, 10)
          RETURNING id`,
       )
       planId = planInsert.rows[0].id
@@ -190,6 +191,20 @@ export async function bootstrapBusinessForOwner(userId: number): Promise<number>
       [userId],
     )
     return businessId
+  })
+}
+
+/**
+ * Push the business's trial end into the past. With no subscription row the
+ * entitlements service then reports entitled=false for real — no auth/me
+ * mocking needed to exercise expired-trial behavior end-to-end.
+ */
+export async function expireBusinessTrial(businessId: number): Promise<void> {
+  await withTestDb(async (client) => {
+    await client.query(
+      `UPDATE business SET "trialEndsAt" = NOW() - INTERVAL '1 day' WHERE id = $1`,
+      [businessId],
+    )
   })
 }
 

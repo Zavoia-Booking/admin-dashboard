@@ -12,7 +12,7 @@ import { Spinner } from "../../../shared/components/ui/spinner"
 type TokenState =
   | { status: 'idle' }
   | { status: 'checking' }
-  | { status: 'valid'; email: string; token: string }
+  | { status: 'valid'; email: string; token: string; provider?: 'google' }
   | { status: 'invalid' }
 
 /**
@@ -43,7 +43,7 @@ export default function RegisterPage() {
     validateMobileRegisterTokenApi(welcomeToken)
       .then((result) => {
         if (cancelled) return
-        setTokenState({ status: 'valid', email: result.email, token: welcomeToken })
+        setTokenState({ status: 'valid', email: result.email, token: welcomeToken, provider: result.provider })
       })
       .catch(() => {
         if (cancelled) return
@@ -83,7 +83,14 @@ export default function RegisterPage() {
     )
   }
   if (tokenState.status === 'valid') {
-    return <RegisterForm initialEmail={tokenState.email} welcomeToken={tokenState.token} lockEmail />
+    return (
+      <RegisterForm
+        initialEmail={tokenState.email}
+        welcomeToken={tokenState.token}
+        lockEmail
+        preferGoogle={tokenState.provider === 'google'}
+      />
+    )
   }
   return <RegisterForm />
 }

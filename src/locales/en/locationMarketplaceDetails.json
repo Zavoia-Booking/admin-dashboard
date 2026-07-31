@@ -16,26 +16,6 @@
       "title": "Amenities",
       "helper": "Select the features available at this location."
     },
-    "audience": {
-      "title": "Access & inclusivity",
-      "helper": "Only pick what genuinely applies.",
-      "subgroups": {
-        "accessRules": "Access rules",
-        "inclusivity": "Inclusivity"
-      }
-    },
-    "values": {
-      "title": "Business identity",
-      "helper": "Pick what genuinely describes your business.",
-      "subgroups": {
-        "ownership": "Ownership",
-        "sustainability": "Sustainability"
-      }
-    },
-    "accessibility": {
-      "title": "Accessibility",
-      "helper": "Features that make this location easier to access."
-    },
     "paymentMethods": {
       "title": "Payment methods",
       "helper": "What you accept at the venue."
@@ -63,36 +43,6 @@
       "private-treatment-room": "Private treatment room",
       "showers": "Showers",
       "lockers": "Lockers"
-    },
-    "audience": {
-      "adults-only": "Adults only",
-      "women-only": "Women only",
-      "men-only": "Men only",
-      "lgbtq-friendly": "LGBTQ+ friendly"
-    },
-    "values": {
-      "women-owned": "Women-owned",
-      "lgbtq-owned": "LGBTQ+ owned",
-      "disability-owned": "Disability-owned",
-      "family-business": "Family business",
-      "independent-business": "Independent business",
-      "eco-conscious": "Sustainable practices",
-      "zero-waste": "Zero-waste",
-      "plastic-free": "Plastic-free",
-      "vegan": "Vegan-friendly",
-      "cruelty-free": "Cruelty-free",
-      "locally-sourced": "Locally sourced"
-    },
-    "accessibility": {
-      "step-free-entrance": "Step-free entrance",
-      "accessible-parking": "Accessible parking",
-      "accessible-restroom": "Accessible restroom",
-      "hearing-loop": "Hearing loop",
-      "sign-language-available": "Sign language available",
-      "large-print-materials": "Large-print materials",
-      "service-animals-welcome": "Service animals welcome",
-      "sensory-friendly": "Sensory-friendly environment",
-      "mobility-aids-available": "Mobility aids available"
     },
     "paymentMethods": {
       "cash": "Cash",

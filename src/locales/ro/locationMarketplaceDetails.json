@@ -16,26 +16,6 @@
       "title": "Facilități",
       "helper": "Alege facilitățile disponibile la această locație."
     },
-    "audience": {
-      "title": "Acces și incluziune",
-      "helper": "Alege doar ce se aplică cu adevărat.",
-      "subgroups": {
-        "accessRules": "Reguli de acces",
-        "inclusivity": "Incluziune"
-      }
-    },
-    "values": {
-      "title": "Identitatea businessului",
-      "helper": "Alege ce descrie cu adevărat businessul tău.",
-      "subgroups": {
-        "ownership": "Proprietate",
-        "sustainability": "Sustenabilitate"
-      }
-    },
-    "accessibility": {
-      "title": "Accesibilitate",
-      "helper": "Dotări care fac locația mai ușor de accesat."
-    },
     "paymentMethods": {
       "title": "Metode de plată",
       "helper": "Ce accepți la locație."
@@ -63,36 +43,6 @@
       "private-treatment-room": "Cabină privată",
       "showers": "Dușuri",
       "lockers": "Vestiare"
-    },
-    "audience": {
-      "adults-only": "Doar adulți",
-      "women-only": "Doar femei",
-      "men-only": "Doar bărbați",
-      "lgbtq-friendly": "Prietenos LGBTQ+"
-    },
-    "values": {
-      "women-owned": "Deținut de femei",
-      "lgbtq-owned": "Deținut LGBTQ+",
-      "disability-owned": "Deținut de persoane cu dizabilități",
-      "family-business": "Business de familie",
-      "independent-business": "Business independent",
-      "eco-conscious": "Practici sustenabile",
-      "zero-waste": "Zero deșeuri",
-      "plastic-free": "Fără plastic",
-      "vegan": "Vegan-friendly",
-      "cruelty-free": "Fără testare pe animale",
-      "locally-sourced": "Produse locale"
-    },
-    "accessibility": {
-      "step-free-entrance": "Intrare fără trepte",
-      "accessible-parking": "Parcare accesibilă",
-      "accessible-restroom": "Toaletă accesibilă",
-      "hearing-loop": "Buclă auditivă",
-      "sign-language-available": "Limbaj semne disponibil",
-      "large-print-materials": "Materiale tipărite mărite",
-      "service-animals-welcome": "Câini de asistență acceptați",
-      "sensory-friendly": "Mediu prietenos senzorial",
-      "mobility-aids-available": "Echipamente de mobilitate disponibile"
     },
     "paymentMethods": {
       "cash": "Numerar",

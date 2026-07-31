@@ -7,10 +7,7 @@ import type { LocationTagGroup } from "./types";
  *  Shared by the Locations detail panel (switcher) + the atlas sheet. */
 const TAG_GROUP_ORDER: { ids: keyof WebsiteBuilderLocation; dict: keyof ResolvedTagDictionaries }[] = [
   { ids: "amenityTagIds", dict: "amenities" },
-  { ids: "accessibilityTagIds", dict: "accessibility" },
   { ids: "paymentMethodTagIds", dict: "paymentMethods" },
-  { ids: "valueTagIds", dict: "values" },
-  { ids: "audienceTagIds", dict: "audience" },
   { ids: "languageTagIds", dict: "languages" },
 ];
 

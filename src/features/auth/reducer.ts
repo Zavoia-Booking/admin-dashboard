@@ -27,6 +27,7 @@ const initialState: AuthState = {
   businessSelectionRequired: null,
   accountLinkingRequired: null,
   isRegistration: false,
+  mobileGoogleEmailSentTo: null,
   isMemberRegistrationLoading: false,
   memberRegistrationError: null,
   teamInvitationStatus: null,
@@ -46,6 +47,14 @@ export const AuthReducer: Reducer<AuthState, any> = (state: AuthState = initialS
 
     case getType(actions.resetRegistrationFlag): {
       return { ...state, isRegistration: false };
+    }
+
+    case getType(actions.googleNativeEmailSentAction): {
+      return { ...state, isLoading: false, mobileGoogleEmailSentTo: action.payload.email };
+    }
+
+    case getType(actions.clearGoogleNativeEmailSentAction): {
+      return { ...state, mobileGoogleEmailSentTo: null };
     }
 
     case getType(setMemberRegistrationLoadingAction): {

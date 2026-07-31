@@ -277,7 +277,6 @@ export async function createLocation(
       phone: '+40700000000',
       email: 'salon@test.com',
       address: '1 Test Street',
-      isRemote: false,
       open247: true,
       workingHours: OPEN_24_7_HOURS,
     },

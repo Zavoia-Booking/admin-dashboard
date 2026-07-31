@@ -121,7 +121,8 @@ const SettingsPage = () => {
     (document.getElementById('business-info-form') as HTMLFormElement | null)?.requestSubmit();
   };
 
-  const showSaveButton = activeTab === 'profile';
+  // Pre-wizard there is no business form on the page, so nothing to save.
+  const showSaveButton = activeTab === 'profile' && !isOwnerWithoutBusiness;
 
   const SaveButton = (
     <Button
@@ -166,7 +167,7 @@ const SettingsPage = () => {
 
   if (isNative) {
     return (
-      <AppLayout headerRightContent={isMobile ? HeaderSaveButton : undefined}>
+      <AppLayout headerRightContent={isMobile && !isOwnerWithoutBusiness ? HeaderSaveButton : undefined}>
         <BusinessProfile onDirtyChange={setIsProfileDirty} />
       </AppLayout>
     );

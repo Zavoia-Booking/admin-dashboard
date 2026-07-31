@@ -1,5 +1,6 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
+import { useDispatch, useSelector } from "react-redux"
 import { useTranslation, Trans } from "react-i18next"
 import { useForm } from "react-hook-form"
 import { AlertCircle, Mail, CheckCircle2 } from "lucide-react"
@@ -7,7 +8,10 @@ import { Button } from "../../../shared/components/ui/button"
 import { Input } from "../../../shared/components/ui/input"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../../../shared/components/ui/card"
 import { Spinner } from "../../../shared/components/ui/spinner"
+import GoogleSignInButton from "../../../shared/components/auth/GoogleSignInButton"
 import { mobileRegisterRequestApi } from "../api"
+import { clearGoogleNativeEmailSentAction } from "../actions"
+import { selectAuthIsLoading, selectMobileGoogleEmailSentTo } from "../selectors"
 import i18n from "../../../shared/lib/i18n"
 
 type FormValues = {
@@ -21,9 +25,16 @@ type Status =
 export function MobileRegisterEmailForm() {
   const { t } = useTranslation('auth')
   const navigate = useNavigate()
+  const dispatch = useDispatch()
   const [status, setStatus] = useState<Status>({ kind: 'form' })
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  // Google register either logs the user straight in (PublicRoute redirects)
+  // or resolves to the same email funnel — the saga reports the latter here.
+  const googleLoading = useSelector(selectAuthIsLoading)
+  const googleEmailSentTo = useSelector(selectMobileGoogleEmailSentTo)
+
+  useEffect(() => () => { dispatch(clearGoogleNativeEmailSentAction()) }, [dispatch])
 
   const { register, handleSubmit, formState: { errors, isValid }, reset } = useForm<FormValues>({
     mode: 'onChange',
@@ -48,10 +59,13 @@ export function MobileRegisterEmailForm() {
   const resetToForm = () => {
     setStatus({ kind: 'form' })
     setSubmitError(null)
+    dispatch(clearGoogleNativeEmailSentAction())
     reset()
   }
 
-  if (status.kind === 'sent') {
+  const sentEmail = status.kind === 'sent' ? status.email : googleEmailSentTo
+
+  if (sentEmail) {
     return (
       <Card className="w-full max-w-lg mx-auto">
         <CardHeader className="space-y-2 px-6 py-6 md:px-8 md:py-8 items-center text-center">
@@ -63,7 +77,7 @@ export function MobileRegisterEmailForm() {
             <Trans
               i18nKey="mobileRegister.successDescription"
               t={t}
-              values={{ email: status.email }}
+              values={{ email: sentEmail }}
               components={{ strong: <strong /> }}
             />
           </CardDescription>
@@ -133,7 +147,7 @@ export function MobileRegisterEmailForm() {
             className="w-full h-10 md:h-12"
             rounded="full"
             type="submit"
-            disabled={submitting || !isValid}
+            disabled={submitting || googleLoading || !isValid}
           >
             {submitting ? (
               <div className="flex items-center justify-center gap-3">
@@ -144,6 +158,16 @@ export function MobileRegisterEmailForm() {
               t('mobileRegister.submit')
             )}
           </Button>
+          <div className="relative flex items-center my-1 w-full">
+            <div className="flex-1 h-px bg-border min-w-0"></div>
+            <span className="px-4 text-sm text-muted-foreground bg-card whitespace-nowrap">{t('register.or')}</span>
+            <div className="flex-1 h-px bg-border min-w-0"></div>
+          </div>
+          <GoogleSignInButton
+            context="register"
+            disabled={submitting || googleLoading}
+            className="h-10 md:h-12"
+          />
           <div className="text-center text-sm">
             {t('mobileRegister.alreadyHaveAccount')}{" "}
             <Button

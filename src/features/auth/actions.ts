@@ -1,10 +1,11 @@
 import { createAsyncAction, createAction } from "typesafe-actions";
-import type { 
-  RegisterOwnerPayload, 
-  AuthUser, 
+import type {
+  RegisterOwnerPayload,
+  AuthUser,
   CheckTeamInvitationResponse,
   CompleteTeamInvitationPayload,
   CompleteTeamInvitationResponse,
+  GoogleAuthRequestPayload,
 } from "./types";
 
 export const setTokensAction = createAction(
@@ -85,13 +86,24 @@ export const googleLoginAction = createAsyncAction(
   'auth/GOOGLE_LOGIN_REQUEST',
   'auth/GOOGLE_LOGIN_SUCCESS',
   'auth/GOOGLE_LOGIN_FAILURE',
-)<{ code: string, redirectUri: string }, { accessToken: string, csrfToken: string | null, user: AuthUser | null }, { message: string }>();
+)<GoogleAuthRequestPayload, { accessToken: string, csrfToken: string | null, user: AuthUser | null }, { message: string }>();
 
 export const googleRegisterAction = createAsyncAction(
   'auth/GOOGLE_REGISTER_REQUEST',
   'auth/GOOGLE_REGISTER_SUCCESS',
   'auth/GOOGLE_REGISTER_FAILURE',
-)<{ code: string, redirectUri: string }, { accessToken: string, csrfToken: string | null, user: AuthUser | null }, { message: string }>();
+)<GoogleAuthRequestPayload, { accessToken: string, csrfToken: string | null, user: AuthUser | null }, { message: string }>();
+
+// Native Google register resolved to the "continue on web" email funnel
+// instead of a session — the register screen swaps to its "check your inbox"
+// card, same as the email-only flow.
+export const googleNativeEmailSentAction = createAction(
+  'auth/GOOGLE_NATIVE_EMAIL_SENT',
+)<{ email: string }>();
+
+export const clearGoogleNativeEmailSentAction = createAction(
+  'auth/CLEAR_GOOGLE_NATIVE_EMAIL_SENT',
+)<void>();
 
 // In-flow Google collision modal controls
 export const openAccountLinkingModal = createAction(

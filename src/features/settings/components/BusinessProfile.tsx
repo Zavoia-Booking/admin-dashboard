@@ -110,6 +110,10 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
   const isBusinessLoading = useSelector(getBusinessLoadingSelector);
   const businessError = useSelector(getBusinessErrorSelector);
   const user = useSelector((state: RootState) => state.auth.user);
+  // Owners that haven't finished the setup wizard have no business yet, so
+  // /business/profile would 403. Skip the business fetch and render only the
+  // account-level sections (security, push notifications, delete account).
+  const isOwnerWithoutBusiness = user?.role === 'owner' && !user?.wizardCompleted;
   const fileInputRef = useRef<HTMLInputElement>(null);
   const passwordInputRef = useRef<HTMLInputElement>(null);
   
@@ -174,13 +178,15 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
   const canSubmitPassword = isPasswordPolicyValid && passwordsMatch && confirmPassword.length > 0
     && (!userHasPassword || currentPassword.trim().length > 0);
 
-  // Fetch business data on mount
+  // Fetch business data on mount (skipped pre-wizard: no business exists yet)
   useEffect(() => {
+    if (isOwnerWithoutBusiness) return;
     dispatch(fetchCurrentBusinessAction.request());
-  }, [dispatch]);
+  }, [dispatch, isOwnerWithoutBusiness]);
 
-  // Fetch industries on mount
+  // Fetch industries on mount (only used by the business form)
   useEffect(() => {
+    if (isOwnerWithoutBusiness) return;
     industryApi
       .getAll()
       .then(setIndustries)
@@ -189,7 +195,7 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
         toast.error(t('profile.toast.industriesLoadFailed'));
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isOwnerWithoutBusiness]);
 
   // Populate form when business data is loaded (and set baseline for dirty check)
   useEffect(() => {
@@ -291,6 +297,10 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
 
   const handleSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
+
+    // Pre-wizard the business form isn't rendered; an Enter keypress in an
+    // account-section input must not trigger a business update.
+    if (isOwnerWithoutBusiness) return;
 
     const next = validateAll();
     setErrors(next);
@@ -457,7 +467,8 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
   // Without the business the form would render dead empty defaults (and a bogus
   // "name required" error) that can't be edited meaningfully. A retained
   // business keeps rendering the form; only the no-data cases are gated.
-  if (!currentBusiness && isBusinessLoading) {
+  // Pre-wizard owners bypass both gates: no fetch ran, account sections render.
+  if (!isOwnerWithoutBusiness && !currentBusiness && isBusinessLoading) {
     return (
       <div className="w-full space-y-4">
         <div className="rounded-xl border border-border bg-surface p-5">
@@ -481,7 +492,7 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
     );
   }
 
-  if (!currentBusiness && businessError) {
+  if (!isOwnerWithoutBusiness && !currentBusiness && businessError) {
     return (
       <ErrorState
         variant="page"
@@ -495,6 +506,8 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
     <form id="business-info-form" onSubmit={handleSubmit} className="w-full">
       <div className="profile-grid">
         <div className="profile-col">
+          {/* Business sections are hidden until the setup wizard is completed */}
+          {!isOwnerWithoutBusiness && (<>
           {/* Hidden file input for logo upload (triggered from hero edit button) */}
           <input
             ref={fileInputRef}
@@ -735,7 +748,8 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
               />
             </div>
           </section>
-        
+          </>)}
+
           {/* Section: Account Security */}
           <section className="profile-section" aria-labelledby="profile-section-security">
             <header className="profile-section-header">

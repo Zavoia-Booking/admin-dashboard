@@ -30,6 +30,27 @@ export function readCookie(name: string): string | null {
   return match ? decodeURIComponent(match[1]) : null;
 }
 
+function deleteCookie(name: string): void {
+  // Expire under both variants the API may have set: host-only (local dev)
+  // and the shared parent domain (staging/production).
+  document.cookie = `${name}=; Max-Age=0; path=/`;
+  const host = window.location.hostname;
+  if (host.endsWith("zavoia.com")) {
+    document.cookie = `${name}=; Max-Age=0; path=/; domain=.zavoia.com`;
+  }
+}
+
+/**
+ * CSRF value to send with refresh/logout. Cookie FIRST: the server rotates the
+ * csrf cookie on every refresh, and another tab's refresh updates the (shared)
+ * cookie while this tab's Redux copy goes stale — sending the Redux value then
+ * fails the double-submit check ("Invalid CSRF token" after switching tabs).
+ * Redux is only a fallback for the edge where the cookie is unreadable.
+ */
+function currentCsrfToken(state: { auth: AuthState }): string | null {
+  return readCookie(CSRF_COOKIE_NAME) || state.auth.csrfToken;
+}
+
 // ---- OPTIONAL: decode JWT payload for UX-only claims ----
 function decodeJwt<T = any>(token: string): T | null {
   try {
@@ -67,7 +88,17 @@ export function createApiClient(store: Store<{ auth: AuthState } & any>): AxiosI
     if (accessToken && config.headers) {
       config.headers["Authorization"] = `Bearer ${accessToken}`;
     }
-    
+
+    // The UI language being rendered right now, sent on EVERY request as the
+    // x-locale header — the backend treats it as a fallback wherever a request
+    // body carries no explicit `locale`, so transactional emails triggered by
+    // this request (welcome, verification, reset, …) come back in the same
+    // language the user was looking at.
+    const uiLang = i18n.language?.slice(0, 2).toLowerCase();
+    if (config.headers && (uiLang === "en" || uiLang === "ro")) {
+      config.headers["x-locale"] = uiLang;
+    }
+
     // Mark requests from native apps (for backend to skip CSRF validation)
     if (isNativeApp() && config.headers) {
       config.headers["X-Native-App"] = "capacitor";
@@ -75,8 +106,7 @@ export function createApiClient(store: Store<{ auth: AuthState } & any>): AxiosI
     
     // Always try to send CSRF token for protected endpoints (web only)
     if (csrfHeaderNeeded && config.headers && !isNativeApp()) {
-      // First try Redux, then fall back to cookie (important for page reloads)
-      const csrf = state.auth.csrfToken || readCookie(CSRF_COOKIE_NAME);
+      const csrf = currentCsrfToken(state);
       if (csrf) {
         config.headers["x-csrf-token"] = csrf;
       }
@@ -113,7 +143,7 @@ export function createApiClient(store: Store<{ auth: AuthState } & any>): AxiosI
       // Determine if 401 is due to an expired token
       const www: string | undefined = error?.response?.headers?.["www-authenticate"];
       const errStr: string | undefined = error?.response?.data?.error || error?.response?.data?.message;
-      const isExpiredHeader = typeof www === "string" && /error=\"invalid_token\"/i.test(www) && /expired/i.test(www);
+      const isExpiredHeader = typeof www === "string" && /error="invalid_token"/i.test(www) && /expired/i.test(www);
       const isExpiredBody = code === "token_expired" || (typeof errStr === "string" && /expired/i.test(errStr));
       const isExpired = isExpiredHeader || isExpiredBody;
 
@@ -162,10 +192,29 @@ export function apiClient(): AxiosInstance {
 // ---- Single-flight refresh helper (shared by saga and interceptor) ----
 async function performRefresh(): Promise<string> {
   if (!_storeRef) throw new Error("API client not initialized");
-  const state = _storeRef.getState();
   const isNative = isNativeApp();
-  const csrf = !isNative ? (state.auth.csrfToken || readCookie(CSRF_COOKIE_NAME)) : null;
-  
+
+  // Cross-tab mutex (web only): /auth/refresh rotates the shared refresh +
+  // csrf cookies, so two tabs refreshing concurrently consume the same
+  // refresh token — the loser gets refresh_token_invalid and the server
+  // clears the cookies, killing the session in every tab. Web Locks
+  // serializes the tabs; each one then reads the freshly rotated cookies
+  // inside its own turn. Browsers without Web Locks keep the in-tab
+  // single-flight behavior.
+  const locks = typeof navigator !== "undefined" ? (navigator as any).locks : undefined;
+  if (!isNative && typeof locks?.request === "function") {
+    return locks.request("zv-session-refresh", () => doPerformRefresh(isNative)) as Promise<string>;
+  }
+  return doPerformRefresh(isNative);
+}
+
+async function doPerformRefresh(isNative: boolean): Promise<string> {
+  if (!_storeRef) throw new Error("API client not initialized");
+  const state = _storeRef.getState();
+  // Read the csrf cookie here, INSIDE the cross-tab lock — after another tab's
+  // refresh rotated the cookies, this picks up the value the server expects.
+  const csrf = !isNative ? currentCsrfToken(state) : null;
+
   // Build headers based on platform
   const headers: Record<string, string> = {};
   if (csrf) {
@@ -174,18 +223,18 @@ async function performRefresh(): Promise<string> {
   if (isNative) {
     headers["X-Native-App"] = "capacitor";
   }
-  
+
   // For native apps, get refresh token from Redux or persistent storage
   let refreshToken = state.auth.refreshToken;
   if (isNative && !refreshToken) {
     refreshToken = await tokenStorage.loadRefreshToken();
   }
-  
+
   // For native apps, send refresh token in body (cookies don't work cross-origin)
-  const body = isNative && refreshToken 
+  const body = isNative && refreshToken
     ? { refreshToken }
     : {};
-  
+
   const { data } = await axios.post(
     `${API_BASE_URL}${REFRESH_ENDPOINT}`,
     body,
@@ -238,8 +287,20 @@ async function ensureRefreshInFlight(): Promise<string> {
           tokenStorage.clearRefreshToken().catch(() => {});
         }
         if (_storeRef && rejectedByServer) {
-          _storeRef.dispatch(hydrateSessionAction.failure({ message: i18n.t("auth:page.errors.sessionExpired") }));
+          // Drop the csrf cookie so the boot-time hasCsrf guard sees no
+          // session (the server already cleared the refresh cookie on
+          // refresh-token failures; this covers the csrf-failure path where
+          // it doesn't).
+          if (!isNativeApp()) {
+            deleteCookie(CSRF_COOKIE_NAME);
+          }
+          // Order matters: logout.success resets auth state to IDLE, which
+          // makes AuthGate immediately re-dispatch hydration — dispatching
+          // the failure AFTER it leaves the state terminally UNAUTHENTICATED
+          // (with the session-expired message for the login screen) instead
+          // of looping refresh → fail → reset → refresh.
           _storeRef.dispatch(logoutRequestAction.success());
+          _storeRef.dispatch(hydrateSessionAction.failure({ message: i18n.t("auth:page.errors.sessionExpired") }));
         }
         throw error;
       })

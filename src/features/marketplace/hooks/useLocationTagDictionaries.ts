@@ -7,7 +7,7 @@ import {
 } from "../api";
 
 /**
- * Session-cached fetch of the 6 location-marketplace tag dictionaries.
+ * Session-cached fetch of the 3 location-marketplace tag dictionaries.
  *
  * The dictionaries are small (~68 rows total) and rarely change, so we memoize
  * the resolved server payload at module level. Display labels are resolved
@@ -36,9 +36,6 @@ export type ChipOption = { id: number; label: string; slug: string };
 
 export type ResolvedTagDictionaries = {
   amenities: ChipOption[];
-  audience: ChipOption[];
-  values: ChipOption[];
-  accessibility: ChipOption[];
   paymentMethods: ChipOption[];
   languages: ChipOption[];
 };
@@ -83,9 +80,6 @@ export const useLocationTagDictionaries = () => {
 
     return {
       amenities: resolve("amenities"),
-      audience: resolve("audience"),
-      values: resolve("values"),
-      accessibility: resolve("accessibility"),
       paymentMethods: resolve("paymentMethods"),
       languages: resolve("languages"),
     };

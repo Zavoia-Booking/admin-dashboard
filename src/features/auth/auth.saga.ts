@@ -20,9 +20,9 @@ import {
   completeTeamInvitationAction,
   clearAuthErrorAction,
 } from "./actions";
-import { logoutApi, registerOwnerRequestApi, loginApi, getCurrentUserApi, forgotPasswordApi, resetPasswordApi, googleLoginApi, googleRegisterApi, reauthForLinkApi, linkGoogleApi, unlinkGoogleApi, linkGoogleByCodeApi, selectBusinessApi, sendBusinessLinkEmailApi, checkTeamInvitationApi, completeTeamInvitationApi } from "./api";
-import type { RegisterOwnerPayload, AuthResponse, AuthUser } from "./types";
-import { reauthForLinkAction, linkGoogleAction, closeAccountLinkingModal, unlinkGoogleAction, linkGoogleByCodeAction } from "./actions";
+import { logoutApi, registerOwnerRequestApi, loginApi, getCurrentUserApi, forgotPasswordApi, resetPasswordApi, googleLoginApi, googleRegisterApi, googleNativeLoginApi, googleNativeRegisterApi, reauthForLinkApi, linkGoogleApi, unlinkGoogleApi, linkGoogleByCodeApi, selectBusinessApi, sendBusinessLinkEmailApi, checkTeamInvitationApi, completeTeamInvitationApi } from "./api";
+import type { RegisterOwnerPayload, AuthResponse, AuthUser, GoogleNativeRegisterResponse } from "./types";
+import { reauthForLinkAction, linkGoogleAction, closeAccountLinkingModal, unlinkGoogleAction, linkGoogleByCodeAction, googleNativeEmailSentAction } from "./actions";
 import { listLocationsAction } from "../locations/actions";
 import { select } from "redux-saga/effects";
 import type { RootState } from "../../app/providers/store";
@@ -215,7 +215,11 @@ function* handleResetPassword(action: { type: string; payload: { token: string, 
 function* handleGoogleLogin(action: ReturnType<typeof googleLoginAction.request>) {
   try {
     yield put(setAuthLoadingAction({ isLoading: true }));
-    const response: AuthResponse = yield call(googleLoginApi, action.payload);
+    // Web sends an OAuth code; native (Capacitor) sends an ID token from the
+    // on-device account picker.
+    const response: AuthResponse = 'idToken' in action.payload
+      ? yield call(googleNativeLoginApi, action.payload)
+      : yield call(googleLoginApi, action.payload);
 
     // Store access token in Redux (memory) + optional CSRF token + refresh token for native apps
     yield put(setTokensAction({ accessToken: response.accessToken, csrfToken: response.csrfToken ?? null, refreshToken: response.refreshToken ?? null }));
@@ -301,6 +305,14 @@ function* handleGoogleLogin(action: ReturnType<typeof googleLoginAction.request>
       return;
     }
 
+    // No account for this Google identity — the login form shows its
+    // "register first" banner for this exact message.
+    if (statusCode === 404 && code === 'account_not_found') {
+      yield put(googleLoginAction.failure({ message: 'account_not_found' }));
+      yield put(setAuthLoadingAction({ isLoading: false }));
+      return;
+    }
+
     const message = getErrorMessage(error);
     yield put(googleLoginAction.failure({ message }));
   } finally {
@@ -311,7 +323,20 @@ function* handleGoogleLogin(action: ReturnType<typeof googleLoginAction.request>
 function* handleGoogleRegister(action: ReturnType<typeof googleRegisterAction.request>) {
   try {
     yield put(setAuthLoadingAction({ isLoading: true }));
-    const response: AuthResponse = yield call(googleRegisterApi, action.payload);
+    // Web sends an OAuth code (account is created right away); native sends an
+    // ID token and may resolve to the "continue on web" email funnel instead
+    // of a session.
+    const nativeFlow = 'idToken' in action.payload;
+    const rawResponse: GoogleNativeRegisterResponse = nativeFlow
+      ? yield call(googleNativeRegisterApi, action.payload as { idToken: string })
+      : yield call(googleRegisterApi, action.payload as { code: string; redirectUri: string });
+
+    if ('outcome' in rawResponse && rawResponse.outcome === 'email_sent') {
+      yield put(googleNativeEmailSentAction({ email: rawResponse.email }));
+      return;
+    }
+
+    const response = rawResponse as AuthResponse;
 
     // Store access token in Redux (memory) + optional CSRF token + refresh token for native apps
     yield put(setTokensAction({ accessToken: response.accessToken, csrfToken: response.csrfToken ?? null, refreshToken: response.refreshToken ?? null }));

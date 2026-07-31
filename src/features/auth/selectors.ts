@@ -13,6 +13,7 @@ export const selectCurrentUserId = (s: { auth: AuthState }) => s.auth.user?.id;
 export const selectAccountLinkingRequired = (s: { auth: AuthState }) => s.auth.accountLinkingRequired;
 export const selectAuthIsLoading = (s: { auth: AuthState }) => s.auth.isLoading;
 export const selectAuthIsRegistration = (s: { auth: AuthState }) => s.auth.isRegistration;
+export const selectMobileGoogleEmailSentTo = (s: { auth: AuthState }) => s.auth.mobileGoogleEmailSentTo;
 export const selectTeamInvitationStatus = (s: { auth: AuthState }) => s.auth.teamInvitationStatus;
 export const selectTeamInvitationData = (s: { auth: AuthState }) => s.auth.teamInvitationData;
 export const selectTeamInvitationError = (s: { auth: AuthState }) => s.auth.teamInvitationError;

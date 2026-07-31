@@ -94,12 +94,16 @@ export const getStatusBadge = (status: string, t: TFunction): ReactElement => {
   const dot = (cls: string) => (
     <div className={cn('h-2 w-2 shrink-0 rounded-full', cls)} aria-hidden />
   );
+  // Explicit `calendar:` prefix so the badge renders with a `t` from ANY
+  // namespace — callers outside the calendar feature (customer details popup,
+  // customer history slider) pass their own scoped `t`, which used to leak
+  // raw `page.common.statuses.*` keys into the UI.
   const labels: Record<string, string> = {
-    confirmed: t("page.common.statuses.confirmed"),
-    completed: t("page.common.statuses.completed"),
-    no_show: t("page.common.statuses.noShow"),
-    pending: t("page.common.statuses.pending"),
-    cancelled: t("page.common.statuses.cancelled"),
+    confirmed: t("calendar:page.common.statuses.confirmed"),
+    completed: t("calendar:page.common.statuses.completed"),
+    no_show: t("calendar:page.common.statuses.noShow"),
+    pending: t("calendar:page.common.statuses.pending"),
+    cancelled: t("calendar:page.common.statuses.cancelled"),
   };
   switch (status) {
     case 'confirmed':

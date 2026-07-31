@@ -14,7 +14,23 @@ export type MobileRegisterRequestResponse = {
 
 export type MobileRegisterTokenValidation = {
   email: string;
+  /** 'google' when the invite came from native Google sign-in — the web form leads with Google. */
+  provider?: 'google';
 };
+
+/** Payload for the unified Google actions: web sends an OAuth code, native an ID token. */
+export type GoogleAuthRequestPayload =
+  | { code: string; redirectUri: string }
+  | { idToken: string };
+
+/** Native Google email funnel outcome (register intent, no session issued). */
+export type GoogleNativeEmailSent = {
+  outcome: 'email_sent';
+  message: string;
+  email: string;
+};
+
+export type GoogleNativeRegisterResponse = AuthResponse | GoogleNativeEmailSent;
 
 /** Pre-flight info for the /link-business-account page. */
 export type BusinessLinkTokenValidation = {
@@ -142,6 +158,8 @@ export interface AuthState {
   isRegistration?: boolean;
   isMemberRegistrationLoading?: boolean;
   memberRegistrationError?: string | null;
+  /** Native Google register resolved to the email funnel — address the invite went to. */
+  mobileGoogleEmailSentTo?: string | null;
   teamInvitationStatus?: 'checking' | 'needs_registration' | 'accepted' | 'completed' | 'error' | null;
   teamInvitationData?: {
     token: string;

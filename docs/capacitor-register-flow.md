@@ -84,17 +84,33 @@ email token today instead of a password.
 - **Deep links: intentionally none.** Nothing configured (`@capacitor/app` not installed, no
   intent filters) and the product decision wants email links to land on web. Feature, not gap.
 
-## Pre-existing bug found: dead Google button on native login
+## Native Google auth (RESOLVED 2026-07-31)
 
-- Only `@react-oauth/google` (web-only) is installed; no native Google plugin.
-- `GoogleSignInButton` uses `auth-code` + `ux_mode: 'redirect'`; no `isNative` gating anywhere.
-- On Capacitor login the button renders but is broken twice over: Google blocks OAuth in
-  embedded webviews (`disallowed_useragent`), and the redirect URI resolves to
-  `capacitor://localhost/auth/callback` which isn't registrable anyway.
-- **v1 fix**: hide the button when `usePlatform().isNative` (one-line gate, same pattern as
-  billing gating). Native Google login later = `@capacitor-firebase/authentication` (Firebase
-  already in the project via messaging) + a second `POST /auth/google` input mode that verifies
-  an **ID token** instead of exchanging an auth code — real chunk of work, deferred.
+The "dead Google button on native login" bug is fixed — native Google auth now works via
+`@capgo/capacitor-social-login` (Credential Manager account picker, no webview OAuth, no
+deep links) and a dedicated backend endpoint:
+
+- `nativeGoogleSignIn()` (`src/features/auth/lib/nativeGoogleAuth.ts`) initializes the plugin
+  with `VITE_GOOGLE_CLIENT_ID` as the web/server client id and returns a Google **ID token**.
+- `GoogleSignInButton` branches on `usePlatform().isNative`: web keeps the auth-code redirect
+  flow, native posts the ID token through the same `googleLoginAction`/`googleRegisterAction`
+  sagas (payload union `{code, redirectUri} | {idToken}`).
+- Backend: `POST /auth/google/native` (`{ idToken, intent: 'login'|'register', locale? }`).
+  **Register intent never creates the account** — it feeds the same email funnel as
+  `/mobile-register-request` (invite metadata records `provider: 'google' + googleSub`; the
+  web form shows a "finish with Google" hint via `mobile-register-validate`'s `provider`
+  field, and the account's googleSub always comes from the fresh web sign-in, never from the
+  token). Known linked owners are simply logged in; unlinked collisions reuse the in-app
+  password-re-auth modal; login intent mirrors the `POST /auth/google` decision tree.
+- Setup prerequisite: an **Android OAuth client** must exist in the same Google Cloud
+  project for each package + signing-cert combination. NOTE the `staging` product flavor
+  appends `.staging`, so staging builds are `com.zavoia.admin.staging` (production builds
+  are `com.zavoia.admin`). Get the real signing SHA-1 from **Logcat tag `GoogleProvider`**
+  (the plugin logs the running app's package + signingSha1 on every attempt) — that is
+  ground truth for the installed build. Beware: APKs found in the project's build/ folder
+  can be stale WSL-built artifacts signed with the WSL keystore (sync script now strips
+  them). Windows Android Studio deploys are signed by `C:\Users\<user>\.android\debug.keystore`.
+  Mobile env files must define `VITE_GOOGLE_CLIENT_ID` (the *web* client id).
 
 ## Implementation checklist (when resuming)
 

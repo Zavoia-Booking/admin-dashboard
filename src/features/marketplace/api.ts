@@ -175,27 +175,18 @@ export type TagDictionaryEntry = {
 
 export type LocationTagDictionaries = {
   amenities: TagDictionaryEntry[];
-  audience: TagDictionaryEntry[];
-  values: TagDictionaryEntry[];
-  accessibility: TagDictionaryEntry[];
   paymentMethods: TagDictionaryEntry[];
   languages: TagDictionaryEntry[];
 };
 
 export type LocationMarketplaceTags = {
   amenityTagIds: number[];
-  audienceTagIds: number[];
-  valueTagIds: number[];
-  accessibilityTagIds: number[];
   paymentMethodTagIds: number[];
   languageTagIds: number[];
 };
 
 export const EMPTY_LOCATION_MARKETPLACE_TAGS: LocationMarketplaceTags = {
   amenityTagIds: [],
-  audienceTagIds: [],
-  valueTagIds: [],
-  accessibilityTagIds: [],
   paymentMethodTagIds: [],
   languageTagIds: [],
 };
