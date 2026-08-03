@@ -1,12 +1,10 @@
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { AppSidebar } from "../../../../shared/components/navigation/app-sidebar";
-import { MobileBottomNav } from "../../../../shared/components/navigation/mobile-bottom-nav";
 import {
   SidebarInset,
   SidebarProvider,
 } from "../../../../shared/components/ui/sidebar";
-import { useIsMobile } from "../../../../shared/hooks/use-mobile";
 import "./website-atelier.css";
 
 interface WebsiteAtelierShellProps {
@@ -27,9 +25,6 @@ export function WebsiteAtelierShell({
   className,
 }: WebsiteAtelierShellProps) {
   const { t } = useTranslation("website");
-  // Navigation follows the shared dashboard breakpoint. The builder itself retains its wider
-  // 920px compact presentation, but it must never invent a route-specific navigation mode.
-  const isMobile = useIsMobile();
 
   return (
     <SidebarProvider
@@ -51,7 +46,6 @@ export function WebsiteAtelierShell({
           <header className="website-atelier-mobile-header">{mobileHeader}</header>
           <div className="website-atelier-body">{children}</div>
         </div>
-        {isMobile ? <MobileBottomNav /> : null}
       </SidebarInset>
     </SidebarProvider>
   );

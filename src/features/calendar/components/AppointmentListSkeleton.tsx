@@ -27,7 +27,7 @@ const AppointmentCardSkeleton: FC = () => (
 );
 
 export const AppointmentListSkeleton: FC = () => (
-  <div className="space-y-3">
+  <div className="skeleton-delayed-reveal space-y-3">
     {/* Count pills placeholder */}
     <div className="flex items-center justify-end gap-2 px-1">
       <Skeleton className="h-5 w-20 rounded-full" />

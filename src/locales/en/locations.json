@@ -129,7 +129,7 @@
       "description": "This will permanently remove this location from your locations list. This action cannot be undone.",
       "button": "Remove Location",
       "removing": "Removing...",
-      "goToWebsiteGallery": "Open Website Builder"
+      "goToWebsiteGallery": "Open Web Studio"
     },
     "mapDialog": {
       "title": "Verify Location Pin",

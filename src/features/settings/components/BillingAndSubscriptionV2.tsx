@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { useTranslation } from 'react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
 import {
   Crown,
   ExternalLink,
@@ -124,6 +124,13 @@ type Tone = 'neutral' | 'good' | 'warn' | 'danger' | 'info' | 'accent';
 // Tier ordering for self-serve plan changes — mirrors the backend's
 // SELF_SERVE_TIER_ORDER (direction is derived from tier, never from price).
 const SELF_SERVE_TIER_ORDER: Record<string, number> = { STANDARD: 1, PLUS: 2 };
+
+// Caps (locations, team members) at or above this display as unlimited: the
+// DB stores a number no real business will reach (100+) rather than a null.
+// Null and the legacy -1 sentinel stay unlimited too.
+const UNLIMITED_CAP_MIN = 100;
+const isUnlimitedCap = (n: number | null | undefined): boolean =>
+  n == null || n === -1 || n >= UNLIMITED_CAP_MIN;
 
 const formatDate = (input: string | null | undefined): string => {
   if (!input) return '—';
@@ -385,32 +392,51 @@ const BillingAndSubscriptionV2Inner = () => {
     dispatch(getCustomerPortalUrlAction.request({ returnUrl }));
   };
 
-  const handleRenewSubscription = async () => {
+  // `plan` comes from the plan card's CTA; the hero buttons call this with no
+  // argument and fall back to the picker selection, exactly as before. It must
+  // be passed rather than set-then-read: setSelectedPlanId in the same tick
+  // would leave this closure pricing the previous selection.
+  const handleRenewSubscription = async (plan?: AvailablePlan) => {
     if (!ensureConfigured()) return;
-    if (selectedPlanId == null) {
+    const planId = plan?.id ?? selectedPlanId;
+    if (planId == null) {
       toast.error(t('billing.v2.plans.noPlanSelected'));
       return;
     }
-    const base = checkoutPlanPricing?.basePlanPrice ?? (subscriptionSummary?.basePlanPrice || 0);
-    const perSeat =
-      checkoutPlanPricing?.pricePerTeamMember ?? (subscriptionSummary?.pricePerTeamMember || 0);
+    // Keep the picker and the hero total on the plan being bought.
+    if (plan) setSelectedPlanId(plan.id);
+    const pricing = plan?.pricing ?? checkoutPlanPricing;
+    const planForCopy = plan ?? selectedPlan;
+    const planName = planForCopy?.name ?? '';
+    const base = pricing?.basePlanPrice ?? (subscriptionSummary?.basePlanPrice || 0);
+    const perSeat = pricing?.pricePerTeamMember ?? (subscriptionSummary?.pricePerTeamMember || 0);
     const estimated = base + perSeat * (Number(totalSeats) || 0);
     const confirmed = await confirm({
       eyebrow: t('billing.confirm.startSubscriptionEyebrow'),
-      title: t('billing.confirm.startSubscription'),
+      title:
+        planForCopy?.tier === 'PLUS' ? (
+          <span className="bv2-confirm-title">
+            <Crown className="bv2-confirm-crown" />
+            {t('billing.confirm.startSubscription', { plan: planName })}
+          </span>
+        ) : (
+          t('billing.confirm.startSubscription', { plan: planName })
+        ),
       content:
         totalSeats > 0
           ? t('billing.confirm.proceedWithSeats', {
               count: totalSeats,
+              plan: planName,
               amount: fmtBilling(estimated),
               currency: currencySymbol,
             })
           : t('billing.confirm.proceedSubscribe', {
+              plan: planName,
               amount: fmtBilling(estimated),
               currency: currencySymbol,
             }),
       confirmationText: t('billing.confirm.continue'),
-      cancellationText: t('billing.confirm.cancel'),
+      cancellationText: t('billing.confirm.checkoutCancel'),
     });
     if (!confirmed) return;
     // Button state is driven by checkoutLoading (redux): the saga keeps it on
@@ -418,7 +444,7 @@ const BillingAndSubscriptionV2Inner = () => {
     // local flag to get stuck.
     dispatch(
       createCheckoutSessionAction.request({
-        planId: selectedPlanId,
+        planId,
         seats: totalSeats,
         successUrl: `${window.location.origin}/info?type=subscription-success`,
         cancelUrl: `${window.location.origin}/account`,
@@ -434,24 +460,36 @@ const BillingAndSubscriptionV2Inner = () => {
     // viewState='past_due' can also be triggered by a stuck seat-change pendingPayment while the sub
     // itself is still active and paid through the period — those keep the normal at-period-end copy.
     const isPastDue = currentUser?.entitlements?.status === 'past_due';
+    // What continuing costs — the summary's prices are the current plan's.
+    const monthly =
+      (subscriptionSummary?.basePlanPrice || 0) +
+      (subscriptionSummary?.pricePerTeamMember || 0) * (subscriptionSummary?.paidSeats || 0);
     const confirmed = await confirm({
       eyebrow: isScheduled
         ? t('billing.confirm.scheduledChangeEyebrow')
-        : t('billing.confirm.manageSubscriptionEyebrow'),
+        : t('billing.confirm.cancelSubEyebrow'),
       title: isScheduled
-        ? t('billing.confirm.keepSubscription')
-        : t('billing.confirm.cancelSubscription'),
+        ? t('billing.confirm.keepSubTitle')
+        : t('billing.confirm.cancelSubTitle'),
       content: isScheduled
-        ? t('billing.confirm.keepSubscriptionContent')
+        ? monthly > 0
+          ? t('billing.confirm.keepSubscriptionContent', {
+              date: formatDate(periodEnd),
+              amount: fmtBilling(monthly),
+              currency: currencySymbol,
+            })
+          : t('billing.confirm.keepSubscriptionContentNoPrice', { date: formatDate(periodEnd) })
         : isPastDue
           ? t('billing.confirm.cancelSubscriptionPastDueContent')
-          : t('billing.confirm.cancelSubscriptionContent'),
+          : t('billing.confirm.cancelSubscriptionContent', { date: formatDate(periodEnd) }),
       confirmationText: isScheduled
-        ? t('billing.confirm.keepSubscription')
-        : t('billing.confirm.cancelSubscription'),
+        ? t('billing.confirm.keepSubConfirm')
+        : isPastDue
+          ? t('billing.confirm.cancelSubConfirmPastDue')
+          : t('billing.confirm.cancelSubConfirm'),
       cancellationText: isScheduled
-        ? t('billing.confirm.keepCancellation')
-        : t('billing.confirm.keepSubscription'),
+        ? t('billing.confirm.keepSubCancel')
+        : t('billing.confirm.staySubscribed'),
     });
     if (!confirmed) return;
     dispatch(
@@ -514,26 +552,37 @@ const BillingAndSubscriptionV2Inner = () => {
         toast.error(t('billing.v2.plans.noPlanSelected'));
         return;
       }
+      const planName = selectedPlan?.name ?? '';
       const base = checkoutPlanPricing?.basePlanPrice ?? (subscriptionSummary?.basePlanPrice || 0);
       const perSeat =
         checkoutPlanPricing?.pricePerTeamMember ?? (subscriptionSummary?.pricePerTeamMember || 0);
       const estimated = base + perSeat * (Number(totalSeats) || 0);
       const confirmed = await confirm({
         eyebrow: t('billing.confirm.startSubscriptionEyebrow'),
-        title: t('billing.confirm.startSubscription'),
+        title:
+          selectedPlan?.tier === 'PLUS' ? (
+            <span className="bv2-confirm-title">
+              <Crown className="bv2-confirm-crown" />
+              {t('billing.confirm.startSubscription', { plan: planName })}
+            </span>
+          ) : (
+            t('billing.confirm.startSubscription', { plan: planName })
+          ),
         content:
           totalSeats > 0
             ? t('billing.confirm.proceedWithSeats', {
                 count: totalSeats,
+                plan: planName,
                 amount: fmtBilling(estimated),
                 currency: currencySymbol,
               })
             : t('billing.confirm.proceedSubscribe', {
+                plan: planName,
                 amount: fmtBilling(estimated),
                 currency: currencySymbol,
               }),
         confirmationText: t('billing.confirm.continue'),
-        cancellationText: t('billing.confirm.cancel'),
+        cancellationText: t('billing.confirm.checkoutCancel'),
       });
       if (!confirmed) return;
       // checkoutLoading (redux) drives the button state — see handleRenewSubscription.
@@ -740,6 +789,12 @@ const BillingAndSubscriptionV2Inner = () => {
     subscriptionSummary?.planName || currentUser?.subscription?.planName || t('billing.freePlan');
   // In checkout states the hero/breakdown reflect the plan being chosen
   const displayPlanName = isCheckoutState && selectedPlan ? selectedPlan.name : planName;
+  // Caps must follow the same plan the name and prices do — in checkout states
+  // that is the selection, not the trial's entitlements.
+  const displayMaxLocations =
+    isCheckoutState && selectedPlan
+      ? selectedPlan.maxLocations
+      : (currentUser?.entitlements?.maxLocations ?? null);
   const trialDaysLeft = currentUser?.entitlements?.daysRemaining ?? 0;
   const trialEndsAt = currentUser?.subscription?.trialEndsAt;
   const periodEnd = currentUser?.subscription?.currentPeriodEnd;
@@ -833,22 +888,55 @@ const BillingAndSubscriptionV2Inner = () => {
       });
       if (!confirmed) return;
     } else {
+      // Current monthly at the same seat basis as newMonthly — the summary's
+      // prices are the current plan's.
+      const currentMonthly =
+        (subscriptionSummary?.basePlanPrice || 0) +
+        (subscriptionSummary?.pricePerTeamMember || 0) * paid;
+      const usedLocations = subscriptionSummary?.numberOfLocations ?? 0;
+      // A display-unlimited cap (100+) is no cap: never warn about it.
+      const targetCap = isUnlimitedCap(plan.maxLocations) ? null : plan.maxLocations;
+      const overCap = targetCap != null && usedLocations > targetCap;
       const confirmed = await confirm({
         eyebrow: t('billing.confirm.planChangeEyebrow'),
         title: t('billing.confirm.downgradePlanTitle', { plan: plan.name }),
         content: (
           <ul className="list-disc space-y-1.5 pl-4 text-sm leading-relaxed">
             <li>
-              {t('billing.confirm.downgradeWarnPeriodEnd', {
-                plan: plan.name,
-                date: formatDate(periodEnd),
-              })}
+              {newMonthly != null && currentMonthly > 0
+                ? t('billing.confirm.downgradeWarnPeriodEnd', {
+                    current: planName,
+                    date: formatDate(periodEnd),
+                    amount: fmtBilling(newMonthly),
+                    old: fmtBilling(currentMonthly),
+                    currency: currencySymbol,
+                  })
+                : t('billing.confirm.downgradeWarnPeriodEndNoPrice', {
+                    current: planName,
+                    date: formatDate(periodEnd),
+                  })}
             </li>
-            <li>{t('billing.confirm.downgradeWarnWebsiteBuilder')}</li>
+            {/* Every self-serve downgrade lands on Base (no Web Studio); the
+                capless variant keeps the Web Studio warning alone. */}
+            <li>
+              {targetCap != null
+                ? t('billing.confirm.downgradeWarnLosses', { count: targetCap })
+                : t('billing.confirm.downgradeWarnWebsiteBuilder')}
+            </li>
+            {overCap && (
+              <li>
+                {t('billing.confirm.downgradeOverLocationCap', {
+                  count: usedLocations,
+                  max: targetCap,
+                  plan: plan.name,
+                })}
+              </li>
+            )}
+            <li>{t('billing.confirm.downgradeReversible', { date: formatDate(periodEnd) })}</li>
           </ul>
         ),
         confirmationText: t('billing.confirm.scheduleDowngrade'),
-        cancellationText: t('billing.confirm.cancel'),
+        cancellationText: t('billing.confirm.keepCurrentShort', { plan: planName }),
         destructive: true,
       });
       if (!confirmed) return;
@@ -905,14 +993,19 @@ const BillingAndSubscriptionV2Inner = () => {
 
   const handleCancelPlanChange = async () => {
     if (cancellingPlanChange || !scheduledPlanChange) return;
+    const body = t('billing.confirm.keepCurrentPlanContent', {
+      target: scheduledPlanChange.planName,
+      date: formatDate(scheduledPlanChange.effectiveDate),
+    });
     const confirmed = await confirm({
       eyebrow: t('billing.confirm.scheduledChangeEyebrow'),
-      title: t('billing.confirm.keepCurrentPlanTitle'),
-      content: t('billing.confirm.keepCurrentPlanContent', {
-        plan: scheduledPlanChange.planName,
-      }),
-      confirmationText: t('billing.confirm.keepCurrentPlanCta'),
-      cancellationText: t('billing.confirm.keepScheduled'),
+      title: t('billing.confirm.keepCurrentPlanTitle', { plan: planName }),
+      // The seat warning only when there is a scheduled seat change to lose.
+      content: hasScheduledChange
+        ? `${body} ${t('billing.confirm.keepCurrentPlanSeats')}`
+        : body,
+      confirmationText: t('billing.confirm.keepCurrentPlanCta', { plan: planName }),
+      cancellationText: t('billing.confirm.keepSwitchCta'),
     });
     if (!confirmed) return;
     setCancellingPlanChange(true);
@@ -986,7 +1079,7 @@ const BillingAndSubscriptionV2Inner = () => {
       case 'canceled':
         return (
           <Button
-            onClick={handleRenewSubscription}
+            onClick={() => void handleRenewSubscription()}
             disabled={checkoutLoading}
             rounded="full"
             className="gap-2 bv2-btn-upgrade-hero"
@@ -1018,7 +1111,7 @@ const BillingAndSubscriptionV2Inner = () => {
       case 'inactive':
         return (
           <Button
-            onClick={handleRenewSubscription}
+            onClick={() => void handleRenewSubscription()}
             disabled={checkoutLoading}
             rounded="full"
             className="gap-2 bv2-btn-upgrade-hero"
@@ -1459,12 +1552,9 @@ const BillingAndSubscriptionV2Inner = () => {
                       {currentUser?.entitlements && (
                         <span className="bv2-sub">
                           {t('billing.v2.subscription.planLineSub', {
-                            locations:
-                              // Null = unlimited (backend contract); -1 kept as legacy sentinel
-                              currentUser.entitlements.maxLocations == null ||
-                              currentUser.entitlements.maxLocations === -1
-                                ? t('billing.unlimited')
-                                : currentUser.entitlements.maxLocations,
+                            locations: isUnlimitedCap(displayMaxLocations)
+                              ? t('billing.unlimited')
+                              : displayMaxLocations,
                           })}
                         </span>
                       )}
@@ -1772,15 +1862,29 @@ const BillingAndSubscriptionV2Inner = () => {
               loading={plansLoading}
               isCheckoutState={isCheckoutState}
               selectedPlanId={selectedPlanId}
-              changingPlan={changingPlan}
+              // "The CTA's action is in flight": checkout-session creation in
+              // checkout states (redux keeps it on through the Stripe
+              // redirect), the change-plan call otherwise.
+              changingPlan={isCheckoutState ? checkoutLoading : changingPlan}
               lockedReason={planChangeLockedReason}
               onSelect={(plan) => {
                 if (isCheckoutState) {
-                  setSelectedPlanId(plan.id);
+                  // Same confirm-modal → Stripe flow as the hero's subscribe
+                  // button, priced for the plan on the card.
+                  void handleRenewSubscription(plan);
                 } else {
                   void handleChangePlan(plan);
                 }
               }}
+              // Checkout is one quote across the page: the pill re-prices the
+              // hero and the details card, not just this panel.
+              onViewPlan={(plan) => setSelectedPlanId(plan.id)}
+              viewState={viewState}
+              user={currentUser ?? null}
+              summary={subscriptionSummary ?? null}
+              // Same seat basis the rest of the tab prices against: the stepper
+              // while configuring a subscription, paid seats once there is one.
+              seats={isCheckoutState ? Number(totalSeats) || 0 : subscriptionSummary?.paidSeats || 0}
             />
           )}
 
@@ -1809,6 +1913,16 @@ const BillingAndSubscriptionV2Inner = () => {
 
 // ────────── Plan picker (Standard vs Plus) ──────────
 
+/** Whole plan morph: colour ramp, defocus, counting price. */
+const PLAN_MORPH_MS = 240;
+/** When the visible body swaps, hidden under the peak of the defocus blur. */
+const PLAN_SWAP_MS = 70;
+
+const prefersReducedMotion = () =>
+  typeof window !== 'undefined' &&
+  typeof window.matchMedia === 'function' &&
+  window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
 const Bv2PlanPickerCard = ({
   plans,
   loading,
@@ -1817,6 +1931,11 @@ const Bv2PlanPickerCard = ({
   changingPlan,
   lockedReason,
   onSelect,
+  onViewPlan,
+  viewState,
+  user,
+  summary,
+  seats,
 }: {
   plans: AvailablePlan[];
   loading: boolean;
@@ -1827,19 +1946,133 @@ const Bv2PlanPickerCard = ({
   /** Non-null when switching plans is currently blocked (active subs only). */
   lockedReason: string | null;
   onSelect: (plan: AvailablePlan) => void;
+  /** Fired when the switcher changes the viewed plan in checkout states, where
+   *  the whole page quotes the prospective plan and must follow the pill. */
+  onViewPlan?: (plan: AvailablePlan) => void;
+  viewState: ViewState;
+  user: AuthUser | null;
+  summary: SubscriptionSummary | null;
+  /** Seat basis for every price here. Mirrors the seat maths the rest of the
+   *  tab uses, so the card can never disagree with the dialog it opens. */
+  seats: number;
 }) => {
   const { t } = useTranslation('settings');
-  const { formatDecimalPrice, formatDecimalValue } = useFormatPrice();
+  const { formatDecimalPrice } = useFormatPrice();
+
+  // What the user has picked in the switch. Pure view state: picking a plan
+  // here never starts a change, the footer CTA does that.
+  const [pickedPlanId, setPickedPlanId] = useState<number | null>(null);
+  // The body actually visible. Pinned to the outgoing plan on click, then
+  // swapped PLAN_SWAP_MS later so the change lands under the defocus.
+  const [activePlanId, setActivePlanId] = useState<number | null>(null);
+  const [morph, setMorph] = useState<'idle' | 'out' | 'in'>('idle');
+
+  const timers = useRef<number[]>([]);
+  const raf = useRef<number | null>(null);
+  const amountRef = useRef<HTMLSpanElement | null>(null);
+  const lastTotal = useRef<number | null>(null);
+
+  // The footer is the only part of the card whose height moves between plans —
+  // the panel bodies share one grid cell, but the footer branches differ by a
+  // helper line and a CTA. Measured rather than guessed, so the card can resize
+  // instead of jumping. Callback ref: the node only exists once past `loading`.
+  const [footH, setFootH] = useState<number | null>(null);
+  const footRO = useRef<ResizeObserver | null>(null);
+  const setFootNode = useCallback((node: HTMLDivElement | null) => {
+    footRO.current?.disconnect();
+    footRO.current = null;
+    if (node == null || typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(([entry]) => {
+      const box = entry.borderBoxSize?.[0];
+      setFootH(box ? box.blockSize : entry.contentRect.height);
+    });
+    ro.observe(node);
+    footRO.current = ro;
+  }, []);
+
+  const clearTimers = () => {
+    timers.current.forEach((id) => window.clearTimeout(id));
+    timers.current = [];
+    if (raf.current != null) {
+      cancelAnimationFrame(raf.current);
+      raf.current = null;
+    }
+  };
+  useEffect(() => clearTimers, []);
+
+  // Derived, not stored: an explicit pick wins, otherwise checkout follows the
+  // parent's selection, otherwise the plan the business is already on.
+  const has = (id: number | null) => id != null && plans.some((p) => p.id === id);
+  const viewPlanId: number | null = has(pickedPlanId)
+    ? pickedPlanId
+    : isCheckoutState && has(selectedPlanId)
+      ? selectedPlanId
+      : (plans.find((p) => p.isCurrentPlan) ??
+          plans.find((p) => p.tier === 'STANDARD') ??
+          plans[0])?.id ?? null;
+
+  // Between morphs (or if a refetch dropped the pinned plan) the visible body
+  // is simply the viewed one.
+  const shownPlanId = has(activePlanId) ? activePlanId : viewPlanId;
+  const shownPlan = plans.find((p) => p.id === shownPlanId) ?? null;
+  const currentPlan = plans.find((p) => p.isCurrentPlan) ?? null;
+  const billingCurrency =
+    shownPlan?.pricing?.currency ?? summary?.currency ?? 'EUR';
+
+  const totalFor = (plan: AvailablePlan | null) =>
+    plan?.pricing ? plan.pricing.basePlanPrice + plan.pricing.pricePerTeamMember * seats : null;
+  const shownTotal = totalFor(shownPlan);
+
+  // The whole morph runs off the click (see the segment buttons below): pin
+  // the outgoing body, defocus, swap at PLAN_SWAP_MS, resolve by PLAN_MORPH_MS.
+  const switchTo = (planId: number) => {
+    clearTimers();
+    setPickedPlanId(planId);
+    if (prefersReducedMotion() || shownPlanId == null) {
+      setActivePlanId(planId);
+      return;
+    }
+    setMorph('out');
+    setActivePlanId(shownPlanId);
+    timers.current.push(
+      window.setTimeout(() => {
+        setActivePlanId(planId);
+        setMorph('in');
+      }, PLAN_SWAP_MS),
+    );
+    timers.current.push(window.setTimeout(() => setMorph('idle'), PLAN_MORPH_MS));
+  };
+
+  // Count the headline price to its new amount across the rest of the morph.
+  useEffect(() => {
+    const from = lastTotal.current;
+    lastTotal.current = shownTotal;
+    const node = amountRef.current;
+    if (node == null || from == null || shownTotal == null || from === shownTotal) return;
+    if (prefersReducedMotion()) return;
+
+    const duration = PLAN_MORPH_MS - PLAN_SWAP_MS;
+    let start: number | null = null;
+    const step = (now: number) => {
+      if (start == null) start = now;
+      const k = Math.min(1, (now - start) / duration);
+      // ease-in-out cubic so the number lands together with the colour ramp
+      const eased = k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
+      node.textContent = formatDecimalPrice(from + (shownTotal - from) * eased, billingCurrency);
+      if (k < 1) raf.current = requestAnimationFrame(step);
+      else raf.current = null;
+    };
+    raf.current = requestAnimationFrame(step);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activePlanId, shownTotal]);
 
   if (loading) {
     return (
       <Card>
         <CardContent>
           <Bv2CardHeader title={t('billing.v2.plans.title')} />
-          <div className="bv2-plans">
-            <Skeleton className="h-56" />
-            <Skeleton className="h-56" />
-          </div>
+          <Skeleton className="h-9 w-48 rounded-full" />
+          <Skeleton className="mt-4 h-52 rounded-xl" />
         </CardContent>
       </Card>
     );
@@ -1847,11 +2080,296 @@ const Bv2PlanPickerCard = ({
 
   if (plans.length === 0) return null;
 
-  const currentTierOrder =
-    SELF_SERVE_TIER_ORDER[plans.find((p) => p.isCurrentPlan)?.tier ?? ''] ?? 0;
+  const currentTierOrder = SELF_SERVE_TIER_ORDER[currentPlan?.tier ?? ''] ?? 0;
+  const isCurrent = !isCheckoutState && !!shownPlan?.isCurrentPlan;
+  const isUpgrade = (SELF_SERVE_TIER_ORDER[shownPlan?.tier ?? ''] ?? 0) > currentTierOrder;
+  // Skin follows the *viewed* plan so the colour ramp starts on the click
+  // frame; the body underneath swaps later, hidden by the defocus.
+  const isPlus = plans.find((p) => p.id === viewPlanId)?.tier === 'PLUS';
+
+  const periodEnd = user?.subscription?.currentPeriodEnd ?? null;
+  const businessName = user?.business?.name ?? '';
+  const scheduled = summary?.scheduledPlanChange ?? null;
+  const scheduledToShown = !!scheduled && scheduled.planId === shownPlan?.id;
+  const activeIndex = Math.max(0, plans.findIndex((p) => p.id === viewPlanId));
+  const segWidth = `calc(${100 / plans.length}% - ${6 / plans.length}px)`;
+
+  const statusLabel = (): { label: string; tone: string } => {
+    switch (viewState) {
+      case 'active':
+        return { label: t('billing.status.active'), tone: 'bv2-t-good' };
+      case 'trial':
+        return { label: t('billing.status.trial'), tone: 'bv2-t-warn' };
+      case 'past_due':
+        return { label: t('billing.status.pastDue'), tone: 'bv2-t-danger' };
+      case 'scheduled':
+        return { label: t('billing.status.scheduledForCancellation'), tone: 'bv2-t-warn' };
+      case 'pending_inc':
+      case 'pending_dec':
+        return { label: t('billing.v2.status.pendingChange'), tone: 'bv2-t-info' };
+      case 'canceled':
+        return { label: t('billing.status.canceled'), tone: 'bv2-t-muted' };
+      default:
+        return { label: t('billing.v2.status.noSubscription'), tone: 'bv2-t-muted' };
+    }
+  };
+
+  const renderBody = (plan: AvailablePlan) => {
+    const active = plan.id === shownPlanId;
+    const planTotal = totalFor(plan);
+    const planIsCurrent = !isCheckoutState && plan.isCurrentPlan;
+    const planIsUpgrade = (SELF_SERVE_TIER_ORDER[plan.tier] ?? 0) > currentTierOrder;
+    const planScheduled = !!scheduled && scheduled.planId === plan.id;
+
+    const capLocations =
+      isUnlimitedCap(plan.maxLocations) ? (
+        t('billing.unlimited')
+      ) : (
+        <span className="bv2-plan-chip-num">{plan.maxLocations}</span>
+      );
+    const capTeam =
+      isUnlimitedCap(plan.maxTeamMembers) ? (
+        t('billing.unlimited')
+      ) : (
+        <span className="bv2-plan-chip-num">{plan.maxTeamMembers}</span>
+      );
+
+    let footState: { label: string; tone: string } | null = null;
+    if (planIsCurrent) footState = statusLabel();
+    else if (planScheduled)
+      footState = {
+        label: t('billing.v2.plans.effectiveFrom', { date: formatDate(scheduled?.effectiveDate) }),
+        tone: 'bv2-t-info',
+      };
+    else if (!isCheckoutState && currentPlan)
+      footState = {
+        label: planIsUpgrade
+          ? t('billing.v2.plans.effectiveNow')
+          : t('billing.v2.plans.effectiveFrom', { date: formatDate(periodEnd) }),
+        tone: 'bv2-t-muted',
+      };
+
+    return (
+      <div key={plan.id} className="bv2-plan-body" data-active={active} aria-hidden={!active}>
+        {plan.tier === 'PLUS' && (
+          <div className="bv2-plan-top">
+            <Crown className="bv2-plan-crown" />
+            <span className="bv2-plan-badge">{t('billing.v2.plans.mostPopular')}</span>
+          </div>
+        )}
+
+        <div className="bv2-plan-defocus">
+          <div className="bv2-plan-eyebrow">
+            {t('billing.v2.plans.planEyebrow', { plan: plan.name })}
+          </div>
+
+          <div className="bv2-plan-price-row">
+            <div className="bv2-plan-price">
+              {planTotal != null ? (
+                <>
+                  <span ref={active ? amountRef : undefined}>
+                    {formatDecimalPrice(planTotal, plan.pricing?.currency ?? billingCurrency)}
+                  </span>
+                  <span className="bv2-plan-per">{t('billing.v2.hero.perMonthSuffix')}</span>
+                  <span className="bv2-plan-vat">{t('billing.v2.plans.vatSuffix')}</span>
+                </>
+              ) : (
+                '—'
+              )}
+            </div>
+          </div>
+
+
+          <div className="bv2-plan-chips">
+            <span className="bv2-plan-chip">
+              {t('billing.v2.usage.locations')} {capLocations}
+            </span>
+            <span className="bv2-plan-chip">
+              {t('billing.v2.usage.teamSeats')} {capTeam}
+            </span>
+            {plan.features.websiteBuilder && (
+              <span className="bv2-plan-chip">{t('billing.v2.plans.websiteBuilder')}</span>
+            )}
+          </div>
+        </div>
+
+        <div className="bv2-plan-panel-foot">
+          <span className="bv2-plan-foot-left">
+            {footState && (
+              <>
+                <span className={cn('bv2-plan-foot-state', footState.tone)}>
+                  <span className="bv2-plan-dot" />
+                  {footState.label}
+                </span>
+                {businessName && <span className="bv2-plan-foot-sep">|</span>}
+              </>
+            )}
+            {businessName && <span className="bv2-plan-foot-biz">{businessName}</span>}
+          </span>
+          <span className="bv2-plan-foot-right">
+            {planIsCurrent && periodEnd
+              ? t('billing.v2.plans.renews', { date: formatDate(periodEnd) })
+              : ''}
+          </span>
+        </div>
+      </div>
+    );
+  };
+
+  // ── Card footer: the state-dependent half ──
+
+  /** Line items behind the total. Only when seats actually add to it — with
+   *  no paid seats the plan price IS the total and the rows would restate it. */
+  const totalLines = (plan: AvailablePlan | null) => {
+    if (!plan?.pricing || seats <= 0) return null;
+    const cur = plan.pricing.currency;
+    return (
+      <div className="bv2-plan-sum">
+        <div className="bv2-plan-sum-row">
+          <span>{t('billing.v2.plans.sumPlan', { plan: plan.name })}</span>
+          <span>{formatDecimalPrice(plan.pricing.basePlanPrice, cur)}</span>
+        </div>
+        <div className="bv2-plan-sum-row">
+          <span>
+            {t('billing.v2.plans.sumSeats', {
+              count: seats,
+              price: formatDecimalPrice(plan.pricing.pricePerTeamMember, cur),
+            })}
+          </span>
+          <span>{formatDecimalPrice(plan.pricing.pricePerTeamMember * seats, cur)}</span>
+        </div>
+      </div>
+    );
+  };
+
+  const renderFooter = () => {
+    // Blocked by another billing change in flight.
+    if (lockedReason && !isCheckoutState) {
+      return (
+        <div className="mt-4">
+          <Bv2Banner
+            tone={viewState === 'past_due' ? 'danger' : 'neutral'}
+            icon={
+              viewState === 'past_due' ? (
+                <AlertTriangle className="h-4 w-4" />
+              ) : (
+                <Lock className="h-4 w-4" />
+              )
+            }
+          >
+            {lockedReason}
+          </Bv2Banner>
+        </div>
+      );
+    }
+
+    if (!shownPlan) return null;
+
+    // Checkout states: the CTA is the purchase action — confirm modal, then
+    // Stripe. Always enabled: there is no live plan to be "selected" yet.
+    if (isCheckoutState) {
+      return (
+        <div className="bv2-plan-foot" data-fading={morph === 'out'}>
+          {totalLines(shownPlan)}
+          <div className="bv2-plan-foot-copy">
+            <div className="bv2-plan-foot-line">
+              <Trans
+                i18nKey="billing.v2.plans.totalOnSignup"
+                t={t}
+                values={{
+                  amount:
+                    shownTotal != null
+                      ? `${formatDecimalPrice(shownTotal, billingCurrency)}${t('billing.v2.hero.perMonthSuffix')}`
+                      : '—',
+                }}
+                components={{ bold: <strong /> }}
+              />
+            </div>
+            <div className="bv2-plan-foot-help">{t('billing.v2.plans.chargedAtCheckout')}</div>
+          </div>
+          <Button
+            type="button"
+            rounded="full"
+            loading={changingPlan}
+            disabled={changingPlan}
+            className="gap-1.5 bv2-btn-upgrade"
+            onClick={() => onSelect(shownPlan)}
+          >
+            {t('billing.v2.plans.chooseCta', { plan: shownPlan.name })}
+            <ArrowRight className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      );
+    }
+
+    // Viewing the plan you are already on: informational only.
+    if (isCurrent) {
+      return (
+        <div className="bv2-plan-foot" data-fading={morph === 'out'}>
+          {totalLines(shownPlan)}
+          <div className="bv2-plan-foot-copy">
+            <div className="bv2-plan-foot-line">
+              {shownTotal != null && periodEnd && (
+                <Trans
+                  i18nKey="billing.v2.plans.nextInvoice"
+                  t={t}
+                  values={{
+                    amount: formatDecimalPrice(shownTotal, billingCurrency),
+                    date: formatDate(periodEnd),
+                  }}
+                  components={{ bold: <strong /> }}
+                />
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Viewing the other plan. Upgrades apply immediately and are prorated
+    // today; only downgrades wait for renewal, so the helper says which.
+    return (
+      <div className="bv2-plan-foot" data-fading={morph === 'out'}>
+        {totalLines(shownPlan)}
+        <div className="bv2-plan-foot-copy">
+          <div className="bv2-plan-foot-line">
+            <Trans
+              i18nKey="billing.v2.plans.newInvoice"
+              t={t}
+              values={{
+                amount:
+                  shownTotal != null
+                    ? `${formatDecimalPrice(shownTotal, billingCurrency)}${t('billing.v2.hero.perMonthSuffix')}`
+                    : '—',
+              }}
+              components={{ bold: <strong /> }}
+            />
+          </div>
+          <div className="bv2-plan-foot-help">
+            {isUpgrade
+              ? t('billing.v2.plans.applyImmediately', { date: formatDate(periodEnd) })
+              : t('billing.v2.plans.applyAtRenewal', { date: formatDate(periodEnd) })}
+          </div>
+        </div>
+        <Button
+          type="button"
+          rounded="full"
+          loading={changingPlan}
+          disabled={changingPlan || scheduledToShown}
+          className="gap-1.5 bv2-btn-upgrade"
+          onClick={() => onSelect(shownPlan)}
+        >
+          {isUpgrade
+            ? t('billing.v2.plans.upgradeCta', { plan: shownPlan.name })
+            : t('billing.v2.plans.downgradeCta', { plan: shownPlan.name })}
+          <ArrowRight className="h-3.5 w-3.5" />
+        </Button>
+      </div>
+    );
+  };
 
   return (
-    <Card>
+    <Card className="bv2-plan-picker">
       <CardContent>
         <Bv2CardHeader
           title={t('billing.v2.plans.title')}
@@ -1860,134 +2378,55 @@ const Bv2PlanPickerCard = ({
               ? t('billing.v2.plans.subtitleCheckout')
               : t('billing.v2.plans.subtitleActive')
           }
-        />
-        <div className="bv2-plans">
-          {plans.map((plan) => {
-            const isSelected = isCheckoutState && selectedPlanId === plan.id;
-            const isCurrent = !isCheckoutState && plan.isCurrentPlan;
-            const isUpgrade = (SELF_SERVE_TIER_ORDER[plan.tier] ?? 0) > currentTierOrder;
-            const seatCurrencySymbol = plan.pricing
-              ? getCurrencySymbol(plan.pricing.currency)
-              : '';
-            const actionDisabled = isCheckoutState
-              ? isSelected
-              : isCurrent || changingPlan || !!lockedReason;
-            return (
-              <div
-                key={plan.id}
-                className={cn(
-                  'bv2-plan-card',
-                  (isSelected || isCurrent) && 'bv2-selected',
-                )}
-              >
-                <div className="bv2-plan-head">
-                  <div className="bv2-plan-name">
-                    {plan.tier === 'PLUS' && <Sparkles className="h-3.5 w-3.5" />}
-                    {plan.name}
-                  </div>
-                  {isCurrent && (
-                    <span className="bv2-pill bv2-pill-good">
-                      <span className="bv2-dot" />
-                      {t('billing.v2.plans.currentPlan')}
-                    </span>
-                  )}
-                  {isSelected && (
-                    <span className="bv2-pill bv2-pill-info">
-                      <span className="bv2-dot" />
-                      {t('billing.v2.plans.selected')}
-                    </span>
-                  )}
-                </div>
-                <div className="bv2-plan-price">
-                  {plan.pricing ? (
-                    <>
-                      {formatDecimalPrice(plan.pricing.basePlanPrice, plan.pricing.currency)}
-                      <small>{t('billing.v2.hero.perMonthSuffix')}</small>
-                    </>
-                  ) : (
-                    '—'
-                  )}
-                </div>
-                {plan.pricing && plan.pricing.pricePerTeamMember > 0 && (
-                  <div className="bv2-plan-seat-price">
-                    {t('billing.v2.plans.perSeat', {
-                      amount: formatDecimalValue(
-                        plan.pricing.pricePerTeamMember,
-                        plan.pricing.currency,
-                      ),
-                      currency: seatCurrencySymbol,
-                    })}
-                  </div>
-                )}
-                <ul className="bv2-plan-features">
-                  <li>
-                    <CheckIcon className="h-3.5 w-3.5" />
-                    {plan.maxLocations == null
-                      ? t('billing.v2.plans.unlimitedLocations')
-                      : t('billing.v2.plans.maxLocations', { count: plan.maxLocations })}
-                  </li>
-                  <li>
-                    <CheckIcon className="h-3.5 w-3.5" />
-                    {plan.maxTeamMembers == null
-                      ? t('billing.v2.plans.unlimitedTeamMembers')
-                      : t('billing.v2.plans.maxTeamMembers', { count: plan.maxTeamMembers })}
-                  </li>
-                  {plan.features.websiteBuilder ? (
-                    <li>
-                      <CheckIcon className="h-3.5 w-3.5" />
-                      {t('billing.v2.plans.websiteBuilder')}
-                    </li>
-                  ) : (
-                    <li className="bv2-plan-feature-muted">
-                      <XCircle className="h-3.5 w-3.5" />
-                      {t('billing.v2.plans.noWebsiteBuilder')}
-                    </li>
-                  )}
-                </ul>
-                <Button
+          action={
+            <div className="bv2-plan-seg" role="group" aria-label={t('billing.v2.plans.title')}>
+              <span
+                className="bv2-plan-seg-thumb"
+                style={{
+                  left: 3,
+                  width: segWidth,
+                  transform: `translateX(${activeIndex * 100}%)`,
+                }}
+              />
+              {plans.map((plan) => (
+                <button
+                  key={plan.id}
                   type="button"
-                  size="sm"
-                  rounded="full"
-                  variant={
-                    isCheckoutState
-                      ? isSelected
-                        ? 'outline'
-                        : 'default'
-                      : isCurrent || !isUpgrade
-                        ? 'outline'
-                        : 'default'
-                  }
-                  className="w-full gap-1.5"
-                  disabled={actionDisabled}
-                  title={
-                    !isCheckoutState && !isCurrent && lockedReason ? lockedReason : undefined
-                  }
-                  onClick={() => onSelect(plan)}
+                  aria-pressed={plan.id === viewPlanId}
+                  onClick={() => {
+                    if (plan.id === viewPlanId) return;
+                    switchTo(plan.id);
+                    if (isCheckoutState) onViewPlan?.(plan);
+                  }}
                 >
-                  {!isCheckoutState && !isCurrent && changingPlan ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  ) : null}
-                  {isCheckoutState
-                    ? isSelected
-                      ? t('billing.v2.plans.selectedCta')
-                      : t('billing.v2.plans.chooseCta', { plan: plan.name })
-                    : isCurrent
-                      ? t('billing.v2.plans.currentPlan')
-                      : isUpgrade
-                        ? t('billing.v2.plans.upgradeCta', { plan: plan.name })
-                        : t('billing.v2.plans.downgradeCta', { plan: plan.name })}
-                </Button>
-              </div>
-            );
-          })}
+                  {plan.tier === 'PLUS' && <Crown className="bv2-plan-seg-crown" />}
+                  <span>{plan.name}</span>
+                  {/* Marks the plan you are actually ON. Never the checkout
+                      pick: in trial/inactive/canceled there is no live plan,
+                      and reusing the dot there reads as "you're subscribed". */}
+                  {!isCheckoutState && plan.isCurrentPlan && (
+                    <span className="bv2-plan-seg-live" />
+                  )}
+                </button>
+              ))}
+            </div>
+          }
+        />
+
+        <div className="bv2-plan-panel" data-skin={isPlus ? 'plus' : 'base'} data-morph={morph}>
+          <span className="bv2-plan-skin" />
+          <span className="bv2-plan-grain" />
+          <div className="bv2-plan-stack">{plans.map(renderBody)}</div>
         </div>
-        {lockedReason && !isCheckoutState && (
-          <div className="mt-3">
-            <Bv2Banner tone="neutral" icon={<Lock className="h-4 w-4" />}>
-              {lockedReason}
-            </Bv2Banner>
+
+        <div
+          className="bv2-plan-footwrap"
+          style={footH == null ? undefined : { height: footH }}
+        >
+          <div className="bv2-plan-foot-measure" ref={setFootNode}>
+            {renderFooter()}
           </div>
-        )}
+        </div>
       </CardContent>
     </Card>
   );
@@ -2015,9 +2454,10 @@ const PlanUsageCard = ({
   const seats = summary?.maxTeamMembers ?? null;
   const usedSeats = summary?.numberOfTeamMembers ?? 0;
 
-  // Null = unlimited (backend contract); -1 kept as legacy sentinel
-  const locationsUnlimited = maxLocations == null || maxLocations === -1;
-  const seatsUnlimited = seats == null || seats === -1;
+  // Null checked inline so the compiler keeps its narrowing on the percentage
+  // maths below; the helper owns the sentinel rule (-1, display-unlimited).
+  const locationsUnlimited = maxLocations == null || isUnlimitedCap(maxLocations);
+  const seatsUnlimited = seats == null || isUnlimitedCap(seats);
 
   const locPct =
     !locationsUnlimited && maxLocations > 0 ? (usedLocations / maxLocations) * 100 : 0;

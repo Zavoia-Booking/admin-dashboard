@@ -1,6 +1,6 @@
 {
   "page": {
-    "title": "Website",
+    "title": "Web Studio",
     "loadError": "Nu am putut încărca site-ul.",
     "retry": "Încearcă din nou",
     "toasts": {
@@ -24,7 +24,7 @@
       "publishLockedItems": "Deblochează sau înlocuiește opțiunile premium înainte de publicare"
     },
     "status": {
-      "loading": "Se încarcă editorul site-ului",
+      "loading": "Se încarcă Web Studio",
       "saved": "Salvat",
       "unsaved": "Modificări nesalvate",
       "saving": "Se salvează…",
@@ -69,7 +69,7 @@
     },
     "actions": {
       "backToDashboard": "Înapoi la panou",
-      "skipToBuilder": "Sari la editorul site-ului",
+      "skipToBuilder": "Sari la Web Studio",
       "save": "Salvează",
       "saveChanges": "Salvează",
       "discardChanges": "Renunță la modificări",
@@ -241,12 +241,12 @@
       "taglineTooLong": "Subtitlul trebuie să aibă cel mult 200 de caractere.",
       "brandColorInvalid": "Introdu o culoare hex din 6 cifre, ex. #1B9C85.",
       "aboutHeadlineRequired": "Adaugă un titlu la secțiunea Despre sau ascunde-o.",
-      "layoutFromNewerVersion": "O secțiune creată de o versiune mai nouă a editorului nu poate fi salvată în siguranță aici."
+      "layoutFromNewerVersion": "O secțiune creată de o versiune mai nouă nu poate fi salvată în siguranță aici."
     },
     "locked": {
       "eyebrow": "Inclus în planul Plus",
       "title": "Construiește-ți site-ul",
-      "nativeDescription": "Constructorul de site nu este inclus în planul tău actual.",
+      "nativeDescription": "Web Studio nu este inclus în planul tău actual.",
       "teaserCaption": "Previzualizarea site-ului",
       "features": {
         "preview": "Previzualizează site-ul pe desktop, tabletă și mobil",
@@ -664,7 +664,7 @@
     },
     "builder": {
       "eyebrow": "Design și conținut",
-      "studioTitle": "Constructor de site",
+      "studioTitle": "Web Studio",
       "openPreview": "Previzualizează site-ul",
       "sectionsVisible": "vizibile",
       "sectionsLiveCount": "{{shown}} din {{total}} active",

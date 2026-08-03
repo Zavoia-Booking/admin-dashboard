@@ -156,7 +156,7 @@ function TicketCardSkeleton() {
 
 function TicketListSkeleton() {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+    <div className="skeleton-delayed-reveal grid grid-cols-1 md:grid-cols-2 gap-3">
       {Array.from({ length: 4 }).map((_, i) => (
         <TicketCardSkeleton key={i} />
       ))}

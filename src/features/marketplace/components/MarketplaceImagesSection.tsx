@@ -9,7 +9,8 @@ import { Card, CardContent } from "../../../shared/components/ui/card";
 import { Button } from "../../../shared/components/ui/button";
 import { Badge } from "../../../shared/components/ui/badge";
 import { Skeleton } from "../../../shared/components/ui/skeleton";
-import { X, Star, AlertCircle, Info, UploadCloud } from "lucide-react";
+import { X, Star, AlertCircle, UploadCloud } from "lucide-react";
+import { AttentionDot } from "../../../shared/components/common/AttentionDot";
 import { toast } from "sonner";
 import { Spinner } from "../../../shared/components/ui/spinner";
 import { cn } from "../../../shared/lib/utils";
@@ -545,13 +546,7 @@ export function MarketplaceImagesSection({
                 <div className="flex flex-wrap items-center gap-4">
                   {images.length === 0 && (
                     <div className="flex items-start gap-2">
-                      <div className="relative flex h-4 w-4 shrink-0 mt-0.5">
-                        <span
-                          className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-20"
-                          style={{ animationDuration: "3s" }}
-                        ></span>
-                        <Info className="relative inline-flex h-4 w-4 text-primary" />
-                      </div>
+                      <AttentionDot className="mt-1.5" />
                       <p className="text-xs text-foreground-3 dark:text-foreground-2 leading-relaxed">
                         {t("portfolio.visualIdentity.addAtLeastOne")}
                       </p>
@@ -776,7 +771,10 @@ export function MarketplaceImagesSection({
                                     variant="secondary"
                                     rounded="full"
                                     className={cn(
-                                      "group/cover absolute bottom-2 left-2 !h-11 !min-h-11 px-3 xl:!h-8 xl:!min-h-0",
+                                      // Icon-only circle below xl, matching the remove button's chip:
+                                      // with no hover to gate it, this button is always on, and repeating
+                                      // the full text pill on every tile was the actual noise, not just size.
+                                      "group/cover absolute bottom-2 left-2 !h-8 !min-h-0 !w-8 !min-w-0 !p-0 xl:!w-auto xl:!px-3",
                                       "shadow-xl active:scale-95",
                                       "!bg-black/35 hover:!bg-black/45 !text-white",
                                       "border border-white/15 hover:border-white/25",
@@ -789,6 +787,7 @@ export function MarketplaceImagesSection({
                                     }}
                                     disabled={image.isSettingFeatured}
                                     title={t("portfolio.setAsMainCover")}
+                                    aria-label={t("portfolio.setAsMainCover")}
                                   >
                                     {image.isSettingFeatured ? (
                                       <>
@@ -796,8 +795,8 @@ export function MarketplaceImagesSection({
                                       </>
                                     ) : (
                                       <>
-                                        <Star className="!h-3 !w-3 md:!h-3.5 md:!w-3.5" />
-                                        <span className="text-xs md:text-[11px] font-semibold leading-none">
+                                        <Star className="!h-3.5 !w-3.5" />
+                                        <span className="hidden xl:inline text-[11px] font-semibold leading-none">
                                           {t("portfolio.setCover")}
                                         </span>
                                       </>
@@ -810,7 +809,11 @@ export function MarketplaceImagesSection({
                                   variant="secondary"
                                   rounded="full"
                                   className={cn(
-                                    "absolute top-2 right-2 !h-11 !w-11 !min-h-11 !min-w-11 xl:!h-8 xl:!w-8 xl:!min-h-8 xl:!min-w-8",
+                                    // Same chip size at every breakpoint: below xl there is no hover to
+                                    // gate this away, so it is always on screen on every tile, and the
+                                    // 44px touch-target size read as oversized once it stopped being an
+                                    // occasional hover reveal.
+                                    "absolute top-2 right-2 !h-8 !w-8 !min-h-8 !min-w-8",
                                     "shadow-xl active:scale-95 transition-all duration-200 backdrop-blur-md",
                                     // Darker background for better contrast over images
                                     "bg-black/60 hover:bg-black/70 border border-white/15 text-white",

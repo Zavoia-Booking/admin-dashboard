@@ -76,15 +76,17 @@ export const MarketplaceDetailsSection: React.FC<
         className={cn(
           "group relative rounded-2xl p-4 border transition-all duration-300 flex flex-col gap-3",
           useBusinessName
-            ? "border-info-300 bg-info-100"
-            : "bg-surface-active dark:bg-surface border-border"
+            ? "border-info-300 bg-info-100 dark:border-border dark:bg-surface"
+            : "bg-surface border-border"
         )}
       >
         <div className="flex items-center justify-between">
           <h3
             className={cn(
               "text-base font-medium cursor-pointer",
-              useBusinessName ? "text-neutral-900" : "text-foreground-1"
+              useBusinessName
+                ? "text-neutral-900 dark:text-foreground-1"
+                : "text-foreground-1"
             )}
           >
             {t("details.businessName.label")}
@@ -102,7 +104,7 @@ export const MarketplaceDetailsSection: React.FC<
           className={cn(
             "text-sm",
             useBusinessName
-              ? "text-neutral-900"
+              ? "text-neutral-900 dark:text-foreground-2"
               : "text-foreground-3 dark:text-foreground-2"
           )}
         >
@@ -112,9 +114,11 @@ export const MarketplaceDetailsSection: React.FC<
         </p>
 
         {useBusinessName ? (
-          <div className="text-sm pt-4 border-t border-info-200">
-            <span className="inline-flex items-center gap-1.5 text-neutral-900 font-medium w-fit">
-              <Building2 className="h-4 w-4 text-neutral-900" />
+          // info-300, not info-200: the latter is not a defined token, so the
+          // rule fell back to currentColor and drew a hard black line.
+          <div className="text-sm pt-4 border-t border-info-300 dark:border-border">
+            <span className="inline-flex items-center gap-1.5 text-neutral-900 dark:text-foreground-1 font-medium w-fit">
+              <Building2 className="h-4 w-4 text-neutral-900 dark:text-foreground-2" />
               {business?.name || t("details.businessName.notAvailable")}
             </span>
           </div>
@@ -180,7 +184,8 @@ export const MarketplaceDetailsSection: React.FC<
         phoneLabel={t("details.contact.phoneLabel")}
         helperTextOn={t("details.contact.helperTextOn")}
         helperTextOff={t("details.contact.helperTextOff")}
-        className="!rounded-2xl"
+        // ! required: the component concatenates classes instead of cn()
+        className="!rounded-2xl !bg-surface"
         autoFocusOnToggle={focusContact}
       />
 
@@ -189,8 +194,8 @@ export const MarketplaceDetailsSection: React.FC<
         className={cn(
           "group relative rounded-2xl p-4 border transition-all duration-300 flex flex-col gap-3",
           useBusinessDescription
-            ? "bg-white dark:bg-surface border-border"
-            : "border-border-strong bg-surface-active dark:bg-surface shadow-sm"
+            ? "bg-surface border-border"
+            : "bg-surface border-border-strong shadow-sm"
         )}
       >
         <div className="flex items-center justify-between">

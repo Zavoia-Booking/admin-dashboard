@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useDispatch, useSelector } from "react-redux";
 import { useParams, useNavigate } from "react-router-dom";
@@ -30,10 +30,13 @@ const WIDGET_CONFIG: Record<string, { span: number }> = {
   needsAttention: { span: 2 },
 };
 
+// Same per-feature pattern as the calendar's zavoia_calendar_selected_location.
+const LOCATION_STORAGE_KEY = "zavoia_dashboard_selected_location";
+
 
 function DashboardSkeleton() {
   return (
-    <div className="space-y-4">
+    <div className="skeleton-delayed-reveal space-y-4">
       {/* Row 1: Merged Location & Capacity widget (full width) */}
       <div className="bg-surface border border-border rounded-2xl p-5 space-y-5">
         {/* Header — mobile */}
@@ -364,7 +367,7 @@ export default function DashboardPage() {
   const { t, i18n } = useTranslation("dashboard");
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { locationId } = useParams<{ locationId: string }>();
+  const { locationId: locationIdParam } = useParams<{ locationId: string }>();
   const isMobile = useIsMobile();
 
   const data = useSelector((state: RootState) => state.dashboard.data);
@@ -379,29 +382,57 @@ export default function DashboardPage() {
 
   const defaultWidgetOrder = ["locationCapacity", "appointmentBreakdown", "reviews", "needsAttention"];
 
+  // URL param (old links) wins over the stored selection; both are validated
+  // against the loaded locations list before any fetch.
+  const [selectedLocationId, setSelectedLocationId] = useState<number | null>(() => {
+    const fromParam = locationIdParam ? parseInt(locationIdParam, 10) : NaN;
+    if (!Number.isNaN(fromParam)) return fromParam;
+    const stored = localStorage.getItem(LOCATION_STORAGE_KEY);
+    const fromStored = stored ? parseInt(stored, 10) : NaN;
+    return Number.isNaN(fromStored) ? null : fromStored;
+  });
+
   useEffect(() => {
     dispatch(listLocationsAction.request());
   }, [dispatch]);
 
+  // /dashboard/:locationId is an entry alias only: persist the id, then
+  // normalize the URL so a later switch can't leave a stale id behind.
   useEffect(() => {
-    if (!locationId && locations.length > 0) {
-      navigate(`/dashboard/${locations[0].id}`, { replace: true });
-    }
-  }, [locationId, locations, navigate]);
+    if (!locationIdParam) return;
+    const id = parseInt(locationIdParam, 10);
+    if (!Number.isNaN(id)) localStorage.setItem(LOCATION_STORAGE_KEY, String(id));
+    navigate("/dashboard", { replace: true });
+  }, [locationIdParam, navigate]);
+
+  // No valid selection once locations arrive → first location, the same
+  // fallback the old redirect used.
+  useEffect(() => {
+    if (locations.length === 0) return;
+    if (selectedLocationId !== null && locations.some((l) => l.id === selectedLocationId)) return;
+    localStorage.setItem(LOCATION_STORAGE_KEY, String(locations[0].id));
+    setSelectedLocationId(locations[0].id);
+  }, [locations, selectedLocationId]);
+
+  const validatedLocationId =
+    selectedLocationId !== null && locations.some((l) => l.id === selectedLocationId)
+      ? selectedLocationId
+      : null;
 
   useEffect(() => {
-    if (locationId) {
-      dispatch(fetchDashboardDataAction.request({ locationId: parseInt(locationId, 10) }));
+    if (validatedLocationId !== null) {
+      dispatch(fetchDashboardDataAction.request({ locationId: validatedLocationId }));
     }
-  }, [dispatch, locationId]);
+  }, [dispatch, validatedLocationId]);
 
   const handleLocationChange = (id: number) => {
-    navigate(`/dashboard/${id}`);
+    localStorage.setItem(LOCATION_STORAGE_KEY, String(id));
+    setSelectedLocationId(id);
   };
 
   const handleRefreshDashboard = () => {
-    if (locationId) {
-      dispatch(fetchDashboardDataAction.request({ locationId: parseInt(locationId, 10) }));
+    if (validatedLocationId !== null) {
+      dispatch(fetchDashboardDataAction.request({ locationId: validatedLocationId }));
     }
   };
 
@@ -415,7 +446,7 @@ export default function DashboardPage() {
         <ErrorState
           variant="page"
           body={error}
-          onRetry={locationId ? handleRefreshDashboard : undefined}
+          onRetry={validatedLocationId !== null ? handleRefreshDashboard : undefined}
         />
       );
     }
@@ -471,7 +502,7 @@ export default function DashboardPage() {
                     md:hover:-translate-y-0.5 md:hover:shadow-md md:hover:border-border-strong
                     ${colSpanUtil}
                   `}>
-                    {renderWidget(widgetId, data, parseInt(locationId!, 10), handleRefreshDashboard, businessCurrency)}
+                    {renderWidget(widgetId, data, selectedLocationId!, handleRefreshDashboard, businessCurrency)}
                   </div>
                 );
               })}
@@ -482,12 +513,15 @@ export default function DashboardPage() {
     );
   };
 
-  const locationSelectorNode = (
+  // While locations load, the picker joins the page skeleton: same h-11 pill box
+  // (no shift when the real control lands), same delayed reveal as the body.
+  const locationSelectorNode = isLoadingLocations ? (
+    <Skeleton className="skeleton-delayed-reveal h-11 w-full rounded-full" />
+  ) : (
     <LocationSelector
       locations={locations}
-      selectedLocationId={locationId ? parseInt(locationId, 10) : null}
+      selectedLocationId={selectedLocationId}
       onSelect={handleLocationChange}
-      isLoading={isLoadingLocations}
       placeholder={t("page.selectLocation")}
     />
   );

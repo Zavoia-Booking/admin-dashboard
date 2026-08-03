@@ -245,7 +245,7 @@ export default function NotificationsPage() {
 
 function NotificationsSkeleton() {
   return (
-    <div className="flex flex-col gap-6">
+    <div className="skeleton-delayed-reveal flex flex-col gap-6">
       {Array.from({ length: 2 }).map((_, g) => (
         <div key={g}>
           <Skeleton className="h-3 w-20 mb-3 mx-3" />

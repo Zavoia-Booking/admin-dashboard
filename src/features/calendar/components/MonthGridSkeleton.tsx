@@ -6,7 +6,7 @@ const ROWS = 5;
 const COLS = 7;
 
 export const MonthGridSkeleton: FC = () => (
-  <div className="p-4 pb-0">
+  <div className="skeleton-delayed-reveal p-4 pb-0">
     {/* Day-of-week header */}
     <div className="grid grid-cols-7 gap-px mb-1">
       {dayNames.map((day) => (

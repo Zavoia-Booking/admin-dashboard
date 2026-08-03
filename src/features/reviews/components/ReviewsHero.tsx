@@ -321,7 +321,7 @@ export function ReviewsHero({
  */
 function ReviewsHeroSkeleton() {
   return (
-    <section className="relative overflow-hidden rounded-xl border border-border bg-surface px-4 pt-4 pb-1.5 lg:pb-4">
+    <section className="skeleton-delayed-reveal relative overflow-hidden rounded-xl border border-border bg-surface px-4 pt-4 pb-1.5 lg:pb-4">
       <div className="relative flex flex-col gap-3">
         {/* Row 1: eyebrow (left) + status pill (right) */}
         <div className="flex items-center justify-between gap-3">

@@ -1088,6 +1088,70 @@ button.sidebar-menu-button-compact {
   animation: tab-icon-tap 300ms cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
 }
 
+/* Bottom nav: color-only active state — the indicator bar carries the highlight,
+   so the leaked sidebar "active background" rule above is turned off here to keep
+   this a flat surface (no fill, no glow). */
+.mobile-bottom-nav [data-slot="sidebar-menu-button"][data-active="true"] {
+  background: transparent;
+}
+
+/* Tap feedback is the icon animation alone: kill the WebView tap highlight and
+   the desktop sidebar's hover fill/icon-scale, which touch taps also trigger. */
+.mobile-bottom-nav {
+  -webkit-tap-highlight-color: transparent;
+}
+.mobile-bottom-nav [data-slot="sidebar-menu-button"]:hover {
+  background: transparent;
+}
+.mobile-bottom-nav [data-slot="sidebar-menu-button"]:hover svg {
+  transform: none;
+}
+
+/* The "More" drawer is modal, so Radix sets pointer-events:none on <body> while
+   it is open and the nav inherits it — the first tab tap would otherwise be
+   swallowed as a dismiss-only outside click, forcing a second tap to navigate.
+   Opting the bar back in lets that tap both close the drawer and follow the link. */
+.mobile-bottom-nav {
+  pointer-events: auto;
+}
+
+/* Plays once when the bar mounts (it persists across routes); between tabs the
+   indicator's wrapper transitions its translateX instead. */
+@keyframes tab-indicator-in {
+  from {
+    opacity: 0;
+    transform: scaleX(0.15);
+  }
+  to {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+}
+/* from/to only, no intermediate keyframe: the easing curve is applied per
+   keyframe interval, so a midpoint stop would split the growth into two eased
+   segments and put a visible kink in the middle of the motion. */
+.animate-tab-indicator {
+  animation: tab-indicator-in 240ms var(--ease-out-strong) both;
+  transform-origin: center;
+}
+
+/* Crossfades the active tint on the "More" toggle and on route changes — the
+   nav persists across routes, so color lands via transition. */
+.mobile-bottom-nav a,
+.mobile-bottom-nav button[data-active] {
+  transition: color 150ms var(--ease-out-strong);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-tab-indicator {
+    animation: none;
+  }
+  .mobile-bottom-nav a,
+  .mobile-bottom-nav button[data-active] {
+    transition: none;
+  }
+}
+
 /* Upload-card "needs photos" nudge — two gentle horizontal shakes, then still.
    Small amplitude on purpose: a tap on the shoulder, not an alarm. */
 @keyframes attention-shake {
@@ -1137,6 +1201,54 @@ button.sidebar-menu-button-compact {
     animation: ws-section-in-reduced 120ms ease-out backwards;
     animation-delay: 0ms !important;
   }
+}
+
+/* Tab panel switch (ResponsiveTabs). Panels stay mounted and toggle display,
+   which cancels/restarts CSS animations — so this entrance replays on every
+   switch. --tab-shift is ±16px depending on travel direction; from-only
+   keyframes leave no persistent transform behind. */
+@keyframes tab-panel-in {
+  from {
+    opacity: 0;
+    transform: translateX(var(--tab-shift, 0px));
+  }
+}
+.animate-tab-panel-in {
+  animation: tab-panel-in 240ms var(--ease-out-strong);
+}
+@keyframes tab-panel-in-reduced {
+  from { opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-tab-panel-in {
+    animation: tab-panel-in-reduced 120ms ease-out;
+  }
+}
+
+/* Flow (route) transition. AppLayout remounts per route, so this runs on
+   arrival for desktop and mobile alike — no key or remount changes needed.
+   Opacity-only on purpose: a transform here would make the wrapper the
+   containing block for `position: fixed` descendants (the mobile filter FABs
+   render inside page content), which is the bug MobileCalendarHeader
+   documents. Movement is what the tab switch can afford; a flow switch can't. */
+@keyframes route-enter {
+  from { opacity: 0; }
+}
+/* Short on purpose. Flow switching is a high-frequency action, and once the
+   chunk is warm the swap is near-instant — a long fade from 0 would become the
+   slowest part of the navigation and read as a flash rather than a settle. */
+.animate-route-enter {
+  animation: route-enter 160ms var(--ease-out-strong);
+}
+
+/* Skeletons that only appear when loading actually takes a moment: invisible
+   for the first 200ms (backwards fill + delay), then fade in. A fast response
+   swaps in real content before the skeleton was ever seen — no flash. */
+@keyframes skeleton-reveal {
+  from { opacity: 0; }
+}
+.skeleton-delayed-reveal {
+  animation: skeleton-reveal 200ms ease-out 200ms backwards;
 }
 
 /* Warm, double-layer elevation for a lifted-out card (section builder open surface).

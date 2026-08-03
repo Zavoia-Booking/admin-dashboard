@@ -24,7 +24,7 @@ export const DayGridSkeleton: FC = () => {
   const totalSlots = SKELETON_HOURS.length * 4;
 
   return (
-    <div className="relative">
+    <div className="skeleton-delayed-reveal relative">
       <div className="flex">
         {/* Time gutter */}
         <div

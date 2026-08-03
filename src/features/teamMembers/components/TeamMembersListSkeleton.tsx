@@ -3,7 +3,7 @@ import React from "react";
 
 export const TeamMembersListSkeleton: React.FC = () => {
   return (
-    <div className="space-y-6">
+    <div className="skeleton-delayed-reveal space-y-6">
       {/* Filters row skeleton - matches TeamMemberFilters layout */}
       <div className="flex flex-col gap-2">
         {/* Search + Invite Member button row */}

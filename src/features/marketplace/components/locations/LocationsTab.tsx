@@ -11,23 +11,17 @@ import {
   useSearchParams,
 } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { ArrowLeft, MapPin } from "lucide-react";
+import { MapPin } from "lucide-react";
 import type { LocationWithAssignments } from "../../types";
 import { LimitedAccessBanner } from "../../../../shared/components/common/subscription/LimitedAccessBanner";
-import { Button } from "../../../../shared/components/ui/button";
 import { LocationPanel } from "./LocationPanel";
 import { LocationWorkspaceTransition } from "./LocationWorkspaceTransition";
 import { MarketplaceLocationList } from "./MarketplaceLocationList";
-
-const STORAGE_KEY = "zavoia_marketplace_active_location";
+import { ACTIVE_LOCATION_STORAGE_KEY as STORAGE_KEY } from "./useReturnToMarketplaceLocations";
 
 interface LocationsTabProps {
   locations: LocationWithAssignments[];
   isActive: boolean;
-}
-
-interface MarketplaceLocationNavigationState {
-  marketplaceLocationsOrigin?: boolean;
 }
 
 function useHasWideMarketplaceWorkspace() {
@@ -64,7 +58,6 @@ export function LocationsTab({ locations, isActive }: LocationsTabProps) {
   const listScrollTopRef = useRef(0);
   const lastSelectedIdRef = useRef<number | null>(null);
   const previousExplicitIdRef = useRef<number | null>(null);
-  const wasActiveRef = useRef(false);
   const [isWorkspaceBusy, setIsWorkspaceBusy] = useState(false);
   const isSingle = locations.length === 1;
 
@@ -161,43 +154,17 @@ export function LocationsTab({ locations, isActive }: LocationsTabProps) {
     ],
   );
 
-  const returnToLocations = useCallback(() => {
-    window.localStorage.removeItem(STORAGE_KEY);
-    const navigationState =
-      routeLocation.state &&
-      typeof routeLocation.state === "object"
-        ? (routeLocation.state as MarketplaceLocationNavigationState)
-        : null;
-
-    if (navigationState?.marketplaceLocationsOrigin) {
-      navigate(-1);
-      return;
-    }
-
-    const next = new URLSearchParams(searchParams);
-    next.set("tab", "locations");
-    next.delete("locationId");
-    navigate(
-      {
-        pathname: routeLocation.pathname,
-        search: `?${next.toString()}`,
-      },
-      { replace: true },
-    );
-  }, [navigate, routeLocation.pathname, routeLocation.state, searchParams]);
-
   // The AppLayout owns scrolling. Query navigation does not remount it, so
   // explicitly orient the user at the detail heading and restore list context.
+  //
+  // Scoped to list↔detail moves only. Arriving on the tab is the tab switcher's
+  // business: it restores that tab's remembered offset before paint, and a
+  // second scroll from here a frame later paints once and then jumps.
   useLayoutEffect(() => {
-    if (!isActive) {
-      wasActiveRef.current = false;
-      return;
-    }
+    if (!isActive) return;
 
-    const becameActive = !wasActiveRef.current;
     if (isWideWorkspace) {
       previousExplicitIdRef.current = explicitLocation?.id ?? null;
-      wasActiveRef.current = true;
       return;
     }
 
@@ -206,7 +173,7 @@ export function LocationsTab({ locations, isActive }: LocationsTabProps) {
     const mainScroller = rootRef.current?.closest("main");
     let frame = 0;
 
-    if (currentId != null && (currentId !== previousId || becameActive)) {
+    if (currentId != null && currentId !== previousId) {
       frame = window.requestAnimationFrame(() => {
         mainScroller?.scrollTo({ top: 0, behavior: "auto" });
         document
@@ -231,7 +198,6 @@ export function LocationsTab({ locations, isActive }: LocationsTabProps) {
     }
 
     previousExplicitIdRef.current = currentId;
-    wasActiveRef.current = true;
     return () => {
       if (frame) window.cancelAnimationFrame(frame);
     };
@@ -318,35 +284,12 @@ export function LocationsTab({ locations, isActive }: LocationsTabProps) {
               enabled={isWideWorkspace && isActive}
             >
               {(renderedLocation) => (
-                <>
-                  {explicitLocation && (
-                    <div className="flex min-h-11 items-center border-b border-border pb-3 xl:hidden">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        rounded="full"
-                        size="sm"
-                        onClick={returnToLocations}
-                        className="-ml-2 h-11 shrink-0 px-2.5 text-foreground-2 hover:text-primary"
-                      >
-                        <ArrowLeft
-                          className="size-4"
-                          aria-hidden="true"
-                        />
-                        <span className="text-sm font-medium">
-                          {t("locations.backToAll")}
-                        </span>
-                      </Button>
-                    </div>
-                  )}
-
-                  <LocationPanel
-                    key={renderedLocation.id}
-                    location={renderedLocation}
-                    compactGallery
-                    onPortfolioBusyChange={setIsWorkspaceBusy}
-                  />
-                </>
+                <LocationPanel
+                  key={renderedLocation.id}
+                  location={renderedLocation}
+                  compactGallery
+                  onPortfolioBusyChange={setIsWorkspaceBusy}
+                />
               )}
             </LocationWorkspaceTransition>
           ) : (

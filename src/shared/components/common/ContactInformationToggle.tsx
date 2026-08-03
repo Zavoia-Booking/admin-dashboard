@@ -80,12 +80,12 @@ export const ContactInformationToggle: React.FC<ContactInformationToggleProps> =
     <div
       className={`${
         useInheritedContact
-          ? 'rounded-lg border border-info-300 bg-info-100 p-4'
+          ? 'rounded-lg border border-info-300 bg-info-100 dark:border-border dark:bg-surface p-4'
           : 'bg-surface-active dark:bg-surface dark:border-border-strong border border-border rounded-lg p-4'
       } ${className}`}
     >
       <div className="flex items-center justify-between mb-3">
-        <Label htmlFor={id} className={`text-base font-medium cursor-pointer ${useInheritedContact ? 'text-neutral-900' : ''}`}>{title}</Label>
+        <Label htmlFor={id} className={`text-base font-medium cursor-pointer ${useInheritedContact ? 'text-neutral-900 dark:text-foreground-1' : ''}`}>{title}</Label>
         <Switch
           id={id}
           checked={useInheritedContact}
@@ -93,7 +93,7 @@ export const ContactInformationToggle: React.FC<ContactInformationToggleProps> =
           className="!h-5 !w-9 !min-h-0 !min-w-0 cursor-pointer"
         />
       </div>
-      <p className={`text-sm ${useInheritedContact ? 'text-neutral-900' : 'text-foreground-3 dark:text-foreground-2'}`}>
+      <p className={`text-sm ${useInheritedContact ? 'text-neutral-900 dark:text-foreground-2' : 'text-foreground-3 dark:text-foreground-2'}`}>
         {useInheritedContact
           ? (helperTextOn ?? t(`contactToggle.helperOn.${whatKey}`, {
               source: inheritedLabel ?? t('contactToggle.previousStep'),
@@ -104,14 +104,14 @@ export const ContactInformationToggle: React.FC<ContactInformationToggleProps> =
         <div className="text-sm pt-4">
           <div className="flex flex-col gap-1.5">
             {showEmail && inheritedEmail && (
-              <span className="inline-flex items-center gap-1.5 text-neutral-900 font-medium w-fit">
-                <Mail className="h-4 w-4 text-neutral-900" />
+              <span className="inline-flex items-center gap-1.5 text-neutral-900 dark:text-foreground-1 font-medium w-fit">
+                <Mail className="h-4 w-4 text-neutral-900 dark:text-foreground-2" />
                 {inheritedEmail}
               </span>
             )}
             {showPhone && inheritedPhone && (
-              <span className="inline-flex items-center gap-1.5 text-neutral-900 font-medium w-fit pt-2">
-                <Phone className="h-4 w-4 text-neutral-900" />
+              <span className="inline-flex items-center gap-1.5 text-neutral-900 dark:text-foreground-1 font-medium w-fit pt-2">
+                <Phone className="h-4 w-4 text-neutral-900 dark:text-foreground-2" />
                 {inheritedPhone}
               </span>
             )}

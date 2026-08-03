@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import {
   AlertCircle,
   Check,
@@ -24,6 +25,18 @@ export function MarketplaceLocationList({
 }: MarketplaceLocationListProps) {
   const { t } = useTranslation("marketplace");
 
+  // Activate on the pointer layer: Chrome flakily skips synthesizing the
+  // click after touchend following in-page gestures (verified via event
+  // logging), so a tap (same pointer, <10px travel) selects on pointerup.
+  // onClick stays for keyboard/AT, deduped against the pointer activation.
+  const pressRef = useRef<{
+    pointerId: number;
+    id: number;
+    x: number;
+    y: number;
+  } | null>(null);
+  const handledRef = useRef<{ id: number; t: number } | null>(null);
+
   return (
     <nav
       className={cn("space-y-2", className)}
@@ -38,7 +51,45 @@ export function MarketplaceLocationList({
             key={location.id}
             type="button"
             data-location-id={location.id}
-            onClick={() => onSelect(location.id)}
+            onPointerDown={(event) => {
+              if (disabled) return;
+              pressRef.current = {
+                pointerId: event.pointerId,
+                id: location.id,
+                x: event.clientX,
+                y: event.clientY,
+              };
+            }}
+            onPointerUp={(event) => {
+              const press = pressRef.current;
+              pressRef.current = null;
+              if (disabled || !press) return;
+              if (
+                press.pointerId !== event.pointerId ||
+                press.id !== location.id
+              )
+                return;
+              if (
+                Math.hypot(event.clientX - press.x, event.clientY - press.y) >
+                10
+              )
+                return;
+              handledRef.current = { id: location.id, t: event.timeStamp };
+              onSelect(location.id);
+            }}
+            onPointerCancel={() => {
+              pressRef.current = null;
+            }}
+            onClick={(event) => {
+              const handled = handledRef.current;
+              if (
+                handled &&
+                handled.id === location.id &&
+                event.timeStamp - handled.t < 600
+              )
+                return;
+              onSelect(location.id);
+            }}
             disabled={disabled}
             aria-current={isSelected ? "true" : undefined}
             className={cn(

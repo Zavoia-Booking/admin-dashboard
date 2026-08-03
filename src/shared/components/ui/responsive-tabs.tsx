@@ -1,8 +1,11 @@
 import * as React from "react";
 import { useLayoutEffect } from "react";
-import { type LucideIcon, Info } from "lucide-react";
+import { type LucideIcon } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { useIsMobile } from "../../hooks/use-mobile";
+import { AttentionDot } from "../common/AttentionDot";
+import { HeaderTitleSlot } from "../layouts/HeaderRightSlot";
+import { APP_SCROLL_CONTAINER_ATTR } from "../../utils/scroll";
 
 export interface ResponsiveTabItem {
   id: string;
@@ -24,6 +27,9 @@ interface ResponsiveTabsProps {
   headerClassName?: string;
   rightContent?: React.ReactNode;
   stickyHeader?: boolean;
+  /** Mobile only: project the pill switcher into the AppLayout breadcrumb header
+   *  (replacing the page title) instead of rendering its own tab band. */
+  mobileTabsInHeader?: boolean;
 }
 
 export function ResponsiveTabs({
@@ -37,6 +43,7 @@ export function ResponsiveTabs({
   headerClassName,
   rightContent,
   stickyHeader = false,
+  mobileTabsInHeader = false,
 }: ResponsiveTabsProps) {
   const [internalValue, setInternalValue] = React.useState(
     defaultValue || items[0]?.id || ""
@@ -58,6 +65,47 @@ export function ResponsiveTabs({
     left: number;
     width: number;
   } | null>(null);
+
+  // Direction of the last tab change (±1), so the incoming panel slides in
+  // from the side it "lives" on — matching the indicator's travel.
+  const [prevValue, setPrevValue] = React.useState(value);
+  const [panelDirection, setPanelDirection] = React.useState(0);
+  if (prevValue !== value) {
+    const oldIndex = items.findIndex((item) => item.id === prevValue);
+    const newIndex = items.findIndex((item) => item.id === value);
+    setPanelDirection(newIndex >= oldIndex ? 1 : -1);
+    setPrevValue(value);
+  }
+
+  // Per-tab scroll memory. The offset is tracked live via a scroll listener
+  // (reading it after the panel swap would see the shorter panel's clamped
+  // value), and restored before paint on each switch — like native tab bars.
+  const scrollMapRef = React.useRef<Record<string, number>>({});
+  const scrollTabRef = React.useRef(value);
+  React.useEffect(() => {
+    const scroller = document.querySelector<HTMLElement>(
+      `[${APP_SCROLL_CONTAINER_ATTR}]`
+    );
+    if (!scroller) return;
+    const onScroll = () => {
+      scrollMapRef.current[scrollTabRef.current] = scroller.scrollTop;
+    };
+    scroller.addEventListener("scroll", onScroll, { passive: true });
+    return () => scroller.removeEventListener("scroll", onScroll);
+  }, []);
+  useLayoutEffect(() => {
+    if (scrollTabRef.current === value) return;
+    scrollTabRef.current = value;
+    const scroller = document.querySelector<HTMLElement>(
+      `[${APP_SCROLL_CONTAINER_ATTR}]`
+    );
+    if (!scroller) return;
+    // Guarded: writing scrollTop here forces a synchronous layout of the panel
+    // that just came out of display:none, and both tabs sitting at 0 is the
+    // common case. Skip the write when there is nothing to move.
+    const target = scrollMapRef.current[value] ?? 0;
+    if (scroller.scrollTop !== target) scroller.scrollTop = target;
+  }, [value]);
 
   useLayoutEffect(() => {
     if (!tabsListRef.current) return;
@@ -84,12 +132,22 @@ export function ResponsiveTabs({
       // CSS-based responsive positioning to prevent layout shift:
       // Mobile (<md): negative margin to break out of parent padding and span full width
       // Desktop (md+): absolute positioning for layout
-      "-mx-2 -mt-8 md:mx-0 md:mt-0 md:absolute md:top-0 md:left-0 md:right-0",
+      "-mx-2 md:mx-0 md:absolute md:top-0 md:left-0 md:right-0",
+      // The -mt-8 breakout compensates for the tab band's own top padding; without
+      // a band (tabs live in the breadcrumb header) it would tuck content under it.
+      mobileTabsInHeader ? "mt-0 md:mt-0" : "-mt-8 md:mt-0",
       className
     )}>
+      {/* Mobile: pill switcher projected into the breadcrumb header title area */}
+      {mobileTabsInHeader && isMobile && (
+        <HeaderTitleSlot>
+          <MobileHeaderTabs items={items} value={value} onSelect={setValue} />
+        </HeaderTitleSlot>
+      )}
       {/* Tabs Header */}
       <div
         className={cn(
+          mobileTabsInHeader && "hidden md:block",
           // Base + responsive sizing (CSS-based to prevent layout shift)
           "w-full transition-all duration-300",
           "h-[68px] md:h-[61px]",
@@ -131,18 +189,10 @@ export function ResponsiveTabs({
                   )}
                 >
                   <div className="flex items-center gap-2">
-                    <span className="text-sm md:text-lg relative">
+                    <span className="text-sm md:text-lg">
                       {isMobile && item.mobileLabel ? item.mobileLabel : item.label}
-                      {item.showBadge && (
-                        <span className="absolute -top-1.5 -right-3.5 flex h-3.5 w-3.5">
-                          <span 
-                            className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-20"
-                            style={{ animationDuration: '3s' }}
-                          ></span>
-                          <Info className="relative inline-flex h-3.5 w-3.5 text-primary" />
-                        </span>
-                      )}
                     </span>
+                    {item.showBadge && <AttentionDot />}
                   </div>
                 </button>
               );
@@ -180,23 +230,104 @@ export function ResponsiveTabs({
       </div>
 
       {/* Tab Content - Keep all tabs mounted but hidden to prevent remounting */}
-      <div
-        className={cn("outline-none pl-4 pr-4 md:pr-0", contentClassName)}
-      >
+      <div className={cn("outline-none pl-4 pr-4 md:pr-0", contentClassName)}>
         {items.map((item) => {
           const isActive = value === item.id;
+          // display:none cancels CSS animations, so the entrance replays each
+          // time a panel becomes visible — no keys or remounts needed.
           return (
             <div
               key={item.id}
               className={cn(
-                isActive ? "block" : "hidden"
+                isActive ? "block animate-tab-panel-in" : "hidden"
               )}
+              style={
+                isActive
+                  ? ({
+                      "--tab-shift": `${panelDirection * 16}px`,
+                    } as React.CSSProperties)
+                  : undefined
+              }
             >
               {item.content}
             </div>
           );
         })}
       </div>
+    </div>
+  );
+}
+
+/** The mobile pill switcher, self-contained so it can live in the breadcrumb
+ *  header slot (it measures its own active-tab indicator where it mounts).
+ *  h-9 keeps the header row at its usual 44px total height. */
+function MobileHeaderTabs({
+  items,
+  value,
+  onSelect,
+}: {
+  items: ResponsiveTabItem[];
+  value: string;
+  onSelect: (id: string) => void;
+}) {
+  const listRef = React.useRef<HTMLDivElement | null>(null);
+  const [indicator, setIndicator] = React.useState<{
+    left: number;
+    width: number;
+  } | null>(null);
+
+  useLayoutEffect(() => {
+    if (!listRef.current) return;
+
+    const activeButton = listRef.current.querySelector<HTMLButtonElement>(
+      `[data-tab-id="${value}"]`
+    );
+    if (!activeButton) return;
+
+    const containerRect = listRef.current.getBoundingClientRect();
+    const rect = activeButton.getBoundingClientRect();
+    setIndicator({
+      left: rect.left - containerRect.left,
+      width: rect.width,
+    });
+  }, [value, items.length]);
+
+  return (
+    <div
+      ref={listRef}
+      className="relative flex h-9 w-full items-stretch gap-1 rounded-full bg-sidebar p-1"
+    >
+      {items.map((item) => {
+        const isActive = value === item.id;
+        return (
+          <button
+            key={item.id}
+            data-tab-id={item.id}
+            onClick={() => onSelect(item.id)}
+            className={cn(
+              // !min-* neutralize the global 44px touch-target rule, which would
+              // overflow the h-9 track and push the labels off-center
+              "relative z-10 flex flex-1 items-center justify-center gap-1.5 rounded-full px-1.5 !min-h-0 !min-w-0 py-0 text-xs font-medium transition-colors",
+              isActive
+                ? "text-foreground cursor-default"
+                : "text-foreground-2 hover:text-foreground cursor-pointer"
+            )}
+          >
+            <span className="text-sm">{item.mobileLabel ?? item.label}</span>
+            {item.showBadge && <AttentionDot />}
+          </button>
+        );
+      })}
+
+      {indicator && (
+        <span
+          className="pointer-events-none absolute inset-y-1 block rounded-full bg-surface shadow-sm transition-all duration-300 ease-out"
+          style={{
+            width: `${Math.max(0, indicator.width - 2)}px`,
+            transform: `translateX(${indicator.left - 3}px)`,
+          }}
+        />
+      )}
     </div>
   );
 }
