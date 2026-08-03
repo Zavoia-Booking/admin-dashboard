@@ -9,7 +9,8 @@ import { Card, CardContent } from "../../../shared/components/ui/card";
 import { Button } from "../../../shared/components/ui/button";
 import { Badge } from "../../../shared/components/ui/badge";
 import { Skeleton } from "../../../shared/components/ui/skeleton";
-import { X, Star, AlertCircle, Info, UploadCloud } from "lucide-react";
+import { X, Star, AlertCircle, UploadCloud } from "lucide-react";
+import { AttentionDot } from "../../../shared/components/common/AttentionDot";
 import { toast } from "sonner";
 import { Spinner } from "../../../shared/components/ui/spinner";
 import { cn } from "../../../shared/lib/utils";
@@ -106,6 +107,8 @@ interface MarketplaceImagesSectionProps {
   locationId: number | null;
   featuredImageId?: string | null;
   portfolioImages?: PortfolioImage[];
+  /** Uses a three-column gallery when rendered inside the Marketplace split pane. */
+  compact?: boolean;
   onFeaturedImageChange: (tempId: string | null) => void;
   onPortfolioImagesChange: (
     images: PortfolioImage[] | ((prev: PortfolioImage[]) => PortfolioImage[]),
@@ -116,6 +119,7 @@ export function MarketplaceImagesSection({
   locationId,
   featuredImageId,
   portfolioImages,
+  compact = false,
   onFeaturedImageChange,
   onPortfolioImagesChange,
 }: MarketplaceImagesSectionProps) {
@@ -519,7 +523,9 @@ export function MarketplaceImagesSection({
 
   return (
     <div className="max-w-5xl mb-0 md:mb-8">
-      <Card className="border-none pt-0 pb-2 sm:border shadow-none sm:shadow-sm bg-transparent md:bg-surface overflow-hidden">
+      {/* border-0 (not border-none): border-none zeroes the Tailwind border-style
+          var, which silently kills the sm:border re-enable. */}
+      <Card className="border-0 rounded-2xl pt-0 pb-2 sm:border sm:border-border shadow-none sm:shadow-sm bg-transparent md:bg-surface overflow-hidden">
         <CardContent className="p-0 sm:p-4 space-y-6">
           <div className="relative p-0 sm:p-2">
             {/* Background Decoration */}
@@ -540,13 +546,7 @@ export function MarketplaceImagesSection({
                 <div className="flex flex-wrap items-center gap-4">
                   {images.length === 0 && (
                     <div className="flex items-start gap-2">
-                      <div className="relative flex h-4 w-4 shrink-0 mt-0.5">
-                        <span
-                          className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-20"
-                          style={{ animationDuration: "3s" }}
-                        ></span>
-                        <Info className="relative inline-flex h-4 w-4 text-primary" />
-                      </div>
+                      <AttentionDot className="mt-1.5" />
                       <p className="text-xs text-foreground-3 dark:text-foreground-2 leading-relaxed">
                         {t("portfolio.visualIdentity.addAtLeastOne")}
                       </p>
@@ -577,7 +577,10 @@ export function MarketplaceImagesSection({
                     return (
                       <div
                         key="featured-container"
-                        className="relative w-full h-102 md:h-125 overflow-hidden rounded-2xl border bg-surface dark:bg-neutral-900 shadow-lg group/featured"
+                        className={cn(
+                          "relative w-full h-102 overflow-hidden rounded-2xl border bg-surface dark:bg-neutral-900 shadow-lg group/featured",
+                          compact ? "md:h-80" : "md:h-125",
+                        )}
                         onClick={() => openCarouselByTempId(featuredImg.tempId)}
                         role="button"
                       >
@@ -627,7 +630,7 @@ export function MarketplaceImagesSection({
                               variant="secondary"
                               rounded="full"
                               className={cn(
-                                "absolute top-4 right-4 z-20 h-10 w-10 rounded-full",
+                                "absolute top-4 right-4 z-20 h-11 w-11 rounded-full xl:h-10 xl:w-10",
                                 "shadow-xl active:scale-95 transition-all duration-200",
                                 // Match grid tile X button + darker background
                                 "backdrop-blur-md bg-black/60 hover:bg-black/70 border border-white/15 text-white",
@@ -657,9 +660,17 @@ export function MarketplaceImagesSection({
               <div className="space-y-4">
                 <div
                   className={cn(
-                    "grid gap-4 grid-cols-2 md:grid-cols-5 auto-rows-[184px] md:auto-rows-[180px]",
+                    "grid gap-4 grid-cols-2 auto-rows-[184px]",
+                    compact
+                      ? "md:grid-cols-3 md:auto-rows-[160px]"
+                      : "md:grid-cols-5 md:auto-rows-[180px]",
                     images.length === 0 &&
-                      "min-h-58 md:min-h-78 grid-rows-1 grid-cols-1 md:max-w-1/2 mt-8 md:mb-14",
+                      cn(
+                        "min-h-58 grid-rows-1 grid-cols-1 mt-8 md:mb-14",
+                        compact
+                          ? "md:min-h-64 md:max-w-full"
+                          : "md:min-h-78 md:max-w-1/2",
+                      ),
                   )}
                 >
                   {images.map((image, index) => {
@@ -715,7 +726,7 @@ export function MarketplaceImagesSection({
                                 type="button"
                                 variant="secondary"
                                 size="sm"
-                                className="font-bold rounded-full mt-1 h-6 px-2 text-[8px]"
+                                className="mt-1 h-11 rounded-full px-3 text-xs font-bold xl:h-6 xl:px-2 xl:text-[8px]"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   handleRemovePortfolioImage(image.tempId);
@@ -760,7 +771,10 @@ export function MarketplaceImagesSection({
                                     variant="secondary"
                                     rounded="full"
                                     className={cn(
-                                      "group/cover absolute bottom-2 left-2 !min-h-0 !h-8 px-3",
+                                      // Icon-only circle below xl, matching the remove button's chip:
+                                      // with no hover to gate it, this button is always on, and repeating
+                                      // the full text pill on every tile was the actual noise, not just size.
+                                      "group/cover absolute bottom-2 left-2 !h-8 !min-h-0 !w-8 !min-w-0 !p-0 xl:!w-auto xl:!px-3",
                                       "shadow-xl active:scale-95",
                                       "!bg-black/35 hover:!bg-black/45 !text-white",
                                       "border border-white/15 hover:border-white/25",
@@ -773,6 +787,7 @@ export function MarketplaceImagesSection({
                                     }}
                                     disabled={image.isSettingFeatured}
                                     title={t("portfolio.setAsMainCover")}
+                                    aria-label={t("portfolio.setAsMainCover")}
                                   >
                                     {image.isSettingFeatured ? (
                                       <>
@@ -780,8 +795,8 @@ export function MarketplaceImagesSection({
                                       </>
                                     ) : (
                                       <>
-                                        <Star className="!h-3 !w-3 md:!h-3.5 md:!w-3.5" />
-                                        <span className="text-xs md:text-[11px] font-semibold leading-none">
+                                        <Star className="!h-3.5 !w-3.5" />
+                                        <span className="hidden xl:inline text-[11px] font-semibold leading-none">
                                           {t("portfolio.setCover")}
                                         </span>
                                       </>
@@ -794,7 +809,11 @@ export function MarketplaceImagesSection({
                                   variant="secondary"
                                   rounded="full"
                                   className={cn(
-                                    "absolute top-2 right-2 !min-h-8 !min-w-8 ",
+                                    // Same chip size at every breakpoint: below xl there is no hover to
+                                    // gate this away, so it is always on screen on every tile, and the
+                                    // 44px touch-target size read as oversized once it stopped being an
+                                    // occasional hover reveal.
+                                    "absolute top-2 right-2 !h-8 !w-8 !min-h-8 !min-w-8",
                                     "shadow-xl active:scale-95 transition-all duration-200 backdrop-blur-md",
                                     // Darker background for better contrast over images
                                     "bg-black/60 hover:bg-black/70 border border-white/15 text-white",
@@ -826,7 +845,10 @@ export function MarketplaceImagesSection({
                       className={cn(
                         "group relative cursor-pointer mt-1.5 transition-all duration-300",
                         images.length === 0
-                          ? "col-span-2 md:col-span-5 aspect-video md:aspect-auto"
+                          ? cn(
+                              "col-span-2 aspect-video md:aspect-auto",
+                              compact ? "md:col-span-3" : "md:col-span-5",
+                            )
                           : getBentoGridClass(images.length),
                         attentionActive &&
                           "rounded-2xl ring-2 ring-primary/40 ring-offset-2 ring-offset-background animate-attention-shake",

@@ -12,7 +12,7 @@
     "teamMembers": "Membri echipă",
     "customers": "Clienți",
     "marketplace": "Marketplace",
-    "website": "Website",
+    "website": "Web Studio",
     "support": "Suport",
     "account": "Cont",
     "home": "Acasă",
@@ -33,7 +33,7 @@
     "locations": "Locații",
     "customers": "Clienți",
     "marketplace": "Marketplace",
-    "website": "Website",
+    "website": "Web Studio",
     "support": "Suport",
     "account": "Cont",
     "logOut": "Deconectare",
@@ -59,8 +59,8 @@
         "billing": "Facturare și abonament"
       },
       "marketplace": {
-        "business": "Pagina businessului",
-        "website": "Constructor site",
+        "business": "Profil",
+        "website": "Web Studio",
         "locations": "Locații",
         "profile": "Profil",
         "portfolio": "Portofoliu",

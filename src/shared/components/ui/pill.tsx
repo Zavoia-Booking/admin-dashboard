@@ -35,13 +35,11 @@ export const Pill = React.forwardRef<HTMLButtonElement, PillProps>(
           "group relative flex min-h-14 px-3 py-2 rounded-lg border text-sm font-medium transition-colors cursor-pointer overflow-visible",
           contentAlign === "start" ? "items-start" : "items-center",
           "focus:outline-none focus-visible:ring-3 focus-visible:ring-focus/50 focus-visible:ring-offset-0",
-          // bg-info-bg is the semantic token: it resolves to info-100 in light
-          // theme (so light mode is unchanged) but to a dark blue in dark theme.
-          // The raw bg-info-100 it replaced stayed light in both, which forced
-          // dark text -- and any child setting its own themed colour, such as
-          // text-foreground-1, then rendered near-white on near-white.
+          // Light selection stays on info-bg (info-100). Dark drops the hue and
+          // lifts off the surface instead, matching the marketplace location
+          // chips: info-bg is only 25% L there, so it read as recessed.
           selected
-            ? "border-neutral-500 bg-info-bg text-neutral-900 dark:text-foreground-1 shadow-xs"
+            ? "border-neutral-500 bg-info-bg text-neutral-900 shadow-xs dark:border-foreground-1/25 dark:bg-foreground-1/[0.08] dark:text-foreground-1 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
             : "border-border bg-surface hover:border-border-strong hover:bg-surface-hover active:bg-surface-active active:scale-[0.98]",
           showCheckmark && "pr-[15px]",
           className

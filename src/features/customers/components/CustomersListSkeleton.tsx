@@ -3,7 +3,7 @@ import React from "react";
 
 export const CustomersListSkeleton: React.FC = () => {
   return (
-    <div className="space-y-6">
+    <div className="skeleton-delayed-reveal space-y-6">
       {/* Filters row skeleton - matches CustomerFilters layout */}
       <div className="flex flex-col gap-2">
         {/* Search + Add Customer button row */}

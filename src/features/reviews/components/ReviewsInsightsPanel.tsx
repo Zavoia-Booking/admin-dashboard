@@ -3,10 +3,13 @@ import { useTranslation } from "react-i18next";
 import { Skeleton } from "../../../shared/components/ui/skeleton";
 import { cn } from "../../../shared/lib/utils";
 import { RatingBreakdown } from "./RatingBreakdown";
-import type { ReviewStatsData } from "../types";
+import type { LocationStats, ReviewStatsData } from "../types";
 
 interface ReviewsInsightsPanelProps {
   stats: ReviewStatsData | null;
+  /** When the feed is locked to one location, its per-location aggregates
+   *  replace the business-wide distribution and positive share. */
+  scopedLocation?: LocationStats | null;
   loading: boolean;
   className?: string;
   selectedRating?: number | null;
@@ -30,6 +33,7 @@ interface ReviewsInsightsPanelProps {
  */
 export function ReviewsInsightsPanel({
   stats,
+  scopedLocation,
   loading,
   className,
   selectedRating,
@@ -47,21 +51,30 @@ export function ReviewsInsightsPanel({
   if (!stats) return null;
 
   const { business } = stats;
-  if (business.totalReviews === 0) return null;
+  const distribution = scopedLocation
+    ? scopedLocation.ratingDistribution
+    : business.ratingDistribution;
+  const totalReviews = scopedLocation
+    ? scopedLocation.totalReviews
+    : business.totalReviews;
+  if (totalReviews === 0) return null;
 
   const calculationNoteKey =
     variant === "personal"
       ? "stats.calculationNotePersonal"
-      : "stats.calculationNote";
+      : scopedLocation
+        ? "stats.calculationNoteLocation"
+        : "stats.calculationNote";
   const audienceNoteKey =
     variant === "personal"
       ? "stats.audienceNotePersonal"
-      : "stats.audienceNote";
+      : scopedLocation
+        ? "stats.audienceNoteLocation"
+        : "stats.audienceNote";
 
   const positiveCount =
-    (business.ratingDistribution["5"] ?? 0) +
-    (business.ratingDistribution["4"] ?? 0);
-  const positivePct = Math.round((positiveCount / business.totalReviews) * 100);
+    (distribution["5"] ?? 0) + (distribution["4"] ?? 0);
+  const positivePct = Math.round((positiveCount / totalReviews) * 100);
 
   return (
     <aside
@@ -78,8 +91,8 @@ export function ReviewsInsightsPanel({
 
       <div className="relative flex flex-col gap-5">
         <RatingBreakdown
-          distribution={business.ratingDistribution}
-          total={business.totalReviews}
+          distribution={distribution}
+          total={totalReviews}
           selectedRating={selectedRating}
           onRatingClick={onRatingClick}
         />
@@ -96,7 +109,7 @@ export function ReviewsInsightsPanel({
             </span>
           </div>
           <span className="text-[11.5px] text-foreground-3">
-            {t("stats.positiveShareCaption", { count: business.totalReviews })}
+            {t("stats.positiveShareCaption", { count: totalReviews })}
           </span>
         </div>
 

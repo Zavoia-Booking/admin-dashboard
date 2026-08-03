@@ -2428,12 +2428,13 @@ body:has(.website-atelier-shell)
   background: color-mix(in srgb, var(--atelier-field) 78%, var(--atelier-canvas));
 }
 
-.atelier-section-requirement--recommendation .atelier-section-requirement-pulse > span {
+/* Recommendation tone keeps the dot but quiets it: no ping halo, muted core. */
+.atelier-section-requirement--recommendation .atelier-section-requirement-pulse > span:first-child {
   display: none;
 }
 
-.atelier-section-requirement--recommendation .atelier-section-requirement-pulse svg {
-  color: var(--atelier-muted);
+.atelier-section-requirement--recommendation .atelier-section-requirement-pulse > span:last-child {
+  background: var(--atelier-muted);
 }
 
 .atelier-section-requirement--recommendation .atelier-section-requirement-progress-value {

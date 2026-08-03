@@ -30,6 +30,8 @@
     "audienceNote": "This is the rating clients see on your business profile.",
     "calculationNotePersonal": "Combined from every review clients have left for you.",
     "audienceNotePersonal": "This is the rating clients see on your public profile.",
+    "calculationNoteLocation": "Combined from every review received at this location.",
+    "audienceNoteLocation": "This is the rating clients see for this location on the marketplace.",
     "errorBody": "Couldn't load review insights. Check your connection and try again."
   },
   "hero": {
@@ -65,7 +67,7 @@
   },
   "subTabs": {
     "business": "Business",
-    "teamMembers": "Team Members"
+    "teamMembers": "Team"
   },
   "filter": {
     "button": "Filters",

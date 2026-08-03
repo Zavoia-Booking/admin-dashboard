@@ -44,8 +44,8 @@
   },
   "configuration": {
     "tabs": {
-      "business": "Pagina businessului",
-      "website": "Constructor site",
+      "business": "Profil",
+      "website": "Web Studio",
       "locations": "Locații"
     },
     "sections": {
@@ -53,6 +53,7 @@
     },
     "buttons": {
       "saveChanges": "Salvează modificările",
+      "save": "Salvează",
       "publish": "Publică listarea",
       "saving": "Se salvează...",
       "publishing": "Se publică..."
@@ -108,22 +109,45 @@
   },
   "statusStrip": {
     "live": "Activ pe marketplace",
+    "notListed": "Încă nu ești pe marketplace",
     "toGoLive": "Pentru a publica:",
+    "progressDone": "{{done}} din {{total}} gata",
+    "resolve": "Rezolvă",
     "checklist": {
       "industryTag": "Cel puțin o specializare",
       "detailsValid": "Detaliile businessului sunt valide",
-      "websiteBuilder": "Constructorul site-ului este valid",
-      "locationPhoto": "Cel puțin o fotografie a locației",
-      "locationImages": "Fiecare locație vizibilă are o fotografie"
+      "websiteBuilder": "Web Studio este valid",
+      "locationPhoto": "Cel puțin o fotografie pentru fiecare locație"
     },
-    "locationsVisible": "{{visible}} din {{total}} locații vizibile",
     "noLocationLive": "Nicio locație nu este activă încă",
     "locationNeedsImage": "O locație nu are fotografii — adaugă cel puțin una",
     "locationsWaitingPublish": "Locațiile publice vor apărea după ce publici pagina businessului."
   },
   "locations": {
-    "managePage": "Gestionează pagina",
+    "title": "Locații",
+    "description": "Selectează o locație pentru a-i gestiona vizibilitatea, programările online, fotografiile și detaliile din marketplace.",
+    "listLabel": "Locații în marketplace",
+    "listHeading": "Locațiile tale",
     "backToAll": "Toate locațiile",
+    "visible": "Vizibilă",
+    "hidden": "Ascunsă",
+    "bookingOn": "Programări online active",
+    "bookingOff": "Programări online inactive",
+    "needsPhoto": "Adaugă fotografii",
+    "photoCount_one": "{{count}} fotografie",
+    "photoCount_few": "{{count}} fotografii",
+    "photoCount_other": "{{count}} de fotografii",
+    "emptyWorkspaceTitle": "Alege o locație",
+    "emptyWorkspaceDescription": "Selectează o locație din listă pentru a-i gestiona pagina din marketplace.",
+    "workspace": {
+      "visibilityTitle": "Vizibilitate în marketplace",
+      "visibilityDescription": "Controlează dacă această locație poate fi descoperită și rezervată de clienți.",
+      "autoSave": "Modificările de vizibilitate și programare se salvează automat.",
+      "locationDetails": "Detaliile locației",
+      "servicesAndTeam": "Servicii și echipă",
+      "marketplaceDetails": "Detalii marketplace",
+      "marketplaceDetailsDescription": "Facilități, accesibilitate, metode de plată și limbi vorbite."
+    },
     "reviews": {
       "title": "Recenzii",
       "count_one": "{{count}} recenzie",
@@ -188,7 +212,7 @@
       "loadFailed": "Portofoliul nu a putut fi încărcat.",
       "uploadFailed": "Nu am putut încărca {{name}}.",
       "deleteFailed": "Nu am putut șterge imaginea.",
-      "publishedGalleryImage": "Această fotografie este folosită pe site-ul publicat. Înlocuiește-o sau elimin-o din editorul site-ului înainte de a o șterge.",
+      "publishedGalleryImage": "Această fotografie este folosită pe site-ul publicat. Înlocuiește-o sau elimin-o din Web Studio înainte de a o șterge.",
       "updateFeaturedFailed": "Nu am putut actualiza imaginea principală.",
       "waitForUpload": "Așteaptă finalizarea încărcării imaginii.",
       "noLocationSelected": "Selectează mai întâi o locație."

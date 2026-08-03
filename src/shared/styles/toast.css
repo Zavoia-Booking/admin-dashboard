@@ -86,6 +86,36 @@ body [data-sonner-toast][data-styled="true"] [data-description] {
   line-height: 1.35;
 }
 
+/* A toast with an action keeps its natural first row — icon beside the message,
+   text flowing the full remaining width — and drops only the action to a second
+   row under the text. Grid rather than flex-wrap so the action keeps its content
+   width and its hit area stays tight instead of spanning the card. Builder undo
+   toasts are deliberately one line and opt out (see website-atelier.css). */
+body [data-sonner-toast][data-styled="true"]:has([data-action]):not(.website-toast--undo) {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  column-gap: 8px;
+  row-gap: 4px;
+}
+
+body [data-sonner-toast][data-styled="true"]:has([data-action]):not(.website-toast--undo) [data-icon] {
+  grid-area: 1 / 1;
+}
+
+body [data-sonner-toast][data-styled="true"]:has([data-action]):not(.website-toast--undo) [data-content] {
+  grid-area: 1 / 2;
+}
+
+/* -2px cancels the action's own inline padding so the link's text edge sits
+   flush with the message text above it. */
+body [data-sonner-toast][data-styled="true"]:has([data-action]):not(.website-toast--undo) [data-action] {
+  grid-area: 2 / 2;
+  justify-self: start;
+  align-self: start;
+  margin: 0 0 0 -2px !important;
+}
+
 body [data-sonner-toast][data-styled="true"] [data-action] {
   position: relative;
   min-height: 26px;

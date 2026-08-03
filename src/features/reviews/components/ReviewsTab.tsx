@@ -100,9 +100,9 @@ const INITIAL_FILTERS: FilterState = {
 function filterReducer(state: FilterState, action: FilterAction): FilterState {
   switch (action.type) {
     case "setSubTab":
-      // Preserve sort + date + with-comments preferences across sub-tab
+      // Preserve sort + date + with-comments + location across sub-tab
       // switches. These aren't tied to which stream you're viewing (Business
-      // vs Team) — only star/location/team-member filters are sub-tab-scoped.
+      // vs Team) — only star/team-member filters are sub-tab-scoped.
       return {
         ...INITIAL_FILTERS,
         subTab: action.value,
@@ -112,6 +112,7 @@ function filterReducer(state: FilterState, action: FilterAction): FilterState {
         startDate: state.startDate,
         endDate: state.endDate,
         withCommentsOnly: state.withCommentsOnly,
+        locationFilter: state.locationFilter,
       };
     case "setRating":
       return { ...state, ratingFilter: action.value };
@@ -168,7 +169,19 @@ const decodeSort = (
   };
 };
 
-export function ReviewsTab({ locationId }: { locationId?: number | null } = {}) {
+export function ReviewsTab({
+  locationId,
+  onLocationScopeChange,
+}: {
+  locationId?: number | null;
+  /**
+   * Fired when the user changes or clears the location filter, so the host
+   * page can mirror it into the `locationId` URL param (kept in sync: set on
+   * pick, removed on clear). Reconciliation from the prop itself never fires
+   * this — only user actions do.
+   */
+  onLocationScopeChange?: (locationId: number | null) => void;
+} = {}) {
   const dispatch = useDispatch();
   const { t } = useTranslation("reviews");
 
@@ -370,18 +383,44 @@ export function ReviewsTab({ locationId }: { locationId?: number | null } = {}) 
     (withCommentsOnly ? 1 : 0);
   const hasFilters = activeFilterCount > 0;
 
-  // When the feed is locked to a location (opened from a location panel), the card
-  // location chips must not re-scope the filter — pass undefined so FooterLocation
-  // renders them as static, non-interactive text.
-  const handleLocationClick =
-    locationId != null
-      ? undefined
-      : (id: number) =>
-          dispatchFilter({ type: "setLocation", value: locationFilter === id ? null : id });
+  // User-initiated location changes also flow to the host page so the
+  // `locationId` URL param stays in sync (removed on clear).
+  const commitLocationFilter = (value: number | null) => {
+    dispatchFilter({ type: "setLocation", value });
+    onLocationScopeChange?.(value);
+  };
+
+  const clearAllFilters = () => {
+    dispatchFilter({ type: "clearAll" });
+    if (locationFilter !== null) onLocationScopeChange?.(null);
+  };
+
+  const handleLocationClick = (id: number) =>
+    commitLocationFilter(locationFilter === id ? null : id);
 
   const overall = stats?.overall ?? { averageRating: null, totalReviews: 0 };
   const locations = stats?.locations ?? [];
   const teamMembersData = stats?.teamMembers ?? [];
+
+  // Whenever a location filter is active (drill-in seed or hand-picked), the
+  // hero and insights show that location's own numbers (the stats endpoint
+  // already carries per-location aggregates + distributions).
+  const scopedLocationStats =
+    locationFilter != null
+      ? locations.find((entry) => entry.locationId === locationFilter) ?? null
+      : null;
+  const heroRating = scopedLocationStats
+    ? scopedLocationStats.averageRating
+    : overall.averageRating;
+  const heroTotalReviews = scopedLocationStats
+    ? scopedLocationStats.totalReviews
+    : overall.totalReviews;
+  const heroDistribution = scopedLocationStats
+    ? scopedLocationStats.ratingDistribution
+    : stats?.business.ratingDistribution ?? null;
+  const heroDistributionTotal = scopedLocationStats
+    ? scopedLocationStats.totalReviews
+    : stats?.business.totalReviews ?? 0;
 
   // True zero-state: stats loaded, no reviews exist anywhere, no error.
   // Skip the toolbar + grid layout entirely — there's nothing to filter,
@@ -393,16 +432,11 @@ export function ReviewsTab({ locationId }: { locationId?: number | null } = {}) 
     listError === null &&
     statsError === null;
 
+  // No hero here: a "Public rating" card with nothing to rate is redundant —
+  // the first-review panel already says there are no reviews yet.
   if (isTrulyEmpty) {
     return (
       <div className="w-full max-w-7xl mb-0 md:mb-8 space-y-5">
-        <ReviewsHero
-          rating={overall.averageRating}
-          totalReviews={overall.totalReviews}
-          locationCount={locations.length}
-          teamMemberCount={teamMembersData.length}
-          loading={statsLoading}
-        />
         <FirstReviewState />
       </div>
     );
@@ -465,7 +499,6 @@ export function ReviewsTab({ locationId }: { locationId?: number | null } = {}) 
     subTab,
     ratingFilter,
     locationFilter,
-    lockedLocationId: locationId ?? null,
     teamMemberFilter,
     datePreset,
     startDate,
@@ -475,8 +508,7 @@ export function ReviewsTab({ locationId }: { locationId?: number | null } = {}) 
     teamMembers: teamMembersData,
     onRatingChange: (v: number | null) =>
       dispatchFilter({ type: "setRating", value: v }),
-    onLocationChange: (v: number | null) =>
-      dispatchFilter({ type: "setLocation", value: v }),
+    onLocationChange: commitLocationFilter,
     onTeamMemberChange: (v: number | null) =>
       dispatchFilter({ type: "setTeamMember", value: v }),
     onDateRangeChange: (
@@ -492,23 +524,24 @@ export function ReviewsTab({ locationId }: { locationId?: number | null } = {}) 
       }),
     onWithCommentsChange: (v: boolean) =>
       dispatchFilter({ type: "setWithCommentsOnly", value: v }),
-    onClearAll: () => dispatchFilter({ type: "clearAll" }),
+    onClearAll: clearAllFilters,
   };
 
   return (
     <div className="w-full max-w-7xl mb-0 md:mb-8 space-y-5">
       <ReviewsHero
-        rating={overall.averageRating}
-        totalReviews={overall.totalReviews}
-        locationCount={locations.length}
-        teamMemberCount={teamMembersData.length}
+        rating={heroRating}
+        totalReviews={heroTotalReviews}
+        locationCount={scopedLocationStats ? 0 : locations.length}
+        teamMemberCount={scopedLocationStats ? 0 : teamMembersData.length}
         loading={statsLoading}
+        scopeLabel={scopedLocationStats?.name}
         expandableContent={
-          stats && overall.totalReviews > 0 ? (
+          stats && heroDistribution && heroDistributionTotal > 0 ? (
             <div className="flex flex-col gap-4">
               <RatingBreakdown
-                distribution={stats.business.ratingDistribution}
-                total={stats.business.totalReviews}
+                distribution={heroDistribution}
+                total={heroDistributionTotal}
                 selectedRating={ratingFilter}
                 onRatingClick={(star) =>
                   dispatchFilter({
@@ -530,7 +563,11 @@ export function ReviewsTab({ locationId }: { locationId?: number | null } = {}) 
                     aria-hidden="true"
                   />
                   <p className="text-xs text-foreground-2 leading-relaxed">
-                    {t("stats.calculationNote")}
+                    {t(
+                      scopedLocationStats
+                        ? "stats.calculationNoteLocation"
+                        : "stats.calculationNote",
+                    )}
                   </p>
                 </div>
                 <div className="flex items-start gap-2.5">
@@ -539,7 +576,11 @@ export function ReviewsTab({ locationId }: { locationId?: number | null } = {}) 
                     aria-hidden="true"
                   />
                   <p className="text-xs text-foreground-2 leading-relaxed">
-                    {t("stats.audienceNote")}
+                    {t(
+                      scopedLocationStats
+                        ? "stats.audienceNoteLocation"
+                        : "stats.audienceNote",
+                    )}
                   </p>
                 </div>
               </div>
@@ -623,7 +664,7 @@ export function ReviewsTab({ locationId }: { locationId?: number | null } = {}) 
             ) : reviews.length === 0 ? (
               <EmptyReviewsState
                 kind={hasFilters ? "filtered" : "none"}
-                onClearFilters={() => dispatchFilter({ type: "clearAll" })}
+                onClearFilters={clearAllFilters}
               />
             ) : (
               <>
@@ -690,6 +731,7 @@ export function ReviewsTab({ locationId }: { locationId?: number | null } = {}) 
           ) : (
             <ReviewsInsightsPanel
               stats={stats}
+              scopedLocation={scopedLocationStats}
               loading={statsLoading}
               selectedRating={ratingFilter}
               onRatingClick={(star) =>
@@ -699,7 +741,7 @@ export function ReviewsTab({ locationId }: { locationId?: number | null } = {}) 
                 })
               }
               activeFilterCount={activeFilterCount}
-              onClearAll={() => dispatchFilter({ type: "clearAll" })}
+              onClearAll={clearAllFilters}
             />
           )}
         </aside>
@@ -711,7 +753,7 @@ export function ReviewsTab({ locationId }: { locationId?: number | null } = {}) 
           surface. Renders only when filters are active. */}
       <MobileClearFiltersFab
         activeFilterCount={activeFilterCount}
-        onClearAll={() => dispatchFilter({ type: "clearAll" })}
+        onClearAll={clearAllFilters}
       />
     </div>
   );

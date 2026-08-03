@@ -1,9 +1,10 @@
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useEffect } from 'react'
 import { createBrowserRouter, createRoutesFromElements, Navigate, Outlet, Route, RouterProvider, useLocation, useRouteError } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { ErrorState } from './shared/components/common/ErrorState'
-import { isStaleChunkError } from './shared/components/common/AppErrorBoundary'
+import { AlertCircle, RotateCcw } from 'lucide-react'
+import { Button } from './shared/components/ui/button'
 import ProtectedRoute from './features/auth/components/ProtectedRoute'
+import { warmMainRoutes } from './shared/utils/routePreload'
 import PublicRoute from './features/auth/components/PublicRoute'
 import AccountLinkingModal from './features/auth/components/AccountLinkingModal'
 import AccountLinkingRequiredModal from './features/auth/components/AccountLinkingRequiredModal'
@@ -13,6 +14,8 @@ import SeatOverflowDetector from './features/teamMembers/components/SeatOverflow
 import { SubscriptionBlocker } from './shared/components/common/subscription/SubscriptionBlocker'
 import PushListenersBootstrap from './features/push-notifications/PushListenersBootstrap'
 import SplashGate from './shared/components/splash/SplashGate'
+import { MobileBottomNav } from './shared/components/navigation/mobile-bottom-nav'
+import { useIsMobile } from './shared/hooks/use-mobile'
 import { Spinner } from './shared/components/ui/spinner'
 import { Toaster } from './shared/components/ui/sonner'
 
@@ -66,18 +69,32 @@ function RouteErrorFallback() {
   const error = useRouteError()
   const { t } = useTranslation('common')
   console.error('Route error:', error)
-  const stale = isStaleChunkError(error)
 
   return (
-    <div className="flex min-h-dvh items-center justify-center px-2">
-      <ErrorState
-        variant="page"
-        title={stale ? t('errorState.updateTitle') : t('errorState.title')}
-        body={stale ? t('errorState.updateBody') : t('errorState.crashBody')}
-        onRetry={() => window.location.reload()}
-        retryLabel={t('errorState.reload')}
-        className="max-w-[34rem] px-0"
-      />
+    <div
+      role="alert"
+      aria-atomic="true"
+      className="flex min-h-dvh flex-col items-center justify-center px-6 pb-[10vh] text-center"
+    >
+      <div className="flex items-center gap-2">
+        <AlertCircle className="size-5 shrink-0 text-error" aria-hidden="true" />
+        <h1 className="text-lg font-semibold tracking-tight text-foreground-1">
+          {t('errorState.title')}
+        </h1>
+      </div>
+      <p className="mt-1.5 max-w-sm text-balance text-sm leading-relaxed text-foreground-2">
+        {t('errorState.crashBody')}
+      </p>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={() => window.location.reload()}
+        className="mt-6 min-h-10 font-medium md:min-h-9"
+      >
+        <RotateCcw className="size-3.5" aria-hidden="true" />
+        {t('errorState.reload')}
+      </Button>
     </div>
   )
 }
@@ -90,6 +107,18 @@ function RouteErrorFallback() {
 function RootLayout() {
   const location = useLocation()
   const isWebsiteBuilder = location.pathname === '/website'
+
+  // Warm the main flows' chunks once the browser is idle, so navigating to one
+  // never suspends into the full-screen RouteFallback spinner.
+  useEffect(() => {
+    const start = () => { void warmMainRoutes() }
+    if (typeof window.requestIdleCallback === 'function') {
+      const id = window.requestIdleCallback(start, { timeout: 4000 })
+      return () => window.cancelIdleCallback(id)
+    }
+    const id = window.setTimeout(start, 2000)
+    return () => window.clearTimeout(id)
+  }, [])
 
   return (
     <>
@@ -112,6 +141,28 @@ function RootLayout() {
         visibleToasts={isWebsiteBuilder ? 3 : undefined}
         gap={isWebsiteBuilder ? 8 : undefined}
       />
+    </>
+  )
+}
+
+/**
+ * Pathless layout for the signed-in flows: owns the mobile bottom nav so route
+ * changes reconcile it instead of remounting it — the More drawer finishes its
+ * close animation and the tab indicator transitions instead of replaying its
+ * mount animation. Same idea as the shared AuthLayout for /login–/register.
+ *
+ * The nav sits OUTSIDE its own Suspense boundary: a cold lazy chunk suspends
+ * into this fallback instead of RootLayout's, so the shell teardown that
+ * routePreload.ts documents can no longer unmount the nav mid-drawer-close.
+ */
+function AppNavLayout() {
+  const isMobile = useIsMobile()
+  return (
+    <>
+      <Suspense fallback={<RouteFallback />}>
+        <Outlet />
+      </Suspense>
+      {isMobile && <MobileBottomNav />}
     </>
   )
 }
@@ -139,7 +190,6 @@ function MarketplaceRoute() {
 const router = createBrowserRouter(
   createRoutesFromElements(
     <Route element={<RootLayout />} errorElement={<RouteErrorFallback />}>
-      <Route path="/" element={<ProtectedRoute element={<DashboardPage />} />} />
       <Route path="/welcome" element={<ProtectedRoute element={<SetupWizardPage />} />} />
 
       {/* Auth — shared AuthLayout keeps the hero panel mounted across
@@ -155,25 +205,28 @@ const router = createBrowserRouter(
       <Route path="/link-business-account" element={<LinkBusinessAccountPage />} />
       <Route path="/auth/callback" element={<GoogleOAuthCallback />} />
 
-      {/* Main */}
-      <Route path="/dashboard" element={<ProtectedRoute element={<DashboardPage />} />} />
-      <Route path="/dashboard/:locationId" element={<ProtectedRoute element={<DashboardPage />} />} />
-      <Route path="/calendar" element={<ProtectedRoute element={<CalendarPage />} />} />
-      <Route path="/locations" element={<ProtectedRoute element={<LocationsPage />} />} />
-      <Route path="/services" element={<ProtectedRoute element={<ServicesPage />} />} />
-      <Route path="/assignments" element={<ProtectedRoute element={<AssignmentsPage />} />} />
-      <Route path="/team-members" element={<ProtectedRoute element={<TeamMembersPage />} />} />
-      <Route path="/customers" element={<ProtectedRoute element={<CustomersPage />} />} />
-      <Route path="/marketplace" element={<MarketplaceRoute />} />
-      <Route path="/website" element={<ProtectedRoute element={<WebsitePage />} />} />
-      <Route path="/support" element={<ProtectedRoute element={<SupportPage />} />} />
-      <Route path="/notifications" element={<ProtectedRoute element={<NotificationsPage />} />} />
-      <Route path="/account" element={<ProtectedRoute element={<SettingsPage />} />} />
+      {/* Main — shared AppNavLayout keeps the mobile bottom nav mounted across navigations */}
+      <Route element={<AppNavLayout />}>
+        <Route path="/" element={<ProtectedRoute element={<DashboardPage />} />} />
+        <Route path="/dashboard" element={<ProtectedRoute element={<DashboardPage />} />} />
+        <Route path="/dashboard/:locationId" element={<ProtectedRoute element={<DashboardPage />} />} />
+        <Route path="/calendar" element={<ProtectedRoute element={<CalendarPage />} />} />
+        <Route path="/locations" element={<ProtectedRoute element={<LocationsPage />} />} />
+        <Route path="/services" element={<ProtectedRoute element={<ServicesPage />} />} />
+        <Route path="/assignments" element={<ProtectedRoute element={<AssignmentsPage />} />} />
+        <Route path="/team-members" element={<ProtectedRoute element={<TeamMembersPage />} />} />
+        <Route path="/customers" element={<ProtectedRoute element={<CustomersPage />} />} />
+        <Route path="/marketplace" element={<MarketplaceRoute />} />
+        <Route path="/website" element={<ProtectedRoute element={<WebsitePage />} />} />
+        <Route path="/support" element={<ProtectedRoute element={<SupportPage />} />} />
+        <Route path="/notifications" element={<ProtectedRoute element={<NotificationsPage />} />} />
+        <Route path="/account" element={<ProtectedRoute element={<SettingsPage />} />} />
 
-      {/* Team Member Only */}
-      <Route path="/my-assignments" element={<ProtectedRoute element={<MyAssignmentsPage />} />} />
-      <Route path="/my-profile" element={<ProtectedRoute element={<MyProfilePage />} />} />
-      <Route path="/my-account" element={<ProtectedRoute element={<MyAccountPage />} />} />
+        {/* Team Member Only */}
+        <Route path="/my-assignments" element={<ProtectedRoute element={<MyAssignmentsPage />} />} />
+        <Route path="/my-profile" element={<ProtectedRoute element={<MyProfilePage />} />} />
+        <Route path="/my-account" element={<ProtectedRoute element={<MyAccountPage />} />} />
+      </Route>
 
       {/* Legal */}
       <Route path="/terms" element={<LegalPage />} />

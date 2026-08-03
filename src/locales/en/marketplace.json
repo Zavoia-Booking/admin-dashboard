@@ -44,8 +44,8 @@
   },
   "configuration": {
     "tabs": {
-      "business": "Business page",
-      "website": "Website builder",
+      "business": "Profile",
+      "website": "Web Studio",
       "locations": "Locations"
     },
     "sections": {
@@ -53,6 +53,7 @@
     },
     "buttons": {
       "saveChanges": "Save changes",
+      "save": "Save",
       "publish": "Publish listing",
       "saving": "Saving...",
       "publishing": "Publishing..."
@@ -108,22 +109,44 @@
   },
   "statusStrip": {
     "live": "Live on marketplace",
+    "notListed": "Not on the marketplace yet",
     "toGoLive": "To go live:",
+    "progressDone": "{{done}} of {{total}} done",
+    "resolve": "Resolve",
     "checklist": {
       "industryTag": "At least one industry tag",
       "detailsValid": "Business details valid",
-      "websiteBuilder": "Website builder valid",
-      "locationPhoto": "At least one location photo",
-      "locationImages": "Each visible location has a photo"
+      "websiteBuilder": "Web Studio valid",
+      "locationPhoto": "At least one photo per location"
     },
-    "locationsVisible": "{{visible}} of {{total}} locations visible",
     "noLocationLive": "No location is live yet",
     "locationNeedsImage": "A location is missing photos — add at least one",
     "locationsWaitingPublish": "Public locations will appear once you publish your business page."
   },
   "locations": {
-    "managePage": "Manage page",
+    "title": "Locations",
+    "description": "Select a location to manage its visibility, online booking, photos, and marketplace details.",
+    "listLabel": "Marketplace locations",
+    "listHeading": "Your locations",
     "backToAll": "All locations",
+    "visible": "Visible",
+    "hidden": "Hidden",
+    "bookingOn": "Online booking on",
+    "bookingOff": "Online booking off",
+    "needsPhoto": "Add photos",
+    "photoCount_one": "{{count}} photo",
+    "photoCount_other": "{{count}} photos",
+    "emptyWorkspaceTitle": "Choose a location",
+    "emptyWorkspaceDescription": "Select a location from the list to manage its marketplace page.",
+    "workspace": {
+      "visibilityTitle": "Marketplace visibility",
+      "visibilityDescription": "Control whether clients can discover and book this location.",
+      "autoSave": "Visibility and booking changes save automatically.",
+      "locationDetails": "Location details",
+      "servicesAndTeam": "Services & team",
+      "marketplaceDetails": "Marketplace details",
+      "marketplaceDetailsDescription": "Amenities, accessibility, payment methods, and languages."
+    },
     "reviews": {
       "title": "Reviews",
       "count_one": "{{count}} review",
@@ -187,7 +210,7 @@
       "loadFailed": "Could not load portfolio.",
       "uploadFailed": "Could not upload {{name}}.",
       "deleteFailed": "Could not delete image.",
-      "publishedGalleryImage": "This photo is used on the published website. Change or remove it in the Website Builder before deleting it.",
+      "publishedGalleryImage": "This photo is used on the published website. Change or remove it in Web Studio before deleting it.",
       "updateFeaturedFailed": "Could not update cover image.",
       "waitForUpload": "Please wait for the image to finish uploading.",
       "noLocationSelected": "Please select a location first."

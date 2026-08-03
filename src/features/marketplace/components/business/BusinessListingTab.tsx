@@ -27,6 +27,26 @@ export function BusinessListingTab({
         aria-disabled={!canWrite}
       >
         <div className="space-y-8">
+          {/* Industry & tags lead: the only section needing active input to
+              go live (details prefill from the business), and the page order
+              mirrors the publish checklist. Anchor ids are the checklist's
+              resolve targets; scroll-mt clears the sticky tab header. */}
+          <div
+            id="marketplace-industry-section"
+            className="scroll-mt-24 rounded-2xl"
+          >
+            <IndustrySection
+              industries={industries}
+              industryTags={industryTags}
+              selectedTags={form.selectedIndustryTags}
+              onTagsChange={form.setSelectedIndustryTags}
+              error={form.industryTagsError || undefined}
+            />
+          </div>
+          <div
+            id="marketplace-business-details-section"
+            className="scroll-mt-24 rounded-2xl"
+          >
           <MarketplaceDetailsSection
             business={business}
             useBusinessName={form.useBusinessName}
@@ -50,13 +70,7 @@ export function BusinessListingTab({
             phoneError={form.phoneError || undefined}
             descriptionError={form.descriptionError || undefined}
           />
-          <IndustrySection
-            industries={industries}
-            industryTags={industryTags}
-            selectedTags={form.selectedIndustryTags}
-            onTagsChange={form.setSelectedIndustryTags}
-            error={form.industryTagsError || undefined}
-          />
+          </div>
         </div>
       </div>
     </div>

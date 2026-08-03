@@ -16,6 +16,7 @@ import {
   selectWebsiteAccess,
 } from "../selectors";
 import { WebsiteWorkspace } from "../components/WebsiteWorkspace";
+import { WebsiteBuilderSkeletonCanvas } from "../components/WebsiteBuilderSkeleton";
 import { WebsiteAtelierHeader } from "../components/atelier/WebsiteAtelierHeader";
 import { WebsiteAtelierShell } from "../components/atelier/WebsiteAtelierShell";
 import type { ReactNode } from "react";
@@ -114,10 +115,10 @@ export default function WebsiteAtelierPage() {
   // in-workspace refetches keep their existing stale-while-revalidate behavior.
   if (!entryRequestStarted || (isLoading && (!identity || !draft || !access))) {
     return (
-      <WebsiteStateShell businessName={entryRequestStarted ? identity?.name : null}>
+      <WebsiteStateShell businessName={entryRequestStarted ? identity?.name : null} scroll>
         <BusinessSetupGate>
-          <div className="grid place-items-center" aria-label={t("page.status.loading")}>
-            <Spinner size="lg" />
+          <div role="status" aria-label={t("page.status.loading")}>
+            <WebsiteBuilderSkeletonCanvas />
           </div>
         </BusinessSetupGate>
       </WebsiteStateShell>

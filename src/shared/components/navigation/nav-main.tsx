@@ -8,6 +8,7 @@ import {
   CollapsibleTrigger,
 } from "../ui/collapsible"
 import { Link } from "react-router-dom"
+import { preloadRoute } from "../../utils/routePreload"
 import {
   SidebarGroup,
   SidebarMenu,
@@ -187,6 +188,9 @@ export function NavMain({
                   >
                     <Link
                       to={item.url}
+                      // Hover is a strong intent signal on desktop and buys a
+                      // few hundred ms of chunk download before the click.
+                      onPointerEnter={() => preloadRoute(item.url)}
                       onClick={(e) => {
                         if (isUrlActive(item.url)) e.preventDefault()
                       }}

@@ -1,6 +1,6 @@
 {
   "page": {
-    "title": "Website",
+    "title": "Web Studio",
     "loadError": "We couldn't load your website.",
     "retry": "Try again",
     "toasts": {
@@ -24,7 +24,7 @@
       "publishLockedItems": "Unlock or replace premium options before publishing"
     },
     "status": {
-      "loading": "Loading website builder",
+      "loading": "Loading Web Studio",
       "saved": "Saved",
       "unsaved": "Unsaved changes",
       "saving": "Saving…",
@@ -67,7 +67,7 @@
     },
     "actions": {
       "backToDashboard": "Back to dashboard",
-      "skipToBuilder": "Skip to website builder",
+      "skipToBuilder": "Skip to Web Studio",
       "save": "Save",
       "saveChanges": "Save",
       "discardChanges": "Discard changes",
@@ -233,12 +233,12 @@
       "taglineTooLong": "Subtitle must be 200 characters or fewer.",
       "brandColorInvalid": "Enter a 6-digit hex color, e.g. #1B9C85.",
       "aboutHeadlineRequired": "Add a headline to your About section, or hide it.",
-      "layoutFromNewerVersion": "A section created by a newer Website Builder version cannot be safely saved here."
+      "layoutFromNewerVersion": "A section created by a newer Web Studio version cannot be safely saved here."
     },
     "locked": {
       "eyebrow": "Included with Plus",
       "title": "Build your website",
-      "nativeDescription": "Website Builder isn't included in your current plan.",
+      "nativeDescription": "Web Studio isn't included in your current plan.",
       "teaserCaption": "Website preview",
       "features": {
         "preview": "Preview your website on desktop, tablet, and mobile",
@@ -650,7 +650,7 @@
     },
     "builder": {
       "eyebrow": "Design & content",
-      "studioTitle": "Website Builder",
+      "studioTitle": "Web Studio",
       "openPreview": "Preview website",
       "sectionsVisible": "visible",
       "sectionsLiveCount": "{{shown}} of {{total}} live",

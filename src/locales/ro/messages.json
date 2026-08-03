@@ -166,8 +166,8 @@
     "E14": "Prețurile regionale se suprapun pentru o țară",
     "E15": "Nu am găsit această plată",
     "E16": "Prețurile regionale ale acestui stil sunt invalide",
-    "E17": "Acest stil nu este încă suportat de constructor",
-    "E18": "Prețul s-a schimbat de când ai deschis constructorul. Verifică totalul actualizat și încearcă din nou"
+    "E17": "Acest stil nu este încă suportat de Web Studio",
+    "E18": "Prețul s-a schimbat de când ai deschis Web Studio. Verifică totalul actualizat și încearcă din nou"
   },
   "WEBSITE_SECTIONS": {
     "E01": "Această secțiune premium nu mai este disponibilă",
@@ -176,8 +176,8 @@
     "E04": "Această secțiune este inclusă, deci nu necesită plată",
     "E05": "Ai deblocat deja această secțiune",
     "E06": "Nu am putut debloca această secțiune. Încearcă din nou",
-    "E07": "Această secțiune nu mai este disponibilă în Constructorul de site",
-    "E08": "Această secțiune nu este încă suportată de constructor",
+    "E07": "Această secțiune nu mai este disponibilă în Web Studio",
+    "E08": "Această secțiune nu este încă suportată de Web Studio",
     "E09": "Această secțiune are încă stiluri atașate, deci cheia ei nu poate fi modificată"
   },
   "WEBSITE_THEME_ASSETS": {
@@ -187,7 +187,7 @@
     "E04": "Acest stil nu poate fi aplicat momentan. Încearcă din nou"
   },
   "WEBSITE_BUILDER": {
-    "E01": "Constructorul de site necesită planul Plus. Poți face upgrade din Cont > Facturare",
+    "E01": "Web Studio necesită planul Plus. Poți face upgrade din Cont > Facturare",
     "E02": "Este disponibilă o versiune mai nouă a site-ului. Reîncarcă pentru a continua",
     "E03": "Unele elemente necesită atenție înainte de salvare. Verifică secțiunile marcate și încearcă din nou",
     "E04": "Unele locații selectate nu mai sunt disponibile pentru acest business. Reîncarcă, apoi actualizează secțiunea Locații",

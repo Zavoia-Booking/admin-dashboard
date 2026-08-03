@@ -33,6 +33,8 @@
     "audienceNote": "Acesta este ratingul pe care clienții îl văd pe profilul businessului tău.",
     "calculationNotePersonal": "Combinat din toate recenziile primite de la clienții tăi.",
     "audienceNotePersonal": "Acesta este ratingul pe care clienții îl văd pe profilul tău public.",
+    "calculationNoteLocation": "Combinat din toate recenziile primite la această locație.",
+    "audienceNoteLocation": "Acesta este ratingul pe care clienții îl văd pentru această locație în marketplace.",
     "errorBody": "Nu am putut încărca statisticile recenziilor. Verifică conexiunea și încearcă din nou."
   },
   "hero": {
@@ -73,7 +75,7 @@
   },
   "subTabs": {
     "business": "Business",
-    "teamMembers": "Membri echipă"
+    "teamMembers": "Echipă"
   },
   "filter": {
     "button": "Filtre",
