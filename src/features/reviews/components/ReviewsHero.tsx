@@ -14,6 +14,11 @@ interface ReviewsHeroProps {
   teamMemberCount: number;
   loading?: boolean;
   /**
+   * When the feed is locked to one location, its name replaces the
+   * "Public Rating" eyebrow so the scope of the numbers is explicit.
+   */
+  scopeLabel?: string | null;
+  /**
    * Optional expandable body (mobile/tablet only — wrapped in `lg:hidden`).
    * When provided, the hero renders a "Show distribution + about" toggle
    * below its meta line; tapping reveals this content via a grid-rows
@@ -103,6 +108,7 @@ export function ReviewsHero({
   locationCount,
   teamMemberCount,
   loading,
+  scopeLabel,
   expandableContent,
 }: ReviewsHeroProps) {
   const { t } = useTranslation("reviews");
@@ -189,8 +195,8 @@ export function ReviewsHero({
         <div className="flex items-center justify-between gap-3 flex-wrap">
           {/* Eyebrow — `modalEyebrow` recipe (modal-tokens.ts) so the
               terracotta accent matches every modal in the app. */}
-          <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-primary-700 dark:text-primary-500">
-            {t("stats.overallTitle")}
+          <div className="min-w-0 truncate text-[11px] font-semibold uppercase tracking-[0.12em] text-primary-700 dark:text-primary-500">
+            {scopeLabel ?? t("stats.overallTitle")}
           </div>
 
           <Badge
@@ -315,7 +321,7 @@ export function ReviewsHero({
  */
 function ReviewsHeroSkeleton() {
   return (
-    <section className="relative overflow-hidden rounded-xl border border-border bg-surface px-4 pt-4 pb-1.5 lg:pb-4">
+    <section className="skeleton-delayed-reveal relative overflow-hidden rounded-xl border border-border bg-surface px-4 pt-4 pb-1.5 lg:pb-4">
       <div className="relative flex flex-col gap-3">
         {/* Row 1: eyebrow (left) + status pill (right) */}
         <div className="flex items-center justify-between gap-3">

@@ -1223,84 +1223,539 @@
   }
 }
 
-/* ── Plan picker (Standard vs Plus) ── */
-.bv2-plans {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+/* ── Plan picker (Standard vs Plus) ──
+ * One panel at a time behind a segmented switch, instead of two side-by-side
+ * cards. Switching plans morphs the panel: the gradient's colour stops
+ * interpolate, the changing values briefly soften and the headline price
+ * counts to its new amount. The whole morph fits in ~240ms.
+ */
+
+/* Registered so the gradient's colour STOPS can interpolate. Crossfading two
+ * opaque layers flares at the midpoint (the paper skin's white bloom sits
+ * half-lit over the espresso); one layer whose colours tween cannot. */
+@property --bv2-g1 { syntax: '<color>'; inherits: true; initial-value: #4A3B2B; }
+@property --bv2-g2 { syntax: '<color>'; inherits: true; initial-value: #362A20; }
+@property --bv2-g3 { syntax: '<color>'; inherits: true; initial-value: #241C15; }
+@property --bv2-g4 { syntax: '<color>'; inherits: true; initial-value: #17120F; }
+@property --bv2-glow  { syntax: '<color>'; inherits: true; initial-value: rgba(228,196,142,.30); }
+@property --bv2-glow2 { syntax: '<color>'; inherits: true; initial-value: rgba(214,164,108,.20); }
+@property --bv2-pool  { syntax: '<color>'; inherits: true; initial-value: rgba(10,8,6,.55); }
+
+.bv2-plan-picker {
+  --bv2-morph: 240ms;
+  --bv2-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --bv2-ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+}
+
+/* ── Segmented plan switch ──
+ * Track is a real shade (neutral-200) so the white thumb reads against it;
+ * --muted resolves to neutral-50 here, one percent off the thumb's white. */
+.bv2-plan-seg {
+  position: relative;
+  display: inline-flex;
+  align-items: stretch;
+  height: 36px;
+  padding: 3px;
+  background: var(--color-neutral-200);
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+}
+.dark .bv2-plan-seg {
+  background: oklch(16% 0.004 70);
+  border-color: oklch(26% 0.005 70);
+}
+.bv2-plan-seg-thumb {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: 0 1px 2px rgba(28, 28, 26, 0.16), 0 1px 6px -2px rgba(28, 28, 26, 0.12);
+  transition: transform 200ms var(--bv2-ease-in-out), width 200ms var(--bv2-ease-in-out);
+}
+.dark .bv2-plan-seg-thumb {
+  background: oklch(32% 0.006 70);
+  border-color: oklch(40% 0.006 70);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+/* Symmetric padding: the status dot is taken out of flow below, so the label
+ * is centred on the segment whether or not the plan is the live one. */
+.bv2-plan-seg button {
+  position: relative;
+  z-index: 1;
+  flex: 1 1 0;
+  /* globals.css sets min-height/min-width:44px on every button for touch
+   * targets, at (0,2,1) specificity — higher than this rule, so it must be
+   * forced. Left alone, the button is 44px inside a 28px track and the label
+   * lands 8px below centre. */
+  min-height: 0 !important;
+  min-width: 100px !important;
+  height: 100%;
+  padding: 0 20px;
+  gap: 6px;
+  border: 0;
+  background: none;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1;
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 200ms var(--bv2-ease-out), transform 120ms var(--bv2-ease-out);
+}
+.bv2-plan-seg button:active:not(:disabled) { transform: scale(0.97); }
+.bv2-plan-seg button:disabled { cursor: not-allowed; }
+.bv2-plan-seg button[aria-pressed='true'] {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+/* Tier marker, not a state marker: it stays gold on the inactive side too,
+ * since that is exactly when it has work to do. The panel's #e0c08a is tuned
+ * for espresso and would vanish on this near-white track. */
+.bv2-plan-seg-crown {
+  width: 12px;
+  height: 12px;
+  flex: none;
+  color: oklch(55% 0.09 72);
+}
+.dark .bv2-plan-seg-crown { color: #e0c08a; }
+/* While Plus is not the viewed plan, the crown makes its case: a small tip of
+ * the head every few seconds, at rest the remaining ~95% of the cycle. */
+.bv2-plan-seg button[aria-pressed='false'] .bv2-plan-seg-crown {
+  animation: bv2-crown-nudge 7s ease-in-out infinite;
+  transform-origin: 50% 85%;
+}
+@keyframes bv2-crown-nudge {
+  0%, 86%, 100% { transform: rotate(0deg); }
+  89% { transform: rotate(-11deg); }
+  93% { transform: rotate(8deg); }
+  97% { transform: rotate(-3deg); }
+}
+.bv2-plan-seg-live {
+  position: absolute;
+  top: 50%;
+  right: 11px;
+  width: 6px;
+  height: 6px;
+  margin-top: -3px;
+  border-radius: 999px;
+  background: var(--color-green-500);
+}
+/* Crown beside the checkout confirm title when the plan is Plus */
+.bv2-confirm-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+}
+.bv2-confirm-crown {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  color: oklch(55% 0.09 72);
+}
+.dark .bv2-confirm-crown { color: #e0c08a; }
+.dark .bv2-plan-seg-live { background: var(--color-green-400); }
+@media (hover: hover) and (pointer: fine) {
+  .bv2-plan-seg button:hover:not([aria-pressed='true']):not(:disabled) { color: var(--text-primary); }
 }
 @media (max-width: 560px) {
-  .bv2-plans { grid-template-columns: 1fr; }
+  /* Stack the plans header: title/subtitle full width on top, then the
+   * switcher full width above the panel. Side by side, the pill's fixed
+   * width crushes the title into a one-word column. */
+  .bv2-plan-picker .bv2-card-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .bv2-plan-picker .bv2-card-header .bv2-card-action { width: 100%; }
+  .bv2-plan-seg { display: flex; width: 100%; }
 }
-.bv2-plan-card {
+
+/* ── Panel ── */
+.bv2-plan-panel {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 16px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--surface);
+  padding: 18px 18px 0;
+  border-radius: 14px;
+  transition:
+    --bv2-g1 var(--bv2-morph) var(--bv2-ease-in-out), --bv2-g2 var(--bv2-morph) var(--bv2-ease-in-out),
+    --bv2-g3 var(--bv2-morph) var(--bv2-ease-in-out), --bv2-g4 var(--bv2-morph) var(--bv2-ease-in-out),
+    --bv2-glow var(--bv2-morph) var(--bv2-ease-in-out), --bv2-glow2 var(--bv2-morph) var(--bv2-ease-in-out),
+    --bv2-pool var(--bv2-morph) var(--bv2-ease-in-out),
+    border-color var(--bv2-morph) var(--bv2-ease-in-out), box-shadow var(--bv2-morph) var(--bv2-ease-in-out);
 }
-.bv2-plan-card.bv2-selected {
-  border-color: color-mix(in oklab, var(--primary) 45%, transparent);
-  background: color-mix(in oklab, var(--primary) 5%, var(--surface));
+@media (max-width: 560px) {
+  .bv2-plan-panel { padding: 16px 15px 0; }
 }
-.bv2-plan-head {
+
+.bv2-plan-skin {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: linear-gradient(152deg,
+    var(--bv2-g1) 0%, var(--bv2-g2) 28%, var(--bv2-g3) 62%, var(--bv2-g4) 100%);
+}
+/* Drifting highlight and counter-drifting pool: the panel never sits still. */
+.bv2-plan-skin::before {
+  content: '';
+  position: absolute;
+  inset: -35%;
+  background:
+    radial-gradient(46% 42% at 28% 18%, var(--bv2-glow) 0%, transparent 68%),
+    radial-gradient(38% 46% at 82% 8%, var(--bv2-glow2) 0%, transparent 70%);
+  animation: bv2-drift-a 26s ease-in-out infinite alternate;
+}
+.bv2-plan-skin::after {
+  content: '';
+  position: absolute;
+  inset: -35%;
+  background: radial-gradient(52% 50% at 78% 96%, var(--bv2-pool) 0%, transparent 72%);
+  animation: bv2-drift-b 34s ease-in-out infinite alternate;
+}
+@keyframes bv2-drift-a {
+  0%   { transform: translate3d(-5%, -3%, 0) scale(1); }
+  100% { transform: translate3d(6%, 4%, 0) scale(1.14); }
+}
+@keyframes bv2-drift-b {
+  0%   { transform: translate3d(4%, 3%, 0) scale(1.08); }
+  100% { transform: translate3d(-5%, -4%, 0) scale(1); }
+}
+
+/* Plus: pressed espresso foil, lit from the upper left */
+.bv2-plan-panel[data-skin='plus'] {
+  --bv2-g1: #4A3B2B; --bv2-g2: #362A20; --bv2-g3: #241C15; --bv2-g4: #17120F;
+  --bv2-glow: rgba(228, 196, 142, 0.3);
+  --bv2-glow2: rgba(214, 164, 108, 0.2);
+  --bv2-pool: rgba(10, 8, 6, 0.55);
+  --bv2-ink: #f6f1e7;
+  --bv2-muted: rgba(246, 241, 231, 0.62);
+  --bv2-line: rgba(246, 241, 231, 0.14);
+  --bv2-chip-bg: rgba(246, 241, 231, 0.07);
+  --bv2-chip-bd: rgba(246, 241, 231, 0.15);
+  --bv2-grain-rest: 0.72;
+  border: 1px solid rgba(246, 241, 231, 0.11);
+  box-shadow: 0 20px 38px -26px rgba(22, 17, 13, 0.9), 0 1px 0 rgba(255, 255, 255, 0.08) inset;
+}
+/* Base: warm paper */
+.bv2-plan-panel[data-skin='base'] {
+  --bv2-g1: #F7F4E9; --bv2-g2: #F1EDDE; --bv2-g3: #EDE8D8; --bv2-g4: #E9E4D2;
+  --bv2-glow: rgba(255, 255, 255, 0.55);
+  --bv2-glow2: rgba(255, 255, 255, 0.28);
+  --bv2-pool: rgba(198, 182, 148, 0.3);
+  --bv2-ink: var(--text-primary);
+  --bv2-muted: var(--text-secondary);
+  --bv2-line: color-mix(in oklab, var(--text-primary) 11%, transparent);
+  --bv2-chip-bg: var(--surface);
+  --bv2-chip-bd: color-mix(in oklab, var(--text-primary) 10%, transparent);
+  --bv2-grain-rest: 0.46;
+  border: 1px solid color-mix(in oklab, var(--text-primary) 9%, transparent);
+  box-shadow: 0 10px 24px -22px rgba(28, 28, 26, 0.5);
+}
+.dark .bv2-plan-panel[data-skin='base'] {
+  --bv2-g1: oklch(31% 0.007 70); --bv2-g2: oklch(28% 0.006 70);
+  --bv2-g3: oklch(25% 0.005 70); --bv2-g4: oklch(23% 0.004 70);
+  --bv2-glow: rgba(255, 255, 255, 0.1);
+  --bv2-glow2: rgba(255, 255, 255, 0.05);
+  --bv2-pool: rgba(0, 0, 0, 0.3);
+  --bv2-chip-bg: rgba(255, 255, 255, 0.05);
+  --bv2-chip-bd: rgba(255, 255, 255, 0.1);
+  --bv2-grain-rest: 0.55;
+  border-color: var(--border);
+}
+
+/* Grain: organic film noise, a fine speckle over a coarser mottle. */
+.bv2-plan-grain {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  mix-blend-mode: overlay;
+  opacity: var(--bv2-grain-rest);
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23f)'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='600'%3E%3Cfilter id='c'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.022' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='600' height='600' filter='url(%23c)'/%3E%3C/svg%3E");
+  background-size: 260px 260px, 620px 620px;
+  transition: opacity var(--bv2-morph) var(--bv2-ease-in-out);
+}
+
+/* ── Panel bodies ──
+ * Every plan renders a body, all stacked in one grid cell. The row sizes to
+ * the tallest, so the panel is exactly the same height on every plan without
+ * measuring anything, in every locale and at every width. */
+.bv2-plan-stack {
+  position: relative;
+  z-index: 3;
+  display: grid;
+  flex: 1;
+}
+.bv2-plan-body {
+  grid-area: 1 / 1;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  min-height: 22px;
+  flex-direction: column;
+  min-width: 0;
+  color: var(--bv2-ink);
 }
-.bv2-plan-name {
+.bv2-plan-body[data-active='false'] {
+  visibility: hidden;
+  pointer-events: none;
+}
+.bv2-plan-body[data-active='false'] * { animation: none !important; }
+
+/* Only Plus renders this row, so no height is reserved on Base. */
+.bv2-plan-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+.bv2-plan-crown {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  color: var(--brand-gold, #e0c08a);
+}
+.bv2-plan-crown,
+.bv2-plan-badge { transition: opacity var(--bv2-morph) var(--bv2-ease-in-out); }
+.bv2-plan-panel[data-skin='base'] .bv2-plan-crown,
+.bv2-plan-panel[data-skin='base'] .bv2-plan-badge { opacity: 0; }
+.bv2-plan-badge {
+  padding: 4px 9px;
+  border-radius: 999px;
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--brand-gold, #e0c08a);
+  background: rgba(224, 192, 138, 0.13);
+  border: 1px solid rgba(224, 192, 138, 0.26);
+}
+
+.bv2-plan-eyebrow {
+  margin-bottom: 7px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.17em;
+  text-transform: uppercase;
+  color: var(--bv2-muted);
+}
+.bv2-plan-panel[data-skin='plus'] .bv2-plan-eyebrow { color: rgba(224, 192, 138, 0.82); }
+
+.bv2-plan-price-row {
+  display: flex;
+  align-items: baseline;
+}
+.bv2-plan-price {
+  font-size: 30px;
+  font-weight: 600;
+  letter-spacing: -0.028em;
+  line-height: 1;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  color: var(--bv2-ink);
+}
+.bv2-plan-price .bv2-plan-per {
+  margin-left: 4px;
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 0;
+  color: var(--bv2-muted);
+}
+.bv2-plan-price .bv2-plan-vat {
+  margin-left: 6px;
+  font-size: 11.5px;
+  font-weight: 400;
+  color: var(--bv2-muted);
+}
+@media (max-width: 560px) {
+  .bv2-plan-price { font-size: 25px; }
+  .bv2-plan-price .bv2-plan-per { font-size: 12px; }
+  .bv2-plan-price .bv2-plan-vat { margin-left: 4px; font-size: 11px; }
+}
+
+.bv2-plan-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 14px;
+  margin-bottom: 14px;
+}
+.bv2-plan-chip {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 14px;
-  font-weight: 650;
-  color: var(--text-primary);
+  padding: 6px 11px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  line-height: 1;
+  white-space: nowrap;
+  color: var(--bv2-ink);
+  background: var(--bv2-chip-bg);
+  border: 1px solid var(--bv2-chip-bd);
 }
-.bv2-plan-name svg { color: var(--primary); }
-.bv2-plan-price {
-  font-size: 22px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
+.bv2-plan-chip-num { font-variant-numeric: tabular-nums; }
+
+.bv2-plan-panel-foot {
+  margin-top: auto;
+  padding: 11px 0 13px;
+  border-top: 1px solid var(--bv2-line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.bv2-plan-foot-left {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.bv2-plan-foot-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+.bv2-plan-foot-state .bv2-plan-dot {
+  width: 6px;
+  height: 6px;
+  flex: none;
+  border-radius: 999px;
+  background: currentColor;
+}
+.bv2-plan-foot-state.bv2-t-good { color: #86d9a6; }
+.bv2-plan-foot-state.bv2-t-warn { color: #e8c070; }
+.bv2-plan-foot-state.bv2-t-danger { color: #f09a8a; }
+.bv2-plan-foot-state.bv2-t-info { color: #9dc0f0; }
+.bv2-plan-foot-state.bv2-t-muted { color: var(--bv2-muted); }
+.bv2-plan-panel[data-skin='base'] .bv2-plan-foot-state.bv2-t-good { color: var(--success); }
+.bv2-plan-panel[data-skin='base'] .bv2-plan-foot-state.bv2-t-warn { color: var(--warning); }
+.bv2-plan-panel[data-skin='base'] .bv2-plan-foot-state.bv2-t-danger { color: var(--error); }
+.bv2-plan-panel[data-skin='base'] .bv2-plan-foot-state.bv2-t-info { color: var(--info); }
+.bv2-plan-foot-sep { color: var(--bv2-line); }
+.bv2-plan-foot-biz {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--bv2-muted);
+}
+.bv2-plan-foot-right {
+  white-space: nowrap;
+  color: var(--bv2-muted);
+}
+
+/* ── Defocus ──
+ * Only the values that actually change. The badge and the renewal date hold
+ * still so the eye keeps an anchor while everything else reforms. A whisper
+ * of blur masks the body swap; it should never read as an effect. Split into
+ * out/in rather than one 0->peak->0 curve because the active body swaps
+ * mid-flight: a single animation would restart and read as a hiccup. */
+.bv2-plan-panel[data-morph='out'] .bv2-plan-body[data-active='true'] .bv2-plan-defocus,
+.bv2-plan-panel[data-morph='out'] .bv2-plan-body[data-active='true'] .bv2-plan-foot-left {
+  animation: bv2-defocus-out 70ms var(--bv2-ease-out) both;
+}
+.bv2-plan-panel[data-morph='in'] .bv2-plan-body[data-active='true'] .bv2-plan-defocus,
+.bv2-plan-panel[data-morph='in'] .bv2-plan-body[data-active='true'] .bv2-plan-foot-left {
+  animation: bv2-defocus-in 170ms var(--bv2-ease-out) both;
+}
+@keyframes bv2-defocus-out {
+  from { filter: blur(0px); opacity: 1;    transform: none; }
+  to   { filter: blur(3px); opacity: 0.75; transform: scale(0.995); }
+}
+@keyframes bv2-defocus-in {
+  from { filter: blur(3px); opacity: 0.75; transform: scale(0.995); }
+  to   { filter: blur(0px); opacity: 1;    transform: none; }
+}
+
+/* ── Card footer ──
+ * The footer's height changes with the plan (a helper line and a CTA come and
+ * go), so the box is transitioned rather than left to jump. `clip` with a
+ * margin instead of `hidden`: at rest the height matches the content exactly,
+ * and the button's focus ring still needs to paint outside the box. */
+.bv2-plan-footwrap {
+  overflow: clip;
+  overflow-clip-margin: 10px;
+  transition: height var(--bv2-morph) var(--bv2-ease-in-out);
+}
+/* Contains .bv2-plan-foot's top margin so the measured height includes it. */
+.bv2-plan-foot-measure { display: flow-root; }
+.bv2-plan-foot {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 16px;
+  row-gap: 10px;
+  align-items: end;
+  margin-top: 16px;
+  transition: opacity 200ms var(--bv2-ease-out);
+}
+.bv2-plan-foot[data-fading='true'] { opacity: 0; transition-duration: 70ms; }
+.bv2-plan-foot-copy { min-width: 0; }
+/* Line items behind the total, ruled off from it like a receipt. */
+.bv2-plan-sum {
+  /* Spans both columns so the rule runs the full width of the footer,
+   * crossing over the button as well as the copy. */
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 3px;
+  padding-bottom: 10px;
+  /* --border-subtle resolves to the exact card surface in dark, so it is
+   * invisible there and near-invisible on white. */
+  border-bottom: 1px solid var(--border);
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+.bv2-plan-sum-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+}
+.bv2-plan-sum-row span:last-child { white-space: nowrap; }
+.bv2-plan-foot-line {
+  font-size: 13.5px;
+  line-height: 1.45;
   color: var(--text-primary);
   font-variant-numeric: tabular-nums;
 }
-.bv2-plan-price small {
+.bv2-plan-foot-line strong { font-weight: 600; }
+.bv2-plan-foot-help {
+  margin-top: 3px;
   font-size: 12px;
-  font-weight: 500;
-  color: var(--text-secondary);
-  margin-left: 2px;
-}
-.bv2-plan-seat-price {
-  font-size: 12px;
-  color: var(--text-secondary);
-}
-.bv2-plan-features {
-  list-style: none;
-  margin: 8px 0 12px;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-  flex: 1;
-}
-.bv2-plan-features li {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12.5px;
-  color: var(--text-primary);
-}
-.bv2-plan-features li svg {
-  flex-shrink: 0;
-  color: var(--success);
-}
-.bv2-plan-features li.bv2-plan-feature-muted {
+  line-height: 1.5;
   color: var(--text-tertiary);
 }
-.bv2-plan-features li.bv2-plan-feature-muted svg {
-  color: var(--text-tertiary);
+@media (max-width: 560px) {
+  .bv2-plan-foot { grid-template-columns: 1fr; gap: 12px; }
+  .bv2-plan-foot .bv2-btn-upgrade,
+  .bv2-plan-foot button { width: 100%; }
+}
+
+/* ── Reduced motion ──
+ * Gentler, not zero. The colour still ramps and the price still lands on its
+ * new value; the drift, blur and count all stop. */
+@media (prefers-reduced-motion: reduce) {
+  .bv2-plan-skin::before,
+  .bv2-plan-skin::after { animation: none !important; }
+  .bv2-plan-panel[data-morph] .bv2-plan-defocus,
+  .bv2-plan-panel[data-morph] .bv2-plan-foot-left { animation: none !important; }
+  .bv2-plan-seg-thumb,
+  .bv2-plan-footwrap { transition: none; }
+  .bv2-plan-seg-crown { animation: none !important; }
 }

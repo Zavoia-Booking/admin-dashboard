@@ -37,12 +37,6 @@ interface Props {
   subTab: ReviewSubTab;
   ratingFilter: number | null;
   locationFilter: number | null;
-  /**
-   * When set, the reviews feed is locked to this location (e.g. opened from a
-   * location panel). The Location filter section is hidden so it can't be
-   * changed away from the locked location.
-   */
-  lockedLocationId?: number | null;
   teamMemberFilter: number | null;
   datePreset: DatePreset;
   startDate: string | null;
@@ -124,7 +118,6 @@ export function ReviewsFiltersSheet({
   subTab,
   ratingFilter,
   locationFilter,
-  lockedLocationId,
   teamMemberFilter,
   datePreset,
   startDate,
@@ -358,7 +351,7 @@ export function ReviewsFiltersSheet({
           </label>
         </Section>
 
-        {locations.length > 0 && lockedLocationId == null && (
+        {locations.length > 0 && (
           <Section
             title={t("filter.locationLabel")}
             summary={locationSummary}

@@ -21,6 +21,7 @@ import {
   DrawerTrigger,
 } from '../ui/drawer';
 import { requestGuardedUnsavedAction } from '../../hooks/useUnsavedChangesBlocker';
+import { preloadRoute } from '../../utils/routePreload';
 
 const USFlag = () => (
   <svg width="20" height="15" viewBox="0 0 20 15" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -51,16 +52,19 @@ const languages = [
 
 export function MobileBottomNav() {
   const { pathname } = useLocation();
-
-  // A route change remounts the drawer state, matching the prior close-on-route-change behavior.
-  return <MobileBottomNavContent key={pathname} pathname={pathname} />;
-}
-
-function MobileBottomNavContent({ pathname }: { pathname: string }) {
   const { i18n, t } = useTranslation('navigation');
   const dispatch = useDispatch();
   const { mobileMainItems, mobileMoreItems } = useAppNavigation();
   const [isOpen, setIsOpen] = useState(false);
+
+  // Close on route change (drawer links also close eagerly on tap; this covers
+  // back/forward). Render-phase adjustment, not an effect, so the close lands
+  // in the same commit as the new route.
+  const [prevPathname, setPrevPathname] = useState(pathname);
+  if (prevPathname !== pathname) {
+    setPrevPathname(pathname);
+    setIsOpen(false);
+  }
   const moreButtonRef = useRef<HTMLButtonElement>(null);
   const firstMoreItemRef = useRef<HTMLAnchorElement>(null);
   const themeButtonRef = useRef<HTMLButtonElement>(null);
@@ -85,6 +89,9 @@ function MobileBottomNavContent({ pathname }: { pathname: string }) {
   };
 
   const moreIsActive = isOpen || mobileMoreItems.some((item) => item.isActive);
+  const activeMainIndex = mobileMainItems.findIndex((item) => item.isActive);
+  const indicatorIndex = moreIsActive ? mobileMainItems.length : activeMainIndex;
+  const tabCount = mobileMainItems.length + 1;
 
   const handleLogout = () => {
     setIsOpen(false);
@@ -124,6 +131,7 @@ function MobileBottomNavContent({ pathname }: { pathname: string }) {
                   key={item.id}
                   ref={index === 0 ? firstMoreItemRef : undefined}
                   to={item.url}
+                  onPointerDown={() => preloadRoute(item.url)}
                   onClick={(e) => {
                     if (isActive) e.preventDefault();
                     setIsOpen(false);
@@ -196,7 +204,21 @@ function MobileBottomNavContent({ pathname }: { pathname: string }) {
         className="mobile-bottom-nav fixed bottom-0 left-0 right-0 z-[60] border-t border-border bg-surface"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
-        <div className="flex items-stretch justify-around px-0 pt-1 pb-4">
+        <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 z-10 flex">
+          <div
+            className={cn(
+              "flex justify-center transition-transform duration-[240ms] ease-[var(--ease-out-strong)] motion-reduce:transition-none",
+              indicatorIndex === -1 && "opacity-0",
+            )}
+            style={{
+              width: `${100 / tabCount}%`,
+              transform: `translateX(${Math.max(indicatorIndex, 0) * 100}%)`,
+            }}
+          >
+            <span className="animate-tab-indicator mt-[-1px] h-[3.5px] w-6 rounded-full bg-primary" />
+          </div>
+        </div>
+        <div className="flex items-stretch justify-around px-0 pt-1 pb-3 pt-2">
           {/* Main navigation items */}
           {mobileMainItems.map((item) => {
             const isCurrentPath = item.isActive;
@@ -205,6 +227,9 @@ function MobileBottomNavContent({ pathname }: { pathname: string }) {
               <Link
                 key={item.id}
                 to={item.url}
+                // Press lands ~100ms before the click: enough to have the
+                // chunk in flight if the idle warm hasn't reached it yet.
+                onPointerDown={() => preloadRoute(item.url)}
                 onClick={(e) => {
                   if (isCurrentPath) e.preventDefault();
                 }}

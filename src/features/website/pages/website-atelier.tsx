@@ -16,6 +16,7 @@ import {
   selectWebsiteAccess,
 } from "../selectors";
 import { WebsiteWorkspace } from "../components/WebsiteWorkspace";
+import { WebsiteBuilderSkeletonCanvas } from "../components/WebsiteBuilderSkeleton";
 import { WebsiteAtelierHeader } from "../components/atelier/WebsiteAtelierHeader";
 import { WebsiteAtelierShell } from "../components/atelier/WebsiteAtelierShell";
 import type { ReactNode } from "react";
@@ -31,12 +32,16 @@ function WebsiteStateShell({
   businessName,
   brandColor,
   scroll = false,
+  fill = false,
   stateAlignment = "center",
 }: {
   children: ReactNode;
   businessName?: string | null;
   brandColor?: string | null;
   scroll?: boolean;
+  /** Body fills the workspace flush (no padding) — for the loading skeleton,
+   * which mirrors the real editor/preview layout edge to edge. */
+  fill?: boolean;
   stateAlignment?: "center" | "start";
 }) {
   const navigate = useNavigate();
@@ -55,9 +60,11 @@ function WebsiteStateShell({
     >
       <div
         className={
-          scroll
-            ? "website-atelier-scrollbar h-full overflow-y-auto p-3 min-[920px]:p-5"
-            : `website-atelier-state${stateAlignment === "start" ? " website-atelier-state--start" : ""}`
+          fill
+            ? "website-atelier-scrollbar h-full min-h-0 overflow-y-auto"
+            : scroll
+              ? "website-atelier-scrollbar h-full overflow-y-auto p-3 min-[920px]:p-5"
+              : `website-atelier-state${stateAlignment === "start" ? " website-atelier-state--start" : ""}`
         }
       >
         {children}
@@ -114,10 +121,10 @@ export default function WebsiteAtelierPage() {
   // in-workspace refetches keep their existing stale-while-revalidate behavior.
   if (!entryRequestStarted || (isLoading && (!identity || !draft || !access))) {
     return (
-      <WebsiteStateShell businessName={entryRequestStarted ? identity?.name : null}>
+      <WebsiteStateShell businessName={entryRequestStarted ? identity?.name : null} fill>
         <BusinessSetupGate>
-          <div className="grid place-items-center" aria-label={t("page.status.loading")}>
-            <Spinner size="lg" />
+          <div role="status" aria-label={t("page.status.loading")} className="h-full min-h-0">
+            <WebsiteBuilderSkeletonCanvas />
           </div>
         </BusinessSetupGate>
       </WebsiteStateShell>

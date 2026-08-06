@@ -14,6 +14,7 @@ import {
   DrawerTitle,
 } from '../../../shared/components/ui/drawer';
 import { useIsMobile } from '../../../shared/hooks/use-mobile';
+import { usePlatform } from '../../../shared/hooks/usePlatform';
 import { cn } from '../../../shared/lib/utils';
 
 import { selectCurrentUser } from '../../auth/selectors';
@@ -65,6 +66,9 @@ export const SeatOverflowGate: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const isMobile = useIsMobile();
+  // Store policy: no payment surfaces in the native app — the pay banner, billing
+  // navigation, and Stripe confirmation branch are web-only.
+  const { isNative } = usePlatform();
   const currentUser = useSelector(selectCurrentUser);
   const subscriptionSummary = useSelector(selectSubscriptionSummary);
   const teamMembers = useSelector(selectTeamMembers);
@@ -402,12 +406,17 @@ export const SeatOverflowGate: React.FC = () => {
     ? t('teamMembers:seatOverflow.unassignSubtitle')
     : isRemoveMember
     ? t('teamMembers:seatOverflow.removeMemberSubtitle')
-    : t('teamMembers:seatOverflow.reconcileSubtitle', {
-        from: usedSeats,
-        to: paidSeats,
-        count: overBy,
-        overBy,
-      });
+    : t(
+        isNative
+          ? 'teamMembers:seatOverflow.reconcileSubtitleNative'
+          : 'teamMembers:seatOverflow.reconcileSubtitle',
+        {
+          from: usedSeats,
+          to: paidSeats,
+          count: overBy,
+          overBy,
+        },
+      );
 
   const confirmText =
     selectedUserId == null
@@ -418,9 +427,21 @@ export const SeatOverflowGate: React.FC = () => {
 
   // Mode-driven UI flags
   const showAside = isSeatOverflow;
-  const showPayBanner = isSeatOverflow && !hasPendingPayment;
+  const showPayBanner = isSeatOverflow && !hasPendingPayment && !isNative;
   const showLogout = isSeatOverflow;
   const showManualClose = !isSeatOverflow;
+
+  // Native replacement for SeatPayBranch: neutral state notice, no amounts, no payment actions.
+  const pendingNativeNotice = (
+    <div className="rounded-xl border border-warning-border bg-warning-bg p-4">
+      <h3 className="mb-1 font-medium text-foreground-1">
+        {t('teamMembers:seatOverflow.pendingNativeTitle')}
+      </h3>
+      <p className="text-sm text-foreground-3">
+        {t('teamMembers:seatOverflow.pendingNativeBody')}
+      </p>
+    </div>
+  );
 
   const payBanner = showPayBanner ? (
     <div className="rounded-xl border border-primary/25 bg-primary/5 p-3.5 dark:bg-primary/10 sm:flex sm:items-center sm:gap-3 sm:py-2.5">
@@ -503,13 +524,17 @@ export const SeatOverflowGate: React.FC = () => {
                   In modes B/C the drawer below carries everything. */}
               {hasPendingPayment && subscriptionSummary?.pendingPayment ? (
                 <div className="flex-1 overflow-y-auto p-4">
-                  <SeatPayBranch
-                    pendingPayment={subscriptionSummary.pendingPayment as any}
-                    paymentError={paymentError}
-                    isPayingForSeats={isPayingForSeats}
-                    onRetry={handleRetryPendingPayment}
-                    onAbort={handleAbortPendingPayment}
-                  />
+                  {isNative ? (
+                    pendingNativeNotice
+                  ) : (
+                    <SeatPayBranch
+                      pendingPayment={subscriptionSummary.pendingPayment as any}
+                      paymentError={paymentError}
+                      isPayingForSeats={isPayingForSeats}
+                      onRetry={handleRetryPendingPayment}
+                      onAbort={handleAbortPendingPayment}
+                    />
+                  )}
                 </div>
               ) : showAside ? (
                 <div className="flex min-h-0 flex-1 flex-col">
@@ -717,13 +742,17 @@ export const SeatOverflowGate: React.FC = () => {
 
               {hasPendingPayment && subscriptionSummary?.pendingPayment ? (
                 <div className="p-5">
-                  <SeatPayBranch
-                    pendingPayment={subscriptionSummary.pendingPayment as any}
-                    paymentError={paymentError}
-                    isPayingForSeats={isPayingForSeats}
-                    onRetry={handleRetryPendingPayment}
-                    onAbort={handleAbortPendingPayment}
-                  />
+                  {isNative ? (
+                    pendingNativeNotice
+                  ) : (
+                    <SeatPayBranch
+                      pendingPayment={subscriptionSummary.pendingPayment as any}
+                      paymentError={paymentError}
+                      isPayingForSeats={isPayingForSeats}
+                      onRetry={handleRetryPendingPayment}
+                      onAbort={handleAbortPendingPayment}
+                    />
+                  )}
                 </div>
               ) : (
                 <div className="flex min-h-0 flex-1 flex-col">

@@ -1,3 +1,4 @@
+import { createPortal } from "react-dom";
 import { RotateCcw } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { cn } from "../../../shared/lib/utils";
@@ -19,6 +20,10 @@ interface Props {
  * Rendered only on viewports below lg; the desktop sidebar has the
  * equivalent Clear pill inside [ReviewsInsightsPanel] and stays sticky
  * with the user as they scroll.
+ *
+ * Portaled to body because it renders inside a tab panel, and the panel's
+ * entrance animation translates: a transformed ancestor becomes the containing
+ * block for `position: fixed`, which would drag this pill along with it.
  */
 export function MobileClearFiltersFab({
   activeFilterCount,
@@ -28,7 +33,7 @@ export function MobileClearFiltersFab({
 
   if (activeFilterCount === 0) return null;
 
-  return (
+  return createPortal(
     <button
       type="button"
       onClick={onClearAll}
@@ -55,6 +60,7 @@ export function MobileClearFiltersFab({
       >
         {activeFilterCount}
       </span>
-    </button>
+    </button>,
+    document.body,
   );
 }

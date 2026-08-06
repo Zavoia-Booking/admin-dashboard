@@ -3,7 +3,7 @@ import React from "react";
 
 export const BundlesListSkeleton: React.FC = () => {
   return (
-    <div className="space-y-6">
+    <div className="skeleton-delayed-reveal space-y-6">
       {/* Filters row skeleton - matches BundleFilters layout */}
       <div className="flex flex-col gap-2">
         {/* Search + Add Bundle button row */}

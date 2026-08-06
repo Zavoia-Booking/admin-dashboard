@@ -12,7 +12,7 @@
     "teamMembers": "Team Members",
     "customers": "Customers",
     "marketplace": "Marketplace",
-    "website": "Website",
+    "website": "Web Studio",
     "support": "Support",
     "account": "Account",
     "home": "Home",
@@ -32,7 +32,7 @@
     "locations": "Locations",
     "customers": "Customers",
     "marketplace": "Marketplace",
-    "website": "Website",
+    "website": "Web Studio",
     "support": "Support",
     "account": "Account",
     "logOut": "Log Out",
@@ -58,8 +58,8 @@
         "billing": "Billing & Subscription"
       },
       "marketplace": {
-        "business": "Business page",
-        "website": "Website builder",
+        "business": "Profile",
+        "website": "Web Studio",
         "locations": "Locations",
         "profile": "Profile",
         "portfolio": "Portfolio",

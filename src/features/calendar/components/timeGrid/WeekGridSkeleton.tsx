@@ -24,7 +24,7 @@ export const WeekGridSkeleton: FC = () => {
   const totalSlots = SKELETON_HOURS.length * 4;
 
   return (
-    <div className="relative flex flex-col">
+    <div className="skeleton-delayed-reveal relative flex flex-col">
       {/* WeekDayStrip skeleton */}
       <div className="flex flex-shrink-0 pb-4 px-4 pt-2 gap-2 sticky top-0 z-30 bg-white dark:bg-surface">
         <div style={{ width: GUTTER_WIDTH }} className="flex-shrink-0" />

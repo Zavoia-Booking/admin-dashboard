@@ -1,6 +1,6 @@
 {
   "page": {
-    "title": "Website",
+    "title": "Web Studio",
     "loadError": "Nu am putut încărca site-ul.",
     "retry": "Încearcă din nou",
     "toasts": {
@@ -21,10 +21,11 @@
       "unpublished": "Versiunea publicată a fost retrasă. Schița rămâne salvată.",
       "publishFailed": "Nu am putut publica site-ul",
       "unpublishFailed": "Nu am putut retrage site-ul",
-      "publishLockedItems": "Deblochează sau înlocuiește opțiunile premium înainte de publicare"
+      "publishLockedItems": "Deblochează sau înlocuiește opțiunile premium înainte de publicare",
+      "publishUnavailable": "Publicarea nu este disponibilă momentan"
     },
     "status": {
-      "loading": "Se încarcă editorul site-ului",
+      "loading": "Se încarcă Web Studio",
       "saved": "Salvat",
       "unsaved": "Modificări nesalvate",
       "saving": "Se salvează…",
@@ -69,7 +70,7 @@
     },
     "actions": {
       "backToDashboard": "Înapoi la panou",
-      "skipToBuilder": "Sari la editorul site-ului",
+      "skipToBuilder": "Sari la Web Studio",
       "save": "Salvează",
       "saveChanges": "Salvează",
       "discardChanges": "Renunță la modificări",
@@ -173,6 +174,8 @@
       "contentRequirementsDescription": "Aceste secțiuni vizibile au nevoie de conținut înainte de publicare.",
       "premiumRequirements": "Opțiuni premium",
       "premiumRequirementsDescription": "Aceste opțiuni premium au fost selectate în timpul editării versiunii curente. Deblochează-le o singură dată pentru a le păstra permanent sau elimină-le pe cele pe care nu le mai dorești.",
+      "premiumRequirementsDescriptionNative": "Aceste opțiuni nu pot fi publicate din aplicație. Elimină-le pentru a publica acum sau continuă editarea din versiunea web.",
+      "premiumRequirementsDescriptionNoPurchase": "Aceste opțiuni premium necesită planul Plus. Elimină-le pe cele pe care nu le mai vrei sau treci la Plus pentru a le debloca.",
       "contentRequired": "Conținut necesar",
       "contentProgress": "{{current}} din {{required}} pregătite",
       "readinessSections": {
@@ -227,6 +230,13 @@
       "busy": "Așteaptă finalizarea actualizării curente",
       "current": "Cele mai recente modificări salvate sunt deja publicate"
     },
+    "publishUpgrade": {
+      "eyebrow": "Inclus în planul Plus",
+      "title": "Publică cu Plus",
+      "description": "Schița ta este salvată și rămâne a ta. Treci la planul Plus pentru a-ți publica site-ul.",
+      "cta": "Treci la Plus",
+      "notNow": "Nu acum"
+    },
     "saveReason": {
       "readOnly": "Accesul tău actual nu permite editarea",
       "clean": "Nu există modificări nesalvate",
@@ -241,17 +251,18 @@
       "taglineTooLong": "Subtitlul trebuie să aibă cel mult 200 de caractere.",
       "brandColorInvalid": "Introdu o culoare hex din 6 cifre, ex. #1B9C85.",
       "aboutHeadlineRequired": "Adaugă un titlu la secțiunea Despre sau ascunde-o.",
-      "layoutFromNewerVersion": "O secțiune creată de o versiune mai nouă a editorului nu poate fi salvată în siguranță aici."
+      "layoutFromNewerVersion": "O secțiune creată de o versiune mai nouă nu poate fi salvată în siguranță aici."
     },
     "locked": {
       "eyebrow": "Inclus în planul Plus",
       "title": "Construiește-ți site-ul",
-      "nativeDescription": "Constructorul de site nu este inclus în planul tău actual.",
+      "nativeDescription": "Web Studio nu este inclus în planul tău actual.",
       "teaserCaption": "Previzualizarea site-ului",
       "features": {
         "preview": "Previzualizează site-ul pe desktop, tabletă și mobil",
         "sections": "Personalizează secțiunile, culorile și fonturile",
-        "premiumVariants": "Adaugă stiluri premium opționale, cu plată unică"
+        "premiumVariants": "Adaugă stiluri premium opționale, cu plată unică",
+        "premiumVariantsNative": "Adaugă stiluri premium opționale"
       },
       "preserved": "Schița salvată și stilurile premium deblocate rămân disponibile dacă schimbi planul.",
       "cta": "Treci la Plus"
@@ -269,7 +280,7 @@
       "cancel": "Renunță",
       "lockedAria": "{{name}}, stil premium, {{price}}",
       "lockedAriaNative": "{{name}}, stil premium, gestionează-l din contul web",
-      "nativeHint": "Gestionează opțiunile premium din contul web, pe zavoia.com.",
+      "nativeHint": "Gestionează opțiunile premium din versiunea web.",
       "lockedTitle": "Stil premium · {{price}}, plată unică",
       "ownedTitle": "Stil premium · deblocat",
       "styleHelper": "Stilurile incluse sunt gata de folosit. Deblochezi o singură dată un stil premium și îl păstrezi permanent.",
@@ -644,11 +655,9 @@
         "accentPickerLabel": "Culoare de accent",
         "typefacePickerLabel": "Corp de literă",
         "premiumOwned": "Premium · deblocat",
-        "premiumPrice": "Premium · {{price}}",
         "ownedShort": "Deblocat",
         "unavailable": "Indisponibil",
         "checking": "Verificăm accesul premium…",
-        "premiumEach": "Premium · {{price}} fiecare",
         "premiumUnlockOnce": "Premium · deblochezi o dată",
         "sans": "Fără serife",
         "serif": "Cu serife",
@@ -664,7 +673,7 @@
     },
     "builder": {
       "eyebrow": "Design și conținut",
-      "studioTitle": "Constructor de site",
+      "studioTitle": "Web Studio",
       "openPreview": "Previzualizează site-ul",
       "sectionsVisible": "vizibile",
       "sectionsLiveCount": "{{shown}} din {{total}} active",

@@ -129,7 +129,7 @@
       "description": "Aceasta va elimina permanent această locație din lista ta. Această acțiune nu poate fi anulată.",
       "button": "Elimină locația",
       "removing": "Se elimină...",
-      "goToWebsiteGallery": "Deschide editorul site-ului"
+      "goToWebsiteGallery": "Deschide Web Studio"
     },
     "mapDialog": {
       "title": "Verifică pinul locației",

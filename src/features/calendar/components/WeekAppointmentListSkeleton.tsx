@@ -23,7 +23,7 @@ const CardSkeleton: FC = () => (
 );
 
 export const WeekAppointmentListSkeleton: FC = () => (
-  <div className="p-4 pt-0 space-y-6">
+  <div className="skeleton-delayed-reveal p-4 pt-0 space-y-6">
     {Array.from({ length: DAY_COUNT }, (_, dayIdx) => (
       <section key={dayIdx} className="space-y-2">
         {/* Day header */}

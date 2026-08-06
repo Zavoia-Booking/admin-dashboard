@@ -13,7 +13,10 @@ import { Skeleton } from "../../../shared/components/ui/skeleton";
  */
 export function ReviewListSkeleton() {
   return (
-    <ul className="divide-y divide-border/60 animate-pulse">
+    // Delayed reveal on the wrapper (not the ul — one `animation` property
+    // can't hold both it and animate-pulse): fast loads never flash this.
+    <div className="skeleton-delayed-reveal">
+      <ul className="divide-y divide-border/60 animate-pulse">
       {[1, 2, 3].map((i) => (
         <li key={i} className="flex gap-3.5 py-4 sm:py-5">
           <Skeleton className="h-10 w-10 rounded-full shrink-0 mt-0.5" />
@@ -50,6 +53,7 @@ export function ReviewListSkeleton() {
           </div>
         </li>
       ))}
-    </ul>
+      </ul>
+    </div>
   );
 }

@@ -166,8 +166,8 @@
     "E14": "Regional prices overlap for a country",
     "E15": "We couldn’t find this payment",
     "E16": "This style’s regional pricing is invalid",
-    "E17": "This style isn’t supported by the builder yet",
-    "E18": "The price changed since you opened the builder. Review the updated total and try again"
+    "E17": "This style isn’t supported by Web Studio yet",
+    "E18": "The price changed since you opened Web Studio. Review the updated total and try again"
   },
   "WEBSITE_SECTIONS": {
     "E01": "This premium section isn’t available anymore",
@@ -176,8 +176,8 @@
     "E04": "This section is included, so no payment is needed",
     "E05": "You already unlocked this section",
     "E06": "We couldn’t unlock this section. Try again",
-    "E07": "This section is no longer available in Website Builder",
-    "E08": "This section isn’t supported by the builder yet",
+    "E07": "This section is no longer available in Web Studio",
+    "E08": "This section isn’t supported by Web Studio yet",
     "E09": "This section still has styles attached, so its key can’t be changed"
   },
   "WEBSITE_THEME_ASSETS": {
@@ -187,14 +187,15 @@
     "E04": "This style can’t be applied right now. Try again"
   },
   "WEBSITE_BUILDER": {
-    "E01": "Website Builder requires the Plus plan. Upgrade from Account > Billing",
+    "E01": "Web Studio isn't available on your current subscription. Check Account > Billing",
     "E02": "A newer version of your website is available. Reload to continue",
     "E03": "Some content needs attention before you can save. Review the highlighted sections and try again",
     "E04": "Some selected locations are no longer available to this business. Refresh, then update the Locations section",
     "E05": "We couldn’t load your website. Refresh and try again",
     "E06": "We couldn’t update your website. Try again",
     "E07": "Some visible sections use premium options that aren’t unlocked",
-    "E08": "Save your changes before publishing"
+    "E08": "Save your changes before publishing",
+    "E09": "Publishing requires the Plus plan. Upgrade from Account > Billing"
   },
   "BUSINESS_CUSTOMER": {
     "E01": "Customer not found",

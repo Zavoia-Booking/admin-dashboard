@@ -13,7 +13,8 @@ import {
   AvatarImage,
 } from "../../../shared/components/ui/avatar";
 import { useIsMobile } from "../../../shared/hooks/use-mobile";
-import { HeaderRightSlot } from "../../../shared/components/layouts/HeaderRightSlot";
+import { StickyPrimaryAction } from "../../../shared/components/common/StickyPrimaryAction";
+import { useInView } from "../../../shared/hooks/useInView";
 
 interface NotListedYetViewProps {
   onStartListing: () => void;
@@ -39,20 +40,12 @@ export function NotListedYetView({
   // Effective data for preview
   const effectiveName = listing?.effectiveName || businessName;
   const effectiveEmail = listing?.effectiveEmail || business?.email;
+  // The in-card CTA is the real one; the sticky bar only stands in for it once
+  // it has scrolled out of view.
+  const { ref: ctaRef, inView: ctaInView } = useInView<HTMLDivElement>();
 
   return (
     <div className="max-w-7xl mx-auto px-0 space-y-6 cursor-default">
-      {isMobile && (
-        <HeaderRightSlot>
-          <Button
-            onClick={onStartListing}
-            className="btn-primary group !h-8 px-3 rounded-full text-sm shadow-sm active:scale-95 flex items-center gap-1.5"
-          >
-            <span>{t("marketing.hero.cta")}</span>
-            <ArrowRight className="h-3.5 w-3.5" />
-          </Button>
-        </HeaderRightSlot>
-      )}
       {/* Bento Grid */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
         {/* Main Hero / Header Card - 3/4 Width */}
@@ -110,13 +103,16 @@ export function NotListedYetView({
                 </div>
               </div>
 
-              <Button
-                onClick={onStartListing}
-                className="btn-primary group !h-8 text-base w-full md:!w-52 rounded-full shadow-lg active:scale-95 hidden md:flex items-center gap-2 w-full md:w-auto"
-              >
-                <span>{t("marketing.hero.cta")}</span>
-                <ArrowRight className="h-4 w-4 transition-transform duration-300 ease-out group-hover:translate-x-1" />
-              </Button>
+              {/* Ref target: once this scrolls away the sticky bar takes over. */}
+              <div ref={ctaRef} className="w-full md:w-auto">
+                <Button
+                  onClick={onStartListing}
+                  className="btn-primary group !h-8 text-base w-full md:!w-52 rounded-full shadow-lg active:scale-95 flex items-center gap-2"
+                >
+                  <span>{t("marketing.hero.cta")}</span>
+                  <ArrowRight className="h-4 w-4 transition-transform duration-300 ease-out group-hover:translate-x-1" />
+                </Button>
+              </div>
             </div>
           </div>
         </div>
@@ -285,6 +281,20 @@ export function NotListedYetView({
           </CardContent>
         </Card>
       </div>
+
+      {isMobile && (
+        <StickyPrimaryAction visible={!ctaInView}>
+          <Button
+            onClick={onStartListing}
+            // !min-w: the global touch-target rule (button:not(...):not(...))
+            // is specificity 0-2-1 and beats a plain utility class.
+            className="btn-primary group !min-w-60 max-w-full rounded-full px-6 text-sm shadow-lg active:scale-[0.98] flex items-center justify-center gap-2"
+          >
+            <span>{t("marketing.hero.cta")}</span>
+            <ArrowRight className="h-4 w-4 transition-transform duration-150 ease-out group-active:translate-x-0.5" />
+          </Button>
+        </StickyPrimaryAction>
+      )}
     </div>
   );
 }

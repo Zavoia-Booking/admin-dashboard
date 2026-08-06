@@ -47,11 +47,20 @@ export function WebsiteBuilderLockedView({
   const features = [
     { icon: Eye, label: t("businessPage.locked.features.preview") },
     { icon: Palette, label: t("businessPage.locked.features.sections") },
-    { icon: Sparkles, label: t("businessPage.locked.features.premiumVariants") },
+    // Native drops the payment clause — store copy stays free of commerce wording.
+    {
+      icon: Sparkles,
+      label: t(
+        isNative
+          ? "businessPage.locked.features.premiumVariantsNative"
+          : "businessPage.locked.features.premiumVariants",
+      ),
+    },
   ];
 
-  // Server strips pageTheme/pageLayout for non-entitled plans, so theme fields fall back to the
+  // This teaser only receives identity/hero/tagline props, so theme fields fall back to the
   // lookbook defaults here — every business still gets its own name/logo/hero/locations rendered.
+  // (Shown only when every Website capability is off: non-entitled, or an entitled plan with no tier.)
   const teaserData = useMemo<PreviewData>(
     () => ({
       businessName: business?.name?.trim() || t("page.identity.fallbackName"),

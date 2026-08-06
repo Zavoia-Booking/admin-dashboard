@@ -147,7 +147,7 @@ export default function MarketplacePage() {
   // Show "Not Listed Yet" marketing view when not listed and configuration not started
   if (listing && !listing.isListed) {
     return (
-      <AppLayout>
+      <AppLayout headerHidden>
         <BusinessSetupGate>
           <NotListedYetView
             onStartListing={handleStartListing}

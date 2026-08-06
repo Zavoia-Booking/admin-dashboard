@@ -1,13 +1,12 @@
 import React, { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { MobileBottomNav } from '../navigation/mobile-bottom-nav';
 import { AppSidebar } from '../navigation/app-sidebar';
 import { SidebarInset, SidebarProvider } from '../ui/sidebar';
 import { useIsMobile } from '../../hooks/use-mobile';
 import { Breadcrumbs } from '../Breadcrumbs';
 import { useBreadcrumbs } from '../../hooks/useBreadcrumbs';
 import { LimitedAccessBanner } from '../common/subscription/LimitedAccessBanner';
-import { HeaderRightSlotProvider, useHeaderRightSlotValue } from './HeaderRightSlot';
+import { HeaderRightSlotProvider, useHeaderRightSlotValue, useHeaderTitleSlotValue } from './HeaderRightSlot';
 import { APP_SCROLL_CONTAINER_ATTR } from '../../utils/scroll';
 
 interface AppLayoutProps {
@@ -35,6 +34,11 @@ interface AppLayoutProps {
    *  the breadcrumb title (mobile). Used by the calendar page for day/week/month nav. */
   headerPrevAction?: () => void;
   headerNextAction?: () => void;
+  /** Drops the mobile breadcrumb header entirely. For a top-level flow whose
+   *  page carries its own primary action, the bar has nothing left to say — the
+   *  bottom nav already names the flow. The safe-area inset is still filled so
+   *  content cannot run under the status bar on native. */
+  headerHidden?: boolean;
 }
 
 export function AppLayout(props: AppLayoutProps) {
@@ -45,12 +49,14 @@ export function AppLayout(props: AppLayoutProps) {
   );
 }
 
-function AppLayoutInner({ children, contentClassName, headerRightContent, noPadding, tabbedPage, headerTitleOverride, headerTitleContent, headerPrevAction, headerNextAction }: AppLayoutProps) {
+function AppLayoutInner({ children, contentClassName, headerRightContent, noPadding, tabbedPage, headerTitleOverride, headerTitleContent, headerPrevAction, headerNextAction, headerHidden }: AppLayoutProps) {
   const isMobile = useIsMobile();
   const breadcrumbs = useBreadcrumbs();
   const location = useLocation();
   const slotRightContent = useHeaderRightSlotValue();
   const effectiveRightContent = headerRightContent ?? slotRightContent ?? undefined;
+  const slotTitleContent = useHeaderTitleSlotValue();
+  const effectiveTitleContent = headerTitleContent ?? slotTitleContent ?? undefined;
 
   useEffect(() => {
     // remove the inline background colors set in index.html
@@ -77,26 +83,30 @@ function AppLayoutInner({ children, contentClassName, headerRightContent, noPadd
                 className="sticky top-0 z-50 md:hidden bg-surface"
                 style={{ paddingTop: "env(safe-area-inset-top)" }}
               >
-                <Breadcrumbs
-                  items={breadcrumbs}
-                  rightContent={effectiveRightContent}
-                  titleOverride={headerTitleOverride}
-                  titleContent={headerTitleContent}
-                  onPrev={headerPrevAction}
-                  onNext={headerNextAction}
-                  flush={tabbedPage}
-                />
+                {/* Even when hidden, the wrapper above stays mounted: it fills
+                    the status-bar/notch inset on native, which content would
+                    otherwise scroll under. */}
+                {!headerHidden && (
+                  <Breadcrumbs
+                    items={breadcrumbs}
+                    rightContent={effectiveRightContent}
+                    titleOverride={headerTitleOverride}
+                    titleContent={effectiveTitleContent}
+                    onPrev={headerPrevAction}
+                    onNext={headerNextAction}
+                    flush={tabbedPage}
+                  />
+                )}
               </div>
               {!tabbedPage && <LimitedAccessBanner />}
               <div
                 key={isMobile ? location.pathname : undefined}
-                className={`${noPadding ? '' : 'px-2 py-4 md:px-4'} ${isMobile ? 'motion-safe:animate-in motion-safe:fade-in-0 motion-safe:[animation-duration:200ms]' : ''}`}
+                className={`${noPadding ? '' : 'px-2 py-4 md:px-4'} animate-route-enter`}
               >
                 {children}
               </div>
             </div>
           </main>
-          {isMobile && <MobileBottomNav />}
         </SidebarInset>
       </div>
     </SidebarProvider>

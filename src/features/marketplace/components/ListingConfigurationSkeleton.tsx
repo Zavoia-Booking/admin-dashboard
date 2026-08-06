@@ -4,22 +4,23 @@ import {
   CardHeader,
 } from "../../../shared/components/ui/card";
 import { Skeleton } from "../../../shared/components/ui/skeleton";
+import { HeaderTitleSlot } from "../../../shared/components/layouts/HeaderRightSlot";
 
 export function ListingConfigurationSkeleton() {
   return (
     <>
+      {/* Mobile: the real view hosts its pill switcher in the breadcrumb header,
+          so mirror it with a pill-shaped skeleton there. */}
+      <HeaderTitleSlot>
+        <Skeleton className="h-9 w-full rounded-full" />
+      </HeaderTitleSlot>
       {/* ResponsiveTabs skeleton - uses CSS media queries to match exact positioning */}
-      <div className="space-y-6 bg-transparent max-w-256 -mx-2 -mt-8 md:mx-0 md:mt-0 md:absolute md:top-0 md:left-0 md:right-0">
-        {/* Tabs Header skeleton */}
-        <div className="w-full h-[68px] md:h-[61px] sticky md:static z-40 md:z-auto top-11 md:top-auto bg-surface md:bg-transparent p-0 md:pt-4 md:pl-4 md:pr-4 pt-4.5 px-4 md:border-b md:border-border-strong">
+      <div className="skeleton-delayed-reveal space-y-6 bg-transparent max-w-256 -mx-2 mt-0 md:mx-0 md:mt-0 md:absolute md:top-0 md:left-0 md:right-0">
+        {/* Tabs Header skeleton (desktop only — mobile tabs live in the header) */}
+        <div className="hidden md:block w-full md:h-[61px] md:static md:z-auto md:top-auto md:bg-transparent p-0 md:pt-4 md:pl-4 md:pr-4 md:border-b md:border-border-strong">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-0">
-            {/* Tabs skeleton - mobile pill style, desktop underline style */}
+            {/* Tabs skeleton - desktop underline style */}
             <div className="relative flex items-stretch w-full md:w-auto gap-1 md:gap-4 rounded-full md:rounded-none bg-sidebar md:bg-transparent p-1 md:p-0 h-10 md:h-auto">
-              {/* Mobile: 4 pill skeletons */}
-              <Skeleton className="flex-1 md:hidden h-8 rounded-full" />
-              <Skeleton className="flex-1 md:hidden h-8 rounded-full" />
-              <Skeleton className="flex-1 md:hidden h-8 rounded-full" />
-              <Skeleton className="flex-1 md:hidden h-8 rounded-full" />
               {/* Desktop: 4 text skeletons */}
               <Skeleton className="hidden md:block h-5 w-24 my-2" />
               <Skeleton className="hidden md:block h-5 w-24 my-2" />

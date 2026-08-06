@@ -10,6 +10,7 @@ import { CollapsibleFormSection } from "../../../shared/components/forms/Collaps
 import { Switch } from "../../../shared/components/ui/switch";
 import { Pill } from "../../../shared/components/ui/pill";
 import { Tag, Info } from "lucide-react";
+import { AttentionDot } from "../../../shared/components/common/AttentionDot";
 import { DurationInput } from "../../../shared/components/forms/fields/DurationInput";
 import type { UpdateBookingSettingsPayload } from "../../marketplace/types";
 import { SectionDivider } from "../../../shared/components/common/SectionDivider";
@@ -601,13 +602,7 @@ export const AdvancedSettingsSection = forwardRef<
 
                         {formData.staffBlockCalendarTypes.length === 0 && (
                           <div className="flex items-start gap-2 pt-1">
-                            <div className="relative flex h-4 w-4 shrink-0 mt-0.5">
-                              <span
-                                className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-20"
-                                style={{ animationDuration: "3s" }}
-                              ></span>
-                              <Info className="relative inline-flex h-4 w-4 text-primary" />
-                            </div>
+                            <AttentionDot className="mt-1.5" />
                             <p className="text-xs text-foreground-3 dark:text-foreground-2 leading-relaxed">
                               {t(
                                 "validation.blockTypesRequired"

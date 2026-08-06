@@ -381,7 +381,11 @@ export const EditLocationMarketplaceDetailsSlider: React.FC<
       <BaseSlider
         isOpen={isOpen}
         onClose={handleCancel}
-        title={t("slider.title")}
+        title={
+          location
+            ? `${location.name} · ${t("slider.title")}`
+            : t("slider.title")
+        }
         subtitle={t("slider.subtitle")}
         contentClassName="bg-surface scrollbar-hide"
         footer={
