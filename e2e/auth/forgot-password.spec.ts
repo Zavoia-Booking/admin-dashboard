@@ -11,15 +11,11 @@ test.describe('Forgot password (inline)', () => {
 
     const emailInput = page.locator('#cred-email')
     await emailInput.fill(makeTestUser().email)
-    await page
-      .getByRole('button', { name: 'Reset Password', exact: true })
-      .click()
+    await page.getByRole('button', { name: /send reset link/i }).click()
 
+    // Neutral message by design — it must not reveal whether the email exists.
     await expect(
-      page.getByText(
-        'If an account exists for the provided email',
-        { exact: false },
-      ),
+      page.getByText('If an account exists for this email', { exact: false }),
     ).toBeVisible({ timeout: 10_000 })
   })
 })

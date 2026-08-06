@@ -49,8 +49,7 @@ import {
   sanitizePhoneToE164Draft,
 } from '../../../../shared/utils/validation';
 import { Popover, PopoverTrigger, PopoverContent } from '../../../../shared/components/ui/popover';
-import LegalContentDialog from '../../../legal/components/LegalContentDialog';
-import type { LegalPageType } from '../../../legal/components/legal-content';
+import { openLegalPage } from '../../../legal/legal-links';
 import { usePermissions } from '../../../../shared/hooks/usePermissions';
 
 interface ProfileFormData {
@@ -97,7 +96,6 @@ const MyAccountContent = ({ onDirtyChange, onSavingChange }: MyAccountContentPro
   const [pwInteracted, setPwInteracted] = useState(false);
   const [showPasswordSection, setShowPasswordSection] = useState(false);
   const [currentPwTouched, setCurrentPwTouched] = useState(false);
-  const [legalDialogType, setLegalDialogType] = useState<LegalPageType | null>(null);
 
   // Account email change state
   const [showAccountEmailSection, setShowAccountEmailSection] = useState(false);
@@ -979,7 +977,7 @@ const MyAccountContent = ({ onDirtyChange, onSavingChange }: MyAccountContentPro
                     <button
                       key={type}
                       type="button"
-                      onClick={() => setLegalDialogType(type)}
+                      onClick={() => openLegalPage(type)}
                       className="profile-line-row"
                     >
                       <div className="profile-line-icon"><FileText className="h-4 w-4" /></div>
@@ -1005,10 +1003,6 @@ const MyAccountContent = ({ onDirtyChange, onSavingChange }: MyAccountContentPro
         </div>
       </div>
 
-      <LegalContentDialog
-        type={legalDialogType}
-        onOpenChange={(open) => { if (!open) setLegalDialogType(null); }}
-      />
     </form>
   );
 };

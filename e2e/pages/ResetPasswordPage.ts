@@ -12,7 +12,7 @@ export class ResetPasswordPage {
     this.page = page
     this.password = page.locator('#password')
     this.confirm = page.locator('#confirm')
-    this.submit = page.getByRole('button', { name: 'Reset Password', exact: true })
+    this.submit = page.getByRole('button', { name: /^reset password$/i })
     this.successMessage = page.getByText('Password updated')
     this.errorAlert = page.getByText('The link is invalid')
   }

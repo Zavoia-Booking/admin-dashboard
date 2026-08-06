@@ -1,8 +1,7 @@
-import { useEffect, useState } from "react"
+import { useEffect } from "react"
 import { Outlet, useLocation, useSearchParams } from "react-router-dom"
 import { useTranslation } from "react-i18next"
-import type { LegalPageType } from "../../legal/components/legal-content"
-import LegalContentDialog from "../../legal/components/LegalContentDialog"
+import { openLegalPage } from "../../legal/legal-links"
 import { AuthShell } from "./AuthShell"
 import { AuthCard } from "./AuthCard"
 import { LanguageSwitcher } from "../../../shared/components/common/LanguageSwitcher"
@@ -54,8 +53,6 @@ export function AuthLayout() {
       ? t("login.workspaceSubtitle")
       : undefined
 
-  const [legalDialog, setLegalDialog] = useState<LegalPageType | null>(null)
-
   useEffect(() => {
     document.documentElement.classList.add("scrollbar-hide")
     document.body.classList.add("scrollbar-hide")
@@ -70,7 +67,7 @@ export function AuthLayout() {
       {t("login.termsNotice")}{" "}
       <button
         type="button"
-        onClick={() => setLegalDialog("terms")}
+        onClick={() => openLegalPage("terms")}
         className="text-muted-foreground hover:text-primary underline underline-offset-4 cursor-pointer"
       >
         {t("login.termsOfService")}
@@ -78,7 +75,7 @@ export function AuthLayout() {
       {t("login.and")}{" "}
       <button
         type="button"
-        onClick={() => setLegalDialog("privacy")}
+        onClick={() => openLegalPage("privacy")}
         className="text-muted-foreground hover:text-primary underline underline-offset-4 cursor-pointer"
       >
         {t("login.privacyPolicy")}
@@ -108,10 +105,6 @@ export function AuthLayout() {
         </div>
         {footer}
       </AuthShell>
-      <LegalContentDialog
-        type={legalDialog}
-        onOpenChange={(open) => !open && setLegalDialog(null)}
-      />
     </>
   )
 }

@@ -18,10 +18,9 @@ export class TeamInvitationPage {
     this.lastName = page.locator('#lastName')
     this.phone = page.locator('#phone')
     this.password = page.locator('#password')
-    this.submit = page.getByRole('button', {
-      name: 'Complete Registration',
-      exact: true,
-    })
+    // Case-insensitive: the label's casing ("Complete registration") is a copy
+    // decision, not a contract the tests should pin.
+    this.submit = page.getByRole('button', { name: /^complete registration$/i })
     this.verifyingMessage = page.getByText('Verifying invitation')
     this.errorTitle = page.getByText('Invalid Invitation')
     this.acceptedTitle = page.getByText("You're All Set!")

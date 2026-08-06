@@ -18,7 +18,9 @@ export class RegisterPage {
     this.email = page.locator('#email')
     this.password = page.locator('#password')
     this.acceptTerms = page.locator('#acceptTerms')
-    this.submit = page.getByRole('button', { name: 'Sign Up', exact: true })
+    // Case-insensitive: the label's casing is a copy decision ("Sign up"),
+    // not a contract the tests should pin.
+    this.submit = page.getByRole('button', { name: /^sign up$/i })
     this.googleButton = page.getByRole('button', { name: /google/i })
   }
 

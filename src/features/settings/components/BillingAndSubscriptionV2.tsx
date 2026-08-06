@@ -24,6 +24,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { Skeleton } from '../../../shared/components/ui/skeleton';
+import DatePicker from '../../../shared/components/ui/date-picker';
 import { ErrorState } from '../../../shared/components/common/ErrorState';
 import { Button } from '../../../shared/components/ui/button';
 import { Card, CardContent } from '../../../shared/components/ui/card';
@@ -102,10 +103,12 @@ import type {
   BillingDetails,
   BillingDetailsSuggestions,
   BillingEntityType,
+  IndividualType,
   UpdateBillingDetailsDTO,
 } from '../../business/types';
 import { getCurrencySymbol } from '../../../shared/utils/currency';
-import { useFormatPrice } from '../../../shared/hooks/useFormatPrice';
+import { useFormatPrice, resolveIntlLocale } from '../../../shared/hooks/useFormatPrice';
+import i18n from '../../../shared/lib/i18n';
 import './BillingAndSubscriptionV2.css';
 
 type ViewState =
@@ -125,11 +128,34 @@ type Tone = 'neutral' | 'good' | 'warn' | 'danger' | 'info' | 'accent';
 // SELF_SERVE_TIER_ORDER (direction is derived from tier, never from price).
 const SELF_SERVE_TIER_ORDER: Record<string, number> = { STANDARD: 1, PLUS: 2 };
 
+// The *app* language, not the browser's — a Romanian user on an English
+// browser must not see 'Jul 3, 2026' between localized strings. Read at call
+// time: every caller sits inside a component using `useTranslation`, so a
+// language switch re-renders and re-derives the locale.
+const billingLocale = () => resolveIntlLocale(i18n.resolvedLanguage || i18n.language);
+
+// Stripe renders its own copy ('Your card was declined.') in the locale it was
+// initialized with, so hand it the app language instead of letting it sniff the
+// browser's.
+const stripeLocale = (): 'ro' | 'en' =>
+  (i18n.resolvedLanguage || i18n.language || '').toLowerCase().startsWith('ro') ? 'ro' : 'en';
+
+/**
+ * getErrorMessage() forwards an Error's own message straight to the toast, so a
+ * thrown diagnostic ('Failed to load Stripe') would surface untranslated. Log
+ * the diagnostic and throw an empty Error instead — each catch already passes a
+ * localized fallback, which getErrorMessage uses when the message is blank.
+ */
+// Declared as a function (not an arrow const) so TypeScript treats it as a
+// never-returning call and narrows the checked value at each call site.
+function failWithLocalizedFallback(diagnostic: string, detail?: unknown): never {
+  console.error(`[billing] ${diagnostic}`, detail ?? '');
+  throw new Error();
+}
+
 const formatDate = (input: string | null | undefined): string => {
   if (!input) return '—';
-  // Browser locale, matching HistoryCard and the i18n number formatting —
-  // a Romanian user shouldn't see 'Jul 3, 2026' between localized strings.
-  return new Date(input).toLocaleDateString(undefined, {
+  return new Date(input).toLocaleDateString(billingLocale(), {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
@@ -494,7 +520,7 @@ const BillingAndSubscriptionV2Inner = () => {
         if (response.url) {
           window.location.href = response.url;
         } else {
-          throw new Error('No checkout URL returned');
+          failWithLocalizedFallback('LTD seats checkout returned no URL', response);
         }
       } catch (err: unknown) {
         toast.error(getErrorMessage(err, t('billing.toast.updateFailed')));
@@ -651,9 +677,13 @@ const BillingAndSubscriptionV2Inner = () => {
       const response = await updateSeats({ seats: totalSeats });
       if (response.requiresAction && response.clientSecret) {
         const publishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
-        if (!publishableKey) throw new Error('Stripe publishable key not configured');
-        const stripe = await loadStripe(publishableKey);
-        if (!stripe) throw new Error('Failed to load Stripe');
+        if (!publishableKey) {
+          failWithLocalizedFallback('VITE_STRIPE_PUBLISHABLE_KEY is not configured');
+        }
+        const stripe = await loadStripe(publishableKey, { locale: stripeLocale() });
+        if (!stripe) {
+          failWithLocalizedFallback('loadStripe() resolved null');
+        }
         const { error } = await stripe.confirmCardPayment(response.clientSecret);
         if (error) {
           // pending_if_incomplete keeps the sub at its original seat count until payment
@@ -677,7 +707,7 @@ const BillingAndSubscriptionV2Inner = () => {
         toast.success(t('billing.toast.seatsUpdated'));
         window.location.href = '/info?type=seats-update-success';
       } else {
-        throw new Error('Seat update failed');
+        failWithLocalizedFallback('updateSeats() returned neither url nor success', response);
       }
     } catch (err: unknown) {
       toast.error(getErrorMessage(err, t('billing.toast.updateFailed')));
@@ -859,9 +889,13 @@ const BillingAndSubscriptionV2Inner = () => {
       const response = await changePlanApi({ planId: plan.id });
       if (response.action === 'upgraded' && response.requiresAction && response.clientSecret) {
         const publishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
-        if (!publishableKey) throw new Error('Stripe publishable key not configured');
-        const stripe = await loadStripe(publishableKey);
-        if (!stripe) throw new Error('Failed to load Stripe');
+        if (!publishableKey) {
+          failWithLocalizedFallback('VITE_STRIPE_PUBLISHABLE_KEY is not configured');
+        }
+        const stripe = await loadStripe(publishableKey, { locale: stripeLocale() });
+        if (!stripe) {
+          failWithLocalizedFallback('loadStripe() resolved null');
+        }
         const { error } = await stripe.confirmCardPayment(response.clientSecret);
         if (error) {
           // pending_if_incomplete keeps the sub on its original plan until payment
@@ -919,7 +953,10 @@ const BillingAndSubscriptionV2Inner = () => {
     try {
       const response = await cancelPlanChangeApi();
       if (!response.success) {
-        throw new Error(response.message || 'Failed to cancel plan change');
+        // response.message is a backend message code, translated downstream by
+        // getErrorMessage; without one, fall back to the localized toast copy.
+        if (response.message) throw new Error(response.message);
+        failWithLocalizedFallback('cancelPlanChange() returned success=false with no message');
       }
       toast.success(t('billing.toast.planChangeCancelled'));
       dispatch(getSubscriptionSummaryAction.request());
@@ -1645,6 +1682,9 @@ const BillingAndSubscriptionV2Inner = () => {
                     <div className="bv2-seat-ttl">{t('billing.currentSeats')}</div>
                     <div className="bv2-seat-sub">
                       {t('billing.v2.subscription.seatsControlSub', {
+                        // `count` selects the plural form, `used` renders it —
+                        // without count i18next never pluralizes at all.
+                        count: subscriptionSummary?.usedSeats || 0,
                         used: subscriptionSummary?.usedSeats || 0,
                         unit: fmtBilling(seatPrice),
                         currency: currencySymbol,
@@ -1661,7 +1701,7 @@ const BillingAndSubscriptionV2Inner = () => {
                         type="button"
                         onClick={onStepDown}
                         disabled={seatsLocked || isConfirming}
-                        aria-label="decrement seats"
+                        aria-label={t('billing.v2.subscription.decrementSeatsAria')}
                       >
                         <ChevronLeft className="h-3 w-3" />
                       </button>
@@ -1672,7 +1712,7 @@ const BillingAndSubscriptionV2Inner = () => {
                         type="button"
                         onClick={onStepUp}
                         disabled={seatsLocked || isConfirming}
-                        aria-label="increment seats"
+                        aria-label={t('billing.v2.subscription.incrementSeatsAria')}
                       >
                         <ChevronRight className="h-3 w-3" />
                       </button>
@@ -2250,7 +2290,7 @@ const HistoryCard = ({
   const labelFor = (invoice: BusinessInvoice) => {
     if (invoice.invoiceType === 'sms_purchase') return t('billing.v2.history.types.smsPurchase');
     if (invoice.invoiceType === 'ltd_seats') return t('billing.v2.history.types.ltdSeats');
-    const month = new Date(invoice.createdAt).toLocaleDateString(undefined, {
+    const month = new Date(invoice.createdAt).toLocaleDateString(billingLocale(), {
       month: 'long',
     });
     return `${t('billing.v2.history.types.subscription')} · ${month}`;
@@ -2642,6 +2682,22 @@ const Bv2SmsCard = ({ viewState }: { viewState: ViewState }) => {
 
 // ────────── Invoice details card (replaces InvoiceBillingDetails) ──────────
 
+// Date of birth travels as a plain 'YYYY-MM-DD' string (what the API stores and
+// what a `date` column returns). Conversions use local date parts on purpose:
+// `toISOString()` would shift the day across the UTC boundary for anyone east
+// of Greenwich, turning a birthday into the day before.
+const parseIsoDate = (value: string): Date | null => {
+  if (!value) return null;
+  const [year, month, day] = value.split('-').map(Number);
+  if (!year || !month || !day) return null;
+  return new Date(year, month - 1, day);
+};
+
+const toIsoDate = (date: Date): string =>
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(
+    date.getDate(),
+  ).padStart(2, '0')}`;
+
 const suggestLegalName = (
   type: BillingEntityType,
   suggestions: BillingDetailsSuggestions,
@@ -2654,10 +2710,14 @@ const suggestLegalName = (
 };
 
 interface InvoiceFormState {
+  // Billing identity — also the invoice recipient
   billingEntityType: BillingEntityType;
+  individualType: IndividualType;
   legalName: string;
   fiscalCode: string;
   registrationNumber: string;
+  personalIdentificationNumber: string;
+  dateOfBirth: string;
   billingAddress: string;
   billingCity: string;
   billingCounty: string;
@@ -2667,19 +2727,23 @@ interface InvoiceFormState {
 const buildInitialInvoiceState = (details: BillingDetails): InvoiceFormState => {
   const type: BillingEntityType =
     (details.billingEntityType as BillingEntityType) ?? 'company';
+  // The account country wins over anything stored: the server derives the
+  // country from it, so showing a stored value here would only mislead.
+  const country =
+    details.suggestions.countryCode?.toUpperCase() ||
+    (details.billingCountryCode ?? '').toUpperCase();
   return {
     billingEntityType: type,
+    individualType: (details.individualType as IndividualType) ?? 'pfa',
     legalName: details.legalName ?? suggestLegalName(type, details.suggestions),
     fiscalCode: details.fiscalCode ?? '',
     registrationNumber: details.registrationNumber ?? '',
+    personalIdentificationNumber: details.personalIdentificationNumber ?? '',
+    dateOfBirth: details.dateOfBirth ?? '',
     billingAddress: details.billingAddress ?? '',
     billingCity: details.billingCity ?? '',
     billingCounty: details.billingCounty ?? '',
-    billingCountryCode: (
-      details.billingCountryCode ??
-      details.suggestions.countryCode ??
-      ''
-    ).toUpperCase(),
+    billingCountryCode: country,
   };
 };
 
@@ -2702,9 +2766,20 @@ const Bv2InvoiceDetailsCard = () => {
     [form, snapshot],
   );
   const isCompany = form?.billingEntityType === 'company';
+  const isPfa = !isCompany && form?.individualType === 'pfa';
+  // A company and a PFA are identified by CUI; a plain natural person by CNP.
+  const usesFiscalCode = isCompany || isPfa;
   const isConfigured = !!details?.billingEntityType;
   const isCountryLocked = !!details?.suggestions.countryCode;
   const isRoCountry = (form?.billingCountryCode || '').toUpperCase() === 'RO';
+
+  // The holder must be at least 16 today (born on this day 16 years ago counts),
+  // and a 120-year span covers every living holder.
+  const dobBounds = useMemo(() => {
+    const today = new Date();
+    const max = new Date(today.getFullYear() - 16, today.getMonth(), today.getDate());
+    return { max, min: new Date(today.getFullYear() - 120, 0, 1) };
+  }, []);
 
   const isValid = useMemo(() => {
     if (!form) return false;
@@ -2715,7 +2790,14 @@ const Bv2InvoiceDetailsCard = () => {
       form.billingCounty,
       form.billingCountryCode,
     ];
-    if (form.billingEntityType === 'company') required.push(form.fiscalCode);
+    if (form.billingEntityType === 'company' || form.individualType === 'pfa') {
+      required.push(form.fiscalCode);
+    }
+    // A PFA trades, so it is the individual we may have to report — its date of
+    // birth is required. A plain individual is not a seller, so it stays optional.
+    if (form.billingEntityType === 'person' && form.individualType === 'pfa') {
+      required.push(form.dateOfBirth);
+    }
     return required.every((v) => v.trim().length > 0);
   }, [form]);
 
@@ -2724,22 +2806,47 @@ const Bv2InvoiceDetailsCard = () => {
     value: InvoiceFormState[K],
   ) => setForm((prev) => (prev ? { ...prev, [key]: value } : prev));
 
+  // Each tab is its own form: stored values reappear only on the tab they
+  // were saved under; any other tab starts blank apart from account-derived
+  // prefills (suggested legal name, locked country). Nothing typed on one tab
+  // ever carries over to another.
+  const buildFormForType = (
+    type: BillingEntityType,
+    individualType: IndividualType,
+  ): InvoiceFormState => {
+    const saved = buildInitialInvoiceState(details!);
+    const matchesSaved =
+      saved.billingEntityType === type &&
+      (type === 'company' || saved.individualType === individualType);
+    if (matchesSaved) return { ...saved, individualType };
+    return {
+      billingEntityType: type,
+      individualType,
+      legalName: suggestLegalName(type, details!.suggestions),
+      fiscalCode: '',
+      registrationNumber: '',
+      personalIdentificationNumber: '',
+      dateOfBirth: '',
+      billingAddress: '',
+      billingCity: '',
+      billingCounty: '',
+      billingCountryCode: (details!.suggestions.countryCode ?? '').toUpperCase(),
+    };
+  };
+
   const handleTypeChange = (next: BillingEntityType) => {
     if (!details) return;
     setForm((prev) => {
-      if (!prev) return prev;
-      const prevSuggestion = suggestLegalName(prev.billingEntityType, details.suggestions);
-      const nextSuggestion = suggestLegalName(next, details.suggestions);
-      const legalName =
-        prev.legalName === '' || prev.legalName === prevSuggestion
-          ? nextSuggestion
-          : prev.legalName;
-      return {
-        ...prev,
-        billingEntityType: next,
-        legalName,
-        ...(next === 'person' ? { fiscalCode: '', registrationNumber: '' } : {}),
-      };
+      if (!prev || prev.billingEntityType === next) return prev;
+      return buildFormForType(next, prev.individualType);
+    });
+  };
+
+  const handleIndividualTypeChange = (next: IndividualType) => {
+    if (!details) return;
+    setForm((prev) => {
+      if (!prev || prev.individualType === next) return prev;
+      return buildFormForType(prev.billingEntityType, next);
     });
   };
 
@@ -2754,9 +2861,16 @@ const Bv2InvoiceDetailsCard = () => {
       billingCounty: form.billingCounty.trim(),
       billingCountryCode: form.billingCountryCode.trim().toLowerCase(),
     };
-    if (form.billingEntityType === 'company') {
+    if (form.billingEntityType === 'person') {
+      payload.individualType = form.individualType;
+      payload.dateOfBirth = form.dateOfBirth.trim() || undefined;
+    }
+    if (form.billingEntityType === 'company' || form.individualType === 'pfa') {
       payload.fiscalCode = form.fiscalCode.trim();
       payload.registrationNumber = form.registrationNumber.trim() || undefined;
+    } else if (form.billingEntityType === 'person') {
+      payload.personalIdentificationNumber =
+        form.personalIdentificationNumber.trim() || undefined;
     }
     setIsSubmitting(true);
     try {
@@ -2836,7 +2950,12 @@ const Bv2InvoiceDetailsCard = () => {
             <span className="bv2-field-label">
               {t('billing.invoiceDetails.entityTypeLabel')}
             </span>
-            <div className="relative flex min-w-[220px] self-start rounded-full border border-border bg-surface-hover p-0.5">
+            {/* Grid rather than fixed halves: `1fr` columns stay equal but never
+                narrower than their content, so a long label ("Persoană fizică")
+                widens the whole track instead of wrapping onto a second line.
+                The 50% indicator maths below still holds because the two
+                columns remain equal. */}
+            <div className="relative grid min-w-[220px] grid-cols-2 self-start rounded-full border border-border bg-surface-hover p-0.5">
               <div
                 aria-hidden="true"
                 className="absolute top-0.5 bottom-0.5 left-0.5 w-[calc(50%-0.125rem)] rounded-full bg-surface shadow-sm transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]"
@@ -2855,7 +2974,7 @@ const Bv2InvoiceDetailsCard = () => {
                     key={opt}
                     onClick={() => handleTypeChange(opt)}
                     className={cn(
-                      'bv2-seg-btn relative z-10 w-1/2 cursor-pointer rounded-full px-4 py-1 text-center text-[12.5px] font-medium transition-colors duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]',
+                      'bv2-seg-btn relative z-10 cursor-pointer whitespace-nowrap rounded-full px-4 py-1 text-center text-[12.5px] font-medium transition-colors duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]',
                       active
                         ? 'text-foreground-1'
                         : 'text-foreground-2 hover:text-foreground-1',
@@ -2876,7 +2995,53 @@ const Bv2InvoiceDetailsCard = () => {
           </div>
 
           <div className="bv2-card-content-enter" key={isCompany ? 'company' : 'person'}>
-          {isCompany ? (
+          {/* Individual sub-type: the two cases carry different identifiers. */}
+          {!isCompany && (
+            <div className="bv2-field">
+              <span className="bv2-field-label">
+                {t('billing.invoiceDetails.individualTypeLabel')}
+              </span>
+              <div className="relative grid min-w-[220px] grid-cols-2 self-start rounded-full border border-border bg-surface-hover p-0.5">
+                <div
+                  aria-hidden="true"
+                  className="absolute top-0.5 bottom-0.5 left-0.5 w-[calc(50%-0.125rem)] rounded-full bg-surface shadow-sm transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]"
+                  style={{
+                    transform:
+                      form.individualType === 'natural_person'
+                        ? 'translateX(100%)'
+                        : 'translateX(0)',
+                  }}
+                />
+                {(['pfa', 'natural_person'] as const).map((opt) => {
+                  const active = form.individualType === opt;
+                  return (
+                    <button
+                      type="button"
+                      key={opt}
+                      onClick={() => handleIndividualTypeChange(opt)}
+                      className={cn(
+                        'bv2-seg-btn relative z-10 cursor-pointer whitespace-nowrap rounded-full px-4 py-1 text-center text-[12.5px] font-medium transition-colors duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]',
+                        active
+                          ? 'text-foreground-1'
+                          : 'text-foreground-2 hover:text-foreground-1',
+                      )}
+                    >
+                      {opt === 'pfa'
+                        ? t('billing.invoiceDetails.pfa')
+                        : t('billing.invoiceDetails.naturalPerson')}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="bv2-field-hint">
+                {isPfa
+                  ? t('billing.invoiceDetails.pfaHint')
+                  : t('billing.invoiceDetails.naturalPersonHint')}
+              </p>
+            </div>
+          )}
+
+          {usesFiscalCode ? (
             <>
               <div className="bv2-form-row">
                 <div className="bv2-field">
@@ -2896,12 +3061,18 @@ const Bv2InvoiceDetailsCard = () => {
                 </div>
                 <div className="bv2-field">
                   <label className="bv2-field-label" htmlFor="bv2-reg">
-                    {t('billing.invoiceDetails.registrationNumber')}
+                    {isPfa
+                      ? t('billing.invoiceDetails.registrationNumberPfa')
+                      : t('billing.invoiceDetails.registrationNumber')}
                   </label>
                   <input
                     id="bv2-reg"
                     className="bv2-field-input"
-                    placeholder={t('billing.invoiceDetails.registrationNumberPlaceholder')}
+                    placeholder={t(
+                      isPfa
+                        ? 'billing.invoiceDetails.registrationNumberPfaPlaceholder'
+                        : 'billing.invoiceDetails.registrationNumberPlaceholder',
+                    )}
                     value={form.registrationNumber}
                     onChange={(e) => setField('registrationNumber', e.target.value)}
                     maxLength={50}
@@ -2911,12 +3082,18 @@ const Bv2InvoiceDetailsCard = () => {
               <div className="bv2-form-row bv2-cols-1">
                 <div className="bv2-field">
                   <label className="bv2-field-label" htmlFor="bv2-legal">
-                    {t('billing.invoiceDetails.legalNameCompany')}
+                    {isCompany
+                      ? t('billing.invoiceDetails.legalNameCompany')
+                      : t('billing.invoiceDetails.legalNamePfa')}
                   </label>
                   <input
                     id="bv2-legal"
                     className="bv2-field-input"
-                    placeholder={t('billing.invoiceDetails.legalNameCompanyPlaceholder')}
+                    placeholder={t(
+                      isCompany
+                        ? 'billing.invoiceDetails.legalNameCompanyPlaceholder'
+                        : 'billing.invoiceDetails.legalNamePfaPlaceholder',
+                    )}
                     value={form.legalName}
                     onChange={(e) => setField('legalName', e.target.value)}
                     maxLength={255}
@@ -2926,7 +3103,7 @@ const Bv2InvoiceDetailsCard = () => {
               </div>
             </>
           ) : (
-            <div className="bv2-form-row bv2-cols-1">
+            <div className="bv2-form-row">
               <div className="bv2-field">
                 <label className="bv2-field-label" htmlFor="bv2-fullname">
                   {t('billing.invoiceDetails.legalNamePerson')}
@@ -2941,6 +3118,63 @@ const Bv2InvoiceDetailsCard = () => {
                   required
                 />
               </div>
+              <div className="bv2-field">
+                {/* Romania's CNP is 13 digits; other countries issue their own
+                    national tax ID, which can be longer and alphanumeric — so
+                    outside RO the field accepts what the customer types. */}
+                <label className="bv2-field-label" htmlFor="bv2-cnp">
+                  {isRoCountry
+                    ? t('billing.invoiceDetails.personalIdentificationNumber')
+                    : t('billing.invoiceDetails.taxIdentificationNumber')}
+                  {isRoCountry && <span className="bv2-flag-ro" aria-label="RO" />}
+                </label>
+                <input
+                  id="bv2-cnp"
+                  className="bv2-field-input"
+                  inputMode={isRoCountry ? 'numeric' : 'text'}
+                  placeholder={t(
+                    isRoCountry
+                      ? 'billing.invoiceDetails.personalIdentificationNumberPlaceholder'
+                      : 'billing.invoiceDetails.taxIdentificationNumberPlaceholder',
+                  )}
+                  value={form.personalIdentificationNumber}
+                  onChange={(e) =>
+                    setField(
+                      'personalIdentificationNumber',
+                      isRoCountry
+                        ? e.target.value.replace(/\D/g, '').slice(0, 13)
+                        : e.target.value.slice(0, 32),
+                    )
+                  }
+                  maxLength={isRoCountry ? 13 : 32}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Natural persons — PFA included — are reported to ANAF with a date
+              of birth; companies have no equivalent field. */}
+          {!isCompany && (
+            <div className="bv2-form-row">
+              <div className="bv2-field">
+                <label className="bv2-field-label" htmlFor="bv2-dob">
+                  {isPfa
+                    ? t('billing.invoiceDetails.dateOfBirth')
+                    : t('billing.invoiceDetails.dateOfBirthOptional')}
+                </label>
+                <DatePicker
+                  triggerId="bv2-dob"
+                  value={parseIsoDate(form.dateOfBirth)}
+                  onChange={(date) => setField('dateOfBirth', toIsoDate(date))}
+                  minDate={dobBounds.min}
+                  maxDate={dobBounds.max}
+                  enableMonthYearSelect
+                  placeholder={t('billing.invoiceDetails.dateOfBirthPlaceholder')}
+                  mobileTitle={t('billing.invoiceDetails.dateOfBirth')}
+                  className="!h-[38px] !rounded-[10px] !text-[13.5px]"
+                />
+              </div>
+              <div />
             </div>
           )}
 

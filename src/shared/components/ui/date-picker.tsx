@@ -32,6 +32,13 @@ interface DatePickerProps {
   calendarDisabled?: boolean;
   /** Heading for the mobile bottom sheet; defaults to `placeholder`. Prefer the field's own label. */
   mobileTitle?: string;
+  /**
+   * Replaces the static month/year heading with month + year dropdowns in day
+   * view. Month arrows alone are fine for dates near today, but unusable for
+   * far-off ones (a birth date would take hundreds of clicks). The year range
+   * follows `minDate`/`maxDate`.
+   */
+  enableMonthYearSelect?: boolean;
 }
 
 const DatePicker: React.FC<DatePickerProps> = ({
@@ -50,11 +57,20 @@ const DatePicker: React.FC<DatePickerProps> = ({
   popoverHeaderSlot,
   calendarDisabled = false,
   mobileTitle,
+  enableMonthYearSelect = false,
 }) => {
   const { t } = useTranslation("calendar");
   const locale = getCalendarLocale();
   const isMobile = useIsMobile();
-  const fallbackDate = value ?? new Date();
+  // With no value selected, open the calendar on today clamped into the
+  // allowed range — e.g. a date-of-birth picker whose max is in the past
+  // should open on the latest selectable month, not a fully disabled one.
+  const clampToBounds = (date: Date) => {
+    if (maxDate != null && date.getTime() > maxDate.getTime()) return maxDate;
+    if (minDate != null && date.getTime() < minDate.getTime()) return minDate;
+    return date;
+  };
+  const fallbackDate = value ?? clampToBounds(new Date());
   const [isOpen, setIsOpen] = useState(false);
   const [closingAnimation, setClosingAnimation] = useState(false);
   const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -93,12 +109,19 @@ const DatePicker: React.FC<DatePickerProps> = ({
   const [currentMonth, setCurrentMonth] = useState(fallbackDate);
   const [currentYear, setCurrentYear] = useState(fallbackDate.getFullYear());
 
-  // Sync currentMonth with value when it changes
-  useEffect(() => {
-    const d = value ?? new Date();
+  // Move the calendar to `value` when it actually changes. Keyed on the
+  // timestamp, not the Date object: callers commonly derive `value` from a
+  // stored string (`parseIsoDate(form.dateOfBirth)`), so a fresh instance
+  // arrives on every parent render, and syncing on identity would throw away
+  // the month the user just navigated to.
+  const valueTime = value?.getTime() ?? null;
+  const [syncedValueTime, setSyncedValueTime] = useState(valueTime);
+  if (syncedValueTime !== valueTime) {
+    const d = valueTime != null ? new Date(valueTime) : clampToBounds(new Date());
+    setSyncedValueTime(valueTime);
     setCurrentMonth(d);
     setCurrentYear(d.getFullYear());
-  }, [value]);
+  }
 
   const daysInMonth = (date: Date) => {
     return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
@@ -136,6 +159,13 @@ const DatePicker: React.FC<DatePickerProps> = ({
     // Add days of the month
     for (let i = 1; i <= daysInCurrentMonth; i++) {
       days.push(new Date(date.getFullYear(), date.getMonth(), i));
+    }
+
+    // Pad to a full six-week grid. A month spans four to six rows, and letting
+    // the grid shrink with it resizes the popover, which then re-anchors — the
+    // panel visibly jumps up or down each time you change month.
+    while (days.length < 42) {
+      days.push(null);
     }
 
     return days;
@@ -241,6 +271,45 @@ const DatePicker: React.FC<DatePickerProps> = ({
     setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1));
   };
 
+  // Month/year dropdown options for `enableMonthYearSelect`. Years run newest
+  // first because the far-from-today dates this mode exists for (birth dates)
+  // are reached by scrolling back from the present.
+  const monthNames = useMemo(
+    () =>
+      Array.from({ length: 12 }, (_, i) =>
+        new Date(2000, i, 1).toLocaleDateString(locale, { month: 'long' }),
+      ),
+    [locale],
+  );
+
+  const yearOptions = useMemo(() => {
+    const lastYear = (maxDate ?? new Date()).getFullYear();
+    const firstYear = minDate ? minDate.getFullYear() : lastYear - 100;
+    const years: number[] = [];
+    for (let y = lastYear; y >= firstYear; y--) years.push(y);
+    return years;
+  }, [minDate, maxDate]);
+
+  // `globals.css` styles bare `input, select, textarea` with 16px text and 12px
+  // padding, outside any cascade layer -- which beats every Tailwind utility no
+  // matter its specificity. Left to the class list, the dropdowns render their
+  // label as a clipped sliver inside the 32px header row. Inline styles are the
+  // one thing that outranks an unlayered rule without `!important` everywhere.
+  const selectStyle: React.CSSProperties = {
+    fontSize: '0.875rem',
+    lineHeight: '1.25rem',
+    padding: '0 0.375rem',
+    borderRadius: '0.375rem',
+  };
+
+  const selectMonthPart = (month: number) => {
+    setCurrentMonth(new Date(currentMonth.getFullYear(), month, 1));
+  };
+
+  const selectYearPart = (year: number) => {
+    setCurrentMonth(new Date(year, currentMonth.getMonth(), 1));
+  };
+
   const goToPreviousYear = () => {
     setCurrentYear(currentYear - 1);
   };
@@ -262,9 +331,12 @@ const DatePicker: React.FC<DatePickerProps> = ({
   const formatDisplayValue = () => {
     if (value == null) return placeholder;
     if (viewMode === 'day') {
-      return value.toLocaleDateString(locale, { 
+      return value.toLocaleDateString(locale, {
         month: 'short',
-        day: 'numeric'
+        day: 'numeric',
+        // A picker that reaches years back (a birth date) has to show which
+        // year was picked; day+month alone is ambiguous.
+        ...(enableMonthYearSelect ? { year: 'numeric' as const } : {}),
       });
     } else if (viewMode === 'week') {
       const weekStart = getWeekStart(value);
@@ -368,14 +440,47 @@ const DatePicker: React.FC<DatePickerProps> = ({
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
-              <div className="text-sm font-semibold">
-                {viewMode === 'month'
-                  ? currentYear.toString()
-                  : currentMonth.toLocaleDateString(locale, {
-                      month: 'long',
-                      year: 'numeric',
-                    })}
-              </div>
+              {enableMonthYearSelect && viewMode !== 'month' ? (
+                <div className="flex items-center gap-1.5">
+                  <select
+                    aria-label={t('page.common.month', { defaultValue: 'Month' })}
+                    value={currentMonth.getMonth()}
+                    onChange={(e) => selectMonthPart(Number(e.target.value))}
+                    disabled={calendarDisabled}
+                    style={selectStyle}
+                    className="h-8 cursor-pointer rounded-md border border-border bg-transparent font-semibold text-foreground outline-none focus:border-border-strong"
+                  >
+                    {monthNames.map((name, i) => (
+                      <option key={name} value={i}>
+                        {name}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    aria-label={t('page.common.year', { defaultValue: 'Year' })}
+                    value={currentMonth.getFullYear()}
+                    onChange={(e) => selectYearPart(Number(e.target.value))}
+                    disabled={calendarDisabled}
+                    style={selectStyle}
+                    className="h-8 cursor-pointer rounded-md border border-border bg-transparent font-semibold text-foreground outline-none focus:border-border-strong"
+                  >
+                    {yearOptions.map((y) => (
+                      <option key={y} value={y}>
+                        {y}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                <div className="text-sm font-semibold">
+                  {viewMode === 'month'
+                    ? currentYear.toString()
+                    : currentMonth.toLocaleDateString(locale, {
+                        month: 'long',
+                        year: 'numeric',
+                      })}
+                </div>
+              )}
               <Button
                 variant="ghost"
                 size="sm"

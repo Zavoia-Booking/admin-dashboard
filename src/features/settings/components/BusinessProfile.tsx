@@ -37,8 +37,7 @@ import {
 } from '../../../shared/utils/validation';
 import { Input } from '../../../shared/components/ui/input';
 import { Popover, PopoverTrigger, PopoverContent } from '../../../shared/components/ui/popover';
-import LegalContentDialog from '../../legal/components/LegalContentDialog';
-import type { LegalPageType } from '../../legal/components/legal-content';
+import { openLegalPage } from '../../legal/legal-links';
 
 const toTitleCase = (s: string) =>
   s.replace(/\b\w/g, (c) => c.toUpperCase());
@@ -139,7 +138,6 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
   const [isSavingEmail, setIsSavingEmail] = useState(false);
   const [emailFieldErrors, setEmailFieldErrors] = useState<{ currentEmail?: string; newEmail?: string }>({});
 
-  const [legalDialogType, setLegalDialogType] = useState<LegalPageType | null>(null);
 
   // Email verification resend state
   const [isResendingVerification, setIsResendingVerification] = useState(false);
@@ -1097,7 +1095,7 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
                     <button
                       key={type}
                       type="button"
-                      onClick={() => setLegalDialogType(type)}
+                      onClick={() => openLegalPage(type)}
                       className="profile-line-row"
                     >
                       <div className="profile-line-icon"><FileText className="h-4 w-4" /></div>
@@ -1129,10 +1127,6 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
         </div>
       </div>
 
-      <LegalContentDialog
-        type={legalDialogType}
-        onOpenChange={(open) => { if (!open) setLegalDialogType(null); }}
-      />
     </form>
   );
 };

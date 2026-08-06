@@ -5,6 +5,12 @@ export interface Industry {
 
 export type BillingEntityType = 'company' | 'person';
 
+/**
+ * Sub-type of a `person` fiscal identity. A PFA is identified by its CUI, a
+ * plain natural person by CNP (Cod de procedură fiscală art. 82 alin. (1)).
+ */
+export type IndividualType = 'natural_person' | 'pfa';
+
 export interface Business {
   id: number;
   uuid: string;
@@ -54,10 +60,14 @@ export interface BillingDetailsSuggestions {
 }
 
 export interface BillingDetails {
+  // Billing identity — who the customer legally is; also the invoice recipient.
   billingEntityType: BillingEntityType | null;
+  individualType: IndividualType | null;
   legalName: string | null;
   fiscalCode: string | null;
   registrationNumber: string | null;
+  personalIdentificationNumber: string | null;
+  dateOfBirth: string | null;
   billingAddress: string | null;
   billingCity: string | null;
   billingCounty: string | null;
@@ -67,6 +77,7 @@ export interface BillingDetails {
 
 export interface UpdateBillingDetailsDTO {
   billingEntityType: BillingEntityType;
+  individualType?: IndividualType;
   legalName: string;
   billingAddress: string;
   billingCity: string;
@@ -74,6 +85,8 @@ export interface UpdateBillingDetailsDTO {
   billingCountryCode: string;
   fiscalCode?: string;
   registrationNumber?: string;
+  personalIdentificationNumber?: string;
+  dateOfBirth?: string;
 }
 
 export interface BusinessState {

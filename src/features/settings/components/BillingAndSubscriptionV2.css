@@ -370,10 +370,13 @@
 }
 
 /* Override the global min-height: 44px touch target for the
-   compact entity-type segmented control inside the invoice card. */
+   compact entity-type segmented control inside the invoice card.
+   `min-width: max-content` (rather than 0) still clears the 44px floor, but
+   keeps each button contributing its label width to the grid track — without
+   it the tracks collapse and long labels such as "Persoană fizică" wrap. */
 .bv2-seg-btn {
   min-height: 0 !important;
-  min-width: 0 !important;
+  min-width: max-content !important;
   height: auto !important;
 }
 

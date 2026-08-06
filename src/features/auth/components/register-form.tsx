@@ -13,8 +13,7 @@ import { sanitizeName, validatePasswordPolicy } from "../../../shared/utils/vali
 import { Popover, PopoverTrigger, PopoverContent } from "../../../shared/components/ui/popover"
 import GoogleSignInButton from "../../../shared/components/auth/GoogleSignInButton"
 import { Checkbox } from "../../../shared/components/ui/checkbox"
-import LegalContentDialog from "../../legal/components/LegalContentDialog"
-import type { LegalPageType } from "../../legal/components/legal-content"
+import { openLegalPage } from "../../legal/legal-links"
 import { useTranslation } from "react-i18next"
 
 type FormValues = {
@@ -41,7 +40,6 @@ export function RegisterForm({ initialEmail, lockEmail, welcomeToken, preferGoog
   const [pwFocused, setPwFocused] = useState<boolean>(false)
   const [pwInteracted, setPwInteracted] = useState<boolean>(false)
   const [showPassword, setShowPassword] = useState<boolean>(false)
-  const [legalDialog, setLegalDialog] = useState<LegalPageType | null>(null)
   const dispatch = useDispatch()
   const { isLoading, error: authError } = useSelector((state: RootState) => state.auth)
 
@@ -300,14 +298,14 @@ export function RegisterForm({ initialEmail, lockEmail, welcomeToken, preferGoog
               />
               <label htmlFor="acceptTerms" className="text-sm text-foreground-2 leading-normal cursor-pointer select-none">
                 {t('register.termsAgreement')}{" "}
-                <span onClick={(e) => { e.preventDefault(); setLegalDialog("terms") }} className="text-primary hover:text-primary-hover underline underline-offset-2 cursor-pointer" role="link" tabIndex={0} onKeyDown={(e) => e.key === "Enter" && setLegalDialog("terms")}>
+                <span onClick={(e) => { e.preventDefault(); openLegalPage("terms") }} className="text-primary hover:text-primary-hover underline underline-offset-2 cursor-pointer" role="link" tabIndex={0} onKeyDown={(e) => e.key === "Enter" && openLegalPage("terms")}>
                   {t('register.termsAndConditions')}
                 </span>,{" "}
-                <span onClick={(e) => { e.preventDefault(); setLegalDialog("cookies") }} className="text-primary hover:text-primary-hover underline underline-offset-2 cursor-pointer" role="link" tabIndex={0} onKeyDown={(e) => e.key === "Enter" && setLegalDialog("cookies")}>
+                <span onClick={(e) => { e.preventDefault(); openLegalPage("cookies") }} className="text-primary hover:text-primary-hover underline underline-offset-2 cursor-pointer" role="link" tabIndex={0} onKeyDown={(e) => e.key === "Enter" && openLegalPage("cookies")}>
                   {t('register.cookiesPolicy')}
                 </span>{" "}
                 {t('register.and')}{" "}
-                <span onClick={(e) => { e.preventDefault(); setLegalDialog("privacy") }} className="text-primary hover:text-primary-hover underline underline-offset-2 cursor-pointer" role="link" tabIndex={0} onKeyDown={(e) => e.key === "Enter" && setLegalDialog("privacy")}>
+                <span onClick={(e) => { e.preventDefault(); openLegalPage("privacy") }} className="text-primary hover:text-primary-hover underline underline-offset-2 cursor-pointer" role="link" tabIndex={0} onKeyDown={(e) => e.key === "Enter" && openLegalPage("privacy")}>
                   {t('register.privacyPolicy')}
                 </span>
               </label>
@@ -353,7 +351,6 @@ export function RegisterForm({ initialEmail, lockEmail, welcomeToken, preferGoog
             }}
           />
       </form>
-      <LegalContentDialog type={legalDialog} onOpenChange={(open) => !open && setLegalDialog(null)} />
     </>
   )
 }

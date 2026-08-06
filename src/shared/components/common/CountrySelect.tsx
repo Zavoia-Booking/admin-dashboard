@@ -29,6 +29,11 @@ interface Country {
   name: string;
 }
 
+// Countries currently open for business signup. We are launching in Romania
+// only and will gradually release to other countries — add their ISO codes
+// here to make them selectable again.
+const RELEASED_COUNTRY_CODES = ["ro"];
+
 // Common countries first, then alphabetical list of all countries
 const COUNTRIES: Country[] = [
   // Most common (will be shown at top when no search)
@@ -107,8 +112,17 @@ const COUNTRIES: Country[] = [
   { code: "vn", name: "Vietnam" },
 ];
 
+const AVAILABLE_COUNTRIES: Country[] = COUNTRIES.filter(c =>
+  RELEASED_COUNTRY_CODES.includes(c.code)
+);
+
 // Try to detect country from browser locale
 const detectCountry = (): string | null => {
+  // With a single released country there is nothing to detect — everyone
+  // gets it as the default.
+  if (AVAILABLE_COUNTRIES.length === 1) {
+    return AVAILABLE_COUNTRIES[0].code;
+  }
   try {
     // Try navigator.language first (e.g., "en-US", "ro-RO")
     const locale = navigator.language || (navigator as any).userLanguage;
@@ -116,8 +130,8 @@ const detectCountry = (): string | null => {
       const parts = locale.split("-");
       if (parts.length >= 2) {
         const countryCode = parts[1].toLowerCase();
-        // Verify it's in our list
-        if (COUNTRIES.some(c => c.code === countryCode)) {
+        // Verify it's selectable
+        if (AVAILABLE_COUNTRIES.some(c => c.code === countryCode)) {
           return countryCode;
         }
       }
@@ -203,9 +217,9 @@ export const CountrySelect: React.FC<CountrySelectProps> = ({
   );
 
   const filteredCountries = useMemo(() => {
-    if (!debouncedSearch.trim()) return COUNTRIES;
+    if (!debouncedSearch.trim()) return AVAILABLE_COUNTRIES;
     const query = debouncedSearch.toLowerCase().trim();
-    return COUNTRIES.filter(
+    return AVAILABLE_COUNTRIES.filter(
       c => c.name.toLowerCase().includes(query) || c.code.toLowerCase().includes(query)
     );
   }, [debouncedSearch]);
@@ -251,17 +265,22 @@ export const CountrySelect: React.FC<CountrySelectProps> = ({
     </Button>
   );
 
+  // Searching is pointless while only a handful of countries are released.
+  const showSearch = AVAILABLE_COUNTRIES.length > 5;
+
   // Shared between both containers; only the list's height behaviour differs.
   const searchAndList = (listClassName: string) => (
     <>
-      <div className="shrink-0 p-2 bg-popover">
-        <CommandInput
-          placeholder={t('placeholders.searchCountries')}
-          value={search}
-          onValueChange={setSearch}
-          className="border-0 focus:border-0 focus:ring-0 shadow-none"
-        />
-      </div>
+      {showSearch && (
+        <div className="shrink-0 p-2 bg-popover">
+          <CommandInput
+            placeholder={t('placeholders.searchCountries')}
+            value={search}
+            onValueChange={setSearch}
+            className="border-0 focus:border-0 focus:ring-0 shadow-none"
+          />
+        </div>
+      )}
       <CommandList className={listClassName}>
         <CommandEmpty className="py-6 text-center text-sm text-muted-foreground">
           {t('countrySelect.noResults')}

@@ -19,7 +19,7 @@ test.describe('Login with business selector', () => {
 
     const dialog = page.getByRole('dialog')
     await expect(dialog).toBeVisible({ timeout: 10_000 })
-    await expect(dialog).toContainText('Select Your Business')
+    await expect(dialog).toContainText(/select your business/i)
 
     await dialog.getByRole('button', { name: /Acme Salon/i }).click()
     await expect(page).toHaveURL(/\/dashboard/, { timeout: 15_000 })
