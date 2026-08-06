@@ -119,6 +119,14 @@ const browserIsOffline = (): boolean =>
 const shouldShowFeatureErrorToast = (error: unknown): boolean =>
   !wasGlobalHttpErrorToastHandled(error, "subscription_required");
 
+// A feature block on a mutation means entitlements changed mid-session; refetch so the
+// access flags (and the gated UI) resync instead of retry-looping the same failure.
+function* resyncAccessAfterFeatureBlock(codes: string[]): Generator<any, void, any> {
+  if (codes.includes("WEBSITE_BUILDER.E01") || codes.includes("WEBSITE_BUILDER.E09")) {
+    yield put(fetchWebsiteBuilderAction.request());
+  }
+}
+
 const showDraftConflictToast = () =>
   toast.warning(i18n.t("website:page.toasts.draftConflict"), {
     id: "website-draft-conflict",
@@ -464,12 +472,21 @@ function* performSaveWebsiteDraft(
           id: "website-theme-access-changed",
         });
       } else {
-        toast.error(message || i18n.t("website:page.toasts.draftSaveFailed"), {
-          id: "website-save-failed",
-        });
+        // Access-block copy references plans/billing — never surface it in the native app.
+        const neutralNativeBlock =
+          isNativeApp() && errorCodes.includes("WEBSITE_BUILDER.E01");
+        toast.error(
+          neutralNativeBlock
+            ? i18n.t("website:page.toasts.draftSaveFailed")
+            : message || i18n.t("website:page.toasts.draftSaveFailed"),
+          {
+            id: "website-save-failed",
+          },
+        );
       }
     }
     yield* putSaveFailure(request, scope, result);
+    yield* resyncAccessAfterFeatureBlock(errorCodes);
     return result;
   }
 }
@@ -564,15 +581,24 @@ function* heroMutationFailure(
   }
 
   if (shouldShowFeatureErrorToast(error)) {
-    toast.error(message || i18n.t('website:page.toasts.draftSaveFailed'), {
-      id: "website-hero-update-failed",
-    });
+    // Access-block copy references plans/billing — never surface it in the native app.
+    const neutralNativeBlock =
+      isNativeApp() && extractErrorCodes(error).includes("WEBSITE_BUILDER.E01");
+    toast.error(
+      neutralNativeBlock
+        ? i18n.t("website:page.toasts.draftSaveFailed")
+        : message || i18n.t("website:page.toasts.draftSaveFailed"),
+      {
+        id: "website-hero-update-failed",
+      },
+    );
   }
   if (isUpload) {
     yield put(uploadWebsiteHeroAction.failure({ message, ...scope }));
   } else {
     yield put(deleteWebsiteHeroAction.failure({ message, ...scope }));
   }
+  yield* resyncAccessAfterFeatureBlock(extractErrorCodes(error));
 }
 
 function* handleUploadWebsiteHero(
@@ -656,6 +682,7 @@ function* handlePublishWebsite(
     if (!(yield* isCurrentWebsiteMutationScope(scope))) return;
     const message = getErrorMessage(error);
     const codes = extractErrorCodes(error);
+    yield* resyncAccessAfterFeatureBlock(codes);
 
     // A lost response is ambiguous: publishing may have committed. Read once and
     // acknowledge only the exact published version; never replay POST automatically.
@@ -742,10 +769,37 @@ function* handlePublishWebsite(
       );
       return;
     }
+    if (codes.includes('WEBSITE_BUILDER.E09')) {
+      // Plan-gated publish. The web UI intercepts with the upgrade dialog before any
+      // request, so this backstops mid-session downgrades; native gets neutral copy only.
+      if (shouldShowFeatureErrorToast(error)) {
+        toast.error(
+          isNativeApp()
+            ? i18n.t('website:page.toasts.publishUnavailable')
+            : message || i18n.t('website:page.toasts.publishFailed'),
+          { id: "website-publish-failed" },
+        );
+      }
+      yield put(
+        publishWebsiteAction.failure({
+          message,
+          ...scope,
+          failureKind: 'publish',
+        }),
+      );
+      return;
+    }
     if (shouldShowFeatureErrorToast(error)) {
-      toast.error(message || i18n.t('website:page.toasts.publishFailed'), {
-        id: "website-publish-failed",
-      });
+      // E01 (no Web Studio access) copy references billing — keep it off native toasts.
+      const neutralNativeBlock = isNativeApp() && codes.includes('WEBSITE_BUILDER.E01');
+      toast.error(
+        neutralNativeBlock
+          ? i18n.t('website:page.toasts.publishFailed')
+          : message || i18n.t('website:page.toasts.publishFailed'),
+        {
+          id: "website-publish-failed",
+        },
+      );
     }
     yield put(
       publishWebsiteAction.failure({

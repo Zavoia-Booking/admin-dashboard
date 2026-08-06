@@ -2,7 +2,6 @@ import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { AlertTriangle, ChevronRight, Lock, RotateCcw, X } from "lucide-react";
 import { cn } from "../../../../shared/lib/utils";
-import { useFormatPrice } from "../../../../shared/hooks/useFormatPrice";
 import { Button } from "../../../../shared/components/ui/button";
 import {
   Popover,
@@ -110,7 +109,6 @@ export function ThemePanel({
   error,
 }: ThemePanelProps) {
   const { t } = useTranslation("website");
-  const { formatPrice } = useFormatPrice();
   const isMobile = useIsMobile();
   const [atelierPickerOpen, setAtelierPickerOpen] = useState(false);
   const [atelierAnnouncement, setAtelierAnnouncement] = useState("");
@@ -238,9 +236,8 @@ export function ThemePanel({
       }
       if (choice.asset?.owned) return t("businessPage.theme.assetStatus.premiumOwned");
       if (!choice.asset?.available) return t("businessPage.theme.assetStatus.unavailable");
-      return t("businessPage.theme.assetStatus.premiumPrice", {
-        price: formatPrice(choice.asset.priceMinor, choice.asset.currency),
-      });
+      // Theme assets are never priced (all colors/fonts ship free) — no price strings here.
+      return t("businessPage.theme.assetStatus.premiumUnlockOnce");
     };
     const activeStatus = statusFor(activeChoice);
     const activeLocked = isLocked(activeChoice);
@@ -302,7 +299,7 @@ export function ThemePanel({
         : owned
           ? t("businessPage.theme.assetStatus.ownedShort")
           : asset?.available
-            ? formatPrice(asset.priceMinor, asset.currency)
+            ? null
             : t("businessPage.theme.assetStatus.unavailable");
 
       return (
@@ -327,12 +324,14 @@ export function ThemePanel({
           >
             {name}
           </span>
-          {tag && (
+          {(tag || locked) && (
             <span className="atelier-brand-font-status" aria-hidden>
               {locked && <Lock strokeWidth={2.2} />}
-              <span className={owned ? "atelier-brand-font-owned" : "atelier-brand-font-price"}>
-                {tag}
-              </span>
+              {tag && (
+                <span className={owned ? "atelier-brand-font-owned" : "atelier-brand-font-price"}>
+                  {tag}
+                </span>
+              )}
             </span>
           )}
         </RadioGroupItem>

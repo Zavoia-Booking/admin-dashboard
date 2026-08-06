@@ -187,14 +187,15 @@
     "E04": "Acest stil nu poate fi aplicat momentan. Încearcă din nou"
   },
   "WEBSITE_BUILDER": {
-    "E01": "Web Studio necesită planul Plus. Poți face upgrade din Cont > Facturare",
+    "E01": "Web Studio nu este disponibil pe abonamentul tău actual. Verifică Cont > Facturare",
     "E02": "Este disponibilă o versiune mai nouă a site-ului. Reîncarcă pentru a continua",
     "E03": "Unele elemente necesită atenție înainte de salvare. Verifică secțiunile marcate și încearcă din nou",
     "E04": "Unele locații selectate nu mai sunt disponibile pentru acest business. Reîncarcă, apoi actualizează secțiunea Locații",
     "E05": "Nu am putut încărca site-ul. Reîncarcă și încearcă din nou",
     "E06": "Nu am putut actualiza site-ul. Încearcă din nou",
     "E07": "Unele secțiuni vizibile folosesc opțiuni premium care nu sunt deblocate",
-    "E08": "Salvează modificările înainte de publicare"
+    "E08": "Salvează modificările înainte de publicare",
+    "E09": "Publicarea necesită planul Plus. Poți face upgrade din Cont > Facturare"
   },
   "BUSINESS_CUSTOMER": {
     "E01": "Clientul nu a fost găsit",

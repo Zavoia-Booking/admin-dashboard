@@ -78,9 +78,12 @@ export type AuthUser = {
     daysRemaining: number;
     /** Current plan tier ('STANDARD' | 'PLUS' | 'CUSTOM') or null when no plan. */
     planTier?: string | null;
-    /** Tier-derived feature flags (display only — builder gating is deferred). */
+    /** Tier-derived feature flags (display only — Website gating uses GET /website-builder access). */
     features?: {
+      /** Publish/purchase capability of the Web Studio (Plus only). */
       websiteBuilder: boolean;
+      /** Draft editing — true on every entitled plan (publish stays Plus-gated). */
+      websiteBuilderEdit?: boolean;
     };
     maxLocations: number | null; // Null = unlimited
     maxTeamMembers: number | null; // Null = unlimited
