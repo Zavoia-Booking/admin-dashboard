@@ -476,10 +476,11 @@ export function useWebsiteWorkspaceController({
   });
 
   const confirmUnpublish = useCallback(() => {
-    if (!canPublish || publishBusy) return;
+    // Mirrors the menu gate: unpublish is content control, open to any editing owner.
+    if (!canEdit || publishBusy) return;
     setUnpublishDialogOpen(false);
     dispatch(unpublishWebsiteAction.request());
-  }, [canPublish, dispatch, publishBusy]);
+  }, [canEdit, dispatch, publishBusy]);
 
   const retryCatalog = useCallback(() => {
     dispatch(fetchWebsiteVariantCatalogAction.request());

@@ -21,7 +21,8 @@
       "unpublished": "The published version was withdrawn. Your draft is still saved.",
       "publishFailed": "We couldn't publish your website",
       "unpublishFailed": "We couldn't unpublish your website",
-      "publishLockedItems": "Unlock or replace premium options before publishing"
+      "publishLockedItems": "Unlock or replace premium options before publishing",
+      "publishUnavailable": "Publishing isn't available right now"
     },
     "status": {
       "loading": "Loading Web Studio",
@@ -168,6 +169,8 @@
       "contentRequirementsDescription": "These visible sections need content before they can be published.",
       "premiumRequirements": "Premium options",
       "premiumRequirementsDescription": "These premium options were selected while editing this version. Unlock them once to keep them permanently, or remove any you no longer want.",
+      "premiumRequirementsDescriptionNative": "These options can't be published from the app. Remove them to publish now, or continue editing from the web version.",
+      "premiumRequirementsDescriptionNoPurchase": "These premium options require the Plus plan. Remove any you no longer want, or upgrade to unlock them.",
       "contentRequired": "Content required",
       "contentProgress": "{{current}} of {{required}} ready",
       "readinessSections": {
@@ -219,6 +222,13 @@
       "busy": "Wait for the current update to finish",
       "current": "Your latest saved changes are already published"
     },
+    "publishUpgrade": {
+      "eyebrow": "Included with the Plus plan",
+      "title": "Publish with Plus",
+      "description": "Your draft is saved and stays yours. Upgrade to the Plus plan to take your website live.",
+      "cta": "Upgrade to Plus",
+      "notNow": "Not now"
+    },
     "saveReason": {
       "readOnly": "Your current access doesn't allow editing",
       "clean": "There are no unsaved changes",
@@ -243,7 +253,8 @@
       "features": {
         "preview": "Preview your website on desktop, tablet, and mobile",
         "sections": "Customize sections, colors, and fonts",
-        "premiumVariants": "Add optional premium styles with a one-time payment"
+        "premiumVariants": "Add optional premium styles with a one-time payment",
+        "premiumVariantsNative": "Add optional premium styles"
       },
       "preserved": "Your saved draft and unlocked premium styles stay available if you change plans.",
       "cta": "Upgrade to Plus"
@@ -261,7 +272,7 @@
       "cancel": "Cancel",
       "lockedAria": "{{name}}, premium style, {{price}}",
       "lockedAriaNative": "{{name}}, premium style, manage it from the web dashboard",
-      "nativeHint": "Manage premium options from the web dashboard at zavoia.com.",
+      "nativeHint": "Manage premium options from the web version.",
       "lockedTitle": "Premium style · {{price}} one-time",
       "ownedTitle": "Premium style · unlocked",
       "styleHelper": "Included styles are ready to use. Unlock a premium style once and keep it permanently.",
@@ -630,11 +641,9 @@
         "accentPickerLabel": "Accent colour",
         "typefacePickerLabel": "Typeface",
         "premiumOwned": "Premium · owned",
-        "premiumPrice": "Premium · {{price}}",
         "ownedShort": "Owned",
         "unavailable": "Unavailable",
         "checking": "Checking premium access…",
-        "premiumEach": "Premium · {{price}} each",
         "premiumUnlockOnce": "Premium · unlock once",
         "sans": "Sans",
         "serif": "Serif",

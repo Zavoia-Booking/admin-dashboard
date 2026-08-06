@@ -14,7 +14,6 @@ import {
 } from "lucide-react";
 import type { Business, WebsiteThemeAssetCatalogItem } from "../types";
 import { cn } from "../../../shared/lib/utils";
-import { useFormatPrice } from "../../../shared/hooks/useFormatPrice";
 import { Button } from "../../../shared/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "../../../shared/components/ui/popover";
 import { RadioGroup, RadioGroupItem } from "../../../shared/components/ui/radio-group";
@@ -152,7 +151,6 @@ export function BrandColorControl({
   error,
 }: BrandColorControlProps) {
   const { t } = useTranslation("website");
-  const { formatPrice } = useFormatPrice();
   const isMobile = useIsMobile();
   const [atelierPickerOpen, setAtelierPickerOpen] = useState(false);
   const [atelierAnnouncement, setAtelierAnnouncement] = useState("");
@@ -311,9 +309,8 @@ export function BrandColorControl({
       }
       if (choice.asset?.owned) return t("businessPage.theme.assetStatus.premiumOwned");
       if (!choice.asset?.available) return t("businessPage.theme.assetStatus.unavailable");
-      return t("businessPage.theme.assetStatus.premiumPrice", {
-        price: formatPrice(choice.asset.priceMinor, choice.asset.currency),
-      });
+      // Theme assets are never priced (all colors/fonts ship free) — no price strings here.
+      return t("businessPage.theme.assetStatus.premiumUnlockOnce");
     };
     const activeStatus = statusFor(activeChoice);
     const atelierActiveName = activeChoice ? localizedName(activeChoice) : activeAccentName;
@@ -401,19 +398,7 @@ export function BrandColorControl({
       );
     };
 
-    const uniformPremiumAsset = premiumChoices[0]?.asset;
-    const hasUniformPremiumPrice =
-      !!uniformPremiumAsset &&
-      premiumChoices.every(
-        (choice) =>
-          choice.asset?.priceMinor === uniformPremiumAsset.priceMinor &&
-          choice.asset.currency.toLowerCase() === uniformPremiumAsset.currency.toLowerCase(),
-      );
-    const premiumHeading = hasUniformPremiumPrice
-      ? t("businessPage.theme.assetStatus.premiumEach", {
-          price: formatPrice(uniformPremiumAsset.priceMinor, uniformPremiumAsset.currency),
-        })
-      : t("businessPage.theme.assetStatus.premiumUnlockOnce");
+    const premiumHeading = t("businessPage.theme.assetStatus.premiumUnlockOnce");
 
     const pickerOptions = !catalogIsReady && catalogError ? (
       <div className="atelier-brand-picker-error" role="alert">

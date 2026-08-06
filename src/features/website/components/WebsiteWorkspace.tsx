@@ -68,6 +68,7 @@ import {
   type UnlockLineItem,
 } from "./builder/PendingUnlocksTray";
 import { WebsiteMobileActionDock } from "./atelier/WebsiteMobileActionDock";
+import { PublishUpgradeDialog } from "./atelier/PublishUpgradeDialog";
 import { unlockTotalsByCurrency, variantPriceLabel } from "./builder/pricing";
 import { displayFontFor } from "./builder/theme";
 import { useWebsitePreviewFonts } from "../hooks/useWebsitePreviewFonts";
@@ -238,9 +239,10 @@ function PublishReviewFooter({
  * unsaved-changes guard, and the checkout-return reconciliation — around the builder
  * editing surface.
  *
- * Save persists the DRAFT only. Publish (tier-2 only, enforced server-side) captures a
- * synchronous draft snapshot, flushes it through the serialized mutation lane, then freezes
- * that exact version as the published snapshot. No current frontend exposes a public URL.
+ * Save persists the DRAFT only — every entitled plan edits and saves. Publish (Plus-gated
+ * server-side) captures a synchronous draft snapshot, flushes it through the serialized
+ * mutation lane, then freezes that exact version as the published snapshot. No current
+ * frontend exposes a public URL.
  */
 export function WebsiteWorkspace({ identity, draft, locations, businessId }: WebsiteWorkspaceProps) {
   const { t } = useTranslation("website");
@@ -279,6 +281,14 @@ export function WebsiteWorkspace({ identity, draft, locations, businessId }: Web
     purchaseMutationsBlocked: checkoutTarget != null || pendingCheckout != null,
   });
   const canWrite = controller.permissions.canEdit;
+  // Plan-gated publish (web only): the button stays active and opens the upgrade dialog
+  // instead of the review. Native never shows plan/upgrade language — its publish
+  // surfaces simply stay hidden or neutrally disabled.
+  const publishPlanGated =
+    !controller.permissions.canPublish &&
+    controller.permissions.canEdit &&
+    !builderController.isNative;
+  const [publishUpgradeOpen, setPublishUpgradeOpen] = useState(false);
   const monogramFont = displayFontFor(builderController.effectiveFontKey);
   useWebsitePreviewFonts(builderController.effectiveFontKey);
   const {
@@ -782,13 +792,15 @@ export function WebsiteWorkspace({ identity, draft, locations, businessId }: Web
     !builderController.isNative &&
     builderController.cartItems.length > 0;
   const showMobilePublishAction =
-    controller.permissions.canPublish && !workspaceIsPublishedCurrent;
+    // Gated users keep the upgrade entry even when the site is published-current.
+    publishPlanGated ||
+    (controller.permissions.canPublish && !workspaceIsPublishedCurrent);
 
   const renderMoreControl = (includePublishReview: boolean) => {
     const showPublishReviewItem =
       includePublishReview &&
-      controller.permissions.canPublish &&
-      !workspaceIsPublishedCurrent;
+      (publishPlanGated ||
+        (controller.permissions.canPublish && !workspaceIsPublishedCurrent));
     if (
       !showPublishReviewItem &&
       !workspaceDiscardAction.visible &&
@@ -814,12 +826,14 @@ export function WebsiteWorkspace({ identity, draft, locations, businessId }: Web
         <DropdownMenuContent align="end" className="min-w-48">
           {showPublishReviewItem ? (
             <DropdownMenuItem
-              disabled={workspacePublishReviewDisabled}
-              title={workspacePublishReviewDisabledReason ?? undefined}
-              onSelect={() => openReview("publish")}
+              disabled={publishPlanGated ? false : workspacePublishReviewDisabled}
+              title={publishPlanGated ? undefined : workspacePublishReviewDisabledReason ?? undefined}
+              onSelect={() =>
+                publishPlanGated ? setPublishUpgradeOpen(true) : openReview("publish")
+              }
             >
               <Globe className="size-4" strokeWidth={1.8} aria-hidden />
-              {publishActionLabel}
+              {publishPlanGated ? t("page.actions.publish") : publishActionLabel}
             </DropdownMenuItem>
           ) : null}
           {workspaceDiscardAction.visible ? (
@@ -840,9 +854,11 @@ export function WebsiteWorkspace({ identity, draft, locations, businessId }: Web
             </DropdownMenuItem>
           ) : null}
           {isPublished ? (
+            // Taking a site down is content control, not the paid publish capability —
+            // a downgraded owner must always be able to unpublish (server keeps it ungated).
             <DropdownMenuItem
               variant="destructive"
-              disabled={!controller.permissions.canPublish || publishBusy}
+              disabled={!canWrite || publishBusy}
               onSelect={() => controller.setUnpublishDialogOpen(true)}
             >
               <Globe className="size-4" strokeWidth={1.8} aria-hidden />
@@ -1106,12 +1122,14 @@ export function WebsiteWorkspace({ identity, draft, locations, businessId }: Web
               ? () => openReview("publish")
               : undefined
           }
-          onPublish={() => openReview("publish")}
-          publishLabel={publishActionLabel}
+          onPublish={
+            publishPlanGated ? () => setPublishUpgradeOpen(true) : () => openReview("publish")
+          }
+          publishLabel={publishPlanGated ? t("page.actions.publish") : publishActionLabel}
           publishHint={publishFailureHint}
           publishSavesChanges={form.isDirty}
-          publishDisabled={workspacePublishReviewDisabled}
-          publishDisabledReason={workspacePublishReviewDisabledReason}
+          publishDisabled={publishPlanGated ? false : workspacePublishReviewDisabled}
+          publishDisabledReason={publishPlanGated ? null : workspacePublishReviewDisabledReason}
           publishBusy={isPublishing}
           pendingControl={pendingUnlocksControl}
           moreControl={desktopMoreControl}
@@ -1138,12 +1156,14 @@ export function WebsiteWorkspace({ identity, draft, locations, businessId }: Web
               ? () => openReview("publish")
               : undefined
           }
-          onPublish={() => openReview("publish")}
-          publishLabel={publishActionLabel}
+          onPublish={
+            publishPlanGated ? () => setPublishUpgradeOpen(true) : () => openReview("publish")
+          }
+          publishLabel={publishPlanGated ? t("page.actions.publish") : publishActionLabel}
           publishHint={publishFailureHint}
           publishSavesChanges={form.isDirty}
-          publishDisabled={workspacePublishReviewDisabled}
-          publishDisabledReason={workspacePublishReviewDisabledReason}
+          publishDisabled={publishPlanGated ? false : workspacePublishReviewDisabled}
+          publishDisabledReason={publishPlanGated ? null : workspacePublishReviewDisabledReason}
           publishBusy={isPublishing}
           moreControl={mobileMoreControl}
         />
@@ -1218,13 +1238,21 @@ export function WebsiteWorkspace({ identity, draft, locations, businessId }: Web
           }
           publish={
             showMobilePublishAction
-              ? {
-                  summary: mobilePublishSummary,
-                  disabled: workspacePublishReviewDisabled,
-                  disabledReason: workspacePublishReviewDisabledReason,
-                  busy: isPublishing,
-                  onReview: () => openReview("publish"),
-                }
+              ? publishPlanGated
+                ? {
+                    summary: t("page.publishUpgrade.title"),
+                    disabled: false,
+                    disabledReason: null,
+                    busy: false,
+                    onReview: () => setPublishUpgradeOpen(true),
+                  }
+                : {
+                    summary: mobilePublishSummary,
+                    disabled: workspacePublishReviewDisabled,
+                    disabledReason: workspacePublishReviewDisabledReason,
+                    busy: isPublishing,
+                    onReview: () => openReview("publish"),
+                  }
               : null
           }
         />
@@ -1473,7 +1501,13 @@ export function WebsiteWorkspace({ identity, draft, locations, businessId }: Web
                         <span> · {premiumReviewCount}</span>
                       </p>
                       <p className="atelier-publish-check-helper">
-                        {t("page.publishReview.premiumRequirementsDescription")}
+                        {t(
+                          builderController.isNative
+                            ? "page.publishReview.premiumRequirementsDescriptionNative"
+                            : controller.permissions.canPurchase
+                              ? "page.publishReview.premiumRequirementsDescription"
+                              : "page.publishReview.premiumRequirementsDescriptionNoPurchase",
+                        )}
                       </p>
                     </div>
                   </div>
@@ -1500,9 +1534,13 @@ export function WebsiteWorkspace({ identity, draft, locations, businessId }: Web
                             <p>{unlockItem.name}</p>
                             <span>{premiumKindLabel}</span>
                           </div>
-                          <span className="atelier-publish-check-price">
-                            {variantPriceLabel(formatPrice, unlockItem)}
-                          </span>
+                          {builderController.isNative || !controller.permissions.canPurchase ? (
+                            <span />
+                          ) : (
+                            <span className="atelier-publish-check-price">
+                              {variantPriceLabel(formatPrice, unlockItem)}
+                            </span>
+                          )}
                           <div className="atelier-publish-check-actions">
                             {queued || controller.permissions.canEdit ? (
                               <button
@@ -1566,7 +1604,8 @@ export function WebsiteWorkspace({ identity, draft, locations, businessId }: Web
                       );
                     })}
                   </div>
-                  {!showPublishUnlockSummary && form.isDirty ? (
+                  {builderController.isNative ? null : !showPublishUnlockSummary &&
+                    form.isDirty ? (
                     <p
                       id="publish-review-checkout-note"
                       className="atelier-publish-checkout-note"
@@ -1687,11 +1726,16 @@ export function WebsiteWorkspace({ identity, draft, locations, businessId }: Web
               <Button
                 type="button"
                 onClick={() => {
+                  if (publishPlanGated) {
+                    setPublishReviewOpen(false);
+                    setPublishUpgradeOpen(true);
+                    return;
+                  }
                   if (publishDisabled || publishReviewBlocked) return;
                   const accepted = form.handlePublish();
                   if (accepted !== false) setPublishReviewOpen(false);
                 }}
-                disabled={publishDisabled || isPublishing}
+                disabled={publishPlanGated ? isPublishing : publishDisabled || isPublishing}
                 className="h-[38px] rounded-[11px] bg-[var(--atelier-ink)] px-[18px] text-[13px] font-semibold text-[var(--atelier-canvas)] hover:bg-black"
               >
                 {isPublishing ? (
@@ -1710,6 +1754,10 @@ export function WebsiteWorkspace({ identity, draft, locations, businessId }: Web
             </>
           )}
       </PublishReviewSurface>
+
+      {publishPlanGated ? (
+        <PublishUpgradeDialog open={publishUpgradeOpen} onOpenChange={setPublishUpgradeOpen} />
+      ) : null}
 
       {/* Save keeps the blocked destination pending until the versioned PUT is acknowledged. */}
       <UnsavedWebsiteChangesDialog

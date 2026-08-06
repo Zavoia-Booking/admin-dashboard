@@ -121,8 +121,10 @@ export function VariantPurchaseDialog<T extends PurchasableCatalogItem>({
 
         {(!hasWebsiteBuilder || !canPurchase) && (
           <p className="mt-3 rounded-xl border border-primary/25 bg-primary/[0.05] px-4 py-2.5 text-[13px] leading-snug text-foreground-2 dark:bg-primary/[0.08]">
+            {/* No purchase capability means the plan lacks Plus — say so; the neutral
+                billing copy stays for the residual capability-off case. */}
             {t(
-              hasWebsiteBuilder
+              canPurchase
                 ? "businessPage.paidVariants.purchaseUnavailable"
                 : "businessPage.paidVariants.plusHint",
             )}

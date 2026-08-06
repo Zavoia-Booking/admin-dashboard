@@ -187,14 +187,15 @@
     "E04": "This style can’t be applied right now. Try again"
   },
   "WEBSITE_BUILDER": {
-    "E01": "Web Studio requires the Plus plan. Upgrade from Account > Billing",
+    "E01": "Web Studio isn't available on your current subscription. Check Account > Billing",
     "E02": "A newer version of your website is available. Reload to continue",
     "E03": "Some content needs attention before you can save. Review the highlighted sections and try again",
     "E04": "Some selected locations are no longer available to this business. Refresh, then update the Locations section",
     "E05": "We couldn’t load your website. Refresh and try again",
     "E06": "We couldn’t update your website. Try again",
     "E07": "Some visible sections use premium options that aren’t unlocked",
-    "E08": "Save your changes before publishing"
+    "E08": "Save your changes before publishing",
+    "E09": "Publishing requires the Plus plan. Upgrade from Account > Billing"
   },
   "BUSINESS_CUSTOMER": {
     "E01": "Customer not found",

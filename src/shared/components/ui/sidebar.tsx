@@ -87,10 +87,15 @@ function SidebarProvider({
       return
     }
 
-    const frame = window.requestAnimationFrame(() => {
-      initialCollapseHandledRef.current = true
-      if (setOpenProp) setOpenProp(false)
-      else _setOpen(false)
+    // Double rAF: a single frame's callback runs before the mount ever paints,
+    // so the width transition had no committed expanded state to animate from
+    // and the collapse rendered as a flickering snap instead of a slide.
+    let frame = window.requestAnimationFrame(() => {
+      frame = window.requestAnimationFrame(() => {
+        initialCollapseHandledRef.current = true
+        if (setOpenProp) setOpenProp(false)
+        else _setOpen(false)
+      })
     })
     return () => window.cancelAnimationFrame(frame)
   }, [collapseOnMount, open, setOpenProp])
