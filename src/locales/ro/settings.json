@@ -90,6 +90,23 @@
       "pinterest": "Pinterest",
       "pinterestPlaceholder": "https://pinterest.com/businessultau"
     },
+    "personal": {
+      "title": "Numele și fotografia ta",
+      "subtitle": "Așa te văd echipa și clienții tăi — în calendar, în rezervări și pe marketplace.",
+      "firstName": "Prenume",
+      "firstNamePlaceholder": "ex.: Ion",
+      "lastName": "Nume",
+      "lastNamePlaceholder": "ex.: Popescu",
+      "uploadPhoto": "Încarcă o fotografie",
+      "changePhoto": "Schimbă fotografia",
+      "photoHint": "O fotografie clară îi ajută pe clienți să te recunoască.",
+      "toast": {
+        "saved": "Informațiile personale au fost salvate.",
+        "saveFailed": "Informațiile personale nu au putut fi salvate. Te rugăm să încerci din nou.",
+        "photoUploaded": "Fotografia de profil a fost actualizată.",
+        "photoUploadFailed": "Fotografia nu a putut fi încărcată. Te rugăm să încerci din nou."
+      }
+    },
     "security": {
       "title": "Securitatea contului",
       "description": "Gestionează autentificarea, parola și conturile conectate.",

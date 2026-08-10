@@ -539,7 +539,7 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
                       // Block digits and disallowed special chars inline
                       // Allowed: letters + spaces + - ' & . ( )
                       const rawValue = e.target.value;
-                      const CATEGORY_NAME_PATTERN = /^[A-Za-zÀ-ÿ\s\-'&.()]*$/;
+                      const CATEGORY_NAME_PATTERN = /^[\p{L}\s\-'&.()]*$/u;
                       if (!CATEGORY_NAME_PATTERN.test(rawValue)) {
                         return;
                       }
@@ -825,7 +825,7 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
                         // Block digits and disallowed special chars inline
                         // Allowed: letters + spaces + - ' & . ( )
                         const rawValue = e.target.value;
-                        const CATEGORY_NAME_PATTERN = /^[A-Za-zÀ-ÿ\s\-'&.()]*$/;
+                        const CATEGORY_NAME_PATTERN = /^[\p{L}\s\-'&.()]*$/u;
                         if (!CATEGORY_NAME_PATTERN.test(rawValue)) {
                           return;
                         }

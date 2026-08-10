@@ -28,6 +28,7 @@ const SettingsPage = () => {
   const isUpdating = useSelector(getBusinessUpdatingSelector) as boolean;
   const currentUser = useSelector(selectCurrentUser);
   const [isProfileDirty, setIsProfileDirty] = React.useState(false);
+  const [isPersonalSaving, setIsPersonalSaving] = React.useState(false);
   const { isNative } = usePlatform();
   const isMobile = useIsMobile();
 
@@ -65,6 +66,33 @@ const SettingsPage = () => {
     }
   }, [activeTab, canAccessBilling, navigate]);
 
+  // Arriving from the marketplace "Add your name" nudge (/account?scrollTo=personal):
+  // land on the profile tab, smooth-scroll to the personal-info card, flash a ring,
+  // then clear the param so a refresh/back doesn't re-trigger it.
+  useEffect(() => {
+    if (searchParams.get('scrollTo') !== 'personal') return;
+    if (activeTab !== 'profile') return;
+    const ring = ['ring-2', 'ring-primary', 'ring-offset-2', 'ring-offset-background', 'rounded-2xl'];
+    let tries = 0;
+    let ringTimer = 0;
+    const tick = () => {
+      const el = document.getElementById('account-personal-info');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.classList.add(...ring);
+        ringTimer = window.setTimeout(() => el.classList.remove(...ring), 1800);
+        navigate('/account?tab=profile', { replace: true });
+        return;
+      }
+      if (tries++ < 20) window.setTimeout(tick, 100);
+    };
+    const startTimer = window.setTimeout(tick, 150);
+    return () => {
+      window.clearTimeout(startTimer);
+      window.clearTimeout(ringTimer);
+    };
+  }, [searchParams, activeTab, navigate]);
+
   const handleTabChange = (tabId: string) => {
     const tab = tabId as SettingsTab;
     setActiveTab(tab);
@@ -79,7 +107,7 @@ const SettingsPage = () => {
     const inner = (() => {
       switch (tabId) {
         case 'profile':
-          return <BusinessProfile onDirtyChange={setIsProfileDirty} />;
+          return <BusinessProfile onDirtyChange={setIsProfileDirty} onSavingChange={setIsPersonalSaving} />;
         case 'billing':
           return <BillingAndSubscriptionV2 />;
         default:
@@ -124,14 +152,17 @@ const SettingsPage = () => {
   // Pre-wizard there is no business form on the page, so nothing to save.
   const showSaveButton = activeTab === 'profile' && !isOwnerWithoutBusiness;
 
+  // Business updates report via redux; personal-info saves via onSavingChange.
+  const isSaving = isUpdating || isPersonalSaving;
+
   const SaveButton = (
     <Button
       type="button"
       onClick={handleSaveProfile}
       className="group btn-primary !min-h-0 rounded-full shadow-lg shadow-primary/20 active:scale-95 transition-all duration-300 font-bold flex items-center gap-2 !h-10 md:!h-11 !px-4 md:!px-6 md:-mt-4 text-xs md:text-sm !w-auto !min-w-34 md:!w-52 md:sm:w-auto"
-      disabled={!isProfileDirty || isUpdating}
+      disabled={!isProfileDirty || isSaving}
     >
-      {isUpdating ? (
+      {isSaving ? (
         <>
           <Loader2 className="h-4 w-4 animate-spin shrink-0" />
           <span>
@@ -152,9 +183,9 @@ const SettingsPage = () => {
       type="button"
       onClick={handleSaveProfile}
       className="group btn-primary !h-8 px-3 rounded-full text-sm shadow-sm active:scale-95 flex items-center gap-1.5"
-      disabled={!isProfileDirty || isUpdating}
+      disabled={!isProfileDirty || isSaving}
     >
-      {isUpdating ? (
+      {isSaving ? (
         <>
           <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" />
           <span>{t('buttons.saving')}</span>
@@ -168,7 +199,7 @@ const SettingsPage = () => {
   if (isNative) {
     return (
       <AppLayout headerRightContent={isMobile && !isOwnerWithoutBusiness ? HeaderSaveButton : undefined}>
-        <BusinessProfile onDirtyChange={setIsProfileDirty} />
+        <BusinessProfile onDirtyChange={setIsProfileDirty} onSavingChange={setIsPersonalSaving} />
       </AppLayout>
     );
   }

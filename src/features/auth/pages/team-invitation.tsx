@@ -16,7 +16,7 @@ import {
 import { Spinner } from "../../../shared/components/ui/spinner";
 import { InfoPage } from "../../../shared/components/common/InfoPage";
 import { PasswordStrength } from "../components/PasswordStrength";
-import { validatePasswordPolicy, isE164, sanitizePhoneToE164Draft } from "../../../shared/utils/validation";
+import { validatePasswordPolicy, isE164, sanitizePhoneToE164Draft, personNameRules } from "../../../shared/utils/validation";
 import { Popover, PopoverTrigger, PopoverContent } from "../../../shared/components/ui/popover";
 import { useTranslation, Trans } from "react-i18next";
 
@@ -159,7 +159,7 @@ export default function TeamInvitationPage() {
                   disabled={isRegistrationLoading} 
                   aria-invalid={!!errors.firstName} 
                   className={errors.firstName ? 'border-destructive' : ''}
-                  {...register('firstName', { required: t('teamInvitation.validation.firstNameRequired') })} 
+                  {...register('firstName', personNameRules('firstName', t))}
                 />
                 <div className="min-h-[18px]">
                   {errors.firstName && (
@@ -176,7 +176,7 @@ export default function TeamInvitationPage() {
                   disabled={isRegistrationLoading} 
                   aria-invalid={!!errors.lastName}
                   className={errors.lastName ? 'border-destructive' : ''}
-                  {...register('lastName', { required: t('teamInvitation.validation.lastNameRequired') })} 
+                  {...register('lastName', personNameRules('lastName', t))}
                 />
                 <div className="min-h-[18px]">
                   {errors.lastName && (

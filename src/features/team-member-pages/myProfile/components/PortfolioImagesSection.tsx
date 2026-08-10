@@ -91,9 +91,16 @@ function ImageSkeleton({ className }: ImageSkeletonProps) {
 
 interface PortfolioImagesSectionProps {
   isActive?: boolean;
+  /** Drop the card chrome when already inside a surface (e.g. the owner slider). */
+  embedded?: boolean;
 }
 
-export function PortfolioImagesSection({ isActive = true }: PortfolioImagesSectionProps) {
+export function PortfolioImagesSection({ isActive = true, embedded = false }: PortfolioImagesSectionProps) {
+  const outerClass = embedded ? "" : "max-w-5xl mb-0 md:mb-8";
+  const cardClass = embedded
+    ? "border-none shadow-none bg-transparent overflow-hidden"
+    : "border-none pt-0 pb-2 sm:border shadow-none sm:shadow-sm bg-transparent md:bg-surface overflow-hidden";
+  const contentClass = embedded ? "p-0 space-y-6" : "p-0 sm:p-4 space-y-6";
   const { t } = useTranslation("marketplace");
   const [images, setImages] = useState<PortfolioImage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -382,9 +389,9 @@ export function PortfolioImagesSection({ isActive = true }: PortfolioImagesSecti
   // Show loading skeleton
   if (isLoading) {
     return (
-      <div className="max-w-5xl mb-0 md:mb-8">
-        <Card className="border-none pt-0 pb-2 sm:border shadow-none sm:shadow-sm bg-transparent md:bg-surface overflow-hidden">
-          <CardContent className="p-0 sm:p-4 space-y-6">
+      <div className={outerClass}>
+        <Card className={cardClass}>
+          <CardContent className={contentClass}>
             <div className="relative p-0 sm:p-2">
               <div className="relative space-y-6">
                 <div className="space-y-4 mb-0 mt-3 md:mt-0">
@@ -407,9 +414,9 @@ export function PortfolioImagesSection({ isActive = true }: PortfolioImagesSecti
   }
 
   return (
-    <div className="max-w-5xl mb-0 md:mb-8">
-      <Card className="border-none pt-0 pb-2 sm:border shadow-none sm:shadow-sm bg-transparent md:bg-surface overflow-hidden">
-        <CardContent className="p-0 sm:p-4 space-y-6">
+    <div className={outerClass}>
+      <Card className={cardClass}>
+        <CardContent className={contentClass}>
           <div className="relative p-0 sm:p-2">
             {/* Background Decoration */}
             <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 dark:bg-primary/10 rounded-full -translate-y-10 translate-x-10 blur-3xl pointer-events-none"></div>

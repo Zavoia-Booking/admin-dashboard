@@ -144,6 +144,10 @@
     "customizeProfile": "Customize your profile",
     "customizeProfileDescription": "Polish your profile with branding, contact info, and details that make a great first impression.",
     "settings": "Settings",
+    "yourWebsite": "Your website",
+    "webStudioTitle": "Everything you set up becomes a website",
+    "webStudioDescription": "Pick a look in the Web Studio and publish a page with your services and online booking, no designer needed.",
+    "openWebStudio": "Open Web Studio",
     "goToDashboard": "Go to Dashboard"
   },
   "industrySelector": {

@@ -114,7 +114,7 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
         max: SERVICE_NAME_MAX_LENGTH,
       });
     }
-    const NAME_PATTERN = /^[A-Za-zÀ-ÿ0-9\s\-'&.()]+$/;
+    const NAME_PATTERN = /^[\p{L}0-9\s\-'&.()]+$/u;
     if (!NAME_PATTERN.test(v)) {
       return text("addService.form.validation.name.invalidChars");
     }

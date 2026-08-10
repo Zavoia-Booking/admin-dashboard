@@ -57,6 +57,10 @@ const StepLaunch: React.FC<StepLaunchProps> = ({
     navigate("/calendar");
   };
 
+  const handleGoWebStudio = () => {
+    navigate("/website");
+  };
+
   return (
     <div className="space-y-6 px-4 md:px-0">
       <div className="text-center py-8 md:py-6 lg:py-8 md:mb-3">
@@ -296,6 +300,46 @@ const StepLaunch: React.FC<StepLaunchProps> = ({
 
       {/* Trial Notification */}
       <TrialStatusCard business={business} isLoading={isBusinessLoading} />
+
+      {/* Web Studio Section — quotes the atelier's paper/ink/terracotta palette */}
+      <div>
+        <div className="flex items-end gap-2 mb-6 pt-4">
+          <h3 className="text-sm text-foreground-3 dark:text-foreground-1">{t("stepLaunch.yourWebsite")}</h3>
+          <div className="flex-1 h-px bg-border dark:bg-border-strong"></div>
+        </div>
+        <div className="group/studio relative bg-[#fbfaf7] dark:bg-[#1b1a18] rounded-2xl border border-[#1c1c1a]/10 dark:border-white/10 shadow-sm overflow-hidden transition-all duration-300 hover:border-[#1c1c1a]/20 dark:hover:border-white/20 hover:shadow-md">
+          {/* Type-specimen watermark quoting the studio's serif-display look */}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none select-none absolute -top-10 right-0 md:-top-14 md:right-6 text-[10rem] md:text-[14rem] leading-none font-bold text-[#1c1c1a]/[0.05] dark:text-[#faf8f3]/[0.06] tracking-tight transition-transform duration-500 ease-out group-hover/studio:scale-[1.04]"
+          >
+            Aa
+          </div>
+          <div className="relative p-5 md:p-8">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-5 md:gap-10">
+              <div className="flex-1 min-w-0">
+                <h3 className="text-2xl md:text-[1.75rem] leading-tight tracking-tight font-bold text-[#1c1c1a] dark:text-[#faf8f3]">
+                  {t("stepLaunch.webStudioTitle")}
+                </h3>
+                <div className="mt-3 h-0.5 w-10 rounded-full bg-[#c2552f]" aria-hidden="true"></div>
+                <p className="mt-3 text-sm md:text-[15px] text-[#55524b] dark:text-[#9a9588] leading-relaxed max-w-[52ch]">
+                  {t("stepLaunch.webStudioDescription")}
+                </p>
+              </div>
+              <Button
+                onClick={handleGoWebStudio}
+                className="group inline-flex items-center gap-1.5 rounded-full bg-[#c2552f] hover:bg-[#aa4727] text-white dark:text-white py-5 md:py-6 !px-6 md:!px-8 font-semibold shadow-sm cursor-pointer transition-transform active:scale-95 w-full sm:w-auto shrink-0"
+              >
+                <span>{t("stepLaunch.openWebStudio")}</span>
+                <ArrowUpRight
+                  className="h-4 w-4 transition-transform duration-300 ease-out group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+                  aria-hidden="true"
+                />
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Next steps section */}
       <div>
