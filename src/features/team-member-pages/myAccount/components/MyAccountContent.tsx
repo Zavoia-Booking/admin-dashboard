@@ -44,6 +44,7 @@ import { PasswordStrength } from '../../../auth/components/PasswordStrength';
 import {
   validatePasswordPolicy,
   validatePersonName,
+  sanitizeName,
   requiredEmailError,
   isE164,
   sanitizePhoneToE164Draft,
@@ -569,8 +570,9 @@ const MyAccountContent = ({ onDirtyChange, onSavingChange }: MyAccountContentPro
                   placeholder={t('profile.fields.firstNamePlaceholder')}
                   value={formData.firstName}
                   onChange={(value) => {
-                    setFormData(prev => ({ ...prev, firstName: value }));
-                    setErrors(prev => ({ ...prev, firstName: validatePersonName('firstName', value, t) ?? undefined }));
+                    const clean = sanitizeName(value);
+                    setFormData(prev => ({ ...prev, firstName: clean }));
+                    setErrors(prev => ({ ...prev, firstName: validatePersonName('firstName', clean, t) ?? undefined }));
                   }}
                   onBlur={() => setTouched(prev => ({ ...prev, firstName: true }))}
                   error={touched.firstName ? errors.firstName : undefined}
@@ -584,8 +586,9 @@ const MyAccountContent = ({ onDirtyChange, onSavingChange }: MyAccountContentPro
                   placeholder={t('profile.fields.lastNamePlaceholder')}
                   value={formData.lastName}
                   onChange={(value) => {
-                    setFormData(prev => ({ ...prev, lastName: value }));
-                    setErrors(prev => ({ ...prev, lastName: validatePersonName('lastName', value, t) ?? undefined }));
+                    const clean = sanitizeName(value);
+                    setFormData(prev => ({ ...prev, lastName: clean }));
+                    setErrors(prev => ({ ...prev, lastName: validatePersonName('lastName', clean, t) ?? undefined }));
                   }}
                   onBlur={() => setTouched(prev => ({ ...prev, lastName: true }))}
                   error={touched.lastName ? errors.lastName : undefined}

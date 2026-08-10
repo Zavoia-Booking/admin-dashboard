@@ -145,6 +145,10 @@
     "customizeProfile": "Personalizează-ți profilul",
     "customizeProfileDescription": "Finisează-ți profilul cu branding, date de contact și detalii care fac o primă impresie excelentă.",
     "settings": "Setări",
+    "yourWebsite": "Site-ul tău",
+    "webStudioTitle": "Tot ce ai configurat devine un site",
+    "webStudioDescription": "Alege un stil în Web Studio și publică o pagină cu serviciile tale și programări online, fără designer.",
+    "openWebStudio": "Deschide Web Studio",
     "goToDashboard": "Mergi la dashboard"
   },
   "industrySelector": {

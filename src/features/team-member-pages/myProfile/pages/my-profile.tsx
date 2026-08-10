@@ -65,6 +65,7 @@ export default function MyProfilePage() {
   
   // Track state from ProfileTab ref for save button
   const [isDirty, setIsDirty] = useState(false);
+  const [canSave, setCanSave] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   // Unsaved changes dialog state
@@ -124,6 +125,7 @@ export default function MyProfilePage() {
     const checkState = () => {
       if (profileTabRef.current) {
         setIsDirty(profileTabRef.current.isDirty());
+        setCanSave(profileTabRef.current.canSave());
         setIsSaving(profileTabRef.current.isSaving());
       }
     };
@@ -323,7 +325,7 @@ export default function MyProfilePage() {
     <Button
       onClick={handleSave}
       className="group btn-primary !min-h-0 rounded-full shadow-lg shadow-primary/20 active:scale-95 transition-all duration-300 font-bold flex items-center gap-2 !h-10 md:!h-11 !px-4 md:!px-6 md:-mt-4 text-xs md:text-sm !w-auto !min-w-34 md:!w-44"
-      disabled={isSaving || !isDirty}
+      disabled={isSaving || !canSave}
     >
       {isSaving ? (
         <>
@@ -343,7 +345,7 @@ export default function MyProfilePage() {
     <Button
       onClick={handleSave}
       className="group btn-primary !h-8 px-3 rounded-full text-sm shadow-sm active:scale-95 flex items-center gap-1.5"
-      disabled={isSaving || !isDirty}
+      disabled={isSaving || !canSave}
     >
       {isSaving ? (
         <>

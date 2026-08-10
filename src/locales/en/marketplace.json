@@ -367,5 +367,31 @@
     },
     "loadError": "We couldn't load your marketplace data.",
     "retry": "Try again"
+  },
+  "ownerProfile": {
+    "sectionTitle": "Your professional profile",
+    "helper": "You take bookings on the marketplace, just like your team. This is the profile customers see when they pick you.",
+    "emptyTitle": "Set up your professional profile",
+    "emptyBody": "Add your photo, title, bio and portfolio so customers know who they're booking.",
+    "noTitleYet": "No professional title yet — add one so customers know what you do.",
+    "noName": {
+      "title": "Add your name first",
+      "body": "Customers need to know who they're booking with. Add your name in your account settings.",
+      "cta": "Add your name"
+    },
+    "setupCta": "Set up profile",
+    "editCta": "Edit profile",
+    "loadError": "We couldn't load your profile. Refresh the page to try again.",
+    "photos_one": "{{count}} photo",
+    "photos_other": "{{count}} photos",
+    "reviews_one": "{{count}} review",
+    "reviews_other": "{{count}} reviews",
+    "slider": {
+      "title": "Your professional profile",
+      "subtitle": "What customers see about you on the marketplace",
+      "cancel": "Cancel",
+      "save": "Save changes",
+      "loadError": "We couldn't load your profile. Close the panel and try again."
+    }
   }
 }

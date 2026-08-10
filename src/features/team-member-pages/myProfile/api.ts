@@ -26,14 +26,22 @@ export interface GetMarketplaceProfileResponse {
   hiddenFromMarketplace: boolean;
 }
 
+// null clears a field (blanking persists); omitting it leaves the value unchanged.
 export interface UpdateMarketplaceProfilePayload {
   displayName?: string;
-  professionalTitle?: string;
-  aboutMe?: string;
-  yearsOfExperience?: number;
+  professionalTitle?: string | null;
+  aboutMe?: string | null;
+  yearsOfExperience?: number | null;
   interests?: string[];
   languages?: string[];
-  socialLinks?: SocialLinks;
+  socialLinks?: SocialLinksInput | null;
+}
+
+export interface SocialLinksInput {
+  instagram?: string | null;
+  tiktok?: string | null;
+  facebook?: string | null;
+  website?: string | null;
 }
 
 export interface UpdateMarketplaceProfileResponse {

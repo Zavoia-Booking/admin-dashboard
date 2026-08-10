@@ -90,6 +90,23 @@
       "pinterest": "Pinterest",
       "pinterestPlaceholder": "https://pinterest.com/yourbusiness"
     },
+    "personal": {
+      "title": "Your name & photo",
+      "subtitle": "This is how your team and clients see you — on the calendar, in bookings, and on the marketplace.",
+      "firstName": "First name",
+      "firstNamePlaceholder": "e.g., John",
+      "lastName": "Last name",
+      "lastNamePlaceholder": "e.g., Francisco",
+      "uploadPhoto": "Upload photo",
+      "changePhoto": "Change photo",
+      "photoHint": "A clear photo helps clients recognize you.",
+      "toast": {
+        "saved": "Your personal information was saved.",
+        "saveFailed": "Couldn't save your personal information. Please try again.",
+        "photoUploaded": "Profile photo updated.",
+        "photoUploadFailed": "Couldn't upload the photo. Please try again."
+      }
+    },
     "security": {
       "title": "Account security",
       "description": "Manage sign-in, password, and connected accounts.",

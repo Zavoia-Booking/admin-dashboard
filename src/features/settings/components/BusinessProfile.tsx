@@ -26,6 +26,7 @@ import type { RootState } from '../../../app/providers/store';
 import { industryApi } from '../../../shared/api/industry.api';
 import type { Industry } from '../../../shared/types/industry';
 import { PasswordStrength } from '../../auth/components/PasswordStrength';
+import { PersonalInformationSection, type PersonalInformationSectionRef } from './PersonalInformationSection';
 import {
   validatePasswordPolicy,
   validateBusinessName,
@@ -99,9 +100,11 @@ const getUpdatePayloadSnapshot = (data: BusinessFormData) => ({
 
 interface BusinessProfileProps {
   onDirtyChange?: (dirty: boolean) => void;
+  /** Reports personal-info save in flight — the business update already reports via redux isUpdating. */
+  onSavingChange?: (saving: boolean) => void;
 }
 
-const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
+const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange, onSavingChange }) => {
   const { t } = useTranslation('settings');
   const { t: tIndustry } = useTranslation('industries');
   const dispatch = useDispatch();
@@ -115,7 +118,10 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
   const isOwnerWithoutBusiness = user?.role === 'owner' && !user?.wizardCompleted;
   const fileInputRef = useRef<HTMLInputElement>(null);
   const passwordInputRef = useRef<HTMLInputElement>(null);
-  
+  const personalRef = useRef<PersonalInformationSectionRef>(null);
+  const personalSavingRef = useRef(false);
+  const [personalDirty, setPersonalDirty] = useState(false);
+
   const [formData, setFormData] = useState<BusinessFormData>(initialFormData);
   const [originalSnapshot, setOriginalSnapshot] = useState<ReturnType<typeof getUpdatePayloadSnapshot> | null>(null);
   const [industries, setIndustries] = useState<Industry[]>([]);
@@ -240,8 +246,8 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
   }, [formData, originalSnapshot]);
 
   useEffect(() => {
-    onDirtyChange?.(isDirty);
-  }, [isDirty, onDirtyChange]);
+    onDirtyChange?.(isDirty || personalDirty);
+  }, [isDirty, personalDirty, onDirtyChange]);
 
   const selectedIndustryName = useMemo(() => {
     if (formData.industryId == null) return null;
@@ -293,12 +299,31 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
     }
   };
 
-  const handleSubmit = (e?: React.FormEvent) => {
+  const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
 
     // Pre-wizard the business form isn't rendered; an Enter keypress in an
     // account-section input must not trigger a business update.
     if (isOwnerWithoutBusiness) return;
+
+    // Personal info saves first (independent of business validation); a failed
+    // personal save blocks the submit so the user fixes it before anything ships.
+    if (personalRef.current?.isDirty()) {
+      if (personalSavingRef.current) return;
+      personalSavingRef.current = true;
+      onSavingChange?.(true);
+      let ok = false;
+      try {
+        ok = await personalRef.current.save();
+      } finally {
+        personalSavingRef.current = false;
+        onSavingChange?.(false);
+      }
+      if (!ok) return;
+    }
+
+    // Nothing business-side changed — don't re-send an identical business update.
+    if (!isDirty) return;
 
     const next = validateAll();
     setErrors(next);
@@ -747,6 +772,12 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
             </div>
           </section>
           </>)}
+
+          {/* Section: Personal information (post-wizard only — the page's Save
+              button is hidden pre-wizard, so the name fields would be dead) */}
+          {!isOwnerWithoutBusiness && (
+            <PersonalInformationSection ref={personalRef} onDirtyChange={setPersonalDirty} />
+          )}
 
           {/* Section: Account Security */}
           <section className="profile-section" aria-labelledby="profile-section-security">

@@ -369,5 +369,33 @@
     },
     "loadError": "Nu am putut încărca datele de marketplace.",
     "retry": "Încearcă din nou"
+  },
+  "ownerProfile": {
+    "sectionTitle": "Profilul tău profesional",
+    "helper": "Primești rezervări pe marketplace, la fel ca echipa ta. Acesta este profilul pe care îl văd clienții când te aleg.",
+    "emptyTitle": "Configurează-ți profilul profesional",
+    "emptyBody": "Adaugă-ți fotografia, titlul, descrierea și portofoliul, ca clienții să știe cu cine se programează.",
+    "noTitleYet": "Încă nu ai un titlu profesional — adaugă unul ca clienții să știe ce faci.",
+    "noName": {
+      "title": "Adaugă-ți mai întâi numele",
+      "body": "Clienții trebuie să știe cu cine se programează. Adaugă-ți numele în setările contului.",
+      "cta": "Adaugă-ți numele"
+    },
+    "setupCta": "Configurează profilul",
+    "editCta": "Editează profilul",
+    "loadError": "Nu am putut încărca profilul. Reîncarcă pagina pentru a încerca din nou.",
+    "photos_one": "{{count}} fotografie",
+    "photos_few": "{{count}} fotografii",
+    "photos_other": "{{count}} de fotografii",
+    "reviews_one": "{{count}} recenzie",
+    "reviews_few": "{{count}} recenzii",
+    "reviews_other": "{{count}} de recenzii",
+    "slider": {
+      "title": "Profilul tău profesional",
+      "subtitle": "Ceea ce văd clienții despre tine pe marketplace",
+      "cancel": "Anulează",
+      "save": "Salvează modificările",
+      "loadError": "Nu am putut încărca profilul. Închide panoul și încearcă din nou."
+    }
   }
 }

@@ -9,7 +9,7 @@ import { registerOwnerRequestAction, clearAuthErrorAction } from "../actions"
 import type { RootState } from "../../../app/providers/store"
 import { useForm, Controller } from "react-hook-form"
 import { PasswordStrength } from "./PasswordStrength"
-import { sanitizeName, validatePasswordPolicy } from "../../../shared/utils/validation"
+import { sanitizeName, validatePasswordPolicy, personNameRules } from "../../../shared/utils/validation"
 import { Popover, PopoverTrigger, PopoverContent } from "../../../shared/components/ui/popover"
 import GoogleSignInButton from "../../../shared/components/auth/GoogleSignInButton"
 import { Checkbox } from "../../../shared/components/ui/checkbox"
@@ -55,16 +55,8 @@ export function RegisterForm({ initialEmail, lockEmail, welcomeToken, preferGoog
     }
   })
 
-  const firstNameField = register('firstName', {
-    required: t('register.validation.fieldRequired'),
-    minLength: { value: 2, message: t('register.validation.minLength', { count: 2 }) },
-    maxLength: { value: 50, message: t('register.validation.maxLength', { count: 50 }) },
-  })
-  const lastNameField = register('lastName', {
-    required: t('register.validation.fieldRequired'),
-    minLength: { value: 2, message: t('register.validation.minLength', { count: 2 }) },
-    maxLength: { value: 50, message: t('register.validation.maxLength', { count: 50 }) },
-  })
+  const firstNameField = register('firstName', personNameRules('firstName', t))
+  const lastNameField = register('lastName', personNameRules('lastName', t))
 
   const passwordField = register('password', {
     required: t('register.validation.passwordRequired'),

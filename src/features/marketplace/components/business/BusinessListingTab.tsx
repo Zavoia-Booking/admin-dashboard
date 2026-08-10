@@ -3,6 +3,7 @@ import type { Business, Industry, IndustryTag } from "../../types";
 import type { useMarketplaceForm } from "../../hooks/useMarketplaceForm";
 import { MarketplaceDetailsSection } from "../profile/MarketplaceDetailsSection";
 import IndustrySection from "../profile/IndustrySection";
+import { OwnerProfessionalProfileSection } from "../profile/OwnerProfessionalProfileSection";
 
 interface BusinessListingTabProps {
   business: Business | null;
@@ -71,6 +72,7 @@ export function BusinessListingTab({
             descriptionError={form.descriptionError || undefined}
           />
           </div>
+          <OwnerProfessionalProfileSection canWrite={canWrite} />
         </div>
       </div>
     </div>

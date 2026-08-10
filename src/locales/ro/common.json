@@ -321,7 +321,8 @@
       "city": "orașul",
       "postcode": "codul poștal",
       "country": "țara",
-      "teamMemberEmail": "emailul membrului echipei"
+      "teamMemberEmail": "emailul membrului echipei",
+      "displayName": "numele de afișare"
     }
   }
 }

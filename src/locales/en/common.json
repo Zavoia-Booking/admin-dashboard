@@ -321,7 +321,8 @@
       "city": "city",
       "postcode": "postcode",
       "country": "country",
-      "teamMemberEmail": "team member email"
+      "teamMemberEmail": "team member email",
+      "displayName": "display name"
     }
   }
 }

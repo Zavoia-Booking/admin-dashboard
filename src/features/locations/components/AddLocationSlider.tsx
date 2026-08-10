@@ -285,7 +285,7 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
         if (!v) return t("addLocation.validation.nameRequired");
         if (v.length < 2) return t("addLocation.validation.nameMinLength");
         if (v.length > 70) return t("addLocation.validation.nameMaxLength");
-        const NAME_PATTERN = /^[A-Za-zÀ-ÿ0-9\s\-'&.()]+$/;
+        const NAME_PATTERN = /^[\p{L}0-9\s\-'&.()]+$/u;
         if (!NAME_PATTERN.test(v)) return t("addLocation.validation.nameInvalidChars");
         return true;
       },

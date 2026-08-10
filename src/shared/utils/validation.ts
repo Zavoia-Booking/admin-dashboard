@@ -2,7 +2,7 @@
 import type { TFunction } from "i18next";
 
 export const sanitizeName = (value: string): string =>
-  value.replace(/[^A-Za-zÀ-ÿ'\-\s]/g, "");
+  value.replace(/[^\p{L}\s'’-]/gu, "");
 
 // E.164-style check: optional leading +, start 1-9, min 8 total digits, max 15
 export const isE164 = (value: string): boolean =>
@@ -193,7 +193,8 @@ export const requiredError = (
 /**
  * Pattern for business and location names.
  * Allowed characters:
- * - Letters (A-Z, a-z, including accented characters like À-ÿ)
+ * - Letters — any Unicode letter (\p{L}), so Romanian ă/ș/ț work too; the old
+ *   À-ÿ range only covered Latin-1 accents and wrongly rejected them.
  * - Numbers (0-9)
  * - Spaces
  * - Hyphens (-)
@@ -202,7 +203,7 @@ export const requiredError = (
  * - Periods (.)
  * - Parentheses (())
  */
-export const NAME_PATTERN = /^[A-Za-zÀ-ÿ0-9\s\-'&.()]+$/;
+export const NAME_PATTERN = /^[\p{L}0-9\s\-'&.()]+$/u;
 
 export const validateBusinessName = (
   value: string,
@@ -386,10 +387,12 @@ export const sanitizeDescriptionInput = (value: string): string => {
 // ============================================================
 
 /**
- * Pattern for person names. Permits letters (including accented),
- * spaces, hyphens, and apostrophes. Romanian/Latin diacritics covered by À-ÿ.
+ * Pattern for person names: any Unicode letters plus spaces, hyphens, and
+ * apostrophes (straight or typographic), with at least one actual letter so
+ * punctuation-only strings ("--") don't pass. \p{L} is what covers Romanian
+ * diacritics — ă/ș/ț sit above the old À-ÿ range and were being rejected.
  */
-export const PERSON_NAME_PATTERN = /^[A-Za-zÀ-ÿ\s\-']+$/;
+export const PERSON_NAME_PATTERN = /^(?=.*\p{L})[\p{L}\s'’-]+$/u;
 
 export const validatePersonName = (
   fieldKey: keyof typeof FIELD_KEYS,
@@ -401,10 +404,65 @@ export const validatePersonName = (
     return t("common:validation.required", {
       field: t(`common:validation.fields.${fieldKey}`),
     });
+  if (v.length < 2)
+    return t("common:validation.minLengthGeneric", { min: 2 });
   if (v.length > 32)
     return t("common:validation.maxLengthGeneric", { max: 32 });
   if (!PERSON_NAME_PATTERN.test(v))
     return t("common:validation.personNameSpecialChars");
+  return null;
+};
+
+/**
+ * react-hook-form rules object for a person-name field. Wraps validatePersonName
+ * (which trims first) so every name input — register, team invite, profile —
+ * shares one rule and a whitespace-only name can't slip past a raw `minLength`
+ * that counts spaces. Spread into register(): register('firstName', personNameRules('firstName', t)).
+ */
+export const personNameRules = (
+  fieldKey: keyof typeof FIELD_KEYS,
+  t: TFunction
+) => ({
+  validate: (value: string) => validatePersonName(fieldKey, value, t) ?? true,
+  // Live-strip disallowed characters while typing (same feel as the register form).
+  onChange: (e: { target: { value: string } }) => {
+    e.target.value = sanitizeName(e.target.value);
+  },
+});
+
+// ============================================================
+// PUBLIC PROFILE TEXT (marketplace display name, professional title)
+// ============================================================
+
+/**
+ * Permissive public-name pattern: any Unicode letter (\p{L} — covers Romanian
+ * ă/ș/ț, unlike the À-ÿ NAME_PATTERN), digits, spaces, and - ' & . ( ), with at
+ * least one actual letter so "123" / "!!!" / punctuation-only don't pass. Blocks
+ * markup and control characters. Broader than a person name (allows "Dr. Ana",
+ * "Salon X & Co.") but still a real, safe label.
+ */
+export const DISPLAY_NAME_PATTERN = /^(?=.*\p{L})[\p{L}0-9\s\-'&.()]+$/u;
+
+/** Required marketplace display name: trimmed, 2–50 chars, permissive but safe. */
+export const validateDisplayName = (value: string, t: TFunction): string | null => {
+  const v = (value ?? "").trim();
+  if (!v)
+    return t("common:validation.required", {
+      field: t("common:validation.fields.displayName"),
+    });
+  if (v.length < 2) return t("common:validation.minLengthGeneric", { min: 2 });
+  if (v.length > 50) return t("common:validation.maxLengthGeneric", { max: 50 });
+  if (!DISPLAY_NAME_PATTERN.test(v)) return t("common:validation.nameSpecialChars");
+  return null;
+};
+
+/** Optional professional title: empty passes; otherwise 2–100 chars, same set. */
+export const validateProfessionalTitle = (value: string, t: TFunction): string | null => {
+  const v = (value ?? "").trim();
+  if (!v) return null;
+  if (v.length < 2) return t("common:validation.minLengthGeneric", { min: 2 });
+  if (v.length > 100) return t("common:validation.maxLengthGeneric", { max: 100 });
+  if (!DISPLAY_NAME_PATTERN.test(v)) return t("common:validation.nameSpecialChars");
   return null;
 };
 
