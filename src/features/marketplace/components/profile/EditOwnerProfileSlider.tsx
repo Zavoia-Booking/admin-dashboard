@@ -12,11 +12,15 @@ import {
   getMarketplaceProfile,
   type MarketplaceProfile,
 } from "../../../team-member-pages/myProfile/api";
+import { getTeamMemberProfile } from "../../../team-member-pages/myAccount/api";
+import { ProfilePhotoUploader } from "../../../team-member-pages/myAccount/components/ProfilePhotoUploader";
 
 interface EditOwnerProfileSliderProps {
   isOpen: boolean;
   onClose: () => void;
   onProfileSaved?: (profile: MarketplaceProfile) => void;
+  /** Account photo saves immediately on upload — lets the parent card sync its avatar. */
+  onAccountPhotoUploaded?: (url: string) => void;
 }
 
 /**
@@ -29,12 +33,18 @@ export const EditOwnerProfileSlider: React.FC<EditOwnerProfileSliderProps> = ({
   isOpen,
   onClose,
   onProfileSaved,
+  onAccountPhotoUploaded,
 }) => {
   const { t } = useTranslation("marketplace");
   const profileTabRef = useRef<ProfileTabRef>(null);
   const saveSucceededRef = useRef(false);
 
   const [initialProfile, setInitialProfile] = useState<MarketplaceProfile | null>(null);
+  const [account, setAccount] = useState<{
+    firstName: string;
+    lastName: string;
+    profileImage: string | null;
+  } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [canSave, setCanSave] = useState(false);
@@ -60,10 +70,27 @@ export const EditOwnerProfileSlider: React.FC<EditOwnerProfileSliderProps> = ({
       }
     };
     fetchProfile();
+    // Account photo + name — secondary like the parent card's fetch: a failure
+    // just hides the photo uploader rather than blocking the whole slider.
+    getTeamMemberProfile()
+      .then((r) => {
+        if (cancelled) return;
+        setAccount({
+          firstName: r.profile.firstName,
+          lastName: r.profile.lastName,
+          profileImage: r.profile.profileImage || null,
+        });
+      })
+      .catch(() => {});
     return () => {
       cancelled = true;
     };
   }, [isOpen]);
+
+  const handlePhotoUploaded = (url: string) => {
+    setAccount((prev) => (prev ? { ...prev, profileImage: url } : prev));
+    onAccountPhotoUploaded?.(url);
+  };
 
   // Same ref-poll pattern the team-member portal uses to drive its save button.
   useEffect(() => {
@@ -135,6 +162,16 @@ export const EditOwnerProfileSlider: React.FC<EditOwnerProfileSliderProps> = ({
 
             {!isLoading && !loadError && (
               <div className="space-y-8">
+                {account && (
+                  <ProfilePhotoUploader
+                    profileImage={account.profileImage}
+                    displayedName={[account.firstName, account.lastName]
+                      .filter(Boolean)
+                      .join(" ")
+                      .trim()}
+                    onUploaded={handlePhotoUploaded}
+                  />
+                )}
                 <ProfileTab
                   ref={profileTabRef}
                   initialProfile={initialProfile}

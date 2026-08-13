@@ -235,6 +235,13 @@ export const OwnerProfessionalProfileSection: React.FC<OwnerProfessionalProfileS
         isOpen={isSliderOpen}
         onClose={handleSliderClose}
         onProfileSaved={setProfile}
+        onAccountPhotoUploaded={(url) =>
+          setAccount((prev) => ({
+            firstName: prev?.firstName ?? user?.firstName ?? "",
+            lastName: prev?.lastName ?? user?.lastName ?? "",
+            profileImage: url,
+          }))
+        }
       />
     </div>
   );
