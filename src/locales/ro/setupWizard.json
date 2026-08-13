@@ -53,7 +53,7 @@
     "countryHelper": "Selectează țara în care își desfășoară activitatea businessul tău.",
     "timezone": "Fus orar *",
     "timezoneHelper": "Selectează fusul orar al businessului pentru programarea corectă a întâlnirilor.",
-    "businessLogo": "Logo business (opțional)",
+    "businessLogo": "Logo business",
     "validation": {
       "phoneRequired": "Numărul de telefon este obligatoriu",
       "phoneInvalid": "Introdu un număr de telefon valid",

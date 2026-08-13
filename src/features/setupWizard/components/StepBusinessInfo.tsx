@@ -161,7 +161,7 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
                 return /^[a-z]{2}$/i.test(value) || tw('stepBusinessInfo.validation.countryInvalid');
               },
             },
-        defaultValue: (data.businessInfo as any)?.countryCode || '',
+        defaultValue: (data.businessInfo as any)?.countryCode || 'ro',
       });
 
     // Controlled timezone with validation (required field)
@@ -323,10 +323,11 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
           !!businessCurrencyField.value &&
           !!countryCodeField.value &&
           !!timezoneField.value &&
+          !!businessLogo &&
           Object.keys(errors).length === 0;
         onValidityChange(valid);
       }
-    }, [formIsValid, selectedIndustryId, businessCurrencyField.value, countryCodeField.value, timezoneField.value, errors, onValidityChange]);
+    }, [formIsValid, selectedIndustryId, businessCurrencyField.value, countryCodeField.value, timezoneField.value, businessLogo, errors, onValidityChange]);
 
     useEffect(() => {
       dispatch(resetRegistrationFlag());
@@ -391,6 +392,15 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
             return false;
           }
 
+          // Additional validation for logo (required)
+          const logoValue = (currentData.businessInfo as any)?.logo;
+          const hasLogo = logoValue !== undefined
+            ? !!logoValue
+            : !!(logoFileBuffer || (data as any)?.businessInfo?.logo);
+          if (!hasLogo) {
+            return false;
+          }
+
           return isValid;
         },
         isValid: () => {
@@ -422,13 +432,22 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
             return false;
           }
 
+          // Check logo (required)
+          const logoValue = (currentData.businessInfo as any)?.logo;
+          const hasLogo = logoValue !== undefined
+            ? !!logoValue
+            : !!(logoFileBuffer || (data as any)?.businessInfo?.logo);
+          if (!hasLogo) {
+            return false;
+          }
+
           // Check if there are any errors
           if (Object.keys(errors).length > 0) return false;
 
           return true;
         },
       }),
-      [watch, trigger, errors, formIsValid, useAccountEmail, accountEmail, businessCurrencyField.value, countryCodeField.value, timezoneField.value]
+      [watch, trigger, errors, formIsValid, useAccountEmail, accountEmail, businessCurrencyField.value, countryCodeField.value, timezoneField.value, logoFileBuffer, data]
     );
 
     useEffect(() => {
@@ -630,7 +649,7 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
 
           <div className="space-y-2 pt-4">
             <Label className="text-base font-medium cursor-default">
-              {tw('stepBusinessInfo.businessLogo')}
+              {tw('stepBusinessInfo.businessLogo')} *
             </Label>
             <LogoUpload
               value={businessLogo}

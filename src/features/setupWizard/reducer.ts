@@ -54,6 +54,7 @@ const initialState: WizardState = {
       phone: undefined as unknown as string,
       timezone: undefined as unknown as string,
       country: undefined as unknown as string,
+      countryCode: 'ro' as string, // Default to Romania (only released country)
       stripeCurrency: 'eur' as string, // Default to EUR (backend hardcoded)
       businessCurrency: 'eur' as string, // Default to EUR
       instagramUrl: undefined as unknown as string,
@@ -131,6 +132,7 @@ export default function setupWizardReducer(
         businessInfo: {
           ...state.data.businessInfo,
           ...(payload.businessInfo || ({} as any)),
+          countryCode: payload.businessInfo?.countryCode || state.data.businessInfo.countryCode || 'ro', // Ensure default (only released country)
           stripeCurrency: payload.businessInfo?.stripeCurrency || state.data.businessInfo.stripeCurrency || 'eur', // Ensure default
           businessCurrency: payload.businessInfo?.businessCurrency || state.data.businessInfo.businessCurrency || 'eur', // Ensure default
         },

@@ -53,7 +53,7 @@
     "countryHelper": "Select your business's country of operation.",
     "timezone": "Timezone *",
     "timezoneHelper": "Select your business timezone for accurate appointment scheduling.",
-    "businessLogo": "Business Logo (Optional)",
+    "businessLogo": "Business Logo",
     "validation": {
       "phoneRequired": "Phone number is required",
       "phoneInvalid": "Enter a valid phone number",
