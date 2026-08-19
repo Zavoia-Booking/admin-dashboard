@@ -104,7 +104,8 @@
   },
   "trialBanner": {
     "title": "Perioadă de probă activă",
-    "daysRemaining": "Mai ai {{count}} zi în perioada de probă.",
+    "daysRemaining": "Mai ai o zi în perioada de probă.",
+    "daysRemaining_few": "Mai ai {{count}} zile în perioada de probă.",
     "daysRemaining_other": "Mai ai {{count}} zile în perioada de probă.",
     "upgradeNow": "Faceți upgrade acum"
   },

@@ -2,10 +2,11 @@ import { useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { selectCurrentUser } from '../../auth/selectors'
-import { Button } from '../../../shared/components/ui/button'
-import { AlertCircle, Clock } from 'lucide-react'
+import { Clock, ArrowRight } from 'lucide-react'
 import { usePlatform } from '../../../shared/hooks/usePlatform'
 
+/* Same flat-surface, single-icon, pill-CTA recipe as SubscriptionInfo's
+   Banner, kept in the brand terracotta rather than a semantic tone. */
 export default function TrialBanner() {
   const { t } = useTranslation('teamMembers')
   const navigate = useNavigate()
@@ -24,29 +25,24 @@ export default function TrialBanner() {
   }
 
   return (
-    <div className="rounded-lg border border-primary/20 bg-gradient-to-r from-primary/10 to-amber-50 p-4 shadow-sm">
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/15">
-            <Clock className="h-5 w-5 text-primary" />
-          </div>
-          <div className="flex-1">
-            <div className="flex items-center gap-2">
-              <h3 className="font-semibold text-foreground-1">{t('trialBanner.title')}</h3>
-              <AlertCircle className="h-4 w-4 text-primary" />
-            </div>
-            <p className="text-sm text-foreground-3">
-              {t('trialBanner.daysRemaining', { count: daysRemaining })}
-            </p>
-          </div>
+    <div className="flex flex-col gap-3 rounded-xl border border-border bg-surface px-4 py-3.5 md:flex-row md:items-center md:justify-between">
+      <div className="flex items-start gap-3 min-w-0">
+        <Clock className="h-4 w-4 shrink-0 mt-0.5 text-primary" aria-hidden="true" />
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-foreground-1">{t('trialBanner.title')}</p>
+          <p className="text-[13px] text-foreground-2">
+            {t('trialBanner.daysRemaining', { count: daysRemaining })}
+          </p>
         </div>
-        <Button
-          onClick={() => navigate('/account?tab=billing')}
-          className="bg-primary hover:bg-primary-hover text-white whitespace-nowrap"
-        >
-          {t('trialBanner.upgradeNow')}
-        </Button>
       </div>
+      <button
+        type="button"
+        onClick={() => navigate('/account?tab=billing')}
+        className="inline-flex h-9 w-full shrink-0 items-center justify-center gap-2 rounded-full bg-primary px-4 text-[13px] font-medium text-white transition-colors hover:bg-primary-hover md:w-auto"
+      >
+        {t('trialBanner.upgradeNow')}
+        <ArrowRight className="h-3.5 w-3.5" />
+      </button>
     </div>
   )
 }

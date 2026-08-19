@@ -33,7 +33,7 @@ export function AuthCard({ mode, title, subtitle, children, hideHeader, isForgot
   return (
     <Card className="overflow-hidden p-0">
       <CardContent className="grid p-0 md:grid-cols-2">
-        <div className="p-4 md:p-6 md:min-h-180">
+        <div className="p-4 md:p-6 md:min-h-188">
           <div className={cn("flex flex-col", gapClass)}>
             {!hideHeader && (
               // Segmented-control recipe from ResponsiveTabs (track bg-sidebar,
