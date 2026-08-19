@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowRight } from "lucide-react";
 import { Stars } from "../../../shared/primitives";
-import { prefersReducedMotion } from "../../../shared/util";
-import { useInView } from "../../../shared/hooks";
+import { useInView, useReducedMotion } from "../../../shared/hooks";
 import { RvHead } from "../parts/RvHead";
 import { RvSlide } from "../parts/RvSlide";
 import type { ReviewsViewProps } from "../types";
@@ -17,7 +16,7 @@ const DARK_EMPTY = "color-mix(in oklch, var(--mc-bg) 22%, transparent)";
  *  by setInterval + performance.now, like the showcase, so an idled rAF can't freeze it). Mirrors `RvSpotlight`. */
 export function Spotlight({ quotes, rating, count, showHeading, heading, kicker, no, italic, t }: ReviewsViewProps) {
   const n = quotes.length;
-  const reduced = prefersReducedMotion();
+  const reduced = useReducedMotion();
   const [active, setActive] = useState(0);
   const [paused, setPaused] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);

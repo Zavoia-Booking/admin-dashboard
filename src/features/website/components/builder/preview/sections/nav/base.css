@@ -53,6 +53,8 @@
   gap: 12px;
   color: var(--mc-nav-fg, var(--mc-fg));
   text-shadow: var(--mc-nav-shadow, none);
+  /* Track the bar's own 400ms frost so the wordmark doesn't turn to ink before the paper arrives behind it. */
+  transition: color 400ms cubic-bezier(.2, .7, .3, 1), text-shadow 400ms cubic-bezier(.2, .7, .3, 1);
 }
 .mc-nav-brand-mark,
 .mc-nav-brand-logo {

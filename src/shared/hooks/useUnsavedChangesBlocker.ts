@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useBlocker } from "react-router-dom";
+import { isNativeApp } from "../../app/config/env";
 
 type GuardedAction = () => void;
 type ExternalGuard = (action: GuardedAction) => boolean;
@@ -100,9 +101,12 @@ export function useUnsavedChangesBlocker({ when, proceedWhen = !when }: UseUnsav
     return () => window.cancelAnimationFrame(frame);
   }, [externalActionBlocked, proceedWhen]);
 
-  // Browser close/refresh uses the native prompt.
+  // Browser close/refresh uses the native prompt. Skipped in the native app: there is no
+  // tab to close or refresh there, the router blocker above already covers every in-app
+  // navigation (incl. the Android back gesture), and the WebView renders beforeunload as an
+  // unstyleable system alert.
   useEffect(() => {
-    if (!shouldBlock) return;
+    if (!shouldBlock || isNativeApp()) return;
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       e.preventDefault();
       e.returnValue = "";

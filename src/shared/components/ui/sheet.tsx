@@ -4,6 +4,8 @@ import { XIcon } from "lucide-react"
 import { useTranslation } from "react-i18next"
 
 import { cn } from "../../lib/utils"
+import { ignoreToastPointerDown } from "../../lib/toastInteraction"
+import { useKeyboardVisible } from "../../hooks/useKeyboardVisible"
 
 function Sheet({ ...props }: React.ComponentProps<typeof SheetPrimitive.Root>) {
   return <SheetPrimitive.Root data-slot="sheet" {...props} />
@@ -50,6 +52,7 @@ function SheetContent({
   overlayClassName,
   showCloseButton = true,
   portalContainer,
+  onPointerDownOutside,
   ...props
 }: React.ComponentProps<typeof SheetPrimitive.Content> & {
   side?: "top" | "right" | "bottom" | "left"
@@ -66,6 +69,7 @@ function SheetContent({
       <SheetOverlay className={overlayClassName} />
       <SheetPrimitive.Content
         data-slot="sheet-content"
+        onPointerDownOutside={ignoreToastPointerDown(onPointerDownOutside)}
         className={cn(
           "bg-background data-[state=open]:animate-in data-[state=closed]:animate-out fixed z-50 flex flex-col gap-4 shadow-lg transition ease-in-out data-[state=closed]:duration-300 data-[state=open]:duration-500",
           side === "right" &&
@@ -103,10 +107,12 @@ function SheetHeader({ className, ...props }: React.ComponentProps<"div">) {
 }
 
 function SheetFooter({ className, ...props }: React.ComponentProps<"div">) {
+  // Native keyboard covers the footer (same treatment as DrawerFooter).
+  const keyboardVisible = useKeyboardVisible()
   return (
     <div
       data-slot="sheet-footer"
-      className={cn("mt-auto flex flex-col gap-2 p-4", className)}
+      className={cn("mt-auto flex flex-col gap-2 p-4", keyboardVisible && "hidden", className)}
       {...props}
     />
   )

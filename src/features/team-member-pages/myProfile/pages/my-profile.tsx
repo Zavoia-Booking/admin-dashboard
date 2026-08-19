@@ -344,7 +344,7 @@ export default function MyProfilePage() {
   const HeaderSaveButton = (
     <Button
       onClick={handleSave}
-      className="group btn-primary !h-8 px-3 rounded-full text-sm shadow-sm active:scale-95 flex items-center gap-1.5"
+      className="group btn-primary !min-h-0 !h-8 px-3 rounded-full text-sm shadow-sm active:scale-95 flex items-center gap-1.5"
       disabled={isSaving || !canSave}
     >
       {isSaving ? (

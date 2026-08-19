@@ -1,3 +1,4 @@
+import { maybeShowPushPrimer } from "../push-notifications/primer";
 import { takeLatest, call, put, select } from "redux-saga/effects";
 import { wizardCompleteAction, wizardSaveAction, wizardLoadDraftAction, clearLogoBufferAction } from "./actions";
 import { completeWizardApi, saveWizardDraftApi, getWizardDraftApi, type CompleteWizardResponse } from "./api";
@@ -161,6 +162,10 @@ function* handleWizardComplete(action: { type: string; payload: any }) {
     }
     
     yield put(wizardCompleteAction.success());
+
+    // Value moment: the business just went live — best context for the push
+    // permission soft ask. Fire-and-forget; the primer applies its own policy.
+    void maybeShowPushPrimer("wizard-complete");
     
     // Clear logo buffer after successful completion
     if (logoFileBuffer) {

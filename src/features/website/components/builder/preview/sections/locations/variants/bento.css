@@ -45,6 +45,7 @@
 }
 
 .mc-locations[data-locations="cards"] .mc-locb {
+  position: relative; /* anchors the absolute tile-level ghosts of the coarse-pointer push */
   display: grid;
   min-height: 380px;
   flex: 1 1 auto;
@@ -72,7 +73,8 @@
   color: var(--mc-locb-fg);
   font-family: inherit;
   text-align: left;
-  will-change: transform, opacity;
+  /* No standing will-change: 8 permanently promoted tiles tax the phone's tile budget all the
+     time; WAAPI promotes on demand for the duration of a push. */
 }
 
 .mc-locations[data-locations="cards"] .mc-locb-slide {
@@ -157,15 +159,19 @@
   color: var(--mc-locb-fg);
 }
 
+/* flex: 1 1 auto so the list box is the panel's free space — that box is what the row budget is
+   measured from, and it stays put when the chip count changes. */
 .mc-locations[data-locations="cards"] .mc-locb-amen-list {
   display: flex;
   min-width: 0;
-  flex: 0 0 auto;
+  min-height: 0;
+  flex: 1 1 auto;
   flex-wrap: wrap;
   align-content: flex-start;
   gap: 6px;
   margin: 0;
   padding: 0;
+  overflow: hidden;
   list-style: none;
 }
 
@@ -207,14 +213,6 @@
   text-overflow: ellipsis;
   text-transform: uppercase;
   white-space: nowrap;
-}
-
-.mc-locations[data-locations="cards"] .mc-locb-amen-measure {
-  position: absolute;
-  inset: 0;
-  overflow: visible;
-  visibility: hidden;
-  pointer-events: none;
 }
 
 .mc-locations[data-locations="cards"] .mc-locb-heroscrim {
@@ -266,6 +264,21 @@
   font-variant-numeric: tabular-nums;
   font-weight: 600;
   backdrop-filter: blur(8px);
+}
+
+/* Touch hardware: backdrop blur on the animating hero slide re-samples every pushed frame —
+   a denser static fill reads the same at this size and costs nothing. */
+@media (any-pointer: coarse) {
+  .mc-locations[data-locations="cards"] .mc-locb-rate {
+    background: rgba(20, 18, 16, 0.72);
+    backdrop-filter: none;
+  }
+
+  /* Images finish loading at unpredictable moments; on touch that meant up to eight 1.1s
+     transforms starting mid page-turn. Fade only, and only briefly. */
+  .mc-locations[data-locations="cards"] .mc-locb-photo {
+    transition: opacity 200ms var(--ease-out-strong);
+  }
 }
 
 .mc-locations[data-locations="cards"] .mc-locb-rate svg {

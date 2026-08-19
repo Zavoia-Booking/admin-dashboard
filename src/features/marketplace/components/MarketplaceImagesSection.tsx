@@ -14,6 +14,7 @@ import { AttentionDot } from "../../../shared/components/common/AttentionDot";
 import { toast } from "sonner";
 import { Spinner } from "../../../shared/components/ui/spinner";
 import { cn } from "../../../shared/lib/utils";
+import { generateId } from "../../../shared/lib/id";
 import { getErrorMessage } from "../../../shared/utils/error";
 import { scrollAppContentToElement } from "../../../shared/utils/scroll";
 import { FullScreenImageCarousel } from "./FullScreenImageCarousel";
@@ -370,7 +371,7 @@ export function MarketplaceImagesSection({
     if (validFiles.length === 0) return;
 
     const newImages: PortfolioImage[] = validFiles.map((file) => ({
-      tempId: crypto.randomUUID(),
+      tempId: generateId(),
       url: URL.createObjectURL(file), // Preview URL
       isUploading: true,
       originalName: file.name,
@@ -623,7 +624,8 @@ export function MarketplaceImagesSection({
                         {/* Actions for Featured */}
                         {!featuredImg.isUploading &&
                           !featuredImg.isDeleting &&
-                          !featuredImg.uploadError && (
+                          !featuredImg.uploadError &&
+                          images.length > 1 && (
                             <Button
                               type="button"
                               size="icon"
@@ -640,12 +642,7 @@ export function MarketplaceImagesSection({
                                 e.stopPropagation();
                                 handleRemovePortfolioImage(featuredImg.tempId);
                               }}
-                              disabled={images.length === 1}
-                              title={
-                                images.length === 1
-                                  ? t("portfolio.minimumRequired")
-                                  : t("portfolio.removeImage")
-                              }
+                              title={t("portfolio.removeImage")}
                             >
                               <X className="h-5 w-5" />
                             </Button>
@@ -803,34 +800,31 @@ export function MarketplaceImagesSection({
                                     )}
                                   </Button>
                                 )}
-                                <Button
-                                  type="button"
-                                  size="icon"
-                                  variant="secondary"
-                                  rounded="full"
-                                  className={cn(
-                                    // Same chip size at every breakpoint: below xl there is no hover to
-                                    // gate this away, so it is always on screen on every tile, and the
-                                    // 44px touch-target size read as oversized once it stopped being an
-                                    // occasional hover reveal.
-                                    "absolute top-2 right-2 !h-8 !w-8 !min-h-8 !min-w-8",
-                                    "shadow-xl active:scale-95 transition-all duration-200 backdrop-blur-md",
-                                    // Darker background for better contrast over images
-                                    "bg-black/60 hover:bg-black/70 border border-white/15 text-white",
-                                  )}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleRemovePortfolioImage(image.tempId);
-                                  }}
-                                  disabled={images.length === 1}
-                                  title={
-                                    images.length === 1
-                                      ? t("portfolio.minimumRequired")
-                                      : t("portfolio.removeImage")
-                                  }
-                                >
-                                  <X className="!h-3.5 !w-3.5" />
-                                </Button>
+                                {images.length > 1 && (
+                                  <Button
+                                    type="button"
+                                    size="icon"
+                                    variant="secondary"
+                                    rounded="full"
+                                    className={cn(
+                                      // Same chip size at every breakpoint: below xl there is no hover to
+                                      // gate this away, so it is always on screen on every tile, and the
+                                      // 44px touch-target size read as oversized once it stopped being an
+                                      // occasional hover reveal.
+                                      "absolute top-2 right-2 !h-8 !w-8 !min-h-8 !min-w-8",
+                                      "shadow-xl active:scale-95 transition-all duration-200 backdrop-blur-md",
+                                      // Darker background for better contrast over images
+                                      "bg-black/60 hover:bg-black/70 border border-white/15 text-white",
+                                    )}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleRemovePortfolioImage(image.tempId);
+                                    }}
+                                    title={t("portfolio.removeImage")}
+                                  >
+                                    <X className="!h-3.5 !w-3.5" />
+                                  </Button>
+                                )}
                               </div>
                             )}
                         </div>

@@ -13,6 +13,21 @@
 @media (prefers-reduced-motion: reduce) {
   .mc-mask-in, .mc-locx-fade, .mc-locx-rowin { animation: none !important; }
 }
+
+/* ScaledPreview (mobile peek, locked-view teaser, variant-picker thumbnails): a scaled-down,
+   non-interactive snapshot that can re-render often. Every section's mount/scroll-triggered
+   animation is choreographed for a real, once-per-load page view, not a thumbnail that replays
+   it on every edit. Freeze the whole page subtree unconditionally, independent of reduced-motion.
+   Scoped to .mc-root so the thumbnail's own focus glide (on the wrapper above it) keeps its ease.
+   JS-driven motion is settled separately via StaticPreviewContext (shared/hooks.ts). */
+.mc-scaled-preview-static .mc-root,
+.mc-scaled-preview-static .mc-root * {
+  animation: none !important;
+  transition: none !important;
+  /* Variants sprinkle will-change on animated layers; in a frozen snapshot each one still rasterises
+     at NATIVE size under the CSS scale (Chrome's min-scale rule) and eats the phone's tile budget. */
+  will-change: auto !important;
+}
 /* The dashboard globally assigns every button a 44px minimum. The microsite is its own
    design context, just like the reference iframe, so its controls must use section-owned sizes. */
 .mc-root.mc-root button,

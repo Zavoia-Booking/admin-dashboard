@@ -400,9 +400,9 @@ export const BundleFilters: FC<BundleFiltersProps> = ({
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex gap-2 items-center">
+      <div className="flex flex-col gap-2 md:flex-row md:items-center">
         <SearchInput
-          className="flex-1"
+          className="w-full md:flex-1"
           placeholder={text("bundles.filters.searchPlaceholder")}
           value={localFilters.searchTerm}
           onChange={handleSearchChange}
@@ -412,7 +412,7 @@ export const BundleFilters: FC<BundleFiltersProps> = ({
           type="button"
           size="sm"
           rounded="full"
-          className="h-9 !px-4 md:h-11 md:px-5 md:!min-w-52 md:px-6 font-semibold group active:scale-95 transition-transform shrink-0"
+          className="h-11 w-full !px-4 md:w-auto md:px-5 md:!min-w-52 md:px-6 font-semibold group active:scale-95 transition-transform shrink-0"
           onClick={onAddClick}
         >
           <Plus className="h-4 w-4 md:h-5 md:w-5" />

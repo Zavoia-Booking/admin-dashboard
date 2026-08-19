@@ -23,6 +23,7 @@ import type { AddressAutocompleteChange } from '../../types/geo';
 import { AlertCircle } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useIsMobile } from '../../hooks/use-mobile';
+import { useKeyboardVisible } from '../../hooks/useKeyboardVisible';
 
 export interface MapDialogProps {
   /**
@@ -161,6 +162,8 @@ export const MapDialog: React.FC<MapDialogProps> = ({
   const { t } = useTranslation(['locations', 'common']);
   const [searchValue, setSearchValue] = useState('');
   const isMobile = useIsMobile();
+  // Native keyboard covers the footer actions instead of pushing them up.
+  const keyboardVisible = useKeyboardVisible();
 
   const handleAddressSelect = (change: AddressAutocompleteChange) => {
     if (change.suggestion && onSearchSelect) {
@@ -265,7 +268,10 @@ export const MapDialog: React.FC<MapDialogProps> = ({
             {infoCardElement}
           </div>
           {footerActions && (
-            <div className="shrink-0 border-t border-border bg-white px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] dark:bg-surface">
+            <div className={cn(
+              "shrink-0 border-t border-border bg-white px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] dark:bg-surface",
+              keyboardVisible && "hidden",
+            )}>
               <div className="flex flex-col gap-2">{footerActions}</div>
             </div>
           )}

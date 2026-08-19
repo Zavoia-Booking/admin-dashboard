@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Stars } from "../../../shared/primitives";
-import { prefersReducedMotion } from "../../../shared/util";
-import { useInView } from "../../../shared/hooks";
+import { useInView, useReducedMotion } from "../../../shared/hooks";
 import { RvHead } from "../parts/RvHead";
 import type { PreviewReview } from "../../../shared/types";
 import type { ReviewsViewProps } from "../types";
@@ -15,7 +14,7 @@ function RvLane({ items, dir, speed }: { items: PreviewReview[]; dir: 1 | -1; sp
   const trackRef = useRef<HTMLDivElement>(null);
   const [paused, setPaused] = useState(false);
   const inView = useInView(rootRef, { threshold: 0.1 });
-  const reduced = prefersReducedMotion();
+  const reduced = useReducedMotion();
 
   useEffect(() => {
     const track = trackRef.current;

@@ -316,6 +316,12 @@ export function BrandColorControl({
     const atelierActiveName = activeChoice ? localizedName(activeChoice) : activeAccentName;
     const activeLocked = isLocked(activeChoice);
     const activePreviewing = isPreviewing(activeChoice);
+    // Every accent ships included today — the status line only earns its space for a real
+    // state (checking, locked, owned, unavailable), not to repeat "Included" on every row.
+    const activeIncluded =
+      catalogIsReady &&
+      !!activeChoice &&
+      (!usesAuthoritativeCatalog || activeChoice.asset?.isIncluded === true);
 
     const selectChoice = (choice: AtelierAccentChoice) => {
       if (!canSelect(choice)) return;
@@ -433,12 +439,15 @@ export function BrandColorControl({
         {includedChoices.length > 0 && (
           <div
             role="group"
-            aria-labelledby={`${accentGroupId}-included`}
+            aria-labelledby={premiumChoices.length > 0 ? `${accentGroupId}-included` : undefined}
             className="atelier-brand-option-group atelier-brand-option-group--included"
           >
-            <p id={`${accentGroupId}-included`} className="atelier-brand-options-label">
-              {t("businessPage.paidVariants.includedBadge")}
-            </p>
+            {/* Only worth naming once a premium group exists to distinguish it from. */}
+            {premiumChoices.length > 0 && (
+              <p id={`${accentGroupId}-included`} className="atelier-brand-options-label">
+                {t("businessPage.paidVariants.includedBadge")}
+              </p>
+            )}
             <div className="atelier-brand-swatch-grid">{includedChoices.map(renderAtelierSwatch)}</div>
           </div>
         )}
@@ -515,10 +524,12 @@ export function BrandColorControl({
         />
         <span className="atelier-brand-control-copy">
           <span className="atelier-brand-control-name">{atelierActiveName}</span>
-          <span className="atelier-brand-control-meta">
-            {activeLocked && <Lock className="atelier-brand-control-lock" strokeWidth={2.4} aria-hidden />}
-            <span>{activeStatus}</span>
-          </span>
+          {!activeIncluded && (
+            <span className="atelier-brand-control-meta">
+              {activeLocked && <Lock className="atelier-brand-control-lock" strokeWidth={2.4} aria-hidden />}
+              <span>{activeStatus}</span>
+            </span>
+          )}
         </span>
         <ChevronRight
           className="atelier-brand-control-chevron transition-transform duration-150 group-data-[state=open]/brand-control:rotate-90"
@@ -536,7 +547,6 @@ export function BrandColorControl({
               open={atelierPickerOpen}
               onOpenChange={handleAtelierPickerOpenChange}
               autoFocus
-              handleOnly
               repositionInputs={false}
             >
               <DrawerTrigger asChild>{trigger}</DrawerTrigger>
@@ -553,10 +563,7 @@ export function BrandColorControl({
                     {t("businessPage.branding.brandColor.allSwatches")}
                   </DrawerDescription>
                 </DrawerHeader>
-                <div
-                  data-vaul-no-drag=""
-                  className="atelier-brand-picker-scroll website-atelier-scrollbar"
-                >
+                <div className="atelier-brand-picker-scroll website-atelier-scrollbar">
                   {pickerOptions}
                 </div>
               </DrawerContent>
@@ -614,7 +621,7 @@ export function BrandColorControl({
             alignOffset={atelierPopoverAlignOffset}
             sideOffset={28}
             collisionPadding={12}
-            className="website-atelier atelier-brand-popover atelier-brand-popover--accent z-50 flex max-h-[calc(100dvh-130px)] w-[min(302px,calc(100vw-2rem))] flex-col overflow-hidden rounded-[14px] border-[var(--atelier-border)] bg-[var(--atelier-surface-strong)] p-[13px] text-[var(--atelier-ink)]"
+            className="website-atelier atelier-brand-popover atelier-brand-popover--accent z-50 flex max-h-[calc(100dvh-130px)] w-[min(340px,calc(100vw-2rem))] flex-col overflow-hidden rounded-[14px] border-[var(--atelier-border)] bg-[var(--atelier-surface-strong)] p-[13px] text-[var(--atelier-ink)]"
           >
             <div className="atelier-brand-popover-header">
               <h3>{atelierLabel}</h3>

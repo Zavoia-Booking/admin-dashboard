@@ -10,6 +10,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useDispatch } from 'react-redux';
 import { cn } from '../../lib/utils';
+import { applyTheme } from '../../lib/theme';
 import { useRef, useState } from 'react';
 import { logoutRequestAction } from '../../../features/auth/actions';
 import { useAppNavigation } from './navigation-model';
@@ -21,34 +22,9 @@ import {
   DrawerTrigger,
 } from '../ui/drawer';
 import { requestGuardedUnsavedAction } from '../../hooks/useUnsavedChangesBlocker';
+import { useKeyboardVisible } from '../../hooks/useKeyboardVisible';
 import { preloadRoute } from '../../utils/routePreload';
-
-const USFlag = () => (
-  <svg width="20" height="15" viewBox="0 0 20 15" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect width="20" height="15" rx="2" fill="#B22234"/>
-    <rect y="1" width="20" height="1" fill="white"/>
-    <rect y="3" width="20" height="1" fill="white"/>
-    <rect y="5" width="20" height="1" fill="white"/>
-    <rect y="7" width="20" height="1" fill="white"/>
-    <rect y="9" width="20" height="1" fill="white"/>
-    <rect y="11" width="20" height="1" fill="white"/>
-    <rect y="13" width="20" height="1" fill="white"/>
-    <rect width="8" height="8" fill="#3C3B6E"/>
-  </svg>
-);
-
-const ROFlag = () => (
-  <svg width="20" height="15" viewBox="0 0 20 15" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect width="20" height="15" rx="2" fill="#FCD116"/>
-    <rect width="6.67" height="15" rx="2" fill="#002B7F"/>
-    <rect x="13.33" width="6.67" height="15" rx="2" fill="#CE1126"/>
-  </svg>
-);
-
-const languages = [
-  { code: 'en', name: 'English', flag: <USFlag /> },
-  { code: 'ro', name: 'Română', flag: <ROFlag /> },
-];
+import { languages } from '../common/languages';
 
 export function MobileBottomNav() {
   const { pathname } = useLocation();
@@ -56,6 +32,8 @@ export function MobileBottomNav() {
   const dispatch = useDispatch();
   const { mobileMainItems, mobileMoreItems } = useAppNavigation();
   const [isOpen, setIsOpen] = useState(false);
+  // Native keyboard covers the tab bar (like native apps) instead of pushing it up.
+  const keyboardVisible = useKeyboardVisible();
 
   // Close on route change (drawer links also close eagerly on tap; this covers
   // back/forward). Render-phase adjustment, not an effect, so the close lands
@@ -76,14 +54,15 @@ export function MobileBottomNav() {
   const toggleDarkMode = () => {
     const next = !isDark;
     setIsDark(next);
-    document.documentElement.classList.toggle('dark', next);
-    localStorage.setItem('theme', next ? 'dark' : 'light');
+    applyTheme(next);
   };
 
-  const currentLang = languages.find(l => l.code === i18n.language) || languages[0];
+  // resolvedLanguage, not language: the browser detector can yield full
+  // locales like 'ro-RO' that never match the bare codes in the list.
+  const currentLang = languages.find(l => l.code === i18n.resolvedLanguage) || languages[0];
 
   const cycleLang = () => {
-    const idx = languages.findIndex(l => l.code === i18n.language);
+    const idx = languages.findIndex(l => l.code === i18n.resolvedLanguage);
     const next = languages[(idx + 1) % languages.length];
     i18n.changeLanguage(next.code);
   };
@@ -201,7 +180,10 @@ export function MobileBottomNav() {
        * hairline border-top (no shadow), icons at 22px, labels at 10px. */}
       <nav
         aria-label={t('mobileNav.navigation')}
-        className="mobile-bottom-nav fixed bottom-0 left-0 right-0 z-[60] border-t border-border bg-surface"
+        className={cn(
+          "mobile-bottom-nav fixed bottom-0 left-0 right-0 z-[60] border-t border-border bg-surface",
+          keyboardVisible && "hidden",
+        )}
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
         <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 z-10 flex">

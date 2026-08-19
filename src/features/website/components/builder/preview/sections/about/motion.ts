@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
-import { findScrollParent, prefersReducedMotion } from "../../shared/util";
+import { findScrollParent } from "../../shared/util";
+import { useReducedMotion } from "../../shared/hooks";
 
 const clamp = (value: number, min = 0, max = 1) => Math.min(max, Math.max(min, value));
 
@@ -44,12 +45,13 @@ function observeMotion(node: HTMLElement, update: (scroller: HTMLElement | null)
 
 /** One-shot design-source Reveal treatment, rooted in the builder preview scroller. */
 export function useAboutReveal<T extends HTMLElement>(rootRef: RefObject<T | null>) {
+  const reduced = useReducedMotion();
   useEffect(() => {
     const root = rootRef.current;
     if (!root) return;
     const elements = Array.from(root.querySelectorAll<HTMLElement>("[data-about-reveal]"));
     if (!elements.length) return;
-    if (prefersReducedMotion() || typeof IntersectionObserver === "undefined") {
+    if (reduced || typeof IntersectionObserver === "undefined") {
       elements.forEach((element) => element.setAttribute("data-in", "true"));
       return;
     }
@@ -75,12 +77,13 @@ export function useAboutReveal<T extends HTMLElement>(rootRef: RefObject<T | nul
 
 /** SplitReveal: words rise through a clipped line as the statement enters the viewport. */
 export function useRisingWords(ref: RefObject<HTMLElement | null>, text: string) {
+  const reduced = useReducedMotion();
   useEffect(() => {
     const element = ref.current;
     if (!element) return;
     const words = Array.from(element.querySelectorAll<HTMLElement>("[data-about-word]"));
     if (!words.length) return;
-    if (prefersReducedMotion()) {
+    if (reduced) {
       words.forEach((word) => {
         word.style.opacity = "1";
         word.style.transform = "none";
@@ -102,17 +105,18 @@ export function useRisingWords(ref: RefObject<HTMLElement | null>, text: string)
         word.style.transform = `translate3d(0, ${(118 * (1 - eased)).toFixed(2)}%, 0)`;
       });
     });
-  }, [ref, text]);
+  }, [ref, text, reduced]);
 }
 
 /** Manifesto's persistent word-by-word ink illumination. */
 export function useManifestoWords(ref: RefObject<HTMLElement | null>, text: string) {
+  const reduced = useReducedMotion();
   useEffect(() => {
     const element = ref.current;
     if (!element) return;
     const words = Array.from(element.querySelectorAll<HTMLElement>("[data-about-word]"));
     if (!words.length) return;
-    if (prefersReducedMotion()) {
+    if (reduced) {
       words.forEach((word) => { word.style.opacity = "1"; });
       return;
     }
@@ -127,18 +131,19 @@ export function useManifestoWords(ref: RefObject<HTMLElement | null>, text: stri
         word.style.opacity = (0.14 + 0.86 * local).toFixed(3);
       });
     });
-  }, [ref, text]);
+  }, [ref, text, reduced]);
 }
 
 /** Story's reading rail and nearest-beat activation. */
 export function useStoryProgress(ref: RefObject<HTMLElement | null>, beatCount: number) {
+  const reduced = useReducedMotion();
   useEffect(() => {
     const flow = ref.current;
     if (!flow) return;
     const fill = flow.querySelector<HTMLElement>("[data-about-rail-fill]");
     const beats = Array.from(flow.querySelectorAll<HTMLElement>("[data-about-beat]"));
     if (!fill || !beats.length) return;
-    if (prefersReducedMotion()) {
+    if (reduced) {
       beats.forEach((beat) => beat.setAttribute("data-on", "true"));
       fill.style.transform = "scaleY(1)";
       return;
@@ -163,14 +168,15 @@ export function useStoryProgress(ref: RefObject<HTMLElement | null>, beatCount: 
       beats.forEach((beat, index) => beat.setAttribute("data-on", index === activeIndex ? "true" : "false"));
       fill.style.transform = `scaleY(${progress.toFixed(4)})`;
     });
-  }, [beatCount, ref]);
+  }, [beatCount, ref, reduced]);
 }
 
 export function useAboutParallax(ref: RefObject<HTMLElement | null>, speed = 0.05) {
+  const reduced = useReducedMotion();
   useEffect(() => {
     const frame = ref.current;
     const move = frame?.querySelector<HTMLElement>("[data-about-parallax]");
-    if (!frame || !move || prefersReducedMotion()) return;
+    if (!frame || !move || reduced) return;
     return observeMotion(frame, (scroller) => {
       const vp = viewport(scroller);
       const rect = frame.getBoundingClientRect();
@@ -181,11 +187,11 @@ export function useAboutParallax(ref: RefObject<HTMLElement | null>, speed = 0.0
       );
       move.style.transform = `translate3d(0, ${shift.toFixed(2)}px, 0)`;
     });
-  }, [ref, speed]);
+  }, [ref, speed, reduced]);
 }
 
 export function useAboutCounter(value: number, decimals: number, delayMs: number, raw = false) {
-  const reduced = prefersReducedMotion();
+  const reduced = useReducedMotion();
   const [shown, setShown] = useState(raw || reduced ? value : 0);
   const ref = useRef<HTMLSpanElement>(null);
 

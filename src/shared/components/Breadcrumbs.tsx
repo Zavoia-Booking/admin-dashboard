@@ -27,10 +27,6 @@ interface BreadcrumbsProps {
    *  muted color, tighter spacing) so they read as "nudge date" not "go back". */
   onPrev?: () => void;
   onNext?: () => void;
-  /** Drops the bottom shadow so the breadcrumb visually merges with whatever
-   *  is sticky-pinned directly below it (e.g. a ResponsiveTabs header on
-   *  tabbed pages). Without this, the shadow reads as a hard divider. */
-  flush?: boolean;
 }
 
 const BELL_ROUTES = new Set([
@@ -79,7 +75,7 @@ function shouldShowBell(pathname: string, search: string): boolean {
   return false;
 }
 
-export const Breadcrumbs: FC<BreadcrumbsProps> = ({ items, rightContent, titleOverride, titleContent, onPrev, onNext, flush }) => {
+export const Breadcrumbs: FC<BreadcrumbsProps> = ({ items, rightContent, titleOverride, titleContent, onPrev, onNext }) => {
   const { t } = useTranslation('common');
   const navigate = useNavigate();
   const location = useLocation();
@@ -98,7 +94,7 @@ export const Breadcrumbs: FC<BreadcrumbsProps> = ({ items, rightContent, titleOv
   };
 
   return (
-    <div className={`bg-surface px-1 py-1 ${flush ? '' : 'shadow-sm'}`}>
+    <div className="bg-surface px-1 py-1">
       <div className="flex items-center gap-3 px-2">
         {!isTopLevelRoute && (
           <Button

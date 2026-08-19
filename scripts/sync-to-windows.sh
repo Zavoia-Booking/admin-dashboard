@@ -122,7 +122,22 @@ EOF
             fi
         done
     done
-    
+
+    # Unscoped Capacitor plugins (e.g. capacitor-native-settings) sit directly
+    # under node_modules and would be silently skipped by the @-scope globs.
+    for PLUGIN_DIR in node_modules/capacitor-*/; do
+        [ -d "$PLUGIN_DIR/android" ] || continue
+        MODULE_NAME=$(basename "$PLUGIN_DIR")
+        echo "   Copying plugin: $MODULE_NAME → $MODULE_NAME"
+        mkdir -p "$WINDOWS_ANDROID_PATH/$MODULE_NAME"
+        cp -r "$PLUGIN_DIR/android/"* "$WINDOWS_ANDROID_PATH/$MODULE_NAME/"
+        cat >> "$SETTINGS_FILE" << EOF
+
+include ':$MODULE_NAME'
+project(':$MODULE_NAME').projectDir = new File('./$MODULE_NAME')
+EOF
+    done
+
     echo ""
     echo -e "${GREEN}✅ Full sync complete!${NC}"
     echo ""

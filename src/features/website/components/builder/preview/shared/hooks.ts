@@ -1,15 +1,39 @@
-import { useEffect, useLayoutEffect, useState } from "react";
-import { findScrollParent } from "./util";
+import { createContext, useContext, useEffect, useLayoutEffect, useState } from "react";
+import { findScrollParent, prefersReducedMotion } from "./util";
+
+/** True inside a static snapshot of the page (ScaledPreview: mobile peek, locked-view teaser, variant
+ *  thumbnails). Those render the page scaled-down and non-interactive, so nothing in them should move. */
+export const StaticPreviewContext = createContext(false);
+
+/** True when the full-page preview renders its choreography settled while staying scrollable — the phone's
+ *  scaled-down desktop mock. Self-running JS motion (marquees, physics, scroll-jacks) parks on its end
+ *  state there: a ~27%-scale page can't afford promoted layers (Chrome rasterises them at native size and
+ *  evicts tiles — the checkerboard flashes), and motion can't be judged at that size anyway. */
+export const PreviewAtRestContext = createContext(false);
+
+/** Reduced-motion for the preview tree: the OS preference, a static preview scope, or an at-rest full-page
+ *  preview. Every effect that settles under reduced motion (parallax, scroll-jacks, reveals, marquees,
+ *  count-ups) reads this so those surfaces land on the settled state instead of replaying — or
+ *  scroll-driving — the choreography. */
+export function useReducedMotion(): boolean {
+  const staticPreview = useContext(StaticPreviewContext);
+  const atRest = useContext(PreviewAtRestContext);
+  return staticPreview || atRest || prefersReducedMotion();
+}
 
 /** IntersectionObserver gate (F5): tracks whether `ref` is in view (continuously, so callers can pause motion
  *  when scrolled away), defaulting to true where IO is unavailable. `once` latches true on first intersect
- *  (for entrance reveals like the rating-distribution bars). Shared by the reviews marquee/spotlight/deck. */
+ *  (for entrance reveals like the rating-distribution bars). Shared by the reviews marquee/spotlight/deck.
+ *  A static preview reports "in view" straight away — the observer would otherwise fire off the *page*
+ *  scroll (the thumbnail's own box never scrolls) and pop entrances in as the card scrolls by. */
 export function useInView(
   ref: React.RefObject<HTMLElement | null>,
   { threshold = 0.25, once = false }: { threshold?: number; once?: boolean } = {},
 ): boolean {
-  const [inView, setInView] = useState(false);
+  const staticPreview = useContext(StaticPreviewContext);
+  const [inView, setInView] = useState(staticPreview);
   useEffect(() => {
+    if (staticPreview) return;
     const el = ref.current;
     if (!el || typeof IntersectionObserver === "undefined") {
       setInView(true);
@@ -31,7 +55,7 @@ export function useInView(
     );
     io.observe(el);
     return () => io.disconnect();
-  }, [ref, threshold, once]);
+  }, [ref, threshold, once, staticPreview]);
   return inView;
 }
 
@@ -45,6 +69,7 @@ export function useFooterReveal(
   footerRef: React.RefObject<HTMLElement | null>,
   active: boolean,
 ) {
+  const reducedMotion = useReducedMotion();
   useLayoutEffect(() => {
     const root = rootRef.current;
     const footer = footerRef.current;
@@ -55,7 +80,7 @@ export function useFooterReveal(
       return;
     }
 
-    const reduced = !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    const reduced = reducedMotion;
     const sc = findScrollParent(root);
     const win = !sc;
     const target: HTMLElement | Window = sc ?? window;
@@ -111,5 +136,5 @@ export function useFooterReveal(
       if (raf) cancelAnimationFrame(raf);
       root.style.removeProperty("--mc-footer-height");
     };
-  }, [active, rootRef, footerRef]);
+  }, [active, rootRef, footerRef, reducedMotion]);
 }

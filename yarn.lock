@@ -161,20 +161,25 @@
   resolved "https://registry.npmjs.org/@capacitor-firebase/messaging/-/messaging-8.2.0.tgz"
   integrity sha512-zjgvBuJSFfaLVL1sU2zwg68J1nCl+wLvjCNUo5tQJyO8XilUXA0z99BKJx6S6/iSB3+zznxNeoX1Kx54bVpCtg==
 
-"@capacitor/android@^8.3.1":
-  version "8.3.1"
-  resolved "https://registry.npmjs.org/@capacitor/android/-/android-8.3.1.tgz"
-  integrity sha512-hjskIG8YcBEh3X4yaTXvE9gcqpdcxunTgFruSKnuPxtMxAUzEK4Oq25x0Z1g3cz+MQPc+lRG09R7Ovc+ydKsNw==
+"@capacitor/android@^8.5.0":
+  version "8.5.0"
+  resolved "https://registry.yarnpkg.com/@capacitor/android/-/android-8.5.0.tgz#1fa7c7eb00b6600df1f346b6548869670e6cd0d3"
+  integrity sha512-Rb3prJeQiTp0pQhSSOReJuG9VgibOGMG4ECs+UhMwr6TCCHZ3NCZO811bDA0HxD0xrT/gCrJAsY5yfEATu84JQ==
+
+"@capacitor/app@^8.1.1":
+  version "8.1.1"
+  resolved "https://registry.yarnpkg.com/@capacitor/app/-/app-8.1.1.tgz#af00649d0c7799ec83469b1c4ada921f9933a77e"
+  integrity sha512-xM2ZTX5jK60tFtmjsmJv+Cdj1Qsb6NcavkqmdEnCPQBeya9oKhamZJxYOnQNj1ZvcJM7sWfG6BEtSLx42pisbA==
 
 "@capacitor/browser@^8.0.4":
   version "8.0.4"
   resolved "https://registry.npmjs.org/@capacitor/browser/-/browser-8.0.4.tgz"
   integrity sha512-ORZ4u/y+7aMuu6yVuk6SP529fUZyqcbnuHB1q5McpA3o2SYfVoi28iB8rsQjI2ad1qlKJd29ZUuGtspXLBDlWg==
 
-"@capacitor/cli@^8.3.1":
-  version "8.3.1"
-  resolved "https://registry.npmjs.org/@capacitor/cli/-/cli-8.3.1.tgz"
-  integrity sha512-1sPGW4THTDfR6YjXwZ0jM7oAfAtciPOHN00qs/3sNAQx1kKrrEYSfDPwCm1/xlAgi0OeL69SiRfw314Ans+1sw==
+"@capacitor/cli@^8.5.0":
+  version "8.5.0"
+  resolved "https://registry.yarnpkg.com/@capacitor/cli/-/cli-8.5.0.tgz#655bbdec95997ee723fecc1d326a08517b4eaf9f"
+  integrity sha512-rLdzMUM5QV4WITcqoWv04p32i14BXgUH2diqEH6MWQlWaJfiyNrvOyt/+d5vHAfOxOm1klBu637VDEobctlwBA==
   dependencies:
     "@ionic/cli-framework-output" "^2.2.8"
     "@ionic/utils-subprocess" "^3.0.1"
@@ -192,12 +197,13 @@
     semver "^7.6.3"
     tar "^7.5.3"
     tslib "^2.8.1"
+    xcode "^3.0.1"
     xml2js "^0.6.2"
 
-"@capacitor/core@^8.3.1":
-  version "8.3.1"
-  resolved "https://registry.npmjs.org/@capacitor/core/-/core-8.3.1.tgz"
-  integrity sha512-UF8ItlHguU1Z6GXfPTeT2gakf+ctNI8pAS1kwSBQlsJMlfD4OPoto/SmKnOxKCQvnF4WRcdWeg6C0zREUNaAQg==
+"@capacitor/core@^8.5.0":
+  version "8.5.0"
+  resolved "https://registry.yarnpkg.com/@capacitor/core/-/core-8.5.0.tgz#425893fddd7fff93dcf2d784677c45643602987b"
+  integrity sha512-Ca4krtqH1hothjtBIwf2J2TW7IhYq1ujp8QeItTiJohNsqij8ja2DYYH3DU0l8RmxCWaBAFTGA2TgOgOMCSNsQ==
   dependencies:
     tslib "^2.1.0"
 
@@ -206,10 +212,10 @@
   resolved "https://registry.npmjs.org/@capacitor/haptics/-/haptics-8.0.2.tgz"
   integrity sha512-c2hZzRR5Fk1tbTvhG1jhh2XBAf3EhnIerMIb2sl7Mt41Gxx1fhBJFDa0/BI1IbY4loVepyyuqNC9820/GZuoWQ==
 
-"@capacitor/ios@^8.3.1":
-  version "8.3.1"
-  resolved "https://registry.npmjs.org/@capacitor/ios/-/ios-8.3.1.tgz"
-  integrity sha512-BEhLyYYHWJLib4mpaPMaaylbC8meqgxbNYwQJH2svsSLW7yo/hFie+Zoo66a44XnqcMd2tvmAuzimWunXZi/xA==
+"@capacitor/ios@^8.5.0":
+  version "8.5.0"
+  resolved "https://registry.yarnpkg.com/@capacitor/ios/-/ios-8.5.0.tgz#d21c99b50119e586ca08b25e7630396db6fcf91f"
+  integrity sha512-7k1TfohJu5BzRXc1F3g04Q8QQ0fyQgms6h1AvhnHb04VaNr9EdHOx03hL8O+OigEKMQnyJd1ZOjTPPNHCqL5Yw==
 
 "@capacitor/keyboard@^8.0.3":
   version "8.0.3"
@@ -2264,6 +2270,20 @@ big-integer@1.6.x:
   resolved "https://registry.npmjs.org/big-integer/-/big-integer-1.6.52.tgz"
   integrity sha512-QxD8cf2eVqJOOz63z6JIN9BzvVs/dlySa5HGSBH5xtR8dPteIRQnBxxKqkNTiT6jbDTF6jAfrd4oMcND9RGbQg==
 
+bplist-creator@0.1.0:
+  version "0.1.0"
+  resolved "https://registry.yarnpkg.com/bplist-creator/-/bplist-creator-0.1.0.tgz#018a2d1b587f769e379ef5519103730f8963ba1e"
+  integrity sha512-sXaHZicyEEmY86WyueLTQesbeoH/mquvarJaQNbjuOQO+7gbFcDEWqKmcWA4cOTLzFlfgvkiVxolk1k5bBIpmg==
+  dependencies:
+    stream-buffers "2.2.x"
+
+bplist-parser@0.3.1:
+  version "0.3.1"
+  resolved "https://registry.yarnpkg.com/bplist-parser/-/bplist-parser-0.3.1.tgz#e1c90b2ca2a9f9474cc72f6862bbf3fee8341fd1"
+  integrity sha512-PyJxiNtA5T2PlLIeBot4lbp7rj4OadzjnMZD/G5zuBNt8ei/yCU7+wW0h2bag9vr8c+/WuRWmSxbqAl9hL1rBA==
+  dependencies:
+    big-integer "1.6.x"
+
 bplist-parser@^0.3.2:
   version "0.3.2"
   resolved "https://registry.npmjs.org/bplist-parser/-/bplist-parser-0.3.2.tgz"
@@ -2320,6 +2340,11 @@ canvg@^3.0.11:
     rgbcolor "^1.0.1"
     stackblur-canvas "^2.0.0"
     svg-pathdata "^6.0.3"
+
+capacitor-native-settings@8.2.0:
+  version "8.2.0"
+  resolved "https://registry.yarnpkg.com/capacitor-native-settings/-/capacitor-native-settings-8.2.0.tgz#a32bc7abbcbcdf76ef7c2c42726a940eabe0e2ff"
+  integrity sha512-jqklDll5YFvPpt2SI+wa+oMy0ykvWESSclDMhSI/t1TvJDnomATa7Iz0eE219DY/6pJxRhI7+8RYE0ePtAYxAw==
 
 cheap-ruler@^4.0.0:
   version "4.0.0"
@@ -3627,7 +3652,7 @@ playwright@1.59.1:
   optionalDependencies:
     fsevents "2.3.2"
 
-plist@^3.1.0:
+plist@^3.0.5, plist@^3.1.0:
   version "3.1.1"
   resolved "https://registry.npmjs.org/plist/-/plist-3.1.1.tgz"
   integrity sha512-ZIfcLJC+7E7FBFnDxm9MPmt7D+DidyQ26lewieO75AdhA2ayMtsJSES0iWzqJQbcVRSrTufQoy0DR94xHue0oA==
@@ -3970,6 +3995,15 @@ signal-exit@^3.0.3:
   resolved "https://registry.npmjs.org/signal-exit/-/signal-exit-3.0.7.tgz"
   integrity sha512-wnD2ZE+l+SPC/uoS0vXeE9L1+0wuaMqKlfz9AMUo38JsyLSBWSFcHR1Rri62LZc12vLr1gb3jl7iwQhgwpAbGQ==
 
+simple-plist@^1.1.0:
+  version "1.3.1"
+  resolved "https://registry.yarnpkg.com/simple-plist/-/simple-plist-1.3.1.tgz#16e1d8f62c6c9b691b8383127663d834112fb017"
+  integrity sha512-iMSw5i0XseMnrhtIzRb7XpQEXepa9xhWxGUojHBL43SIpQuDQkh3Wpy67ZbDzZVr6EKxvwVChnVpdl8hEVLDiw==
+  dependencies:
+    bplist-creator "0.1.0"
+    bplist-parser "0.3.1"
+    plist "^3.0.5"
+
 sisteransi@^1.0.5:
   version "1.0.5"
   resolved "https://registry.npmjs.org/sisteransi/-/sisteransi-1.0.5.tgz"
@@ -4008,6 +4042,11 @@ stackblur-canvas@^2.0.0:
   version "2.7.0"
   resolved "https://registry.npmjs.org/stackblur-canvas/-/stackblur-canvas-2.7.0.tgz"
   integrity sha512-yf7OENo23AGJhBriGx0QivY5JP6Y1HbrrDI6WLt6C5auYZXlQrheoY8hD4ibekFKz1HOfE48Ww8kMWMnJD/zcQ==
+
+stream-buffers@2.2.x:
+  version "2.2.0"
+  resolved "https://registry.yarnpkg.com/stream-buffers/-/stream-buffers-2.2.0.tgz#91d5f5130d1cef96dcfa7f726945188741d09ee4"
+  integrity sha512-uyQK/mx5QjHun80FLJTfaWE7JtwfRMKBLkMne6udYOmvH0CawotVa7TfgYHzAnpphn4+TweIx1QKMnRIbipmUg==
 
 string-width@^4.1.0, string-width@^4.2.0, string-width@^4.2.3:
   version "4.2.3"
@@ -4230,6 +4269,11 @@ utrie@^1.0.2:
   dependencies:
     base64-arraybuffer "^1.0.2"
 
+uuid@^7.0.3:
+  version "7.0.3"
+  resolved "https://registry.yarnpkg.com/uuid/-/uuid-7.0.3.tgz#c5c9f2c8cf25dc0a372c4df1441c41f5bd0c680b"
+  integrity sha512-DPSke0pXhTZgoF/d+WSt2QaKMCFSfx7QegxEWT+JOuHF5aWrKEn0G+ztjuJg/gG8/ItK+rbPCD/yNv8yyih6Cg==
+
 vaul@^1.1.2:
   version "1.1.2"
   resolved "https://registry.npmjs.org/vaul/-/vaul-1.1.2.tgz"
@@ -4314,6 +4358,14 @@ wrap-ansi@^7.0.0:
     ansi-styles "^4.0.0"
     string-width "^4.1.0"
     strip-ansi "^6.0.0"
+
+xcode@^3.0.1:
+  version "3.0.1"
+  resolved "https://registry.yarnpkg.com/xcode/-/xcode-3.0.1.tgz#3efb62aac641ab2c702458f9a0302696146aa53c"
+  integrity sha512-kCz5k7J7XbJtjABOvkc5lJmkiDh8VhjVCGNiqdKCscmVpdVUpEAyXv1xmCLkQJ5dsHqx3IPO4XW+NTDhU/fatA==
+  dependencies:
+    simple-plist "^1.1.0"
+    uuid "^7.0.3"
 
 xml2js@^0.6.2:
   version "0.6.2"

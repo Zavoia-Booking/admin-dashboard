@@ -1,4 +1,5 @@
 import {
+  useCallback,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -16,7 +17,7 @@ import {
   locationPostalAddress,
   type DayKey,
 } from "../../../shared/contact";
-import { prefersReducedMotion } from "../../../shared/util";
+import { useReducedMotion } from "../../../shared/hooks";
 import { LocationBookAction } from "../parts/LocationBookAction";
 import { LocationImage } from "../parts/LocationImage";
 import type { LocationsVariantProps } from "../types";
@@ -49,6 +50,25 @@ const PUSH_VECTOR: Record<string, readonly [number, number]> = {
 
 const PUSH_GAP = 0.85;
 
+// requestIdleCallback with a Safari/older-WebView fallback.
+type IdleWindow = Window & {
+  requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
+  cancelIdleCallback?: (handle: number) => void;
+};
+const requestIdle = (cb: () => void): number => {
+  const w = window as IdleWindow;
+  return w.requestIdleCallback
+    ? w.requestIdleCallback(cb, { timeout: 900 })
+    : window.setTimeout(cb, 260);
+};
+
+// Touch hardware gets a tighter beat: same staggered push, ~40% less time under GPU load.
+const COARSE_POINTER =
+  typeof window !== "undefined" && !!window.matchMedia?.("(pointer: coarse)").matches;
+const PUSH_MS = COARSE_POINTER ? 440 : 640;
+const PUSH_STAGGER_MS = COARSE_POINTER ? 40 : 55;
+
+
 type Location = LocationsVariantProps["loc"];
 type Translate = LocationsVariantProps["t"];
 type SupportImage = { src: string; alt: string };
@@ -57,12 +77,28 @@ type BentoAmenity = { key: string; label: string; slug: string };
 
 type TransitionState = {
   dir: number;
+  /** "slide": desktop content-push inside the rounded tiles. "tile": coarse-pointer variant that
+   *  moves whole cards instead — a rounded card moving as a rigid layer keeps its corner mask
+   *  baked into its own texture, so the GPU needs no per-frame render surface per tile. */
+  mode: "slide" | "tile";
   ghosts: HTMLElement[];
+  /** Exit handles, index-aligned with `ghosts`, so a clone can be retired without a DOM query. */
+  ghostAnimations?: Animation[];
+  /** Our own WAAPI handles — cancelled directly on interrupt; querying getAnimations() per tile
+   *  forces a full style+layout pass each call (profiled at ~430ms per tap on a Helio G85). */
+  animations: Animation[];
   timer: number | null;
 };
 
 const clearTransition = (transition: TransitionState) => {
   if (transition.timer !== null) window.clearTimeout(transition.timer);
+  transition.animations.forEach((animation) => {
+    try {
+      animation.cancel();
+    } catch {
+      // Node may already be gone.
+    }
+  });
   transition.ghosts.forEach((ghost) => ghost.remove());
 };
 
@@ -93,26 +129,17 @@ const hoursLabel = (row: HoursRow, t: Translate) =>
         `businessPage.builder.preview.days.${DAY_KEYS[row.end]}`,
       )}`;
 
-function BentoAmenityItem({
-  amenity,
-  measuring = false,
-}: {
-  amenity: BentoAmenity;
-  measuring?: boolean;
-}) {
+function BentoAmenityItem({ amenity }: { amenity: BentoAmenity }) {
   const Icon = tagIcon(amenity.slug) ?? Check;
   return (
-    <li
-      className="mc-locb-amen-item"
-      data-bento-amenity-item={measuring ? "1" : undefined}
-    >
+    <li className="mc-locb-amen-item">
       <Icon aria-hidden="true" size={14} strokeWidth={1.7} />
       <span>{amenity.label}</span>
     </li>
   );
 }
 
-/** Fits a complete amenity prefix to the live tile geometry and always reserves the overflow summary. */
+/** Reserves a fixed number of chip rows; anything past the budget collapses into "+ N". */
 function BentoAmenities({
   amenities,
   t,
@@ -120,80 +147,56 @@ function BentoAmenities({
   amenities: BentoAmenity[];
   t: Translate;
 }) {
-  const hostRef = useRef<HTMLDivElement>(null);
-  const measureRef = useRef<HTMLDivElement>(null);
-  const measureMoreRef = useRef<HTMLLIElement>(null);
-  const [visibleCount, setVisibleCount] = useState(amenities.length);
+  const listRef = useRef<HTMLUListElement>(null);
+  // 0 until the panel is measured once. Every chip is exactly one row tall, so the budget is a
+  // row count that holds for ANY location — page turns never measure, they just slice.
+  const [rowBudget, setRowBudget] = useState(0);
 
   useLayoutEffect(() => {
-    const host = hostRef.current;
-    const measure = measureRef.current;
-    const measureMore = measureMoreRef.current;
-    if (!host || !measure || !measureMore) return;
-
+    const list = listRef.current;
+    if (!list) return;
     let frame = 0;
-    let active = true;
-    const fit = () => {
-      const items = Array.from(
-        measure.querySelectorAll<HTMLElement>("[data-bento-amenity-item]"),
-      );
-      let nextCount = 0;
-
-      for (let count = items.length; count >= 0; count -= 1) {
-        items.forEach((item, index) => {
-          item.hidden = index >= count;
-        });
-        measureMore.textContent = t("businessPage.builder.preview.locAmenitiesMore", {
-          count: items.length - count,
-        });
-        measureMore.hidden = count >= items.length;
-        if (measure.scrollHeight <= measure.clientHeight + 1) {
-          nextCount = count;
-          break;
-        }
-      }
-
-      setVisibleCount((current) => (current === nextCount ? current : nextCount));
+    const measure = () => {
+      const chip = list.querySelector<HTMLElement>(".mc-locb-amen-item");
+      if (!chip) return;
+      const gap = Number.parseFloat(getComputedStyle(list).rowGap) || 0;
+      const pitch = chip.offsetHeight + gap;
+      if (pitch <= 0) return;
+      const rows = Math.floor((list.clientHeight + gap) / pitch);
+      setRowBudget((current) => (current === rows ? current : Math.max(1, rows)));
     };
-    const scheduleFit = () => {
-      if (!active) return;
+    measure();
+    // Only a real panel resize (device toggle, rotation) or a late webfont can change the answer.
+    // The list is flex:1, so its box does not move when the chip count does — no observer echo.
+    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(() => {
       window.cancelAnimationFrame(frame);
-      frame = window.requestAnimationFrame(fit);
-    };
-
-    fit();
-    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(scheduleFit);
-    observer?.observe(host);
-    const previewRoot = host.closest(".mc-root");
-    const themeObserver = previewRoot && typeof MutationObserver !== "undefined"
-      ? new MutationObserver(scheduleFit)
-      : null;
-    if (previewRoot) {
-      themeObserver?.observe(previewRoot, { attributes: true, attributeFilter: ["class", "style"] });
-    }
+      frame = window.requestAnimationFrame(measure);
+    });
+    observer?.observe(list);
     const fonts = typeof document === "undefined" ? null : document.fonts;
-    fonts?.addEventListener("loadingdone", scheduleFit);
-    void fonts?.ready.then(scheduleFit);
-
+    fonts?.addEventListener("loadingdone", measure);
+    void fonts?.ready.then(measure);
     return () => {
-      active = false;
       window.cancelAnimationFrame(frame);
       observer?.disconnect();
-      themeObserver?.disconnect();
-      fonts?.removeEventListener("loadingdone", scheduleFit);
+      fonts?.removeEventListener("loadingdone", measure);
     };
-  }, [amenities, t]);
+  }, []);
 
+  // Worst case a chip takes a whole row, so `rowBudget` chips always fit; when they do not all
+  // fit, the last row is given to the summary instead.
+  const overflowing = rowBudget > 0 && amenities.length > rowBudget;
+  const visibleCount = overflowing ? Math.max(1, rowBudget - 1) : amenities.length;
   const remaining = Math.max(0, amenities.length - visibleCount);
   const title = t("businessPage.builder.preview.locAmenities");
 
   return (
-    <div ref={hostRef} className="mc-locb-amen-panel">
+    <div className="mc-locb-amen-panel">
       <div className="mc-locb-amen-content">
         <span className="mc-locb-amen-title">
           {title}
         </span>
-        <ul className="mc-locb-amen-list" aria-label={title}>
+        <ul ref={listRef} className="mc-locb-amen-list" aria-label={title}>
           {amenities.slice(0, visibleCount).map((amenity) => (
             <BentoAmenityItem key={amenity.key} amenity={amenity} />
           ))}
@@ -205,20 +208,6 @@ function BentoAmenities({
               {t("businessPage.builder.preview.locAmenitiesMore", { count: remaining })}
             </li>
           ) : null}
-        </ul>
-      </div>
-
-      <div ref={measureRef} className="mc-locb-amen-content mc-locb-amen-measure" aria-hidden="true">
-        <span className="mc-locb-amen-title">
-          {title}
-        </span>
-        <ul className="mc-locb-amen-list">
-          {amenities.map((amenity) => (
-            <BentoAmenityItem key={amenity.key} amenity={amenity} measuring />
-          ))}
-          <li ref={measureMoreRef} className="mc-locb-amen-more">
-            {t("businessPage.builder.preview.locAmenitiesMore", { count: amenities.length })}
-          </li>
         </ul>
       </div>
     </div>
@@ -246,18 +235,29 @@ export function Bento({
   const activeIndexRef = useRef(idx);
   activeIndexRef.current = idx;
 
-  const supportImages = useMemo(() => {
-    const pool = galleryImages
-      .filter((image) => image.src.trim())
-      .map((image) => ({ src: image.src.trim(), alt: "" }));
-    const fallback = locationPhoto(featured);
-    if (pool.length === 0) {
-      return fallback
-        ? Array<SupportImage>(4).fill({ src: fallback, alt: "" })
-        : Array<SupportImage | null>(4).fill(null);
-    }
-    return Array.from({ length: 4 }, (_, slot) => pool[(idx * 2 + slot) % pool.length]);
-  }, [featured, galleryImages, idx]);
+  const imagePool = useMemo(
+    () =>
+      galleryImages
+        .filter((image) => image.src.trim())
+        .map((image) => ({ src: image.src.trim(), alt: "" })),
+    [galleryImages],
+  );
+  const supportImagesFor = useCallback(
+    (index: number, location: Location): Array<SupportImage | null> => {
+      if (imagePool.length === 0) {
+        const fallback = locationPhoto(location);
+        return fallback
+          ? Array<SupportImage>(4).fill({ src: fallback, alt: "" })
+          : Array<SupportImage | null>(4).fill(null);
+      }
+      return Array.from({ length: 4 }, (_, slot) => imagePool[(index * 2 + slot) % imagePool.length]);
+    },
+    [imagePool],
+  );
+  const supportImages = useMemo(
+    () => supportImagesFor(idx, featured),
+    [featured, idx, supportImagesFor],
+  );
   const amenities = useMemo<BentoAmenity[]>(
     () =>
       buildLocationTagGroups(featured, dict).flatMap((group) =>
@@ -276,6 +276,7 @@ export function Bento({
   const rating = (featured.totalReviews ?? 0) > 0 ? Number(featured.averageRating ?? 0) : null;
   const hoursRows = buildHoursRows(featured, t);
   const todayIndex = locationClock(featured).dayIndex;
+  const reduced = useReducedMotion();
 
   useLayoutEffect(() => {
     if (firstRenderRef.current) {
@@ -286,7 +287,7 @@ export function Bento({
     if (!grid) return;
     const transition = transitionRef.current;
 
-    if (prefersReducedMotion()) {
+    if (reduced) {
       if (transition) {
         clearTransition(transition);
         transitionRef.current = null;
@@ -309,6 +310,77 @@ export function Bento({
       );
     };
 
+    if (transition && transition.mode === "tile") {
+      // Coarse-pointer push, incoming half only — the ghosts launched at tap time in go().
+      // Whole cards move, so each corner mask rides with its layer (no per-frame render surfaces).
+      // Reads batched before writes: one reflow total, not one per tile.
+      const tiles = Array.from(grid.querySelectorAll<HTMLElement>(".mc-locb-tile:not(.is-ghost)"));
+      const rects = tiles.map((tile) => tile.getBoundingClientRect());
+      tiles.forEach((tile, index) => {
+        const bounds = rects[index];
+        const vector = PUSH_VECTOR[tile.dataset.area ?? ""] ?? [1, 0];
+        const dx = vector[0] * transition.dir * bounds.width * (1 + PUSH_GAP);
+        const dy = vector[1] * transition.dir * bounds.height * (1 + PUSH_GAP);
+        const delay = (PUSH_ORDER[tile.dataset.area ?? ""] ?? 0) * PUSH_STAGGER_MS;
+        tile.style.visibility = "";
+        // Hold the layer past the animation's end. Without this Chrome demotes each tile the
+        // instant its animation finishes and re-rasterises all 8 cards in one frame (~80ms hitch
+        // exactly at the tail). Released in the idle cleanup, where the repaint is unseen.
+        tile.style.willChange = "transform";
+        const incoming = tile.animate(
+          [{ transform: `translate(${dx}px, ${dy}px)` }, { transform: "none" }],
+          { duration: PUSH_MS, delay, easing, fill: "both" },
+        );
+        // Deliberately NOT finishCleanly: cancelling on 'finish' drops each tile's compositor
+        // layer the instant the motion ends, forcing all 8 cards to re-rasterise in one frame —
+        // the hitch felt right at the tail. They are cancelled together in the idle cleanup below.
+        transition.animations.push(incoming);
+      });
+
+      // Tear down only once BOTH halves have actually finished. The incoming half starts after
+      // React's commit (~150-200ms later than the ghosts), so the push really ends ~950ms after
+      // the tap — a timer sized to the nominal duration fired inside the tail and froze it.
+      const settled = Promise.all(
+        transition.animations.map((animation) => animation.finished.catch(() => undefined)),
+      );
+      void settled.then(() => {
+        if (transitionRef.current !== transition) return;
+        requestIdle(() => {
+          if (transitionRef.current !== transition) return;
+          // One unit of teardown per frame. Retiring the 8 clones together costs ~120ms of
+          // renderer work in a single frame, and dropping all 8 layers together costs another
+          // repaint — both landed right after the motion and read as a freeze. Cancelling from
+          // the stored handles keeps getAnimations() (a forced style+layout pass) out of the loop.
+          const queue: Array<() => void> = [
+            ...transition.ghosts.map((ghost, index) => () => {
+              try {
+                transition.ghostAnimations?.[index]?.cancel();
+              } catch {
+                // Node may already be gone.
+              }
+              ghost.remove();
+            }),
+            ...tiles.map((tile) => () => {
+              tile.style.visibility = "";
+              tile.style.willChange = "";
+            }),
+          ];
+          const step = () => {
+            if (transitionRef.current !== transition) return;
+            const task = queue.shift();
+            if (task) {
+              task();
+              window.requestAnimationFrame(step);
+              return;
+            }
+            transitionRef.current = null;
+          };
+          window.requestAnimationFrame(step);
+        });
+      });
+      return;
+    }
+
     if (transition) {
       let latestEnd = 0;
       grid.querySelectorAll<HTMLElement>(".mc-locb-tile").forEach((tile) => {
@@ -319,18 +391,20 @@ export function Bento({
         const bounds = tile.getBoundingClientRect();
         const dx = vector[0] * transition.dir * bounds.width * (1 + PUSH_GAP);
         const dy = vector[1] * transition.dir * bounds.height * (1 + PUSH_GAP);
-        const delay = (PUSH_ORDER[tile.dataset.area ?? ""] ?? 0) * 55;
-        latestEnd = Math.max(latestEnd, delay + 640);
+        const delay = (PUSH_ORDER[tile.dataset.area ?? ""] ?? 0) * PUSH_STAGGER_MS;
+        latestEnd = Math.max(latestEnd, delay + PUSH_MS);
 
         const incoming = live.animate(
           [{ transform: `translate(${dx}px, ${dy}px)` }, { transform: "none" }],
-          { duration: 640, delay, easing, fill: "both" },
+          { duration: PUSH_MS, delay, easing, fill: "both" },
         );
+        transition.animations.push(incoming);
         finishCleanly(incoming);
-        ghost?.animate(
+        const outgoing = ghost?.animate(
           [{ transform: "none" }, { transform: `translate(${-dx}px, ${-dy}px)` }],
-          { duration: 640, delay, easing, fill: "both" },
+          { duration: PUSH_MS, delay, easing, fill: "both" },
         );
+        if (outgoing) transition.animations.push(outgoing);
       });
 
       transition.timer = window.setTimeout(() => {
@@ -352,7 +426,7 @@ export function Bento({
         );
         finishCleanly(settle);
       });
-  }, [idx]);
+  }, [idx, reduced]);
 
   useEffect(
     () => () => {
@@ -368,7 +442,7 @@ export function Bento({
     const grid = gridRef.current;
     const target = ((activeIndexRef.current + direction) % count + count) % count;
     activeIndexRef.current = target;
-    if (prefersReducedMotion() || !grid) {
+    if (reduced || !grid) {
       onSelect(target);
       return;
     }
@@ -382,14 +456,13 @@ export function Bento({
     grid.querySelectorAll<HTMLElement>(".mc-locb-tile").forEach((tile) => {
       const slide = tile.querySelector<HTMLElement>(":scope > .mc-locb-slide:not(.is-ghost)");
       if (!slide) return;
-      slide.getAnimations().forEach((animation) => animation.cancel());
       const ghost = slide.cloneNode(true) as HTMLElement;
       ghost.classList.add("is-ghost");
       ghost.setAttribute("aria-hidden", "true");
       tile.appendChild(ghost);
       ghosts.push(ghost);
     });
-    transitionRef.current = { dir: direction, ghosts, timer: null };
+    transitionRef.current = { dir: direction, mode: "slide", ghosts, animations: [], timer: null };
     onSelect(target);
   };
 

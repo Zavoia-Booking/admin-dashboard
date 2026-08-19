@@ -8,6 +8,7 @@ import { Skeleton } from "../../../../shared/components/ui/skeleton";
 import { X, AlertCircle, UploadCloud } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "../../../../shared/lib/utils";
+import { generateId } from "../../../../shared/lib/id";
 import { FullScreenImageCarousel } from "../../../marketplace/components/FullScreenImageCarousel";
 import {
   uploadPortfolioImage,
@@ -134,7 +135,7 @@ export function PortfolioImagesSection({ isActive = true, embedded = false }: Po
         setIsLoading(true);
         const portfolioImages = await getPortfolioImages();
         const mappedImages: PortfolioImage[] = portfolioImages.map((img: PortfolioImageData) => ({
-          tempId: crypto.randomUUID(),
+          tempId: generateId(),
           url: img.url,
           key: img.key,
           originalName: img.originalName,
@@ -297,7 +298,7 @@ export function PortfolioImagesSection({ isActive = true, embedded = false }: Po
     if (validFiles.length === 0) return;
 
     const newImages: PortfolioImage[] = validFiles.map((file) => ({
-      tempId: crypto.randomUUID(),
+      tempId: generateId(),
       url: URL.createObjectURL(file), // Preview URL
       isUploading: true,
       originalName: file.name,

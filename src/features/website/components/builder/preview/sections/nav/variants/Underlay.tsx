@@ -3,7 +3,7 @@ import { ArrowRight } from "lucide-react";
 import { useLayoutEffect, useRef } from "react";
 import { cn } from "../../../../../../../../shared/lib/utils";
 import { DISPLAY, MONO } from "../../../shared/constants";
-import { prefersReducedMotion } from "../../../shared/util";
+import { useReducedMotion } from "../../../shared/hooks";
 import {
   BurgerGlyph,
   NavBrand,
@@ -17,6 +17,9 @@ import "./underlay.css";
 /** Underlay — a restrained top bar; opening reveals a paper navigation behind the translated page. */
 export function Underlay(props: NavVariantViewProps) {
   const motionFrameRef = useRef(0);
+  // The shared hook, not the bare OS preference: the at-rest desktop mock must also jump-cut this slide —
+  // easing the whole page sideways there re-rasterises past the phone's tile budget and checkerboards.
+  const reducedMotion = useReducedMotion();
   const chrome = navChromeStyle(props);
   const menuLabel = props.t(
     props.menuOpen
@@ -35,6 +38,7 @@ export function Underlay(props: NavVariantViewProps) {
       if (motionFrameRef.current) window.cancelAnimationFrame(motionFrameRef.current);
       motionFrameRef.current = 0;
       root.classList.remove("mc-nav-underlay-active");
+      root.classList.remove("mc-nav-underlay-engaged");
       root.style.removeProperty("--mc-underlay-progress");
     };
   }, [props.portalRoot]);
@@ -46,10 +50,17 @@ export function Underlay(props: NavVariantViewProps) {
     motionFrameRef.current = 0;
 
     const target = props.menuOpen ? 1 : 0;
+    // "Engaged" = open or still animating. The page-slide machinery (transform + will-change on the whole
+    // page flow) applies only under this class, so a parked underlay never keeps the page promoted.
+    if (target === 1) root.classList.add("mc-nav-underlay-engaged");
+    const settle = () => {
+      if (target === 0) root.classList.remove("mc-nav-underlay-engaged");
+    };
     const current = Number.parseFloat(root.style.getPropertyValue("--mc-underlay-progress"));
     const from = Number.isFinite(current) ? current : 1 - target;
-    if (prefersReducedMotion() || Math.abs(target - from) < 0.0001) {
+    if (reducedMotion || Math.abs(target - from) < 0.0001) {
       root.style.setProperty("--mc-underlay-progress", String(target));
+      settle();
       return;
     }
 
@@ -61,14 +72,17 @@ export function Underlay(props: NavVariantViewProps) {
       const progress = from + (target - from) * eased;
       root.style.setProperty("--mc-underlay-progress", progress.toFixed(4));
       if (elapsed < 1) motionFrameRef.current = window.requestAnimationFrame(update);
-      else motionFrameRef.current = 0;
+      else {
+        motionFrameRef.current = 0;
+        settle();
+      }
     };
     motionFrameRef.current = window.requestAnimationFrame(update);
     return () => {
       if (motionFrameRef.current) window.cancelAnimationFrame(motionFrameRef.current);
       motionFrameRef.current = 0;
     };
-  }, [props.menuOpen, props.portalRoot]);
+  }, [props.menuOpen, props.portalRoot, reducedMotion]);
 
   return (
     <DialogPrimitive.Root open={props.menuOpen} onOpenChange={props.setMenuOpen} modal={false}>
@@ -124,7 +138,7 @@ export function Underlay(props: NavVariantViewProps) {
                   className="mc-nav-underlay-link mc-nav-underlay-link--book"
                   tabIndex={props.menuOpen ? 0 : -1}
                 >
-                  <span style={DISPLAY}>{props.t("businessPage.builder.preview.book")}</span>
+                  <span style={DISPLAY}>{props.t("businessPage.builder.preview.servicesBook")}</span>
                   <ArrowRight aria-hidden />
                 </button>
               </DialogPrimitive.Close>

@@ -94,8 +94,8 @@
         "link": "Alocări"
       },
       "assignmentNote": {
-        "text": "După creare, alocă acest serviciu unui membru al echipei pentru ca clienții să îl poată rezerva. Poți face asta în",
-        "link": "Alocări"
+        "text": "După creare, alocă acest serviciu unui membru al echipei pentru ca clienții să îl poată rezerva.",
+        "link": "Mergi la Alocări"
       },
       "locations": {
         "emptyMessage": "Nu s-au găsit locații.",
@@ -347,8 +347,8 @@
         "servicesDescription": "Alege serviciile incluse în acest pachet. Clienții le vor rezerva împreună."
       },
       "assignmentNote": {
-        "text": "După creare, alocă acest pachet unui membru al echipei pentru ca clienții să îl poată rezerva. Poți face asta în",
-        "link": "Alocări"
+        "text": "După creare, alocă acest pachet unui membru al echipei pentru ca clienții să îl poată rezerva.",
+        "link": "Mergi la Alocări"
       },
       "form": {
         "name": {

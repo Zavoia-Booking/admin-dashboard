@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { Star } from "lucide-react";
-import { prefersReducedMotion } from "../../../shared/util";
+import { useReducedMotion } from "../../../shared/hooks";
 
 /** One per-star distribution row — its bar grows from 0 to `pct` on mount (instant under reduced motion). */
 export function RvDistRow({ stars, pct }: { stars: number; pct: number }) {
-  const reduced = prefersReducedMotion();
+  const reduced = useReducedMotion();
   const [w, setW] = useState(reduced ? pct : 0);
   useEffect(() => {
     if (reduced) return;

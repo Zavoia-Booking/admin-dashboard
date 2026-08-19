@@ -18,9 +18,9 @@
       "purchaseCancelled": "Plata a fost anulată. Selecția premium rămâne neschimbată.",
       "purchaseStatusUnavailable": "Nu am putut confirma această plată. Selecția premium rămâne neschimbată.",
       "published": "Cea mai recentă versiune salvată este acum publicată.",
-      "unpublished": "Versiunea publicată a fost retrasă. Schița rămâne salvată.",
+      "unpublished": "Site-ul a fost ascuns. Ciorna rămâne salvată.",
       "publishFailed": "Nu am putut publica site-ul",
-      "unpublishFailed": "Nu am putut retrage site-ul",
+      "unpublishFailed": "Nu am putut ascunde site-ul",
       "publishLockedItems": "Deblochează sau înlocuiește opțiunile premium înainte de publicare",
       "publishUnavailable": "Publicarea nu este disponibilă momentan"
     },
@@ -33,15 +33,17 @@
       "lastSaved": "{{time}}",
       "checkingPurchase": "Confirmăm plata…",
       "publishing": "Se publică…",
-      "draft": "Schiță",
+      "draft": "Ciornă",
       "published": "Publicat",
       "publishedStale": "Publicat · modificări nepublicate",
       "notPublished": "Nepublicat",
       "notPublishedDetail": "nepublicat",
       "notPublishedYet": "Încă nepublicat",
+      "draftPlanWeb": "Ciornă · publicarea necesită Plus",
+      "draftPlanNative": "Ciornă · publicarea nu este inclusă",
       "upToDate": "actualizat",
-      "changesToPublish": "schița diferă de site-ul publicat",
-      "draftAheadOfLive": "Schiță înaintea versiunii publicate"
+      "changesToPublish": "ciorna diferă de site-ul publicat",
+      "draftAheadOfLive": "Ciornă înaintea versiunii publicate"
     },
     "save": {
       "invalid": "Corectează câmpurile evidențiate",
@@ -73,6 +75,8 @@
       "skipToBuilder": "Sari la Web Studio",
       "save": "Salvează",
       "saveChanges": "Salvează",
+      "retry": "Reîncearcă",
+      "preview": "Previzualizează",
       "discardChanges": "Renunță la modificări",
       "retrySave": "Reîncearcă salvarea",
       "reload": "Încarcă versiunea nouă",
@@ -80,8 +84,8 @@
       "publishChanges": "Publică modificările",
       "published": "Publicat",
       "retryPublish": "Reîncearcă publicarea",
-      "preparePublish": "Pregătește publicarea",
-      "unpublish": "Anulează publicarea",
+      "preparePublish": "Verifică și publică",
+      "unpublish": "Ascunde site-ul",
       "savePublish": "Salvează și publică",
       "more": "Mai multe acțiuni"
     },
@@ -95,9 +99,10 @@
       "needsAttention_one": "{{count}} lucru necesită atenție",
       "needsAttention_few": "{{count}} lucruri necesită atenție",
       "needsAttention_other": "{{count}} de lucruri necesită atenție",
-      "unsavedDraft": "Schița are modificări nesalvate",
+      "unsavedDraft": "Ciorna are modificări nesalvate",
       "changesReady": "Modificări gata de publicare",
-      "ready": "Gata de publicare"
+      "ready": "Gata de publicare",
+      "unpublishHint": "Site-ul devine indisponibil vizitatorilor"
     },
     "conflict": {
       "title": "Este disponibilă o versiune mai nouă",
@@ -105,7 +110,7 @@
       "reload": "Încarcă versiunea nouă",
       "keepLocal": "Păstrează modificările mele",
       "replaceTitle": "Înlocuiești versiunea mai nouă?",
-      "replaceDescription": "Versiunea cea mai recentă a fost încărcată ca bază nouă. Înlocuirea va salva schița ta locală completă peste acele modificări mai noi. Acțiunea nu poate fi anulată.",
+      "replaceDescription": "Versiunea cea mai recentă a fost încărcată ca bază nouă. Înlocuirea va salva ciorna ta locală completă peste acele modificări mai noi. Acțiunea nu poate fi anulată.",
       "replaceConfirm": "Înlocuiește cu modificările mele",
       "back": "Înapoi"
     },
@@ -118,7 +123,7 @@
       "discardAndLeave": "Renunță și pleacă",
       "keepEditing": "Continuă editarea",
       "closeAndKeepEditing": "Închide și continuă editarea",
-      "updateInProgress": "Așteaptă finalizarea actualizării site-ului înainte să pleci.",
+      "updateInProgress": "Site-ul se actualizează încă. Așteaptă să se termine sau renunță la modificări și pleacă acum.",
       "stay": "Rămâi",
       "discard": "Renunță la modificări"
     },
@@ -134,10 +139,10 @@
       "fallbackName": "Businessul tău"
     },
     "unpublishConfirm": {
-      "title": "Anulezi publicarea?",
-      "description": "Versiunea publicată va fi retrasă. Schița rămâne salvată și o poți publica din nou mai târziu.",
-      "confirm": "Anulează publicarea",
-      "cancel": "Păstrează versiunea publicată"
+      "title": "Ascunzi site-ul?",
+      "description": "Site-ul va fi ascuns. Ciorna rămâne salvată și îl poți publica din nou mai târziu.",
+      "confirm": "Ascunde site-ul",
+      "cancel": "Păstrează site-ul publicat"
     },
     "publishBlockers": {
       "title": "Opțiunile premium necesită atenție.",
@@ -157,12 +162,12 @@
       "catalogCheckingTitle": "Verificăm accesul premium",
       "catalogCheckingDescription": "Confirmăm opțiunile deblocate înainte ca această versiune să poată fi publicată.",
       "catalogErrorTitle": "Nu am putut verifica opțiunile premium",
-      "catalogErrorDescription": "Încearcă din nou înainte de publicare. Schița și selecțiile tale sunt în siguranță.",
+      "catalogErrorDescription": "Încearcă din nou înainte de publicare. Ciorna și selecțiile tale sunt în siguranță.",
       "retryCatalog": "Reîncearcă",
       "premiumStyle": "Stil premium",
       "premiumSection": "Secțiune premium",
       "validationRequirements": "Câmpuri de corectat",
-      "validationRequirementsDescription": "Aceste câmpuri necesită atenție înainte ca schița să poată fi salvată sau publicată.",
+      "validationRequirementsDescription": "Aceste câmpuri necesită atenție înainte ca ciorna să poată fi salvată sau publicată.",
       "validationRequirementsReadOnlyDescription": "Aceste câmpuri necesită atenția unei persoane cu acces de editare.",
       "fixField": "Corectează",
       "issueLanguage": "Limbă: {{language}}",
@@ -208,7 +213,7 @@
       "visibleSections_other": "{{count}} de secțiuni vizibile",
       "bookingLabel": "Programări",
       "bookingValue": "Folosește setările calendarului Zavoia",
-      "saveLabel": "Schiță",
+      "saveLabel": "Ciornă",
       "saveFirst": "Va fi salvată înainte de publicare",
       "saved": "Toate modificările sunt salvate",
       "keepEditing": "Continuă editarea",
@@ -223,7 +228,7 @@
       "errors": "Corectează mai întâi câmpurile marcate",
       "offline": "Reconectează-te înainte de publicare",
       "conflict": "Rezolvă versiunea mai nouă de pe server înainte de publicare",
-      "saveFailed": "Reîncearcă salvarea schiței înainte de publicare",
+      "saveFailed": "Reîncearcă salvarea ciornei înainte de publicare",
       "catalogChecking": "Așteaptă verificarea accesului premium",
       "catalogUnavailable": "Reîncarcă opțiunile premium înainte de publicare",
       "contentIncomplete": "Completează secțiunile marcate înainte de publicare",
@@ -233,9 +238,13 @@
     "publishUpgrade": {
       "eyebrow": "Inclus în planul Plus",
       "title": "Publică cu Plus",
-      "description": "Schița ta este salvată și rămâne a ta. Treci la planul Plus pentru a-ți publica site-ul.",
+      "description": "Ciorna ta este salvată și rămâne a ta. Treci la planul Plus pentru a-ți publica site-ul.",
       "cta": "Treci la Plus",
       "notNow": "Nu acum"
+    },
+    "planNotice": {
+      "lead": "Aici construiești și salvezi ciorna site-ului.",
+      "native": "Publicarea nu este inclusă în planul tău actual."
     },
     "saveReason": {
       "readOnly": "Accesul tău actual nu permite editarea",
@@ -264,7 +273,7 @@
         "premiumVariants": "Adaugă stiluri premium opționale, cu plată unică",
         "premiumVariantsNative": "Adaugă stiluri premium opționale"
       },
-      "preserved": "Schița salvată și stilurile premium deblocate rămân disponibile dacă schimbi planul.",
+      "preserved": "Ciorna salvată și stilurile premium deblocate rămân disponibile dacă schimbi planul.",
       "cta": "Treci la Plus"
     },
     "paidVariants": {
@@ -636,10 +645,10 @@
       "accentColor": "Culoare de accent",
       "fontLabel": "Stil font",
       "fonts": {
-        "modern": "Modern",
-        "classic": "Clasic",
-        "elegant": "Elegant",
-        "friendly": "Prietenos",
+        "modern": "Geist",
+        "classic": "Libre Caslon",
+        "elegant": "Bodoni Moda",
+        "friendly": "Bricolage",
         "playfair": "Playfair",
         "cormorant": "Cormorant",
         "italiana": "Italiana",
@@ -653,14 +662,14 @@
       },
       "assetStatus": {
         "accentPickerLabel": "Culoare de accent",
-        "typefacePickerLabel": "Corp de literă",
+        "typefacePickerLabel": "Font",
         "premiumOwned": "Premium · deblocat",
         "ownedShort": "Deblocat",
         "unavailable": "Indisponibil",
         "checking": "Verificăm accesul premium…",
         "premiumUnlockOnce": "Premium · deblochezi o dată",
-        "sans": "Fără serife",
-        "serif": "Cu serife",
+        "sans": "Sans",
+        "serif": "Serif",
         "optionAria": "{{name}}, {{status}}",
         "optionPreviewingAria": "{{name}}, {{status}}, doar în previzualizare",
         "triggerAria": "{{label}}: {{name}}, {{status}}",
@@ -683,14 +692,14 @@
       "moveDown": "Mută secțiunea în jos",
       "title": "Secțiuni pagină",
       "previewLabel": "Previzualizarea site-ului",
-      "draft": "Schiță",
-      "draftPreview": "Previzualizare schiță",
+      "draft": "Ciornă",
+      "draftPreview": "Previzualizare ciornă",
       "livePreview": "Previzualizare live",
       "currentSectionPreview": "Previzualizare: {{section}}",
       "previewExpand": "Deschide previzualizarea completă",
       "seeInPreview": "Vezi în previzualizare",
       "previewHelper": "Se actualizează pe măsură ce editezi.",
-      "previewDialogDescription": "Previzualizează schița curentă la dimensiune desktop, tabletă sau mobil. Linkurile și controalele de programare sunt inactive.",
+      "previewDialogDescription": "Previzualizează ciorna curentă la dimensiune desktop, tabletă sau mobil. Linkurile și controalele de programare sunt inactive.",
       "hidePreview": "Ascunde previzualizarea",
       "showPreview": "Arată previzualizarea",
       "fullPage": "Pagina completă",
@@ -796,9 +805,9 @@
       },
       "toast": {
         "undo": "Anulează",
-        "sectionMoved": "{{section}} a fost mutată.",
-        "sectionShown": "{{section}} a fost afișată.",
-        "sectionHidden": "{{section}} a fost ascunsă."
+        "sectionMoved": "Secțiunea {{section}} a fost mutată.",
+        "sectionShown": "Secțiunea {{section}} a fost afișată.",
+        "sectionHidden": "Secțiunea {{section}} a fost ascunsă."
       },
       "settings": {
         "contentSourceLabel": "Sursa conținutului",

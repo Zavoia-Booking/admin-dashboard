@@ -182,7 +182,7 @@ const SettingsPage = () => {
     <Button
       type="button"
       onClick={handleSaveProfile}
-      className="group btn-primary !h-8 px-3 rounded-full text-sm shadow-sm active:scale-95 flex items-center gap-1.5"
+      className="group btn-primary !min-h-0 !h-8 px-3 rounded-full text-sm shadow-sm active:scale-95 flex items-center gap-1.5"
       disabled={!isProfileDirty || isSaving}
     >
       {isSaving ? (

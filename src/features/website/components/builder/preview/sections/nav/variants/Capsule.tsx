@@ -1,6 +1,7 @@
 import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import { cn } from "../../../../../../../../shared/lib/utils";
 import { findScrollParent } from "../../../shared/util";
+import { useReducedMotion } from "../../../shared/hooks";
 import {
   DialogPrimitive,
   MenuButton,
@@ -16,6 +17,8 @@ import "./capsule.css";
 /** Capsule — a wide transparent lockup that pulls inward into one dark-glass pill as the page scrolls. */
 export function Capsule(props: NavVariantViewProps) {
   const shellRef = useRef<HTMLDivElement>(null);
+  // At rest / reduced motion the capsule holds its measured state instead of morphing per scroll frame.
+  const reduced = useReducedMotion();
   const scrollParentRef = useRef<HTMLElement | null>(null);
   const [navNode, setNavNode] = useState<HTMLElement | null>(null);
   const captureNav = useCallback((node: HTMLElement | null) => {
@@ -82,7 +85,7 @@ export function Capsule(props: NavVariantViewProps) {
     };
 
     refresh();
-    scrollParent.addEventListener("scroll", schedule, { passive: true });
+    if (!reduced) scrollParent.addEventListener("scroll", schedule, { passive: true });
     const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(refresh);
     observer?.observe(navNode);
     observer?.observe(scrollParent);
@@ -94,7 +97,7 @@ export function Capsule(props: NavVariantViewProps) {
       shell.style.removeProperty("--mc-cap-progress");
       if (scrollParentRef.current === scrollParent) scrollParentRef.current = null;
     };
-  }, [navNode, props.data.logo, props.links, props.name, props.overHero]);
+  }, [navNode, props.data.logo, props.links, props.name, props.overHero, reduced]);
 
   const syncMenuOrigin = useCallback(() => {
     const shell = shellRef.current;

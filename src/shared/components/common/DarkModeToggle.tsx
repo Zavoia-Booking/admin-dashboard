@@ -2,8 +2,9 @@ import * as React from "react"
 import { Moon, Sun } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { Button } from "../ui/button"
+import { applyTheme } from "../../lib/theme"
 
-type DarkModeToggleVariant = "sidebar" | "floating" | "embedded"
+type DarkModeToggleVariant = "sidebar" | "floating" | "embedded" | "quiet"
 
 interface DarkModeToggleProps {
   /**
@@ -13,39 +14,33 @@ interface DarkModeToggleProps {
    *   LanguageSwitcher's floating variant.
    * - "embedded": bare icon trigger (no border / bg / shadow) for use inside
    *   a parent container that provides the chrome.
+   * - "quiet": muted standalone icon button for low-hierarchy placements
+   *   (e.g. the mobile auth footer).
    */
   variant?: DarkModeToggleVariant
 }
 
 export function DarkModeToggle({ variant = "sidebar" }: DarkModeToggleProps = {}) {
-  const [isDark, setIsDark] = React.useState(false)
+  const [isDark, setIsDark] = React.useState(() =>
+    document.documentElement.classList.contains('dark')
+  )
   const { t } = useTranslation('navigation')
-
-  // Check system preference on mount
-  React.useEffect(() => {
-    const isDarkMode = document.documentElement.classList.contains('dark')
-    setIsDark(isDarkMode)
-  }, [])
 
   const toggleDarkMode = (checked: boolean) => {
     setIsDark(checked)
-    if (checked) {
-      document.documentElement.classList.add('dark')
-      localStorage.setItem('theme', 'dark')
-    } else {
-      document.documentElement.classList.remove('dark')
-      localStorage.setItem('theme', 'light')
-    }
+    applyTheme(checked)
   }
 
   const isSidebar = variant === "sidebar"
-  const isCompact = variant === "floating" || variant === "embedded"
+  const isCompact = variant === "floating" || variant === "embedded" || variant === "quiet"
 
   const triggerClassName =
     variant === "floating"
       ? "h-9 w-9 p-0 rounded-md border border-border/60 bg-background/70 backdrop-blur-sm shadow-sm hover:bg-accent hover:border-border cursor-pointer"
       : variant === "embedded"
       ? "h-full w-9 p-0 rounded-none border-0 bg-transparent shadow-none hover:bg-accent cursor-pointer"
+      : variant === "quiet"
+      ? "h-8 w-8 p-0 rounded-md text-foreground-2 hover:text-foreground-1 hover:bg-accent cursor-pointer"
       : "w-full h-full justify-center px-3 py-2 rounded-none hover:bg-sidebar-accent cursor-pointer group-data-[collapsible=icon]:px-0"
 
   const iconClassName = isSidebar ? "h-4 w-4 text-sidebar-foreground" : "h-4 w-4"

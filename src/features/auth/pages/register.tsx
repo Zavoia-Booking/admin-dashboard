@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react"
-import { useSearchParams, useNavigate } from "react-router-dom"
+import { useSearchParams, useNavigate, useOutletContext } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { AlertCircle } from "lucide-react"
 import { RegisterForm } from "../components/register-form"
 import { MobileRegisterEmailForm } from "../components/MobileRegisterEmailForm"
+import type { AuthOutletContext } from "../components/AuthLayout"
 import { usePlatform } from "../../../shared/hooks/usePlatform"
 import { validateMobileRegisterTokenApi } from "../api"
 import { Button } from "../../../shared/components/ui/button"
@@ -28,6 +29,7 @@ export default function RegisterPage() {
   const { isNative } = usePlatform()
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
+  const { onRegisterEmailSentChange } = useOutletContext<AuthOutletContext>()
   const welcomeToken = searchParams.get('welcomeToken')
   const [tokenState, setTokenState] = useState<TokenState>({ status: 'idle' })
 
@@ -55,7 +57,7 @@ export default function RegisterPage() {
   }, [welcomeToken, isNative])
 
   if (isNative) {
-    return <MobileRegisterEmailForm />
+    return <MobileRegisterEmailForm onSentChange={onRegisterEmailSentChange} />
   }
   if (tokenState.status === 'checking') {
     return (

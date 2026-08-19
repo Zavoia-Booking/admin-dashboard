@@ -167,13 +167,14 @@
     grid-template-columns: 1fr;
     padding: 18px;
     gap: 16px;
-    position: relative;
   }
+  /* In-flow chip row under the identity block; the desktop top-right perch
+     has no free corner at phone widths and lands on the eyebrow. */
   .profile-hero-right {
-    position: absolute;
-    top: 13px;
-    right: 18px;
-    align-items: flex-end;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
   }
 }
 
@@ -321,6 +322,28 @@
 .profile-banner-danger { background: var(--error-bg); color: var(--error); border-color: var(--error-border); }
 .profile-banner-good { background: var(--success-bg); color: var(--success); border-color: var(--success-border); }
 .profile-banner-neutral { background: var(--surface-hover); color: var(--text-secondary); border-color: var(--border); }
+
+/* Mount animation for conditionally-revealed banners: height unfolds via the
+   0fr→1fr grid-rows trick, content fades in a beat later. @starting-style
+   needs Chrome 117+; older engines simply show the banner instantly. */
+.profile-banner-reveal {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows 280ms var(--ease-out-strong, cubic-bezier(0.23, 1, 0.32, 1));
+}
+.profile-banner-reveal > .profile-banner {
+  min-height: 0;
+  overflow: hidden;
+  transition: opacity 220ms ease-out 60ms;
+}
+@starting-style {
+  .profile-banner-reveal { grid-template-rows: 0fr; }
+  .profile-banner-reveal > .profile-banner { opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .profile-banner-reveal,
+  .profile-banner-reveal > .profile-banner { transition: none; }
+}
 
 .profile-banner .profile-banner-icon { flex-shrink: 0; margin-top: 1px; }
 .profile-banner .profile-banner-body {

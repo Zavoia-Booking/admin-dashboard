@@ -119,6 +119,7 @@ function SortableGalleryImage({
     >
       <button
         type="button"
+        data-vaul-no-drag=""
         className="grid size-11 shrink-0 touch-none cursor-grab place-items-center rounded-md text-foreground-3 outline-none transition-colors duration-150 hover:bg-surface-hover hover:text-foreground-1 active:cursor-grabbing focus-visible:ring-2 focus-visible:ring-ring/60"
         aria-label={t("businessPage.builder.settings.gallery.reorderImage", { number: index + 1 })}
         {...attributes}

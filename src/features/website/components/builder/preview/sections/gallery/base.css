@@ -131,10 +131,12 @@
     transform 200ms var(--ease-out-strong);
 }
 
-.mc-gallery-arrow:hover:not(:disabled) {
-  border-color: var(--mc-fg);
-  background: var(--mc-fg);
-  color: var(--mc-bg);
+@media (hover: hover) and (pointer: fine) {
+  .mc-gallery-arrow:hover:not(:disabled) {
+    border-color: var(--mc-fg);
+    background: var(--mc-fg);
+    color: var(--mc-bg);
+  }
 }
 
 .mc-gallery-arrow:active:not(:disabled) {
@@ -200,7 +202,13 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: clamp(18px, 3vw, 32px) clamp(20px, 4vw, 48px);
+  /* The lightbox is portalled to <body> and paints under the system chrome in a viewport-fit=cover
+     WebView, so the bar has to clear the status bar / notch itself. */
+  padding:
+    calc(var(--safe-area-top-stable, env(safe-area-inset-top, 0px)) + clamp(18px, 3vw, 32px))
+    calc(env(safe-area-inset-right, 0px) + clamp(20px, 4vw, 48px))
+    clamp(18px, 3vw, 32px)
+    calc(env(safe-area-inset-left, 0px) + clamp(20px, 4vw, 48px));
   color: #fff;
 }
 
@@ -243,9 +251,16 @@
   height: 46px;
 }
 
-.mc-gallery-lbox-close:hover {
+@media (hover: hover) and (pointer: fine) {
+  .mc-gallery-lbox-close:hover {
+    background: rgba(255, 255, 255, 0.16);
+    transform: rotate(90deg);
+  }
+}
+
+.mc-gallery-lbox-close:active {
   background: rgba(255, 255, 255, 0.16);
-  transform: rotate(90deg);
+  transform: scale(0.92);
 }
 
 .mc-gallery-lbox-close:focus-visible,
@@ -305,10 +320,12 @@
   transform: translateY(-50%);
 }
 
-.mc-gallery-lbox-nav:hover:not(:disabled) {
-  border-color: #fff;
-  background: #fff;
-  color: #14120f;
+@media (hover: hover) and (pointer: fine) {
+  .mc-gallery-lbox-nav:hover:not(:disabled) {
+    border-color: #fff;
+    background: #fff;
+    color: #14120f;
+  }
 }
 
 .mc-gallery-lbox-nav:active:not(:disabled) {
@@ -361,7 +378,7 @@
 @media (max-width: 600px) {
   .mc-gallery-lbox-nav {
     top: auto;
-    bottom: max(clamp(20px, 6vw, 40px), env(safe-area-inset-bottom));
+    bottom: calc(env(safe-area-inset-bottom, 0px) + clamp(20px, 6vw, 40px));
     transform: none;
   }
 

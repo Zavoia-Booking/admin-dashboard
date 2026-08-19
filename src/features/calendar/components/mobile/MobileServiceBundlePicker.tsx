@@ -12,6 +12,8 @@ import {
 import { Button } from "../../../../shared/components/ui/button";
 import { SearchInput } from "../../../../shared/components/common/SearchInput";
 import { DashedDivider } from "../../../../shared/components/common/DashedDivider";
+import { cn } from "../../../../shared/lib/utils";
+import { useKeyboardVisible } from "../../../../shared/hooks/useKeyboardVisible";
 import { ServiceItem } from "../../../../shared/components/common/ManageServicesSheet/ServiceItem";
 import { CategoryAccordion } from "../../../../shared/components/common/ManageServicesSheet/CategoryAccordion";
 import type {
@@ -72,6 +74,8 @@ export const MobileServiceBundlePicker: FC<MobileServiceBundlePickerProps> = ({
   const { t } = useTranslation("calendar");
   const { t: tServices } = useTranslation("services");
   const [search, setSearch] = useState("");
+  // Native keyboard covers the footer instead of pushing it up.
+  const keyboardVisible = useKeyboardVisible();
   const [expandedCategoryIds, setExpandedCategoryIds] = useState<Set<number>>(new Set());
   const contentRefs = useRef<Map<number, HTMLDivElement | null>>(new Map());
 
@@ -277,7 +281,7 @@ export const MobileServiceBundlePicker: FC<MobileServiceBundlePickerProps> = ({
 
         {/* Footer — mirrors ManageServicesSheet's mobile pattern: Clear (outline, w-32)
          *  + primary action with ArrowRight that slides on hover/press. */}
-        <div className="bg-surface shrink-0">
+        <div className={cn("bg-surface shrink-0", keyboardVisible && "hidden")}>
           <DashedDivider marginTop="mt-0" className="mb-0" paddingTop="pt-2" dashPattern="1 1" />
           <div className="flex justify-between gap-2 p-4">
             <Button

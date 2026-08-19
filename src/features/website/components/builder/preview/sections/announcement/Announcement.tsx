@@ -1,6 +1,6 @@
 import { useEffect, useState, type ComponentType } from "react";
 import type { SectionEntry, AnnouncementConfig } from "../../../../../types";
-import { prefersReducedMotion } from "../../shared/util";
+import { useReducedMotion } from "../../shared/hooks";
 import type { PreviewData, T } from "../../shared/types";
 import "./base.css";
 import { AnnoDetailsDialog, AnnoDetailsTrigger } from "./parts/AnnoDetails";
@@ -114,15 +114,16 @@ export function AnnouncementBar({
     onVisibilityChange?.(show);
   }, [onVisibilityChange, show]);
 
+  const reduced = useReducedMotion();
   useEffect(() => {
     const element = rootNode;
-    if (!show || !element || prefersReducedMotion()) return;
+    if (!show || !element || reduced) return;
     const animation = element.animate(
       [{ transform: "translateY(-100%)" }, { transform: "translateY(0)" }],
       { duration: 520, easing: "cubic-bezier(0.22,1,0.36,1)" },
     );
     return () => animation.cancel();
-  }, [rootNode, show, signature]);
+  }, [reduced, rootNode, show, signature]);
 
   if (!show) return null;
 

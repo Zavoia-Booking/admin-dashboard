@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useTranslation } from 'react-i18next';
 import {
   ArrowRight, Calendar, CalendarClock, CalendarPlus, Check, ChevronsUpDown, Clock, Footprints,
-  Loader2, Percent, Phone, Plus, PlusCircle, ShieldCheck, Tag, TriangleAlert, X,
+  Loader2, Percent, Phone, Plus, PlusCircle, ShieldCheck, Tag, X,
 } from 'lucide-react';
 import { Button } from '../../../shared/components/ui/button';
 import { Label } from '../../../shared/components/ui/label';
@@ -106,6 +106,12 @@ const initialForm: FormState = {
 
 const SLIDER_COMBO_TRIGGER_CLASS =
   '!px-5 h-10 text-sm border-border-strong text-foreground-1 group disabled:opacity-50 disabled:cursor-not-allowed';
+
+// Side-by-side variant (services + bundles sharing one row): equal width and
+// truncation-safe so longer-locale labels (e.g. Romanian) ellipsize instead of
+// overflowing the row.
+const SLIDER_COMBO_TRIGGER_PAIRED_CLASS =
+  '!px-3 h-10 min-w-0 flex-1 text-sm border-border-strong text-foreground-1 group disabled:opacity-50 disabled:cursor-not-allowed';
 
 const BOOKING_SOURCES: { value: AppointmentBookingSource; labelKey: string; icon: React.ReactNode }[] = [
   { value: 'admin' as AppointmentBookingSource, labelKey: 'page.common.bookingSources.admin', icon: <ShieldCheck className="h-4 w-4" /> },
@@ -329,16 +335,12 @@ function AppointmentItemRow({
             </div>
           )}
         </div>
+        {/* No assignable team member: a picker would open onto an empty list
+            and the X would float next to nothing, so the whole control row
+            yields to the banner below, which carries both resolutions. */}
+        {!hasNoEligibleStaff && (
         <div className="flex items-center gap-2 sm:shrink-0 sm:self-stretch w-full sm:w-auto">
-          {hasNoEligibleStaff ? (
-            // No assignable team member: a picker here would open onto an empty
-            // list, so state the reason inline instead.
-            <div className="flex h-8 w-full sm:w-[280px] items-center gap-2 rounded-full border border-amber-300/70 bg-amber-50 px-3 text-xs font-medium text-amber-700 dark:border-amber-800/50 dark:bg-amber-950/30 dark:text-amber-300">
-              <TriangleAlert className="h-3.5 w-3.5 shrink-0" aria-hidden />
-              <span className="truncate">{tCal('page.appointments.add.noStaffAssigned')}</span>
-            </div>
-          ) : (
-            <ResponsivePopover
+          <ResponsivePopover
               open={staffPopoverOpen}
               onOpenChange={handleStaffPopoverOpenChange}
               title={tCal('page.appointments.add.assignStaff')}
@@ -414,7 +416,6 @@ function AppointmentItemRow({
                       </CommandList>
                     </Command>
             </ResponsivePopover>
-          )}
           <Button
             type="button"
             variant="ghost"
@@ -427,6 +428,7 @@ function AppointmentItemRow({
             <X className="h-4 w-4" />
           </Button>
         </div>
+        )}
       </div>
       {hasNoEligibleStaff && (
         <div className="px-3 pb-3">
@@ -438,6 +440,8 @@ function AppointmentItemRow({
             to={assignmentsPath}
             onNavigate={onNavigateAway}
             tone="warning"
+            secondaryLabel={tCal('page.appointments.add.remove')}
+            onSecondary={() => onRemoveItem(index)}
           />
         </div>
       )}
@@ -1394,36 +1398,36 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
                 }
               />
               {!isEditMode && locationBundles.length > 0 ? (
-                <div className="w-full flex items-center gap-3">
+                <div className="w-full flex items-center gap-2">
                   <Button
                     type="button"
                     variant="outline"
                     rounded="full"
                     onClick={() => setIsManageServicesSheetOpen(true)}
-                    className={`${SLIDER_COMBO_TRIGGER_CLASS} justify-center`}
+                    className={`${SLIDER_COMBO_TRIGGER_PAIRED_CLASS} justify-center`}
                     disabled={servicesLoading}
                   >
                     {servicesLoading ? (
                       <span className="flex items-center gap-2 text-foreground-3 dark:text-foreground-2">
-                        <Loader2 className="h-4 w-4 animate-spin" /> Loading services...
+                        <Loader2 className="h-4 w-4 animate-spin shrink-0" /> Loading services...
                       </span>
                     ) : (
                       <>
-                        <Plus className="h-3 w-3 text-primary transition-transform duration-400 ease-out group-hover:scale-140" />
-                        <span>{t('page.appointments.add.selectServices')}</span>
+                        <Plus className="h-3 w-3 shrink-0 text-primary transition-transform duration-400 ease-out group-hover:scale-140" />
+                        <span className="truncate">{t('page.appointments.add.servicesChip')}</span>
                       </>
                     )}
                   </Button>
-                  <div className="h-6 w-px bg-border justify-self-center" aria-hidden="true" />
+                  <div className="h-6 w-px shrink-0 bg-border justify-self-center" aria-hidden="true" />
                   <Button
                     type="button"
                     variant="outline"
                     rounded="full"
                     onClick={() => setIsManageBundlesSheetOpen(true)}
-                    className={`${SLIDER_COMBO_TRIGGER_CLASS} justify-center`}
+                    className={`${SLIDER_COMBO_TRIGGER_PAIRED_CLASS} justify-center`}
                   >
-                    <Plus className="h-3 w-3 text-primary transition-transform duration-400 ease-out group-hover:scale-140" />
-                    <span>{t('page.appointments.add.selectBundles')}</span>
+                    <Plus className="h-3 w-3 shrink-0 text-primary transition-transform duration-400 ease-out group-hover:scale-140" />
+                    <span className="truncate">{t('page.appointments.add.bundlesChip')}</span>
                   </Button>
                 </div>
               ) : (

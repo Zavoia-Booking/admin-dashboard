@@ -2,6 +2,7 @@ import { useLayoutEffect, useRef, useState } from "react";
 import type { SectionEntry } from "../../../types";
 import { cn } from "../../../../../shared/lib/utils";
 import { LivePreview } from "./Microsite";
+import { StaticPreviewContext } from "./shared/hooks";
 import type { PreviewData } from "./shared/types";
 
 interface ScaledPreviewProps {
@@ -126,7 +127,18 @@ export function ScaledPreview({
   return (
     <div
       ref={outerRef}
-      className={cn("relative overflow-hidden pointer-events-none select-none", className)}
+      // A snapshot, not a page: nothing inside may move. Three layers make that hold —
+      //  · StaticPreviewContext (below) puts every JS effect that consults reduced-motion into its settled
+      //    state (hero parallax + Portal scroll-jack, reveals, marquees, count-ups, viewport observers);
+      //  · mc-scaled-preview-static (shared/animations.css) freezes every CSS animation/transition in the
+      //    subtree, so mount choreography doesn't replay on each re-render;
+      //  · overflow-y-auto (not -hidden) makes this box the first scrollable ancestor findScrollParent()
+      //    meets, so scroll-linked effects bind to a box that never scrolls instead of escaping to the real
+      //    page's scroller. pointer-events-none + inert mean a user can never scroll it.
+      className={cn(
+        "mc-scaled-preview-static relative overflow-y-auto overflow-x-hidden pointer-events-none select-none",
+        className,
+      )}
       aria-hidden
       inert
     >
@@ -143,15 +155,17 @@ export function ScaledPreview({
             transform: `scale(${scale}) translate3d(0, ${-focusOffset}px, 0)`,
           }}
         >
-          <LivePreview
-            layout={layout}
-            data={data}
-            chrome={chrome}
-            startNumber={startNumber}
-            focusType={focusType}
-            selectedLocationId={selectedLocationId}
-            onSelectedLocationChange={onSelectedLocationChange}
-          />
+          <StaticPreviewContext.Provider value={true}>
+            <LivePreview
+              layout={layout}
+              data={data}
+              chrome={chrome}
+              startNumber={startNumber}
+              focusType={focusType}
+              selectedLocationId={selectedLocationId}
+              onSelectedLocationChange={onSelectedLocationChange}
+            />
+          </StaticPreviewContext.Provider>
         </div>
       )}
       {overflows && (

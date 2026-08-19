@@ -1,3 +1,4 @@
+import { maybeShowPushPrimer } from "../push-notifications/primer";
 import { all, call, put, select, takeLatest } from "redux-saga/effects";
 import type { ActionType } from "typesafe-actions";
 import {
@@ -382,6 +383,9 @@ function* handleAdminCreateAppointmentGroup(action: ActionType<typeof adminCreat
         yield call(refetchCalendarForCurrentView);
         const count = result?.appointments?.length ?? 1;
         toast.success(count > 1 ? i18n.t("calendar:page.toasts.bookingGroupCreated", { count }) : i18n.t("calendar:page.toasts.bookingCreated"));
+        // Value moment for the push-permission soft ask (policy-gated no-op
+        // when ineligible).
+        void maybeShowPushPrimer("appointment-created");
     } catch (error: any) {
         yield put(adminCreateAppointmentGroup.failure(error));
         const status = error?.response?.status;

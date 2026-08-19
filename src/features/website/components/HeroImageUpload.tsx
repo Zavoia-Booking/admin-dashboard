@@ -180,16 +180,16 @@ export function HeroImageUpload({
           </div>
 
           <div className="atelier-hero-cover-footer contents">
-            <div className="atelier-hero-cover-copy min-w-0 flex-1">
-              <p className="truncate text-[13px] font-medium text-foreground-1">
-                {t("businessPage.branding.hero.label")}
-              </p>
-              {variant !== "atelier" ? (
+            {variant === "atelier" ? null : (
+              <div className="atelier-hero-cover-copy min-w-0 flex-1">
+                <p className="truncate text-[13px] font-medium text-foreground-1">
+                  {t("businessPage.branding.hero.label")}
+                </p>
                 <p className="truncate text-xs text-foreground-3">
                   {t("businessPage.branding.hero.description")}
                 </p>
-              ) : null}
-            </div>
+              </div>
+            )}
 
             {canWrite && (
               <div className="atelier-hero-cover-actions flex shrink-0 items-center gap-0.5">
@@ -203,6 +203,7 @@ export function HeroImageUpload({
                       disabled={busy}
                       className="atelier-hero-cover-action"
                     >
+                      <UploadCloud className="size-3.5" strokeWidth={1.75} aria-hidden />
                       {t("businessPage.branding.hero.replace")}
                     </Button>
                     <Button
@@ -213,6 +214,7 @@ export function HeroImageUpload({
                       disabled={busy}
                       className="atelier-hero-cover-action atelier-hero-cover-remove"
                     >
+                      <X className="size-3.5" strokeWidth={1.75} aria-hidden />
                       {t("businessPage.branding.hero.remove")}
                     </Button>
                   </>

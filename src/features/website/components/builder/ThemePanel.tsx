@@ -135,8 +135,10 @@ export function ThemePanel({
       effectiveFontKey !== undefined ||
       onThemeAssetSelect !== undefined);
 
+  // Loads at panel mount, not picker open: injecting N stylesheets (and swapping in their binaries)
+  // during the drawer's slide-up recalcs styles mid-animation and visibly janks it on weak phones.
   useEffect(() => {
-    if (variant !== "atelier" || !atelierPickerOpen) return;
+    if (variant !== "atelier") return;
     const visibleFontKeys = usesAuthoritativeCatalog
       ? catalogReady === true
         ? new Set(
@@ -146,16 +148,25 @@ export function ThemePanel({
           )
         : new Set<string>()
       : new Set(FONT_OPTIONS.map((font) => font.key));
+    const pickerFonts = FONT_CATALOG.filter((font) => visibleFontKeys.has(font.key));
     const stylesheetUrls = [
       ...new Set(
-        FONT_CATALOG.filter((font) => visibleFontKeys.has(font.key)).flatMap((font) =>
+        pickerFonts.flatMap((font) =>
           font.loading.source === "google-fonts" ? [font.loading.stylesheetUrl] : [],
         ),
       ),
     ];
     stylesheetUrls.forEach(acquirePickerFontStylesheet);
-    return () => stylesheetUrls.forEach(releasePickerFontStylesheet);
-  }, [atelierPickerOpen, catalogReady, themeAssets, usesAuthoritativeCatalog, variant]);
+    const warm = window.setTimeout(() => {
+      pickerFonts.forEach((font) => {
+        document.fonts.load(`${font.weight} 16px ${font.stack.split(",")[0]}`).catch(() => {});
+      });
+    }, 350);
+    return () => {
+      window.clearTimeout(warm);
+      stylesheetUrls.forEach(releasePickerFontStylesheet);
+    };
+  }, [catalogReady, themeAssets, usesAuthoritativeCatalog, variant]);
 
   const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
     if (disabled) return;
@@ -243,6 +254,12 @@ export function ThemePanel({
     const activeLocked = isLocked(activeChoice);
     const activePreviewing = isPreviewing(activeChoice);
     const activeName = activeChoice ? localizedName(activeChoice) : t(activeFont.labelKey);
+    // Every typeface ships included today — the status line only earns its space for a real
+    // state (checking, locked, owned, unavailable), not to repeat "Included" on every row.
+    const activeIncluded =
+      catalogIsReady &&
+      !!activeChoice &&
+      (!usesAuthoritativeCatalog || activeChoice.asset?.isIncluded === true);
 
     const selectChoice = (choice: AtelierFontChoice) => {
       if (!canSelect(choice)) return;
@@ -454,10 +471,12 @@ export function ThemePanel({
         </span>
         <span className="atelier-brand-control-copy">
           <span className="atelier-brand-control-name">{activeName}</span>
-          <span className="atelier-brand-control-meta">
-            {activeLocked && <Lock className="atelier-brand-control-lock" strokeWidth={2.4} aria-hidden />}
-            <span>{activeStatus}</span>
-          </span>
+          {!activeIncluded && (
+            <span className="atelier-brand-control-meta">
+              {activeLocked && <Lock className="atelier-brand-control-lock" strokeWidth={2.4} aria-hidden />}
+              <span>{activeStatus}</span>
+            </span>
+          )}
         </span>
         <ChevronRight
           className="atelier-brand-control-chevron transition-transform duration-150 group-data-[state=open]/brand-control:rotate-90"
@@ -475,7 +494,6 @@ export function ThemePanel({
               open={atelierPickerOpen}
               onOpenChange={handleAtelierPickerOpenChange}
               autoFocus
-              handleOnly
               repositionInputs={false}
             >
               <DrawerTrigger asChild>{trigger}</DrawerTrigger>
@@ -492,10 +510,7 @@ export function ThemePanel({
                     {atelierLabel}
                   </DrawerDescription>
                 </DrawerHeader>
-                <div
-                  data-vaul-no-drag=""
-                  className="atelier-brand-picker-scroll website-atelier-scrollbar"
-                >
+                <div className="atelier-brand-picker-scroll website-atelier-scrollbar">
                   {pickerOptions}
                 </div>
               </DrawerContent>

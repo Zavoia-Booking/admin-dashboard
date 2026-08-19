@@ -22,6 +22,7 @@ import {
 } from "../../ui/drawer";
 import { Button } from "../../ui/button";
 import { useIsMobile } from "../../../hooks/use-mobile";
+import { useKeyboardVisible } from "../../../hooks/useKeyboardVisible";
 import { cn } from "../../../lib/utils";
 import { SearchInput } from "../SearchInput";
 import { SortSelect, type SortGroup } from "../SortSelect";
@@ -60,6 +61,8 @@ export function ManageBundlesSheet({
 }: ManageBundlesSheetProps) {
   const { t } = useTranslation("assignments");
   const isMobile = useIsMobile();
+  // Native keyboard covers the mobile footer instead of pushing it up.
+  const keyboardVisible = useKeyboardVisible();
   const dialogContentRef = useRef<HTMLDivElement>(null);
   const currentUser = useSelector(selectCurrentUser);
   const businessCurrency = currentUser?.business?.businessCurrency || "eur";
@@ -311,11 +314,12 @@ export function ManageBundlesSheet({
 
   const renderFooter = (isMobileFooter = false) => (
     <div
-      className={
+      className={cn(
         isMobileFooter
           ? "md:hidden bg-surface"
-          : "hidden md:flex flex-col bg-surface shrink-0"
-      }
+          : "hidden md:flex flex-col bg-surface shrink-0",
+        isMobileFooter && keyboardVisible && "hidden",
+      )}
     >
       <DashedDivider
         marginTop="mt-0"

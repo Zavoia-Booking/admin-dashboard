@@ -603,7 +603,9 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
           </div>
 
           <div className="space-y-2 pt-4">
-            <Label htmlFor="businessInfo.businessCurrency" className="text-base font-medium cursor-default">
+            {/* id + aria-labelledby, not htmlFor: label clicks forward to the
+                combobox button and open the picker from 50px away. */}
+            <Label id="businessInfo.businessCurrency-label" className="text-base font-medium cursor-default">
               {tw('stepBusinessInfo.currency')}
             </Label>
             <p className="text-sm text-foreground-3 dark:text-foreground-2">
@@ -611,6 +613,7 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
             </p>
             <CurrencySelect
               id="businessInfo.businessCurrency"
+              ariaLabelledBy="businessInfo.businessCurrency-label"
               value={(businessCurrencyField.value as string) || 'eur'}
               onChange={(value) => businessCurrencyField.onChange(value)}
               error={(businessCurrencyState.isTouched || businessCurrencyState.isDirty || currencyHasDraft) ? (businessCurrencyState.error?.message as string) : undefined}

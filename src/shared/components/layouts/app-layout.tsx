@@ -80,8 +80,13 @@ function AppLayoutInner({ children, contentClassName, headerRightContent, noPadd
           >
             <div className={`w-full bg-transparent max-w-full content-container ${contentClassName ?? 'md:max-w-220'}`}>
               <div
-                className="sticky top-0 z-50 md:hidden bg-surface"
-                style={{ paddingTop: "env(safe-area-inset-top)" }}
+                // Shadow lives on this wrapper, not the Breadcrumbs box: on
+                // native the box top sits below the status-bar filler, and its
+                // shadow halo would paint a faint seam across the filler.
+                className={`sticky top-0 z-50 md:hidden bg-surface ${!headerHidden && !tabbedPage ? 'shadow-sm' : ''}`}
+                // Stable var, not raw env(): env() collapses to 0 while the
+                // Android keyboard is open (see shared/lib/safeArea.ts).
+                style={{ paddingTop: "var(--safe-area-top-stable, env(safe-area-inset-top))" }}
               >
                 {/* Even when hidden, the wrapper above stays mounted: it fills
                     the status-bar/notch inset on native, which content would
@@ -94,7 +99,6 @@ function AppLayoutInner({ children, contentClassName, headerRightContent, noPadd
                     titleContent={effectiveTitleContent}
                     onPrev={headerPrevAction}
                     onNext={headerNextAction}
-                    flush={tabbedPage}
                   />
                 )}
               </div>

@@ -628,15 +628,17 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange, onSavi
               </div>
 
               {originalSnapshot != null && formData.industryId !== originalSnapshot.industryId && (
-                <div className="profile-banner profile-banner-info">
-                  <Info className="profile-banner-icon h-4 w-4" aria-hidden />
-                  <div className="profile-banner-body">
-                    <strong>{t('profile.basicInfo.changingIndustry')}</strong>
-                    <ul>
-                      <li>{t('profile.basicInfo.industryWarning1')}</li>
-                      <li>{t('profile.basicInfo.industryWarning2')}</li>
-                      <li>{t('profile.basicInfo.industryWarning3')}</li>
-                    </ul>
+                <div className="profile-banner-reveal">
+                  <div className="profile-banner profile-banner-info">
+                    <Info className="profile-banner-icon h-4 w-4" aria-hidden />
+                    <div className="profile-banner-body">
+                      <strong>{t('profile.basicInfo.changingIndustry')}</strong>
+                      <ul>
+                        <li>{t('profile.basicInfo.industryWarning1')}</li>
+                        <li>{t('profile.basicInfo.industryWarning2')}</li>
+                        <li>{t('profile.basicInfo.industryWarning3')}</li>
+                      </ul>
+                    </div>
                   </div>
                 </div>
               )}
@@ -660,7 +662,9 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange, onSavi
 
               <div className="profile-field-grid items-end">
                 <div className="space-y-2">
-                  <Label htmlFor="businessCurrency" className="text-base font-medium">
+                  {/* id + aria-labelledby, not htmlFor: label clicks forward to
+                      the combobox button and open the picker from 50px away. */}
+                  <Label id="businessCurrency-label" className="text-base font-medium">
                     {t('profile.basicInfo.currency')}
                   </Label>
                   <p className="text-sm text-foreground-3 dark:text-foreground-2">
@@ -668,6 +672,7 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange, onSavi
                   </p>
                   <CurrencySelect
                     id="businessCurrency"
+                    ariaLabelledBy="businessCurrency-label"
                     value={formData.businessCurrency}
                     onChange={(value) => {
                       setFormData(prev => ({ ...prev, businessCurrency: value }));
@@ -680,6 +685,17 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange, onSavi
                     }}
                     error={touched.businessCurrency ? errors.businessCurrency : undefined}
                   />
+                  {originalSnapshot != null && formData.businessCurrency !== originalSnapshot.businessCurrency && (
+                    <div className="profile-banner-reveal">
+                      <div className="profile-banner profile-banner-warn">
+                        <AlertTriangle className="profile-banner-icon h-4 w-4" aria-hidden />
+                        <div className="profile-banner-body">
+                          <strong>{t('profile.basicInfo.changingCurrency')}</strong>
+                          {t('profile.basicInfo.currencyWarning')}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <TextField

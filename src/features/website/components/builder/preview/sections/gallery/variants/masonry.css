@@ -19,8 +19,10 @@
   width: 100%;
 }
 
-.mc-masonry-image:hover .mc-gallery-image {
-  transform: scale(1.04);
+@media (hover: hover) and (pointer: fine) {
+  .mc-masonry-image:hover .mc-gallery-image {
+    transform: scale(1.04);
+  }
 }
 
 .mc-masonry-col > .mc-masonry-tile:last-child {

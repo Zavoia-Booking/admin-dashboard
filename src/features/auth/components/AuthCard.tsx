@@ -36,10 +36,12 @@ export function AuthCard({ mode, title, subtitle, children, hideHeader, isForgot
         <div className="p-4 md:p-6 md:min-h-180">
           <div className={cn("flex flex-col", gapClass)}>
             {!hideHeader && (
-              <div className="bg-base rounded-full p-1 flex !min-h-0 !h-10 w-full relative">
+              // Segmented-control recipe from ResponsiveTabs (track bg-sidebar,
+              // thumb bg-surface) so dark mode matches the rest of the app.
+              <div className="bg-sidebar rounded-full p-1 flex !min-h-0 !h-10 w-full relative">
                 <div
                   aria-hidden="true"
-                  className="absolute top-1 bottom-1 left-1 w-[calc(50%-0.25rem)] rounded-full bg-card shadow-sm dark:bg-[var(--surface-active)] dark:shadow-none dark:ring-1 dark:ring-border-default transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]"
+                  className="absolute top-1 bottom-1 left-1 w-[calc(50%-0.25rem)] rounded-full bg-surface shadow-sm transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]"
                   style={{ transform: mode === "register" ? "translateX(100%)" : "translateX(0)" }}
                 />
                 <Link

@@ -2,6 +2,7 @@ import { ChevronRight, LoaderCircle, Lock } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useFormatPrice } from "../../../../shared/hooks/useFormatPrice";
 import { cn } from "../../../../shared/lib/utils";
+import { useKeyboardVisible } from "../../../../shared/hooks/useKeyboardVisible";
 import type { UnlockLineItem } from "../builder/PendingUnlocksTray";
 import { unlockTotalsByCurrency, variantPriceLabel } from "../builder/pricing";
 
@@ -14,7 +15,11 @@ interface MobilePurchaseAction {
 }
 
 interface MobilePublishAction {
-  summary: string;
+  /** null when there's nothing to add beyond what the header caption already says. */
+  summary: string | null;
+  /** State-aware action label (mirrors the header/kebab publish label). Falls back to a
+   * generic "review" label when omitted. */
+  label?: string;
   disabled?: boolean;
   disabledReason?: string | null;
   busy?: boolean;
@@ -36,6 +41,8 @@ export function WebsiteMobileActionDock({
 }: WebsiteMobileActionDockProps) {
   const { t } = useTranslation("website");
   const { formatPrice } = useFormatPrice();
+  // Native keyboard covers the dock (fixed-bottom at phone widths) instead of pushing it up.
+  const keyboardVisible = useKeyboardVisible();
 
   if (!purchase && !publish) return null;
 
@@ -55,17 +62,29 @@ export function WebsiteMobileActionDock({
     : t("page.mobileActions.reviewUnlocks");
   const publishLabel = publish?.busy
     ? t("page.status.publishing")
-    : t("page.mobileActions.reviewSite");
+    : (publish?.label ?? t("page.mobileActions.reviewSite"));
   const visiblePublishLabel =
     purchase && publish?.disabled && publish.disabledReason
       ? publish.disabledReason
       : publishLabel;
+  // Whatever a failure/blocker/upsell reason has to say takes priority over the plain summary;
+  // when neither exists there's nothing left to add beyond the header's own state caption.
+  const publishSummaryText = publish
+    ? publish.disabled && publish.disabledReason
+      ? publish.disabledReason
+      : publish.summary
+    : null;
 
   return (
     <div
       className={cn(
         "atelier-mobile-action-dock",
         purchase && publish && "atelier-mobile-action-dock--dual",
+        // Amber ("unlock") skin stays reserved for a real pending purchase; a plain publish
+        // reminder isn't a paid/premium moment and shouldn't borrow that visual language.
+        !purchase && publish && "atelier-mobile-action-dock--neutral",
+        !purchase && publish && !publishSummaryText && "atelier-mobile-action-dock--solo",
+        keyboardVisible && "hidden",
       )}
       role="group"
       aria-label={t("page.mobileActions.ariaLabel")}
@@ -99,14 +118,10 @@ export function WebsiteMobileActionDock({
           </span>
           <ChevronRight className="size-3.5 shrink-0" strokeWidth={2} aria-hidden />
         </button>
-      ) : publish ? (
+      ) : publish && publishSummaryText ? (
         <span className="atelier-mobile-action-dock__summary" aria-live="polite">
           <span className="atelier-mobile-action-dock__status-dot" aria-hidden />
-          <span className="truncate">
-            {publish.disabled && publish.disabledReason
-              ? publish.disabledReason
-              : publish.summary}
-          </span>
+          <span className="truncate">{publishSummaryText}</span>
         </span>
       ) : null}
 

@@ -144,7 +144,9 @@
   transition: width 200ms var(--ease-out-strong), background-color 200ms var(--ease-out-strong);
 }
 
-.mc-galcar-dot:hover > span { background: var(--mc-muted); }
+@media (hover: hover) and (pointer: fine) {
+  .mc-galcar-dot:hover > span { background: var(--mc-muted); }
+}
 .mc-galcar-dot[data-on="1"] > span { width: 22px; background: var(--mc-accent); }
 .mc-galcar-dot:focus-visible { outline: 2px solid var(--mc-accent); outline-offset: 2px; }
 .mc-galcar-mobile-count { display: none; }

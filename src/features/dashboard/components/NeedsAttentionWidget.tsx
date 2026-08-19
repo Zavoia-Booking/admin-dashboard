@@ -1417,7 +1417,6 @@ function UnresolvedAppointmentsDialog({
         iconColor="text-warning"
         headerActions={countBadge}
         contentClassName="!p-0 !overflow-hidden"
-        footerClassName="pb-[env(safe-area-inset-bottom)]"
         footer={mobileFooter}
       >
         <div className="flex h-full flex-col">

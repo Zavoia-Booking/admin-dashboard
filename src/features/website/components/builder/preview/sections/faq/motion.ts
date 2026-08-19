@@ -1,5 +1,6 @@
 import { useLayoutEffect, type RefObject } from "react";
-import { findScrollParent, prefersReducedMotion } from "../../shared/util";
+import { findScrollParent } from "../../shared/util";
+import { useReducedMotion } from "../../shared/hooks";
 
 const clamp = (value: number) => Math.min(1, Math.max(0, value));
 const easeOut = (value: number) => 1 - Math.pow(1 - value, 3);
@@ -22,6 +23,7 @@ export function useFaqMotion(
   titleRef: RefObject<HTMLHeadingElement | null>,
   dependency: string,
 ) {
+  const reduced = useReducedMotion();
   useLayoutEffect(() => {
     const root = rootRef.current;
     if (!root) return;
@@ -43,7 +45,7 @@ export function useFaqMotion(
       });
     };
 
-    if (prefersReducedMotion()) {
+    if (reduced) {
       revealNodes.forEach(clearReveal);
       clearWords();
       return;
@@ -127,5 +129,5 @@ export function useFaqMotion(
       revealNodes.forEach(clearReveal);
       clearWords();
     };
-  }, [dependency, rootRef, titleRef]);
+  }, [dependency, reduced, rootRef, titleRef]);
 }

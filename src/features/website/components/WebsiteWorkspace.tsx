@@ -5,9 +5,11 @@ import {
   ArrowRight,
   Check,
   EllipsisVertical,
+  Eye,
   Globe,
   Image as ImageIcon,
   Images,
+  Info,
   LayoutTemplate,
   LoaderCircle,
   Megaphone,
@@ -22,7 +24,7 @@ import {
   Users,
   X,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import type { WebsiteBuilderLocation, WebsiteDraft, WebsiteIdentity } from "../types";
 import { useWebsiteBuilderController } from "../hooks/useWebsiteBuilderController";
 import {
@@ -30,7 +32,7 @@ import {
   type WebsitePublishBlocker,
 } from "../hooks/useWebsiteWorkspaceController";
 import { LimitedAccessBanner } from "../../../shared/components/common/subscription/LimitedAccessBanner";
-import ConfirmDialog from "../../../shared/components/common/ConfirmDialog";
+import { AtelierConfirmDialog as ConfirmDialog } from "./atelier/AtelierConfirmDialog";
 import { UnsavedWebsiteChangesDialog } from "./UnsavedWebsiteChangesDialog";
 import {
   DropdownMenu,
@@ -61,6 +63,7 @@ import {
 import { WebsiteBuilderCore } from "./WebsiteBuilderCore";
 import { WebsiteAtelierHeader } from "./atelier/WebsiteAtelierHeader";
 import { WebsiteAtelierShell } from "./atelier/WebsiteAtelierShell";
+import { WebsiteMobileMoreSheet, type MobileMoreItem } from "./atelier/WebsiteMobileMoreSheet";
 import {
   PendingUnlocksReview,
   PendingUnlocksTrigger,
@@ -125,7 +128,6 @@ function PublishReviewSurface({
         open={open}
         onOpenChange={onOpenChange}
         autoFocus
-        handleOnly
         repositionInputs={false}
       >
         <DrawerContent
@@ -225,7 +227,7 @@ function PublishReviewFooter({
   children: ReactNode;
 }) {
   return phone ? (
-    <DrawerFooter data-vaul-no-drag="" className={`p-0 ${className ?? ""}`}>
+    <DrawerFooter className={`p-0 ${className ?? ""}`}>
       {children}
     </DrawerFooter>
   ) : (
@@ -249,6 +251,11 @@ export function WebsiteWorkspace({ identity, draft, locations, businessId }: Web
   const { formatPrice } = useFormatPrice();
   const isPhone = useIsMobile();
   const navigate = useNavigate();
+  const location = useLocation();
+  // Same semantics as the app's mobile page header (history back); the initial entry has no
+  // in-app history (deep link, checkout return), so that one lands on the dashboard.
+  const handleBack = () =>
+    location.key === "default" ? navigate("/dashboard") : navigate(-1);
   const controller = useWebsiteWorkspaceController({
     draft,
     locations,
@@ -288,6 +295,14 @@ export function WebsiteWorkspace({ identity, draft, locations, businessId }: Web
     !controller.permissions.canPublish &&
     controller.permissions.canEdit &&
     !builderController.isNative;
+  // Edit-only plans (Standard/Custom, incl. trials) get the studio framed as draft mode:
+  // header caption + entry notice say publish is absent by plan. Native keeps the same
+  // store-safe vocabulary as the native locked view — no plan name, no upgrade path.
+  const draftPlanFramed =
+    !controller.permissions.canPublish && controller.permissions.canEdit;
+  const draftPlanCaption = draftPlanFramed
+    ? t(builderController.isNative ? "page.status.draftPlanNative" : "page.status.draftPlanWeb")
+    : null;
   const [publishUpgradeOpen, setPublishUpgradeOpen] = useState(false);
   const monogramFont = displayFontFor(builderController.effectiveFontKey);
   useWebsitePreviewFonts(builderController.effectiveFontKey);
@@ -680,6 +695,14 @@ export function WebsiteWorkspace({ identity, draft, locations, businessId }: Web
     builderController.resetPreviewOnlySelections();
     return true;
   };
+  // Leaving is never gated on busy-ness: an in-flight or queued write is cancelled and
+  // reconciled by the saga, so the only thing that still needs a decision here is a conflict.
+  const leaveDiscardDisabled = !!conflict;
+  const discardDraftChangesAndLeave = () => {
+    if (leaveDiscardDisabled || !discardAction.discardAndLeave()) return false;
+    builderController.resetPreviewOnlySelections();
+    return true;
+  };
 
   const pendingUnlocksControl =
     controller.permissions.canPurchase && !builderController.isNative ? (
@@ -759,6 +782,9 @@ export function WebsiteWorkspace({ identity, draft, locations, businessId }: Web
     contentReadinessIssues.length +
     premiumReviewCount +
     (catalogReviewFailed ? 1 : 0);
+  // null for the "nothing new to say" states: the header caption right above the dock already
+  // announces unsaved/stale/ready, so the dock only adds text when it has something the header
+  // doesn't already carry (a blocker count, a failure, a retry).
   const mobilePublishSummary = publishFailureHint
     ? publishFailureHint
     : publishRetryPending
@@ -767,11 +793,7 @@ export function WebsiteWorkspace({ identity, draft, locations, businessId }: Web
       ? t("page.mobileActions.needsAttention", {
           count: Math.max(1, publishAttentionCount),
         })
-      : form.isDirty
-        ? t("page.mobileActions.unsavedDraft")
-        : workspacePublishStatus === "stale"
-          ? t("page.mobileActions.changesReady")
-          : t("page.mobileActions.ready");
+      : null;
   const purchaseReviewBlocked =
     builderController.isVariantCheckoutLoading ||
     checkoutReturnBlocksNewCheckout ||
@@ -870,7 +892,73 @@ export function WebsiteWorkspace({ identity, draft, locations, businessId }: Web
     );
   };
   const desktopMoreControl = renderMoreControl(false);
-  const mobileMoreControl = renderMoreControl(isPhone);
+
+  // Phone: secondary actions as a bottom sheet. Preview is always a candidate row, but when
+  // it would be the sheet's only row, a kebab that opens a 1-item drawer isn't worth it — the
+  // header shows the preview button directly instead (see phoneShowsPreviewInline below).
+  const [mobileMoreOpen, setMobileMoreOpen] = useState(false);
+  const mobileSecondaryItems: MobileMoreItem[] = [
+    ...(conflict
+      ? [
+          {
+            key: "reload",
+            label: t("page.actions.reload"),
+            icon: <RotateCcw className="size-4" strokeWidth={1.8} aria-hidden />,
+            onSelect: controller.reloadLatest,
+          } satisfies MobileMoreItem,
+        ]
+      : []),
+    ...(workspaceDiscardAction.visible
+      ? [
+          {
+            key: "discard",
+            label: t("page.actions.discardChanges"),
+            icon: <Undo2 className="size-4" strokeWidth={1.8} aria-hidden />,
+            tone: "danger" as const,
+            disabled: workspaceDiscardAction.disabled,
+            disabledReason: workspaceDiscardAction.disabledReason,
+            onSelect: () => setDiscardDialogOpen(true),
+          } satisfies MobileMoreItem,
+        ]
+      : []),
+    ...(isPublished
+      ? [
+          {
+            key: "unpublish",
+            label: t("page.actions.unpublish"),
+            icon: <Globe className="size-4" strokeWidth={1.8} aria-hidden />,
+            tone: "danger" as const,
+            // Unpublish sits right below the also-red Discard row; a permanent hint (instead of
+            // only-while-disabled) gives it more visual weight than a same-color neighbor would.
+            hint: t("page.mobileActions.unpublishHint"),
+            disabled: !canWrite || publishBusy,
+            onSelect: () => controller.setUnpublishDialogOpen(true),
+          } satisfies MobileMoreItem,
+        ]
+      : []),
+  ];
+  const mobileMoreItems: MobileMoreItem[] = [
+    {
+      key: "preview",
+      label: t("businessPage.builder.openPreview"),
+      icon: <Eye className="size-4" strokeWidth={1.8} aria-hidden />,
+      onSelect: controller.requestPreview,
+    } satisfies MobileMoreItem,
+    ...mobileSecondaryItems,
+  ];
+  const phoneShowsPreviewInline = isPhone && mobileSecondaryItems.length === 0;
+  const mobileMoreControl = isPhone ? (
+    phoneShowsPreviewInline ? null : (
+      <WebsiteMobileMoreSheet
+        open={mobileMoreOpen}
+        onOpenChange={setMobileMoreOpen}
+        items={mobileMoreItems}
+        busy={isUnpublishing}
+      />
+    )
+  ) : (
+    renderMoreControl(false)
+  );
 
   const blockingIssueLabel = (issue: WebsiteDraftIssue) => {
     const sectionLabel = issue.surface === "brand"
@@ -1138,12 +1226,17 @@ export function WebsiteWorkspace({ identity, draft, locations, businessId }: Web
       mobileHeader={
         <WebsiteAtelierHeader
           variant="mobile"
+          phone={isPhone}
+          phoneShowsPreviewInline={phoneShowsPreviewInline}
+          hasUnsavedChanges={form.isDirty}
+          saveMode={draftSave.mode}
+          draftPlanCaption={draftPlanCaption}
           businessName={identity.name}
           monogramFontFamily={monogramFont.stack}
           monogramFontWeight={monogramFont.weight}
           publishStatus={workspacePublishStatus}
           saveStatus={saveStatus}
-          onBack={() => navigate("/dashboard")}
+          onBack={handleBack}
           onPreview={controller.requestPreview}
           onSave={draftSave.save}
           saveLabel={draftSave.label}
@@ -1173,6 +1266,18 @@ export function WebsiteWorkspace({ identity, draft, locations, businessId }: Web
         <div className="website-atelier-workspace-banner">
           <LimitedAccessBanner className="!px-0 !pt-0" />
         </div>
+
+        {draftPlanFramed && builderController.isNative ? (
+          <div className="atelier-plan-notice-banner">
+            <div className="atelier-plan-notice" role="status">
+              <Info className="size-4 shrink-0 text-info" strokeWidth={1.8} aria-hidden />
+              <p className="atelier-plan-notice__copy">
+                <span className="atelier-plan-notice__lead">{t("page.planNotice.lead")}</span>{" "}
+                {t("page.planNotice.native")}
+              </p>
+            </div>
+          </div>
+        ) : null}
 
         {checkoutReturnMessage ? (
           <div className="atelier-checkout-return-banner">
@@ -1241,6 +1346,7 @@ export function WebsiteWorkspace({ identity, draft, locations, businessId }: Web
               ? publishPlanGated
                 ? {
                     summary: t("page.publishUpgrade.title"),
+                    label: t("page.actions.publish"),
                     disabled: false,
                     disabledReason: null,
                     busy: false,
@@ -1248,6 +1354,7 @@ export function WebsiteWorkspace({ identity, draft, locations, businessId }: Web
                   }
                 : {
                     summary: mobilePublishSummary,
+                    label: publishActionLabel,
                     disabled: workspacePublishReviewDisabled,
                     disabledReason: workspacePublishReviewDisabledReason,
                     busy: isPublishing,
@@ -1279,10 +1386,7 @@ export function WebsiteWorkspace({ identity, draft, locations, businessId }: Web
         }}
       >
           {reviewMode === "purchase" ? (
-            <div
-              className="atelier-publish-dialog-scroll website-atelier-scrollbar"
-              data-vaul-no-drag={isPhone ? "" : undefined}
-            >
+            <div className="atelier-publish-dialog-scroll website-atelier-scrollbar">
               <PublishReviewHeader
                 phone={isPhone}
                 className={isPhone ? undefined : "pr-8 text-left"}
@@ -1320,10 +1424,7 @@ export function WebsiteWorkspace({ identity, draft, locations, businessId }: Web
             </div>
           ) : (
             <>
-          <div
-            className="atelier-publish-dialog-scroll website-atelier-scrollbar"
-            data-vaul-no-drag={isPhone ? "" : undefined}
-          >
+          <div className="atelier-publish-dialog-scroll website-atelier-scrollbar">
             <PublishReviewHeader
               phone={isPhone}
               className={isPhone ? undefined : "pr-8 text-left"}
@@ -1646,10 +1747,7 @@ export function WebsiteWorkspace({ identity, draft, locations, businessId }: Web
           </div>
 
           {!catalogReviewChecking && !catalogReviewFailed && showPublishUnlockSummary ? (
-            <div
-              className="atelier-publish-unlock-summary"
-              data-vaul-no-drag={isPhone ? "" : undefined}
-            >
+            <div className="atelier-publish-unlock-summary">
               {form.isDirty ? (
                 <p
                   id="publish-review-checkout-note"
@@ -1764,7 +1862,7 @@ export function WebsiteWorkspace({ identity, draft, locations, businessId }: Web
         open={blocker.isBlocked}
         onSaveAndLeave={draftSave.save}
         onDiscardAndLeave={() => {
-          if (discardDraftChanges()) blocker.discard();
+          if (discardDraftChangesAndLeave()) blocker.discard();
         }}
         onKeepEditing={blocker.stay}
         saveDisabled={draftSave.disabled}
@@ -1782,7 +1880,7 @@ export function WebsiteWorkspace({ identity, draft, locations, businessId }: Web
               : t("page.unsaved.updateInProgress")
         }
         saveFeedbackTone={form.canRetrySave ? "error" : "status"}
-        discardDisabled={workspaceDiscardAction.disabled}
+        discardDisabled={leaveDiscardDisabled}
       />
 
       {/* Same-page revert: restore the last acknowledged server baseline without writing. */}

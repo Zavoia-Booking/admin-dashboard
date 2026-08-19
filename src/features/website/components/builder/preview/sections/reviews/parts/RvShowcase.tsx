@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
-import { prefersReducedMotion } from "../../../shared/util";
+import { useReducedMotion } from "../../../shared/hooks";
 import type { PreviewReview, T } from "../../../shared/types";
 import { RvSlide } from "./RvSlide";
 
@@ -25,7 +25,7 @@ function HoverName({ text }: { text: string }) {
 
 export function RvShowcase({ items, italic, t }: { items: PreviewReview[]; italic: boolean; t: T }) {
   const n = items.length;
-  const reduced = prefersReducedMotion();
+  const reduced = useReducedMotion();
   const [active, setActive] = useState(0);
   const [paused, setPaused] = useState(false);
   const [inView, setInView] = useState(reduced);

@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
 import { SlidersHorizontal, RotateCcw } from "lucide-react";
 import { useIsMobile } from "../../../shared/hooks/use-mobile";
+import { useKeyboardVisible } from "../../../shared/hooks/useKeyboardVisible";
 import {
   Popover,
   PopoverContent,
@@ -72,6 +73,8 @@ export const CalendarHeaderFilters: FC<CalendarHeaderFiltersProps> = ({ slim, ex
   const dispatch = useDispatch();
   const { t } = useTranslation("calendar");
   const isMobile = useIsMobile();
+  // Native keyboard covers the sticky footer instead of pushing it up.
+  const keyboardVisible = useKeyboardVisible();
   const activeCount = useSelector(getActiveCalendarFiltersCount);
   const appliedDayFilters = useSelector(getDayFilters);
   const appliedStaffFilter = useSelector(getStaffFilter);
@@ -250,7 +253,10 @@ export const CalendarHeaderFilters: FC<CalendarHeaderFiltersProps> = ({ slim, ex
         </div>
       </div>
       {/* Sticky footer */}
-      <footer className="sticky bottom-0 z-10 flex items-center justify-between gap-3 border-t border-border bg-white dark:bg-surface px-4 py-3">
+      <footer className={cn(
+        "sticky bottom-0 z-10 flex items-center justify-between gap-3 border-t border-border bg-white dark:bg-surface px-4 py-3",
+        keyboardVisible && "hidden",
+      )}>
         {hasDraftFiltersActive ? (
           <Button
             type="button"

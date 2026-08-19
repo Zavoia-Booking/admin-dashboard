@@ -19,6 +19,7 @@ import type { RootState } from "../../../app/providers/store";
 import type { BusinessNotification } from "../types";
 import BusinessSetupGate from "../../../shared/components/guards/BusinessSetupGate";
 import { selectCurrentUser } from "../../auth/selectors";
+import { maybeShowPushPrimer } from "../../push-notifications/primer";
 
 const LIMIT = 20;
 
@@ -95,6 +96,9 @@ export default function NotificationsPage() {
   useEffect(() => {
     if (!hasBusiness) return;
     dispatch(listNotificationsAction.request({ offset: 0, limit: LIMIT }));
+    // The literal "alert bell" moment from Android's guidance — a value moment
+    // for the push-permission soft ask (policy-gated no-op when ineligible).
+    void maybeShowPushPrimer("notifications-page");
   }, [dispatch, hasBusiness]);
 
   const handleLoadMore = useCallback(() => {

@@ -30,9 +30,6 @@ const config: CapacitorConfig = {
     allowMixedContent: true,
     captureInput: true,
     webContentsDebuggingEnabled: !isProduction,
-    // Automatically handle edge-to-edge margins on Android 15+.
-    // App content stays visible; we use CSS env(safe-area-inset-*) for padding.
-    adjustMarginsForEdgeToEdge: 'auto',
   },
 
   ios: {
@@ -62,10 +59,18 @@ const config: CapacitorConfig = {
       splashFullScreen: true,
       splashImmersive: true,
     },
-    SafeArea: {
-      // Dark icons on the status/nav bars (for light app background)
-      statusBarStyle: 'LIGHT',
-      navigationBarStyle: 'LIGHT',
+    // System-bar ownership split: Capacitor core's SystemBars plugin owns the
+    // bar icon style (initial value here, runtime changes via
+    // SystemBars.setStyle in src/shared/lib/theme.ts — core re-applies its
+    // remembered style on configuration changes, so it must be the single
+    // writer). The community SafeArea plugin only polyfills
+    // env(safe-area-inset-*); giving it a style config too would make the two
+    // plugins fight over the same WindowInsetsController. insetsHandling is
+    // disabled per the SafeArea plugin's requirement — it logs an error and
+    // misbehaves when core also injects inset variables.
+    SystemBars: {
+      insetsHandling: 'disable',
+      style: 'LIGHT',
     },
   },
 };

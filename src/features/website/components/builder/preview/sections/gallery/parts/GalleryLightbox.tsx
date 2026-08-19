@@ -11,7 +11,7 @@ import { ArrowRight, X } from "lucide-react";
 import { cn } from "../../../../../../../../shared/lib/utils";
 import { previewVars } from "../../../../theme";
 import type { T } from "../../../shared/types";
-import { prefersReducedMotion } from "../../../shared/util";
+import { useReducedMotion } from "../../../shared/hooks";
 import { GalleryImage } from "./GalleryImage";
 import type { GalleryImage as GalleryImageData } from "../types";
 
@@ -65,6 +65,7 @@ function morphImage({
   to,
   duration,
   fade,
+  reducedMotion,
   onDone,
 }: {
   src: string;
@@ -72,9 +73,10 @@ function morphImage({
   to: RectLike | null;
   duration: number;
   fade?: boolean;
+  reducedMotion: boolean;
   onDone: () => void;
 }): () => void {
-  if (!from || !to || !src || prefersReducedMotion()) {
+  if (!from || !to || !src || reducedMotion) {
     onDone();
     return () => undefined;
   }
@@ -149,6 +151,7 @@ export function GalleryLightbox({
   fontKey: string;
   t: T;
 }) {
+  const reducedMotion = useReducedMotion();
   const [direction, setDirection] = useState(0);
   const [closing, setClosing] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -230,7 +233,7 @@ export function GalleryLightbox({
     const destination = thumbnailRect(thumbnail);
     const origin = displayedImageRect() ?? targetFor(index);
     cancelActiveMotion();
-    if (!figure || !current || !destination || prefersReducedMotion()) {
+    if (!figure || !current || !destination || reducedMotion) {
       setIndex(-1);
       return;
     }
@@ -250,6 +253,7 @@ export function GalleryLightbox({
     }, { once: true });
 
     const cancelMorph = morphImage({
+      reducedMotion,
       src: current.src,
       from: origin,
       to: destination,
@@ -267,6 +271,7 @@ export function GalleryLightbox({
     displayedImageRect,
     images,
     index,
+    reducedMotion,
     releaseGalleryPointer,
     restoreGalleryPointer,
     setIndex,
@@ -299,7 +304,7 @@ export function GalleryLightbox({
           ? thumbnail
           : thumbnail.closest<HTMLElement>("button, a[href], [tabindex]")
         : null;
-    if (!figure || !current || prefersReducedMotion()) return;
+    if (!figure || !current || reducedMotion) return;
 
     const from = thumbnailRect(thumbnail);
     const to = targetFor(index);
@@ -315,6 +320,7 @@ export function GalleryLightbox({
     }, { once: true });
 
     const cancelMorph = morphImage({
+      reducedMotion,
       src: current.src,
       from,
       to,
@@ -329,6 +335,7 @@ export function GalleryLightbox({
     cancelActiveMotion,
     images,
     index,
+    reducedMotion,
     restoreGalleryPointer,
     targetFor,
     thumbnailFor,

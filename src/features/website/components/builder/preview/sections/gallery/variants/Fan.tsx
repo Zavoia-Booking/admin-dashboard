@@ -8,8 +8,7 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import { ArrowRight } from "lucide-react";
-import { useInView } from "../../../shared/hooks";
-import { prefersReducedMotion } from "../../../shared/util";
+import { useInView, useReducedMotion } from "../../../shared/hooks";
 import { useGalleryFan, useGalleryFanSpread } from "../parts/useGalleryFan";
 import type { GalleryVariantProps } from "../types";
 import "./fan.css";
@@ -21,18 +20,8 @@ type FanProps = GalleryVariantProps & {
 const formatCount = (value: number) => String(value).padStart(2, "0");
 
 function useReducedMotionPreference() {
-  const [reduced, setReduced] = useState(prefersReducedMotion);
-
-  useEffect(() => {
-    const media = window.matchMedia?.("(prefers-reduced-motion: reduce)");
-    if (!media) return;
-    const update = () => setReduced(media.matches);
-    update();
-    media.addEventListener("change", update);
-    return () => media.removeEventListener("change", update);
-  }, []);
-
-  return reduced;
+  // Shared hook: OS preference + static thumbnails + the at-rest desktop mock (PreviewAtRestContext).
+  return useReducedMotion();
 }
 
 /** Undulating, slice-bent portrait wall with direct drag, idle drift, and lightbox handoff. */

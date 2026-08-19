@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { ArrowRight } from "lucide-react";
 import { buildBentoPages, money, serviceDuration } from "../model";
-import { findScrollParent, prefersReducedMotion } from "../../../shared/util";
+import { findScrollParent } from "../../../shared/util";
+import { useReducedMotion } from "../../../shared/hooks";
 import type { ServicesVariantProps } from "../types";
 import "./bento.css";
 
@@ -17,6 +18,7 @@ export function Bento({
   showDurations,
   t,
 }: ServicesVariantProps) {
+  const reduced = useReducedMotion();
   const pages = useMemo(() => buildBentoPages(groups), [groups]);
   const pageCount = pages.length;
   const [page, setPage] = useState(0);
@@ -34,7 +36,7 @@ export function Bento({
     const grid = gridRef.current;
     if (!grid) return;
     const transition = transitionRef.current;
-    if (prefersReducedMotion()) {
+    if (reduced) {
       if (transition) {
         if (transition.timer !== null) window.clearTimeout(transition.timer);
         transition.ghost.remove();
@@ -70,7 +72,7 @@ export function Bento({
         if (transitionRef.current === transition) transitionRef.current = null;
       }, 660);
     }
-  }, [location.id, safePage]);
+  }, [location.id, safePage, reduced]);
 
   useEffect(
     () => () => {
@@ -87,7 +89,7 @@ export function Bento({
     if (pageCount < 2) return;
     const target = ((safePage + direction) % pageCount + pageCount) % pageCount;
     const grid = gridRef.current;
-    if (prefersReducedMotion() || !grid || !grid.parentElement) {
+    if (reduced || !grid || !grid.parentElement) {
       setPage(target);
       return;
     }
@@ -107,7 +109,7 @@ export function Bento({
     grid.parentElement.appendChild(ghost);
     transitionRef.current = { dir: direction, ghost, timer: null };
     setPage(target);
-  }, [pageCount, safePage]);
+  }, [pageCount, safePage, reduced]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {

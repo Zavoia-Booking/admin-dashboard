@@ -311,12 +311,21 @@ export function AnnouncementEditor({
           <Switch
             aria-label={t("businessPage.builder.announcement.cta.enableLabel")}
             checked={cta.enabled}
-            onCheckedChange={(v) => patchCta({ enabled: v })}
+            onCheckedChange={(v) =>
+              // Turning the button off retires the whole sub-form: clearing label/url/newTab
+              // back to defaults means no stale invalid value (e.g. a half-typed URL) is left
+              // behind to force the panel back open next render (see the Collapsible below).
+              patchCta(
+                v
+                  ? { enabled: true }
+                  : { enabled: false, label: { en: "", ro: "" }, url: "", newTab: false, showArrow: true },
+              )
+            }
           />
         </div>
 
         <Collapsible
-          open={cta.enabled || !!urlError || !!ctaLabelExternalError}
+          open={cta.enabled}
           onOpenChange={(v) => patchCta({ enabled: v })}
         >
           <CollapsibleContent>
