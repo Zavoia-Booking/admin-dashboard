@@ -27,6 +27,23 @@ export class AppErrorBoundary extends Component<AppErrorBoundaryProps, AppErrorB
     console.error("Uncaught application error:", error, info.componentStack);
   }
 
+  // A crash during the first mount can render this fallback before i18next's
+  // deferred init finishes — t() would echo raw keys and ignore defaultValue.
+  // Until init, text() serves the English fallback; on init, re-render.
+  private handleI18nInitialized = () => this.forceUpdate();
+
+  componentDidMount() {
+    i18n.on("initialized", this.handleI18nInitialized);
+  }
+
+  componentWillUnmount() {
+    i18n.off("initialized", this.handleI18nInitialized);
+  }
+
+  private text(key: string, fallback: string): string {
+    return i18n.isInitialized ? i18n.t(key, { defaultValue: fallback }) : fallback;
+  }
+
   render() {
     if (this.state.error === null) return this.props.children;
 
@@ -39,13 +56,11 @@ export class AppErrorBoundary extends Component<AppErrorBoundaryProps, AppErrorB
         <div className="flex items-center gap-2">
           <AlertCircle className="size-5 shrink-0 text-error" aria-hidden="true" />
           <h1 className="text-lg font-semibold tracking-tight text-foreground-1">
-            {i18n.t("common:errorState.title", { defaultValue: "Something went wrong" })}
+            {this.text("common:errorState.title", "Something went wrong")}
           </h1>
         </div>
         <p className="mt-1.5 max-w-sm text-balance text-sm leading-relaxed text-foreground-2">
-          {i18n.t("common:errorState.crashBody", {
-            defaultValue: "An unexpected error occurred. Reload the page to continue.",
-          })}
+          {this.text("common:errorState.crashBody", "An unexpected error occurred. Reload the page to continue.")}
         </p>
         <button
           type="button"
@@ -53,7 +68,7 @@ export class AppErrorBoundary extends Component<AppErrorBoundaryProps, AppErrorB
           className="mt-6 inline-flex min-h-10 cursor-pointer items-center justify-center gap-1.5 rounded-md border border-border bg-surface-hover px-3 text-sm font-medium text-foreground-1 shadow-xs outline-none hover:border-border-strong hover:bg-surface-active focus-visible:ring-2 focus-visible:ring-ring/50 md:min-h-9"
         >
           <RotateCcw className="size-3.5" aria-hidden="true" />
-          {i18n.t("common:errorState.reload", { defaultValue: "Reload page" })}
+          {this.text("common:errorState.reload", "Reload page")}
         </button>
       </div>
     );

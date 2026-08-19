@@ -110,9 +110,10 @@ body:has(.website-atelier-shell)
 }
 
 @media (max-width: 919px) {
+  /* Compact: same top lane as the rest of the app (over the header, under the status bar). */
   body:has(.website-atelier-shell) [data-sonner-toaster] {
-    --offset-top: calc(64px + env(safe-area-inset-top)) !important;
-    --mobile-offset-top: calc(64px + env(safe-area-inset-top)) !important;
+    --offset-top: calc(var(--safe-area-top-stable, env(safe-area-inset-top)) + 16px) !important;
+    --mobile-offset-top: calc(var(--safe-area-top-stable, env(safe-area-inset-top)) + 16px) !important;
   }
 }
 
@@ -153,7 +154,7 @@ body:has(.website-atelier-shell)
   top: 8px;
   left: 8px;
   z-index: 50;
-  translate: 0 -160%;
+  translate: 0 -160px;
   border: 1px solid var(--atelier-border);
   border-radius: 9px;
   background: var(--atelier-surface-strong);
@@ -272,6 +273,24 @@ body:has(.website-atelier-shell)
   position: relative;
   width: 100%;
   min-height: 100%;
+}
+
+/* The preview scales the whole page with transform, which promotes it into ONE composited layer —
+   measured at 688x17300px (~48MB) plus a second near-full-page layer, ~151MB of texture against a
+   ~47MB soft budget on this class of phone. Over budget, the compositor recycles tiles and presents
+   stale ones (foreign content bleeding into cards, elements frozen mid-animation). Skipping the
+   off-screen sections' rendering keeps the rasterised area near one viewport;
+   `contain-intrinsic-size: auto` remembers each section's real height so scrolling stays stable. */
+.atelier-preview-virtual-page .mc-page-flow > [data-preview-section] {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 640px;
+}
+
+/* While the full-screen preview is up, stop rendering everything it covers (see SectionBuilder).
+   content-visibility: hidden keeps the box and its scroll state — only rendering is skipped. */
+body.atelier-preview-owns-screen #website-builder-main,
+body.atelier-preview-owns-screen [data-app-shell-chrome] {
+  content-visibility: hidden;
 }
 
 .website-atelier-focus {
@@ -429,6 +448,39 @@ body:has(.website-atelier-shell)
 .atelier-checkout-return-banner {
   flex: none;
   padding: 10px 14px 0;
+}
+
+/* Edit-only plan framing: same notice recipe as the checkout-return notice, bare Info icon. */
+.atelier-plan-notice-banner {
+  flex: none;
+  padding: 10px 14px 0;
+}
+
+.atelier-plan-notice {
+  display: flex;
+  min-width: 0;
+  min-height: 52px;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--atelier-border);
+  border-radius: 11px;
+  background: var(--atelier-surface-strong);
+  padding: 8px 12px;
+  color: var(--atelier-ink-soft);
+}
+
+.atelier-plan-notice__copy {
+  min-width: 0;
+  flex: 1;
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  text-wrap: pretty;
+}
+
+.atelier-plan-notice__lead {
+  color: var(--atelier-ink);
+  font-weight: 500;
 }
 
 .atelier-checkout-return-notice {
@@ -645,6 +697,8 @@ body:has(.website-atelier-shell)
   color: var(--atelier-ink);
   font-size: 18px;
   line-height: 1;
+  /* Center the glyphs, not the font's line box — display faces (Bodoni) otherwise sit visibly low. */
+  text-box: trim-both cap alphabetic;
 }
 
 .atelier-brand-control-copy {
@@ -661,6 +715,8 @@ body:has(.website-atelier-shell)
   font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
+  /* Same glyph-box trim as the Aa specimen, so both center on the same optical line. */
+  text-box: trim-both cap alphabetic;
 }
 
 .atelier-brand-control-meta {
@@ -1121,21 +1177,10 @@ body:has(.website-atelier-shell)
   display: flex;
   min-width: 0;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   flex-wrap: wrap;
   gap: 12px;
-  padding: 10px 4px 2px;
-}
-
-.atelier-hero-image-upload .atelier-hero-cover-copy {
-  display: block;
-}
-
-.atelier-hero-image-upload .atelier-hero-cover-copy > p:first-child {
-  color: var(--atelier-ink);
-  font-size: 12.5px;
-  font-weight: 620;
-  line-height: 1.3;
+  padding: 12px 2px 2px;
 }
 
 .atelier-hero-image-upload .atelier-hero-cover-actions {
@@ -1143,29 +1188,32 @@ body:has(.website-atelier-shell)
   width: auto;
   flex: none;
   align-items: center;
-  gap: 3px;
+  gap: 8px;
   margin: 0 0 0 auto;
 }
 
+/* 40px tall — a real touch target (HIG/Material floor is 44px; the -4px hit-slop below closes
+   the gap). The 32px height this replaced was fine with a mouse but too small to tap reliably
+   in the Capacitor app, which is exactly where this compact card renders. */
 .atelier-hero-image-upload .atelier-hero-cover-action {
   position: relative;
   width: auto;
-  height: 32px;
+  height: 40px;
   min-height: 0;
   flex: none;
   border-color: var(--atelier-border);
-  border-radius: 8px;
+  border-radius: 9px;
   background: var(--atelier-surface-strong);
-  padding: 0 11px;
+  padding: 0 14px;
   color: var(--atelier-ink);
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 580;
   box-shadow: none;
 }
 
 .atelier-hero-image-upload .atelier-hero-cover-action::before {
   position: absolute;
-  inset: -8px 0;
+  inset: -4px 0;
   content: "";
 }
 
@@ -1354,7 +1402,7 @@ body:has(.website-atelier-shell)
 
 .atelier-premium-warning-actions {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-columns: 1fr;
   width: 100%;
   gap: 8px;
 }
@@ -1596,7 +1644,8 @@ body:has(.website-atelier-shell)
   color: var(--atelier-warning);
 }
 
-.atelier-unsaved-dialog .atelier-unsaved-dialog__title {
+.atelier-unsaved-dialog .atelier-unsaved-dialog__title,
+.atelier-confirm-sheet .atelier-unsaved-dialog__title {
   margin: 1px 0 0;
   color: var(--atelier-ink);
   font-size: 20px;
@@ -1606,7 +1655,8 @@ body:has(.website-atelier-shell)
   text-wrap: balance;
 }
 
-.atelier-unsaved-dialog .atelier-unsaved-dialog__description {
+.atelier-unsaved-dialog .atelier-unsaved-dialog__description,
+.atelier-confirm-sheet .atelier-unsaved-dialog__description {
   margin-top: 6px;
   color: var(--atelier-ink-soft);
   font-size: 13.5px;
@@ -1641,7 +1691,9 @@ body:has(.website-atelier-shell)
 }
 
 .atelier-unsaved-dialog .atelier-unsaved-dialog__danger,
-.atelier-unsaved-dialog .atelier-unsaved-dialog__button {
+.atelier-unsaved-dialog .atelier-unsaved-dialog__button,
+.atelier-confirm-sheet .atelier-unsaved-dialog__danger,
+.atelier-confirm-sheet .atelier-unsaved-dialog__button {
   min-height: 44px;
   border-radius: 10px;
   font-size: 12.5px;
@@ -1656,34 +1708,52 @@ body:has(.website-atelier-shell)
   padding-inline: 8px;
 }
 
-.atelier-unsaved-dialog .atelier-unsaved-dialog__button {
+.atelier-unsaved-dialog .atelier-unsaved-dialog__button,
+.atelier-confirm-sheet .atelier-unsaved-dialog__button {
   width: auto;
   padding-inline: 10px;
 }
 
-.atelier-unsaved-dialog .atelier-unsaved-dialog__button--secondary {
+.atelier-unsaved-dialog .atelier-unsaved-dialog__button--secondary,
+.atelier-confirm-sheet .atelier-unsaved-dialog__button--secondary {
   border-color: var(--atelier-border);
   background: var(--atelier-surface-strong);
   color: var(--atelier-ink);
   box-shadow: none;
 }
 
-.atelier-unsaved-dialog .atelier-unsaved-dialog__button--secondary:hover {
+.atelier-unsaved-dialog .atelier-unsaved-dialog__button--secondary:hover,
+.atelier-confirm-sheet .atelier-unsaved-dialog__button--secondary:hover {
   border-color: color-mix(in srgb, var(--atelier-ink) 18%, transparent);
   background: color-mix(in srgb, var(--atelier-ink) 7%, var(--atelier-paper));
 }
 
-.atelier-unsaved-dialog .atelier-unsaved-dialog__button--primary {
+.atelier-unsaved-dialog .atelier-unsaved-dialog__button--primary,
+.atelier-confirm-sheet .atelier-unsaved-dialog__button--primary {
   border-color: var(--atelier-ink);
   background: var(--atelier-ink);
   color: var(--atelier-canvas);
   box-shadow: none;
 }
 
-.atelier-unsaved-dialog .atelier-unsaved-dialog__button--primary:hover {
+.atelier-unsaved-dialog .atelier-unsaved-dialog__button--primary:hover,
+.atelier-confirm-sheet .atelier-unsaved-dialog__button--primary:hover {
   border-color: color-mix(in srgb, var(--atelier-ink) 88%, var(--atelier-canvas));
   background: color-mix(in srgb, var(--atelier-ink) 88%, var(--atelier-canvas));
   color: var(--atelier-canvas);
+}
+
+.atelier-confirm-sheet .atelier-unsaved-dialog__button--destructive {
+  border-color: var(--destructive);
+  background: var(--destructive);
+  color: #fff;
+  box-shadow: none;
+}
+
+.atelier-confirm-sheet .atelier-unsaved-dialog__button--destructive:hover {
+  border-color: color-mix(in srgb, var(--destructive) 90%, black);
+  background: color-mix(in srgb, var(--destructive) 90%, black);
+  color: #fff;
 }
 
 @media (max-width: 520px) {
@@ -1736,6 +1806,135 @@ body:has(.website-atelier-shell)
     margin-left: 0;
   }
 
+}
+
+/* Compact/native confirm sheets (unsaved-changes guard, discard/unpublish/conflict confirms):
+   bottom sheets with the dialog's copy and button styles (shared selectors), actions stacked. */
+.atelier-confirm-sheet__body {
+  padding: 8px 20px 4px;
+}
+
+.atelier-confirm-sheet__header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.atelier-confirm-sheet__icon {
+  flex: none;
+  color: var(--atelier-warning);
+}
+
+.atelier-confirm-sheet__icon[data-tone="destructive"] {
+  color: var(--destructive);
+}
+
+.atelier-confirm-sheet .atelier-unsaved-dialog__title {
+  margin: 0;
+}
+
+.atelier-confirm-sheet .atelier-unsaved-dialog__description {
+  margin-top: 8px;
+}
+
+.atelier-confirm-sheet .atelier-unsaved-dialog__feedback {
+  margin-left: 0;
+}
+
+.atelier-confirm-sheet__footer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
+}
+
+.atelier-confirm-sheet .atelier-unsaved-dialog__button,
+.atelier-confirm-sheet .atelier-unsaved-dialog__danger {
+  width: 100%;
+  margin-right: 0;
+}
+
+/* Phone "more" menu: full-width rows, one seam before the destructive group. */
+.website-atelier.atelier-more-sheet {
+  border-color: var(--atelier-border);
+  background: var(--atelier-paper);
+  color: var(--atelier-ink);
+}
+
+.atelier-more-sheet__list {
+  display: flex;
+  flex-direction: column;
+  padding: 4px 8px calc(12px + env(safe-area-inset-bottom));
+}
+
+.atelier-more-sheet__row {
+  display: flex;
+  min-height: 50px;
+  width: 100%;
+  align-items: center;
+  gap: 14px;
+  border-radius: 12px;
+  padding: 10px 12px;
+  text-align: left;
+  color: var(--atelier-ink);
+  transition: background-color 120ms ease;
+}
+
+.atelier-more-sheet__row:active:not(:disabled) {
+  background: color-mix(in srgb, var(--atelier-ink) 6%, var(--atelier-paper));
+}
+
+.atelier-more-sheet__row:disabled {
+  cursor: default;
+  color: var(--atelier-muted);
+}
+
+.atelier-more-sheet__row[data-tone="danger"] {
+  color: var(--destructive);
+}
+
+.atelier-more-sheet__row[data-tone="danger"]:active:not(:disabled) {
+  background: color-mix(in srgb, var(--destructive) 7%, var(--atelier-paper));
+}
+
+.atelier-more-sheet__row[data-tone="danger"]:disabled {
+  color: color-mix(in srgb, var(--destructive) 45%, var(--atelier-paper));
+}
+
+.atelier-more-sheet__icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 20px;
+  color: currentColor;
+}
+
+.atelier-more-sheet__text {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.atelier-more-sheet__label {
+  font-size: 14.5px;
+  font-weight: 560;
+  letter-spacing: -0.005em;
+  line-height: 1.25;
+}
+
+.atelier-more-sheet__hint {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--atelier-muted);
+  text-wrap: pretty;
+}
+
+.atelier-more-sheet__seam {
+  display: block;
+  height: 1px;
+  margin: 6px 12px;
+  background: var(--atelier-border-soft);
 }
 
 @media (min-width: 920px) {
@@ -2355,6 +2554,49 @@ body:has(.website-atelier-shell)
   padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px)) !important;
 }
 
+/* Editor-drawer preview CTA: full-width elevated pill — same identity as the workspace card's
+   floating "Previzualizare", resting in the sheet footer. */
+.atelier-editor-preview-cta {
+  display: inline-flex;
+  width: 100%;
+  height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 1px solid var(--atelier-border);
+  border-radius: 999px;
+  background: rgb(255 254 250 / 96%);
+  box-shadow: 0 4px 14px rgb(28 28 26 / 14%);
+  color: var(--atelier-ink);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.dark .website-atelier .atelier-editor-preview-cta {
+  background: rgb(36 35 31 / 96%);
+  box-shadow: 0 4px 14px rgb(0 0 0 / 40%);
+}
+
+/* After the user commits a change the CTA takes one spring breath (overshoot + settle) —
+   "your change is ready to preview". Transform-only, nothing decorative. */
+@keyframes atelier-preview-cta-nudge {
+  0% { transform: scale(1); }
+  38% { transform: scale(1.05); }
+  68% { transform: scale(0.99); }
+  100% { transform: scale(1); }
+}
+
+.atelier-editor-preview-cta[data-nudge] {
+  animation: atelier-preview-cta-nudge 620ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .atelier-editor-preview-cta[data-nudge] {
+    animation: none;
+  }
+}
+
 .atelier-sheet-fixed {
   margin-top: 5px;
   color: var(--atelier-muted-soft);
@@ -2395,15 +2637,6 @@ body:has(.website-atelier-shell)
 
 .atelier-section-editor-sheet .atelier-hero-image-upload .atelier-hero-cover-preview {
   height: 132px;
-}
-
-.atelier-section-editor-sheet .atelier-hero-image-upload .atelier-hero-cover-action {
-  height: 32px;
-  font-size: 12px;
-}
-
-.atelier-section-editor-sheet .atelier-hero-image-upload .atelier-hero-cover-action::before {
-  inset-block: -6px;
 }
 
 /* Retained editors keep their existing behavior and shared primitives. These semantic, scoped
@@ -2853,6 +3086,16 @@ body:has(.website-atelier-shell)
     translate: 0 0 !important;
     border: 0 !important;
     border-radius: 0 !important;
+    --tw-enter-scale: 1 !important;
+    --tw-exit-scale: 1 !important;
+    --tw-enter-translate-y: 12px !important;
+    --tw-exit-translate-y: 8px !important;
+    animation-duration: 240ms !important;
+    animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1) !important;
+  }
+
+  .atelier-preview-dialog[data-state="closed"] {
+    animation-duration: 160ms !important;
   }
 
   .atelier-preview-dialog-header--mobile {
@@ -2863,22 +3106,26 @@ body:has(.website-atelier-shell)
     align-items: center !important;
     border-bottom: 0 !important;
     background: #161512;
+    box-shadow: inset 0 -1px 0 rgb(250 248 243 / 8%);
     padding: env(safe-area-inset-top) 12px 0 !important;
+    /* Own tiny compositor layer (~1MB): the header's tiles survive the raster storm when the
+       full page mounts/lifts below it — without this the shared layer repaint flashes it. */
+    will-change: transform;
   }
 
   .atelier-preview-dialog-title--mobile {
     position: absolute;
     top: env(safe-area-inset-top);
     right: 112px;
-    left: 60px;
+    left: 64px;
     display: grid;
     height: 52px;
     place-items: center;
-    color: rgb(250 248 243 / 55%) !important;
+    color: rgb(250 248 243 / 78%) !important;
     font-family: "Geist Mono Variable", ui-monospace, monospace;
-    font-size: 10.5px;
+    font-size: 12px;
     font-weight: 500;
-    letter-spacing: 0;
+    letter-spacing: 0.01em;
     text-align: center;
   }
 
@@ -2888,48 +3135,110 @@ body:has(.website-atelier-shell)
   }
 
   .atelier-preview-mobile-devices {
+    position: relative;
+    isolation: isolate;
     border: 0 !important;
-    border-radius: 9px !important;
-    background: rgb(250 248 243 / 10%) !important;
+    border-radius: 11px !important;
+    background: rgb(250 248 243 / 12%) !important;
+    box-shadow: inset 0 0 0 1px rgb(250 248 243 / 8%);
     padding: 2px !important;
   }
 
   .atelier-preview-mobile-devices button {
     position: relative;
-    width: 44px !important;
-    height: 40px !important;
-    min-height: 40px !important;
-    border-radius: 7px !important;
-    color: rgb(237 234 226 / 68%) !important;
+    width: 38px !important;
+    height: 34px !important;
+    min-height: 34px !important;
+    border-radius: 9px !important;
+    color: rgb(237 234 226 / 78%) !important;
+    transition: background-color 160ms ease, color 160ms ease, transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
   }
 
+  .atelier-preview-mobile-devices button:active {
+    transform: scale(0.96);
+  }
+
+  /* Hit-slop only — the 52px header has no room for a 44px-tall chip without crowding the title, so the
+     visible chip is smaller than the tap target: this pseudo restores it to spec. */
   .atelier-preview-mobile-devices button::before {
     position: absolute;
-    inset: -2px 0;
+    inset: -5px -6px;
     content: "";
   }
 
   .atelier-preview-mobile-devices button[aria-pressed="true"] {
-    background: rgb(250 248 243 / 22%) !important;
-    color: #edeae2 !important;
+    background: #edeae2 !important;
+    color: #161512 !important;
+    box-shadow: 0 1px 2px rgb(0 0 0 / 30%);
   }
 
+  /* iOS segmented control: one thumb glides between the two segments instead of each button's fill
+     teleporting. The static per-button fill above stays as the fallback for engines without :has(). */
+  @supports selector(:has(*)) {
+    .atelier-preview-mobile-devices::after {
+      content: "";
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      z-index: 0;
+      width: 38px;
+      height: 34px;
+      border-radius: 9px;
+      background: #edeae2;
+      box-shadow: 0 1px 2px rgb(0 0 0 / 30%);
+      /* 38px segment + 2px gap */
+      transition: transform 240ms cubic-bezier(0.32, 0.72, 0, 1);
+    }
+    .atelier-preview-mobile-devices:has(> button:nth-of-type(2)[aria-pressed="true"])::after {
+      transform: translateX(40px);
+    }
+    .atelier-preview-mobile-devices button {
+      z-index: 1;
+    }
+    .atelier-preview-mobile-devices button[aria-pressed="true"] {
+      background: transparent !important;
+      box-shadow: none;
+    }
+  }
+
+  /* Matches the app's real DialogClose convention (dialog.tsx): a naked icon, no chip/ring/background —
+     this one had grown its own frosted-pill treatment, which read heavier than every other close button
+     in the app. opacity 0.7 idle / 1 on press mirrors dialog.tsx's opacity-70 hover:opacity-100 exactly. */
   .atelier-preview-dialog > button {
-    top: calc(9px + env(safe-area-inset-top));
+    top: calc(8px + env(safe-area-inset-top));
     right: auto;
     left: 12px;
     z-index: 2;
-    width: 34px;
-    height: 34px;
-    border-radius: 10px;
-    background: rgb(250 248 243 / 9%);
-    color: #edeae2;
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    background: transparent;
+    box-shadow: none;
+    color: #f4f1ea;
+    opacity: 0.7;
+    transition: opacity 160ms ease, transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+
+  /* Hit-slop only — the visible icon stays small; the tap target doesn't. */
+  .atelier-preview-dialog > button::before {
+    position: absolute;
+    inset: -9px;
+    content: "";
+  }
+
+  .atelier-preview-dialog > button:active {
     opacity: 1;
+    transform: scale(0.94);
+  }
+
+  .atelier-preview-dialog > button svg {
+    width: 16px;
+    height: 16px;
   }
 
   .atelier-preview-dialog-canvas {
     background: #161512 !important;
-    padding: 0 8px calc(10px + env(safe-area-inset-bottom));
+    padding: 12px 8px calc(12px + env(safe-area-inset-bottom));
   }
 
   .atelier-preview-dialog-canvas--compact {
@@ -2942,14 +3251,15 @@ body:has(.website-atelier-shell)
   }
 
   .atelier-preview-compact-frame {
+    position: relative;
     flex: none;
     overflow: hidden;
-    border-radius: 14px;
-    clip-path: inset(0 round 14px);
+    border-radius: 16px;
+    clip-path: inset(0 round 16px);
     contain: paint;
     isolation: isolate;
     background: #ffffff;
-    box-shadow: 0 8px 24px rgb(0 0 0 / 40%);
+    box-shadow: 0 0 0 1px rgb(250 248 243 / 8%), 0 16px 40px rgb(0 0 0 / 55%);
   }
 
   .atelier-preview-compact-clip {
@@ -2957,11 +3267,66 @@ body:has(.website-atelier-shell)
     overflow-x: hidden;
     overflow-y: hidden;
     border-radius: inherit;
-    clip-path: inset(0 round 14px);
+    clip-path: inset(0 round 16px);
     overscroll-behavior: contain;
     background: #ffffff;
     contain: paint;
     isolation: isolate;
+  }
+
+  /* Curtain: stage-coloured, near-opaque (0.985 keeps the compositor rasterising the page beneath — a fully
+     opaque occluder would let it defer those tiles) — held until the page's first tiles + hero photo are
+     ready, then faded, so a slow phone never presents a half-rasterised frame. */
+  .atelier-preview-curtain {
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    border-radius: inherit;
+    background: #161512;
+    opacity: 0.985;
+    pointer-events: none;
+    /* iOS drawer curve: the lift is occasional, so it earns a slightly longer, softer settle. */
+    transition: opacity 380ms cubic-bezier(0.32, 0.72, 0, 1), visibility 0s linear 380ms;
+  }
+  .atelier-preview-curtain[data-state="lifted"] {
+    opacity: 0;
+    visibility: hidden;
+  }
+  /* MIUI honors the WebView's gesture-exclusion zones (the swipe variants' pan-y surfaces) far
+     beyond stock Android's 200dp cap, which kills the system back-swipe across the whole preview.
+     These transparent strips keep the outermost edge hit-testable with default touch-action, so
+     those coordinates are never reported as exclusions and the OS keeps its back gesture. */
+  .atelier-preview-edge-gesture-margin {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    z-index: 2;
+    width: 18px;
+  }
+
+  .atelier-preview-edge-gesture-margin--left { left: 0; }
+  .atelier-preview-edge-gesture-margin--right { right: 0; }
+
+  /* Re-arming (device toggle) must be instant — only the lift fades. */
+  .atelier-preview-curtain[data-state="held"] {
+    transition: none;
+  }
+  /* Hold the microsite's own entrance choreography until the curtain lifts, so it plays in view. */
+  .atelier-preview-compact-frame[data-curtain] .mc-root,
+  .atelier-preview-compact-frame[data-curtain] .mc-root * {
+    animation-play-state: paused !important;
+  }
+
+  /* Desktop mock = a LOOK preview: all CSS choreography (menu open/close, entrance reveals, frost eases)
+     jump-cuts — the same freeze the static thumbnails use. On this class of phone GPU (~45MB tile budget)
+     any animation over the 1280px page re-rasterises more than the budget holds and checkerboards; menus
+     still open and close, instantly. JS engines settle via PreviewAtRestContext; this covers the CSS side. */
+  .atelier-preview-at-rest .mc-root,
+  .atelier-preview-at-rest .mc-root * {
+    animation: none !important;
+    transition: none !important;
+    /* Drop layer promotion too: will-change layers rasterise at native size under the mock's scale. */
+    will-change: auto !important;
   }
 
   .atelier-preview-dialog-page {
@@ -2992,7 +3357,8 @@ body:has(.website-atelier-shell)
     padding: 0 0 12px !important;
   }
 
-  .atelier-checkout-return-banner {
+  .atelier-checkout-return-banner,
+  .atelier-plan-notice-banner {
     padding: 0 0 12px;
   }
 
@@ -3095,6 +3461,17 @@ body:has(.website-atelier-shell)
     background: var(--atelier-surface-strong);
     padding: 34px 10px 10px;
     text-align: left;
+    transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+
+  .atelier-mobile-preview-peek:has(.atelier-mobile-preview-peek-action:active) {
+    transform: scale(0.98);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .atelier-mobile-preview-peek {
+      transition: none;
+    }
   }
 
   .atelier-mobile-preview-peek-visual {
@@ -3136,7 +3513,7 @@ body:has(.website-atelier-shell)
     position: relative;
     display: block;
     height: auto;
-    aspect-ratio: 16 / 10;
+    aspect-ratio: 1 / 1;
     overflow: hidden;
     border: 1px solid var(--atelier-border);
     border-radius: 11px;
@@ -3353,9 +3730,9 @@ body:has(.website-atelier-shell)
   .atelier-mobile-action-dock {
     position: fixed;
     z-index: 40;
-    right: 12px;
+    right: 8px;
     bottom: calc(12px + env(safe-area-inset-bottom));
-    left: 12px;
+    left: 8px;
     display: flex;
     height: 64px;
     align-items: center;
@@ -3470,6 +3847,39 @@ body:has(.website-atelier-shell)
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+
+  /* Publish-only dock: neutral chrome. The amber "unlock" skin above stays reserved for a
+     real pending purchase; a plain publish reminder isn't a paid/premium moment. */
+  .atelier-mobile-action-dock--neutral {
+    border-color: var(--atelier-border);
+    background: var(--atelier-surface-strong);
+    color: var(--atelier-ink-soft);
+  }
+
+  .atelier-mobile-action-dock--neutral .atelier-mobile-action-dock__status-dot {
+    background: var(--atelier-warning);
+  }
+
+  /* Nothing left to add beyond the header's own state caption: no summary, no purchase, so the
+     container has nothing left to contain. Strip its own card chrome so only the button floats,
+     instead of a button sitting inside a slightly larger rounded card around it. */
+  .atelier-mobile-action-dock--solo {
+    height: auto;
+    justify-content: center;
+    border-color: transparent;
+    background: transparent;
+    box-shadow: none;
+    padding: 0;
+  }
+
+  /* A single, undramatic action doesn't need the screen's full width to read as the CTA it is. */
+  .atelier-mobile-action-dock--solo .atelier-mobile-action-dock__publish {
+    flex: none;
+    width: 78%;
+    max-width: 320px;
+    border-radius: 999px;
+    box-shadow: 0 6px 16px rgb(28 28 26 / 8%), 0 18px 40px rgb(28 28 26 / 12%);
+  }
 }
 
 @media (max-width: 919px) {
@@ -3550,8 +3960,9 @@ body:has(.website-atelier-shell)
   box-shadow: 0 18px 44px rgb(28 28 26 / 16%);
 }
 
+/* Wide enough that the longest swatch name ("Terracotta") doesn't ellipsis at 5 columns. */
 .atelier-brand-popover--accent {
-  width: min(302px, calc(100vw - 32px)) !important;
+  width: min(340px, calc(100vw - 32px)) !important;
 }
 
 .atelier-brand-popover--font {
@@ -3609,9 +4020,13 @@ body:has(.website-atelier-shell)
   -webkit-overflow-scrolling: touch;
 }
 
+/* The selected-swatch ring (box-shadow, 4px outside the disc) needs the same breathing room on
+   the block axis as the inline one below, or the top row's ring clips against the scroll edge. */
 .atelier-brand-popover .atelier-brand-picker-scroll {
   margin-inline: -4px;
   padding-inline: 4px;
+  margin-block: -4px;
+  padding-block: 4px;
 }
 
 .atelier-brand-picker-scroll--font {
@@ -4717,6 +5132,8 @@ body:has(.atelier-unlock-tray-dialog) [data-slot="dialog-overlay"] {
     width: calc(100% + 8px);
     margin-inline: -4px;
     padding-inline: 4px;
+    margin-block: -4px;
+    padding-block: 4px;
   }
 
   .atelier-brand-drawer .atelier-brand-options-label {
@@ -4773,9 +5190,9 @@ body:has(.atelier-unlock-tray-dialog) [data-slot="dialog-overlay"] {
   }
 
   .atelier-mobile-action-dock {
-    right: max(12px, env(safe-area-inset-right));
+    right: max(8px, env(safe-area-inset-right));
     bottom: calc(72px + env(safe-area-inset-bottom));
-    left: max(12px, env(safe-area-inset-left));
+    left: max(8px, env(safe-area-inset-left));
   }
 
   .atelier-unlock-tray-dialog {

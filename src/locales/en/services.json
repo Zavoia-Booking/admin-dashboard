@@ -94,8 +94,8 @@
         "link": "Assignments"
       },
       "assignmentNote": {
-        "text": "Once created, assign this service to a team member so customers can book it. You can do that in",
-        "link": "Assignments"
+        "text": "Once created, assign this service to a team member so customers can book it.",
+        "link": "Go to Assignments"
       },
       "locations": {
         "emptyMessage": "No locations found.",
@@ -347,8 +347,8 @@
         "servicesDescription": "Pick the services that are part of this bundle. Customers will book them together."
       },
       "assignmentNote": {
-        "text": "Once created, assign this bundle to a team member so customers can book it. You can do that in",
-        "link": "Assignments"
+        "text": "Once created, assign this bundle to a team member so customers can book it.",
+        "link": "Go to Assignments"
       },
       "form": {
         "name": {

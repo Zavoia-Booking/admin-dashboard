@@ -4,6 +4,7 @@
 // each symbol straight from its canonical home (so there's a single source per export, no drift).
 export { LivePreview } from "./preview/Microsite";
 export { UNNUMBERED } from "./preview/shared/constants";
+export { PreviewAtRestContext } from "./preview/shared/hooks";
 // eslint-disable-next-line react-refresh/only-export-components -- The established editor barrel also exposes this pure model helper.
 export { marqueeItems, MARQUEE_MIN_ITEMS } from "./preview/sections/marquee/model";
 export type { PreviewData, PreviewReview, RatingBars } from "./preview/shared/types";

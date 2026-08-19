@@ -43,6 +43,8 @@ import {
   PanelRight,
 } from "lucide-react";
 import { cn } from "../../../../shared/lib/utils";
+import { previewOpenHaptic, selectionTickHaptic } from "../../haptics";
+import { setSystemBarsDarkSurface } from "../../../../shared/lib/theme";
 import { websiteToast as toast } from "../../websiteToast";
 import { useFormatPrice } from "../../../../shared/hooks/useFormatPrice";
 import {
@@ -96,7 +98,7 @@ import {
   type WebsiteReadinessSectionType,
 } from "./sectionReadiness";
 import type { WebsiteSectionFocusRequest } from "../../hooks/useWebsiteWorkspaceController";
-import { LivePreview, marqueeItems, MARQUEE_MIN_ITEMS, type PreviewReview, type RatingBars } from "./LivePreview";
+import { LivePreview, marqueeItems, MARQUEE_MIN_ITEMS, PreviewAtRestContext, type PreviewReview, type RatingBars } from "./LivePreview";
 import { ScaledPreview } from "./preview/ScaledPreview";
 import type { PreviewData } from "./preview/shared/types";
 import { useAtelierCompactLayout } from "../atelier/useAtelierCompactLayout";
@@ -234,9 +236,10 @@ const scrollPreviewToSection = (
   scrollNode: HTMLElement,
   pageNode: HTMLElement,
   focusType: string,
+  behaviorOverride?: ScrollBehavior,
 ) => {
   const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-  const behavior: ScrollBehavior = reduceMotion ? "auto" : "smooth";
+  const behavior: ScrollBehavior = behaviorOverride ?? (reduceMotion ? "auto" : "smooth");
   const maxTop = Math.max(0, scrollNode.scrollHeight - scrollNode.clientHeight);
 
   if (
@@ -281,13 +284,14 @@ const schedulePreviewSectionFocus = (
   getScrollNode: () => HTMLElement | null,
   getPageNode: () => HTMLElement | null,
   focusType: string,
+  behavior?: ScrollBehavior,
 ) => {
   let frame = 0;
   let retries = 2;
   const focus = () => {
     const scrollNode = getScrollNode();
     const pageNode = getPageNode();
-    if (scrollNode && pageNode && scrollPreviewToSection(scrollNode, pageNode, focusType)) return;
+    if (scrollNode && pageNode && scrollPreviewToSection(scrollNode, pageNode, focusType, behavior)) return;
     if (retries <= 0) return;
     retries -= 1;
     frame = window.requestAnimationFrame(focus);
@@ -495,6 +499,17 @@ export function SectionBuilder(props: SectionBuilderProps) {
   const activePreviewType = isAtelierCompact ? openType : observedPreviewType;
   const [previewOpen, setPreviewOpen] = useState(false);
   const resolvedPreviewOpen = previewOpen || !!props.shellPreviewOpen;
+  // The peek thumbnail stays mounted until the preview dialog has covered it, so opening doesn't flash a
+  // blank card behind the fading-in overlay; it comes back as soon as the dialog starts closing.
+  const [previewCoversPeek, setPreviewCoversPeek] = useState(false);
+  useEffect(() => {
+    if (!resolvedPreviewOpen) {
+      setPreviewCoversPeek(false);
+      return;
+    }
+    const timer = window.setTimeout(() => setPreviewCoversPeek(true), 320);
+    return () => window.clearTimeout(timer);
+  }, [resolvedPreviewOpen]);
   const [previewScope, setPreviewScope] = useState<PreviewScope>("page");
   const [previewFocusType, setPreviewFocusType] = useState<string | null>(null);
   // Let the full preview resolve the configured first visible location, then control all preview
@@ -526,6 +541,8 @@ export function SectionBuilder(props: SectionBuilderProps) {
   const previousShellPreviewOpenRef = useRef(false);
   const previewReturnElementRef = useRef<HTMLElement | null>(null);
   const previewReturnSectionTypeRef = useRef<string | null>(null);
+  const previewReturnDrawerTypeRef = useRef<string | null>(null);
+  const previewRestoringDrawerRef = useRef(false);
   const inspectorHeadingRef = useRef<HTMLHeadingElement | null>(null);
   const restoreInspectorFocusTypeRef = useRef<string | null>(null);
   const shouldFocusInspectorRef = useRef(false);
@@ -814,16 +831,19 @@ export function SectionBuilder(props: SectionBuilderProps) {
 
   const openPreview = useCallback(
     (scope: PreviewScope, focusType?: string | null) => {
+      previewOpenHaptic();
       const resolvedFocusType = focusType === undefined ? openType : focusType;
       previewReturnElementRef.current =
         document.activeElement instanceof HTMLElement ? document.activeElement : null;
       previewReturnSectionTypeRef.current =
         resolvedFocusType && isKnownSectionType(resolvedFocusType) ? resolvedFocusType : null;
+      previewReturnDrawerTypeRef.current =
+        isAtelierCompact && openType && resolvedFocusType === openType ? openType : null;
       setPreviewScope(scope);
       setPreviewFocusType(resolvedFocusType);
       setPreviewOpen(true);
     },
-    [openType],
+    [openType, isAtelierCompact],
   );
 
   // The workspace header is a global "Preview" entry point. It must always open the whole
@@ -835,6 +855,7 @@ export function SectionBuilder(props: SectionBuilderProps) {
       previewReturnElementRef.current =
         document.activeElement instanceof HTMLElement ? document.activeElement : null;
       previewReturnSectionTypeRef.current = null;
+      previewReturnDrawerTypeRef.current = null;
       setPreviewScope("page");
       setPreviewFocusType(null);
       setCompactPreviewDevice("mobile");
@@ -842,9 +863,31 @@ export function SectionBuilder(props: SectionBuilderProps) {
     previousShellPreviewOpenRef.current = requested;
   }, [props.shellPreviewOpen]);
   const handlePreviewOpenChange = (open: boolean) => {
+    previewRestoringDrawerRef.current = !!previewReturnDrawerTypeRef.current;
     setPreviewOpen(open);
+    if (open === false) {
+      const restore = previewReturnDrawerTypeRef.current;
+      previewReturnDrawerTypeRef.current = null;
+      if (restore && isAtelierCompact) setOpenType(restore);
+    }
     props.onShellPreviewOpenChange?.(open);
   };
+
+  useEffect(() => {
+    if (!props.isNative || !isAtelierCompact || !resolvedPreviewOpen) return;
+    setSystemBarsDarkSurface(true);
+    return () => setSystemBarsDarkSurface(false);
+  }, [props.isNative, isAtelierCompact, resolvedPreviewOpen]);
+
+  // The full-screen preview covers the workspace completely, but the workspace (and the app shell
+  // behind it) stay composited and keep consuming the GPU's tile budget — over budget this phone
+  // recycles tiles and paints stale ones INTO the preview (foreign content inside cards, elements
+  // frozen mid-animation). Skip rendering what cannot be seen; layout and scroll state survive.
+  useEffect(() => {
+    if (!isAtelierCompact || !resolvedPreviewOpen) return;
+    document.body.classList.add("atelier-preview-owns-screen");
+    return () => document.body.classList.remove("atelier-preview-owns-screen");
+  }, [isAtelierCompact, resolvedPreviewOpen]);
 
   const handleDragEnd = (e: DragEndEvent) => {
     setSectionDragging(false);
@@ -1421,6 +1464,28 @@ export function SectionBuilder(props: SectionBuilderProps) {
     ? sectionSummaryWithVariant(selectedPreviewEntry, selectedSectionInfo.summary, t)
     : null;
   const selectedSectionType = selectedSection?.entry.type;
+  // Identity changes exactly when the open section's editable content changes (draft edits or a
+  // tried preview variant) — drives the preview CTA nudge in the compact editor drawer.
+  const editorChangeSignal = useMemo(
+    () => [
+      selectedPreviewEntry,
+      props.faqItems,
+      props.announcementContent,
+      props.aboutContent,
+      props.tagline,
+      props.establishedYear,
+      props.heroImageUrl,
+    ],
+    [
+      selectedPreviewEntry,
+      props.faqItems,
+      props.announcementContent,
+      props.aboutContent,
+      props.tagline,
+      props.establishedYear,
+      props.heroImageUrl,
+    ],
+  );
   const desktopInspectorOpen =
     !isAtelierCompact && !!openType && selectedSectionType === openType && !!selectedSectionInfo;
   const previewPeekViewingLabel = openType && isKnownSectionType(openType)
@@ -2069,6 +2134,7 @@ export function SectionBuilder(props: SectionBuilderProps) {
                   disabled={styleControlsDisabled}
                   isOptionDisabled={(option) => (!props.canWrite || dataLocked) && !option.locked}
                   onSelect={(option) => {
+                    selectionTickHaptic();
                     const revealCoverRequirement =
                       entry.type === "hero" &&
                       !props.heroImageUrl &&
@@ -2289,6 +2355,7 @@ export function SectionBuilder(props: SectionBuilderProps) {
         }
         previewAvailable={selectedPreviewEntry.visible}
         onOpenPreview={() => openPreview("page", entry.type)}
+        changeSignal={editorChangeSignal}
       >
         {renderSettings(entry, index)}
       </CompactSectionEditorSurface>
@@ -2388,7 +2455,7 @@ export function SectionBuilder(props: SectionBuilderProps) {
                   <span>{t("businessPage.builder.livePreview")}</span>
                   <span className="atelier-mobile-preview-state">{previewPeekViewingLabel}</span>
                 </span>
-                {!openType && !renderedCompactType && !resolvedPreviewOpen ? (
+                {!openType && !renderedCompactType && !previewCoversPeek ? (
                   <ScaledPreview
                     layout={workspaceLayout}
                     data={previewData}
@@ -2402,7 +2469,7 @@ export function SectionBuilder(props: SectionBuilderProps) {
                 )}
                 <span className="atelier-mobile-preview-open">
                   <ArrowUpRight className="size-3.5" strokeWidth={1.8} aria-hidden />
-                  {t("businessPage.builder.previewExpand")}
+                  {t("businessPage.builder.workspacePreview")}
                 </span>
               </div>
               <button
@@ -2824,6 +2891,12 @@ export function SectionBuilder(props: SectionBuilderProps) {
         <DialogContent
           onCloseAutoFocus={(event) => {
             event.preventDefault();
+            if (previewRestoringDrawerRef.current) {
+              previewRestoringDrawerRef.current = false;
+              previewReturnElementRef.current = null;
+              previewReturnSectionTypeRef.current = null;
+              return;
+            }
             const originalTarget = previewReturnElementRef.current;
             const sectionType = previewReturnSectionTypeRef.current;
             window.requestAnimationFrame(() => {
@@ -2842,7 +2915,7 @@ export function SectionBuilder(props: SectionBuilderProps) {
               previewReturnSectionTypeRef.current = null;
             });
           }}
-          overlayClassName="z-[74]"
+          overlayClassName="z-[74] bg-black/70"
           className="website-atelier atelier-preview-dialog z-[75] flex h-[90vh] max-h-[90vh] w-full max-w-[min(1280px,calc(100%-2rem))] flex-col gap-0 overflow-hidden p-0 md:max-w-[min(1280px,calc(100%-2rem))]"
         >
           <DialogHeader
@@ -3072,10 +3145,13 @@ function LogicalFullPreviewCanvas({
   // has been measured. A parent effect can run before that node exists and permanently miss the request.
   useEffect(() => {
     if (!active || !previewReady) return;
+    // Instant: this positions a just-mounted page. Smooth-scrolling through a page that is still
+    // rasterising is pure jank; a jump lands before the reader can perceive the dialog's content.
     return schedulePreviewSectionFocus(
       () => scrollRef.current,
       () => pageRef.current,
       focusType ?? "top",
+      "auto",
     );
   }, [active, chrome, device, focusKey, focusType, previewReady, scrollRef]);
 
@@ -3135,11 +3211,11 @@ function LogicalFullPreviewCanvas({
 // ---------------------------------------------------------------------------
 
 /**
- * Full-screen compact preview geometry from the Atelier reference. Phone mode is a
- * logical 390px page fitted into an 800px viewport; desktop mode is a true 1280px
- * page scaled to the available width. The logical scroll viewport is transformed with
- * the page, matching an iframe so sticky site chrome and scroll distance share one
- * coordinate system. Unsafe links and booking submissions remain intercepted.
+ * Full-screen compact preview geometry from the Atelier reference. Phone mode renders
+ * 1:1 at the real available width (scale 1); desktop mode is a true 1280px page scaled
+ * to the available width. The logical scroll viewport is transformed with the page,
+ * matching an iframe so sticky site chrome and scroll distance share one coordinate
+ * system. Unsafe links and booking submissions remain intercepted.
  */
 function CompactFullPreview({
   scrollRef,
@@ -3169,6 +3245,34 @@ function CompactFullPreview({
   const stageRef = useRef<HTMLDivElement | null>(null);
   const pageRef = useRef<HTMLDivElement | null>(null);
   const [stage, setStage] = useState({ width: 0, height: 0 });
+  const [liftedFor, setLiftedFor] = useState<string | null>(null);
+  const [contentArmed, setContentArmed] = useState(false);
+
+  // Location selection lives HERE, not in SectionBuilder: paging a location must re-render only
+  // this dialog subtree. Routing it through SectionBuilder re-rendered the entire builder (plus
+  // the hidden workspace card) — measured as ~400ms + ~550ms main-thread blocks per tap on a
+  // Helio G85. The builder gets the final selection once, when the dialog closes.
+  const [localSelectedLocationId, setLocalSelectedLocationId] = useState<number | null>(
+    selectedLocationId ?? null,
+  );
+  const latestSelectionRef = useRef(localSelectedLocationId);
+  const flushSelectionRef = useRef(onSelectedLocationChange);
+  flushSelectionRef.current = onSelectedLocationChange;
+  const handleSelectLocation = useCallback((locationId: number | null) => {
+    latestSelectionRef.current = locationId;
+    setLocalSelectedLocationId(locationId);
+  }, []);
+  useEffect(() => () => flushSelectionRef.current(latestSelectionRef.current), []);
+
+  // The tap's first frames belong to the closing drawer + dialog entrance; mounting the full virtual
+  // page immediately blocks the main thread mid-animation and everything freezes. Defer the heavy
+  // mount just past those transitions — the curtain covers the gap, so nothing visible changes.
+  // (290ms: the dialog's 240ms entrance must fully tear down first, or its layer teardown repaint
+  // lands in the same frame as the mount storm and flashes the header.)
+  useEffect(() => {
+    const timer = window.setTimeout(() => setContentArmed(true), 290);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     const stageNode = stageRef.current;
@@ -3200,30 +3304,100 @@ function CompactFullPreview({
   // bottom padding already removed. Keep the reference's remaining 4px breathing room.
   const availableWidth = Math.max(1, stage.width);
   const availableHeight = Math.max(1, stage.height - 4);
-  const virtualWidth = device === "mobile" ? 390 : 1280;
-  const scale =
-    device === "mobile"
-      ? Math.min(availableWidth / 390, availableHeight / 800)
-      : availableWidth / 1280;
+  // Phone: 1:1 at the real width, so the preview is what visitors actually see; desktop still scales down.
+  const virtualWidth = device === "mobile" ? Math.max(1, Math.round(availableWidth)) : 1280;
+  const scale = device === "mobile" ? 1 : availableWidth / 1280;
   const frameWidth = Math.max(1, Math.round(virtualWidth * scale));
   const virtualViewportHeight = Math.max(1, Math.round(availableHeight / Math.max(scale, 0.001)));
   const previewReady = stage.width > 0 && stage.height > 0 && scale > 0;
   const focusKey = previewFocusRenderKey(layout, focusType);
 
+  // Relative reading position, kept fresh by a passive listener — a device toggle restores it
+  // instead of snapping back to the focused section, so the user keeps their place.
+  const scrollRatioRef = useRef(0);
   useEffect(() => {
-    if (!active || !previewReady) return;
+    const node = scrollRef.current;
+    if (!node || !contentArmed) return;
+    const onScroll = () => {
+      const max = node.scrollHeight - node.clientHeight;
+      scrollRatioRef.current = max > 0 ? node.scrollTop / max : 0;
+    };
+    node.addEventListener("scroll", onScroll, { passive: true });
+    return () => node.removeEventListener("scroll", onScroll);
+  }, [contentArmed, scrollRef]);
+
+  const prevDeviceRef = useRef(device);
+  useEffect(() => {
+    const deviceChanged = prevDeviceRef.current !== device;
+    prevDeviceRef.current = device;
+    if (!active || !previewReady || !contentArmed) return;
+    if (deviceChanged) {
+      // Restore the relative position under the re-armed curtain (two frames for the relayout).
+      const ratio = scrollRatioRef.current;
+      let raf2 = 0;
+      const raf1 = window.requestAnimationFrame(() => {
+        raf2 = window.requestAnimationFrame(() => {
+          const node = scrollRef.current;
+          if (!node) return;
+          node.scrollTop = ratio * Math.max(0, node.scrollHeight - node.clientHeight);
+        });
+      });
+      return () => {
+        window.cancelAnimationFrame(raf1);
+        window.cancelAnimationFrame(raf2);
+      };
+    }
+    // Instant, so the curtain lifts already positioned on the section — an animated scroll through a
+    // freshly-mounting page is the single laggiest thing a low-end phone can be asked to do.
     return schedulePreviewSectionFocus(
       () => scrollRef.current,
       () => pageRef.current,
       focusType ?? "top",
+      "auto",
     );
-  }, [active, device, focusKey, focusType, previewReady, scrollRef]);
+  }, [active, contentArmed, device, focusKey, focusType, previewReady, scrollRef]);
+
+  // Curtain: held until the page's tiles are ready, keyed by device+width so a device
+  // toggle re-arms it. Derived from render, not set in an effect. Covers from frame zero
+  // on purpose: this hardware needs ~½s to rasterise the page, so any "reveal early"
+  // shortcut (probe delay, skeleton, view-transition crossfade) exposes checkerboard
+  // frames — one deliberate cover with a single soft lift is the premium-feeling option.
+  const curtainKey = `${device}:${virtualWidth}`;
+  const curtainHeld = liftedFor !== curtainKey;
+
+  useEffect(() => {
+    if (!previewReady || !contentArmed) return;
+    let cancelled = false;
+    const start = performance.now();
+    const raf = () => new Promise<void>((r) => window.requestAnimationFrame(() => r()));
+    const wait = (ms: number) => new Promise<void>((r) => window.setTimeout(r, ms));
+    (async () => {
+      // Decode the above-the-fold images (hero + eager) so the photo doesn't pop in after the fade.
+      const root = pageRef.current;
+      const imgs = root
+        ? Array.from(root.querySelectorAll<HTMLImageElement>('[data-preview-section="hero"] img, img[loading="eager"]'))
+        : [];
+      // Repeat opens: everything above the fold is already decoded, so the hold floor drops —
+      // the curtain only needs to outlast rasterisation, not re-play the first-open beat.
+      const warm = imgs.length > 0 && imgs.every((img) => img.complete && img.naturalWidth > 0);
+      await Promise.race([
+        Promise.all(imgs.map((img) => (img.complete && img.naturalWidth > 0 ? Promise.resolve() : (img.decode?.() ?? Promise.resolve()).catch(() => undefined)))),
+        wait(1400),
+      ]);
+      await raf(); await raf(); await raf();
+      const remaining = (warm ? 200 : 360) - (performance.now() - start);
+      if (remaining > 0) await wait(remaining);
+      if (!cancelled) setLiftedFor(curtainKey);
+    })();
+    return () => { cancelled = true; };
+  }, [contentArmed, curtainKey, previewReady]);
 
   return (
     <div ref={stageRef} className="atelier-preview-dialog-canvas atelier-preview-dialog-canvas--compact">
       {stage.width > 0 && stage.height > 0 ? (
         <div
           className="atelier-preview-compact-frame"
+          data-curtain={curtainHeld ? "" : undefined}
           style={{ width: frameWidth, height: availableHeight }}
         >
           <div
@@ -3236,13 +3410,18 @@ function CompactFullPreview({
               style={{
                 width: virtualWidth,
                 height: virtualViewportHeight,
-                transform: `scale(${scale})`,
+                // Phone view renders 1:1, and even scale(1) promotes the whole ~8600px page into a
+                // single ~42MB texture this GPU cannot hold. No transform ⇒ Chrome tiles normally.
+                ...(scale === 1 ? null : { transform: `scale(${scale})` }),
                 "--mc-vph": `${virtualViewportHeight}px`,
               } as CSSProperties}
             >
               <div
                 ref={pageRef}
-                className="atelier-preview-virtual-page"
+                className={cn(
+                  "atelier-preview-virtual-page",
+                  device === "desktop" && "atelier-preview-at-rest",
+                )}
                 style={{
                   minHeight: virtualViewportHeight,
                 }}
@@ -3251,19 +3430,29 @@ function CompactFullPreview({
                 onContextMenuCapture={blockUnsafePreviewActivation}
                 onSubmitCapture={blockPreviewSubmit}
               >
-                <LivePreview
-                  layout={layout}
-                  data={data}
-                  chrome={chrome}
-                  startNumber={startNumber}
-                  focusType={focusType}
-                  selectedLocationId={selectedLocationId}
-                  onSelectedLocationChange={onSelectedLocationChange}
-                  locationScope={locationScope}
-                />
+                {/* Desktop mock = settled page: heavy self-running motion parks (PreviewAtRestContext);
+                    scrolling, links, and menus stay interactive. Mobile is 1:1 and fully live. */}
+                {contentArmed ? (
+                  <PreviewAtRestContext.Provider value={device === "desktop"}>
+                    <LivePreview
+                      layout={layout}
+                      data={data}
+                      chrome={chrome}
+                      startNumber={startNumber}
+                      focusType={focusType}
+                      selectedLocationId={localSelectedLocationId}
+                      onSelectedLocationChange={handleSelectLocation}
+                      locationScope={locationScope}
+                    />
+                  </PreviewAtRestContext.Provider>
+                ) : null}
               </div>
             </div>
           </div>
+          {/* Keep the screen edges system-owned so the Android back-swipe works over the preview. */}
+          <div className="atelier-preview-edge-gesture-margin atelier-preview-edge-gesture-margin--left" aria-hidden />
+          <div className="atelier-preview-edge-gesture-margin atelier-preview-edge-gesture-margin--right" aria-hidden />
+          <div className="atelier-preview-curtain" data-state={curtainHeld ? "held" : "lifted"} aria-hidden />
         </div>
       ) : null}
     </div>
@@ -3282,6 +3471,7 @@ function CompactSectionEditorSurface({
   headerEnd,
   previewAvailable,
   onOpenPreview,
+  changeSignal,
   children,
 }: {
   phone: boolean;
@@ -3293,11 +3483,39 @@ function CompactSectionEditorSurface({
   headerEnd: ReactNode;
   previewAvailable: boolean;
   onOpenPreview: () => void;
+  /** Identity changes when the open section's editable content changes — nudges the preview CTA. */
+  changeSignal?: unknown;
   children: ReactNode;
 }) {
   const { t } = useTranslation("website");
   const titleRef = useRef<HTMLHeadingElement | null>(null);
   const skipFocusRestoreRef = useRef(false);
+  const previewCtaRef = useRef<HTMLButtonElement | null>(null);
+  const changeArmedRef = useRef(false);
+  const lastNudgeAtRef = useRef(0);
+
+  // A committed change while the drawer is open breathes the preview CTA once: debounced so typing
+  // doesn't fire per keystroke, with a cooldown so an editing session nudges instead of nagging.
+  useEffect(() => {
+    if (!open) {
+      changeArmedRef.current = false;
+      return;
+    }
+    if (!changeArmedRef.current) {
+      changeArmedRef.current = true;
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      const el = previewCtaRef.current;
+      const now = Date.now();
+      if (!el || now - lastNudgeAtRef.current < 700) return;
+      lastNudgeAtRef.current = now;
+      el.removeAttribute("data-nudge");
+      void el.offsetWidth;
+      el.setAttribute("data-nudge", "");
+    }, 350);
+    return () => window.clearTimeout(timer);
+  }, [open, changeSignal]);
 
   const handleOpenChange = (next: boolean) => {
     if (next) skipFocusRestoreRef.current = false;
@@ -3320,7 +3538,6 @@ function CompactSectionEditorSurface({
   };
   const editorBody = (
     <div
-      data-vaul-no-drag={phone ? "" : undefined}
       className={cn(
         "website-atelier-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain px-4",
         previewAvailable
@@ -3332,18 +3549,16 @@ function CompactSectionEditorSurface({
     </div>
   );
   const previewAction = previewAvailable ? (
-    <Button
+    <button
+      ref={previewCtaRef}
       type="button"
-      variant="outline"
-      size="default"
-      rounded="default"
       aria-label={t("businessPage.builder.currentSectionPreview", { section: title })}
       onClick={handlePreview}
-      className="h-11 w-full text-[12.5px] font-medium"
+      className="atelier-editor-preview-cta website-atelier-focus website-atelier-press"
     >
-      <Eye className="size-3.5" strokeWidth={1.75} aria-hidden />
+      <Eye className="size-[15px] text-primary" strokeWidth={1.7} aria-hidden />
       {t("businessPage.builder.workspacePreview")}
-    </Button>
+    </button>
   ) : null;
 
   if (!phone) {
@@ -3393,7 +3608,6 @@ function CompactSectionEditorSurface({
       open={open}
       onOpenChange={handleOpenChange}
       autoFocus
-      handleOnly
       repositionInputs={false}
     >
       <DrawerContent
@@ -3413,11 +3627,11 @@ function CompactSectionEditorSurface({
             </DrawerTitle>
             <DrawerDescription className="mt-0.5 break-words text-left text-[12px] leading-[1.45]">{description}</DrawerDescription>
           </div>
-          <div data-vaul-no-drag="" className="mt-0.5 shrink-0">{headerEnd}</div>
+          <div className="mt-0.5 shrink-0">{headerEnd}</div>
         </DrawerHeader>
         {editorBody}
         {previewAction ? (
-          <DrawerFooter data-vaul-no-drag="" className="atelier-section-editor-footer mt-0 shrink-0 gap-0 border-t border-[var(--atelier-border-soft)] bg-[var(--atelier-paper)] px-4 py-3">
+          <DrawerFooter className="atelier-section-editor-footer mt-0 shrink-0 gap-0 border-t border-[var(--atelier-border-soft)] bg-[var(--atelier-paper)] px-4 py-3">
             {previewAction}
           </DrawerFooter>
         ) : null}
@@ -3460,7 +3674,10 @@ function DeviceToggle({
           variant="ghost"
           size="icon"
           rounded="default"
-          onClick={() => setDevice(id)}
+          onClick={() => {
+            if (device !== id) selectionTickHaptic();
+            setDevice(id);
+          }}
           aria-label={label}
           aria-pressed={device === id}
           title={label}

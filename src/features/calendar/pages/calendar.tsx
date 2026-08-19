@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import AddAppointmentSlider from '../components/AddAppointmentSlider';
 import { AppLayout } from '../../../shared/components/layouts/app-layout';
+import { Button } from '../../../shared/components/ui/button';
 import BusinessSetupGate from '../../../shared/components/guards/BusinessSetupGate';
 import { useDispatch, useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
@@ -251,17 +252,18 @@ const Calendar = () => {
   const mobileHeaderRight = isMobile ? (
     <div className="flex items-center gap-1">
       {showTodayChip && (
-        <button
+        <Button
           type="button"
+          variant="outline"
+          size="sm"
+          rounded="full"
           onClick={handleToday}
-          className="group inline-flex items-center gap-1.5 h-8 px-3 text-xs font-medium
-            text-foreground cursor-pointer transition-colors hover:bg-muted/50
-            outline-none focus-visible:ring-2 focus-visible:ring-ring/50
+          className="!min-h-0 gap-1.5 px-3 text-xs font-medium
             animate-in fade-in slide-in-from-right-2 duration-200"
         >
           <CalendarCheck2 className="h-3.5 w-3.5 text-primary" />
           {t("page.header.today")}
-        </button>
+        </Button>
       )}
       <NotificationBell variant="header" />
     </div>

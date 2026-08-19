@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { findScrollParent } from "../../../shared/util";
+import { useReducedMotion } from "../../../shared/hooks";
 import { StripTrack } from "../StripTrack";
 import type { MarqueeVariantProps } from "../types";
 import "./scroll.css";
@@ -21,10 +22,12 @@ export function Scroll({
   useBrandColorBackground,
 }: MarqueeVariantProps) {
   const trackRef = useRef<HTMLDivElement>(null);
+  // Shared hook so the at-rest desktop mock (and static thumbnails) skip the per-scroll paint entirely.
+  const reduced = useReducedMotion();
 
   useEffect(() => {
     const track = trackRef.current;
-    if (!track || !scrollDriven) return;
+    if (!track || !scrollDriven || reduced) return;
 
     const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)");
     const scroller = findScrollParent(track);
@@ -91,7 +94,7 @@ export function Scroll({
       track.style.transform = "";
       track.style.willChange = "";
     };
-  }, [items.length, scrollDriven]);
+  }, [items.length, scrollDriven, reduced]);
 
   return (
     <div

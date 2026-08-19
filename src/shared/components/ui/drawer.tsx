@@ -5,6 +5,8 @@ import { Drawer as DrawerPrimitive } from "vaul"
 
 import { cn } from "../../lib/utils"
 import appConfig from "../../../app/config/env"
+import { useKeyboardVisible } from "../../hooks/useKeyboardVisible"
+import { ignoreToastPointerDown } from "../../lib/toastInteraction"
 
 /**
  * vaul compensates for the soft keyboard by rewriting the drawer's inline
@@ -135,19 +137,90 @@ function DrawerOverlay({
   )
 }
 
+/**
+ * Chromium hands a touch to native scrolling the moment it starts inside a scroll
+ * container -- even at scrollTop 0 with nothing to scroll -- and cancels the pointer
+ * stream vaul drags the sheet with. Bodies that overflow could therefore only be
+ * dragged closed from the handle, and only by luck from the content (vaul saw 1-2
+ * moves before the cancel). `pan-down` at the top keeps finger-down gestures for
+ * the sheet while finger-up still scrolls natively; once scrolled, `pan-y` gives
+ * the whole gesture back to the scroller. Safari ignores `pan-down`, so iOS is
+ * unchanged. Purely horizontal scrollers are left alone.
+ */
+function useSheetScrollTouchAction(root: HTMLElement | null) {
+  React.useEffect(() => {
+    if (!root || root.getAttribute("data-vaul-drawer-direction") !== "bottom") return
+
+    const apply = (el: HTMLElement) => {
+      const horizontal = el.scrollWidth > el.clientWidth ? "pan-x " : ""
+      el.style.touchAction = horizontal + (el.scrollTop <= 0 ? "pan-down" : "pan-y")
+    }
+    const isVerticalScroller = (el: HTMLElement) => {
+      if (el.scrollHeight <= el.clientHeight) return false
+      const overflowY = getComputedStyle(el).overflowY
+      return overflowY === "auto" || overflowY === "scroll"
+    }
+    const scan = () => {
+      root.querySelectorAll<HTMLElement>("*").forEach((el) => {
+        if (isVerticalScroller(el)) apply(el)
+      })
+    }
+    const onScroll = (e: Event) => {
+      const el = e.target
+      if (el instanceof HTMLElement && el !== root && root.contains(el)) apply(el)
+    }
+
+    let frame = 0
+    const schedule = () => {
+      window.cancelAnimationFrame(frame)
+      frame = window.requestAnimationFrame(scan)
+    }
+    schedule()
+    root.addEventListener("scroll", onScroll, { capture: true, passive: true })
+    const mutations = new MutationObserver(schedule)
+    mutations.observe(root, { childList: true, subtree: true })
+    const resizes = new ResizeObserver(schedule)
+    resizes.observe(root)
+
+    return () => {
+      window.cancelAnimationFrame(frame)
+      mutations.disconnect()
+      resizes.disconnect()
+      root.removeEventListener("scroll", onScroll, { capture: true })
+    }
+  }, [root])
+}
+
 function DrawerContent({
   className,
   overlayClassName,
   children,
+  ref,
+  onPointerDownOutside,
   ...props
 }: React.ComponentProps<typeof DrawerPrimitive.Content> & {
   overlayClassName?: string;
 }) {
+  // State, not a ref: the content mounts inside a Radix Portal one commit later
+  // than this component, so a ref is still null when a mount effect would run.
+  const [contentEl, setContentEl] = React.useState<HTMLDivElement | null>(null)
+  useSheetScrollTouchAction(contentEl)
+  const setRef = React.useCallback(
+    (node: HTMLDivElement | null) => {
+      setContentEl(node)
+      if (typeof ref === "function") ref(node)
+      else if (ref) ref.current = node
+    },
+    [ref]
+  )
+
   return (
     <DrawerPortal data-slot="drawer-portal">
       <DrawerOverlay className={overlayClassName} />
       <DrawerPrimitive.Content
+        ref={setRef}
         data-slot="drawer-content"
+        onPointerDownOutside={ignoreToastPointerDown(onPointerDownOutside)}
         className={cn(
           "group/drawer-content bg-background fixed z-50 flex h-auto flex-col",
           "data-[vaul-drawer-direction=top]:inset-x-0 data-[vaul-drawer-direction=top]:top-0 data-[vaul-drawer-direction=top]:mb-24 data-[vaul-drawer-direction=top]:max-h-[85vh] data-[vaul-drawer-direction=top]:rounded-b-lg data-[vaul-drawer-direction=top]:border-b",
@@ -179,10 +252,12 @@ function DrawerHeader({ className, ...props }: React.ComponentProps<"div">) {
 }
 
 function DrawerFooter({ className, ...props }: React.ComponentProps<"div">) {
+  // Native keyboard covers the footer (like the bottom nav) instead of pushing it up.
+  const keyboardVisible = useKeyboardVisible()
   return (
     <div
       data-slot="drawer-footer"
-      className={cn("mt-auto flex flex-col gap-2 p-4", className)}
+      className={cn("mt-auto flex flex-col gap-2 p-4", keyboardVisible && "hidden", className)}
       {...props}
     />
   )

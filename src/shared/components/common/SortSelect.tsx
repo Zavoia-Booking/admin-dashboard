@@ -111,9 +111,13 @@ export const SortSelect: React.FC<SortSelectProps> = ({
     </Button>
   );
 
-  const sortContent = (
-    <Command>
-      <CommandList className="scrollbar-hide">
+  // Shared between drawer and popover; only the list's height behaviour
+  // differs. The drawer lifts CommandList's 300px cap so the sheet grows to
+  // fit the options instead of scrolling internally — same pattern as
+  // MultiSelect/CountrySelect/TimezoneSelect.
+  const sortContent = (listClassName?: string) => (
+    <Command className={listClassName ? "flex min-h-0 flex-1 flex-col bg-transparent px-2 pt-1" : undefined}>
+      <CommandList className={cn("scrollbar-hide", listClassName)}>
         {groups.map((group, index) => (
           <div key={group.label}>
             {index > 0 && (
@@ -174,16 +178,16 @@ export const SortSelect: React.FC<SortSelectProps> = ({
             {triggerButton}
           </DrawerTrigger>
           <DrawerContent
-            className="outline-none !z-[100]"
+            className="flex max-h-[85dvh] flex-col outline-none !z-[100]"
             overlayClassName="!z-[95]"
           >
             <DrawerTitle className="sr-only">{placeholder}</DrawerTitle>
             <DrawerDescription className="sr-only">
               Select sorting option
             </DrawerDescription>
-            <div className="p-4 overflow-y-auto space-y-4">
-              {sortContent}
-            </div>
+            {sortContent(
+              "max-h-none min-h-0 flex-1 overflow-y-auto overscroll-contain pb-[calc(1rem+env(safe-area-inset-bottom))]"
+            )}
           </DrawerContent>
         </Drawer>
       ) : (
@@ -192,7 +196,7 @@ export const SortSelect: React.FC<SortSelectProps> = ({
             {triggerButton}
           </PopoverTrigger>
           <PopoverContent className="!w-68 px-1 py-2 scrollbar-hide" align="end">
-            {sortContent}
+            {sortContent()}
           </PopoverContent>
         </Popover>
       )}

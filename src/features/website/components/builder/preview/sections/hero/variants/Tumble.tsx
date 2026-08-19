@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { BookButton } from "../../../shared/primitives";
-import { prefersReducedMotion } from "../../../shared/util";
+import { useReducedMotion } from "../../../shared/hooks";
 import { HeroRate } from "../parts/HeroRate";
 import { deriveHeroContent } from "../parts/content";
 import type { HeroVariantProps } from "../types";
@@ -78,6 +78,7 @@ export function Tumble(props: HeroVariantProps) {
   const stageRef = useRef<HTMLHeadingElement>(null);
   const els = useRef<(HTMLElement | null)[]>([]);
   const simRef = useRef<{ kick: (i: number) => void } | null>(null);
+  const reducedMotion = useReducedMotion();
 
   useEffect(() => {
     const stage = stageRef.current;
@@ -99,7 +100,7 @@ export function Tumble(props: HeroVariantProps) {
       delay: 150 + i * 105 + rnd(i * 17) * 130,
       grounded: false,
     }));
-    const noMotion = prefersReducedMotion();
+    const noMotion = reducedMotion;
     let raf = 0;
     let last = 0;
     let t0 = 0;
@@ -185,7 +186,7 @@ export function Tumble(props: HeroVariantProps) {
       if (raf) cancelAnimationFrame(raf);
       simRef.current = null;
     };
-  }, [name, w, N, scatterK]);
+  }, [name, w, N, scatterK, reducedMotion]);
 
   let gi = -1;
   return (

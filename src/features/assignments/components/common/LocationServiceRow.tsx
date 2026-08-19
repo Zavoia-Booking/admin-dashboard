@@ -28,6 +28,7 @@ import { getCurrencyDisplay } from "../../../../shared/utils/currency";
 import { PriceDisplay } from "../../../../shared/components/common/PriceDisplay";
 import { getReadableTextColor } from "../../../../shared/utils/color";
 import { useIsMobile } from "../../../../shared/hooks/use-mobile";
+import { useKeyboardVisible } from "../../../../shared/hooks/useKeyboardVisible";
 import { DashedDivider } from "../../../../shared/components/common/DashedDivider";
 import { cn } from "../../../../shared/lib/utils";
 import { ServiceStaffOverridesModal } from "./ServiceStaffOverridesModal";
@@ -57,6 +58,8 @@ export function LocationServiceRow({
   const { t } = useTranslation("assignments");
   const { t: tServices } = useTranslation("services");
   const isMobile = useIsMobile();
+  // Native keyboard covers the drawer actions instead of pushing them up.
+  const keyboardVisible = useKeyboardVisible();
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isTeamMembersPopoverOpen, setIsTeamMembersPopoverOpen] = useState(false);
 
@@ -450,7 +453,7 @@ export function LocationServiceRow({
                 <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pt-1 md:pt-4 space-y-4">
                   {renderFormBody()}
                 </div>
-                <div className="shrink-0 px-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+                <div className={cn("shrink-0 px-4 pb-[calc(1rem+env(safe-area-inset-bottom))]", keyboardVisible && "hidden")}>
                   {renderFormActions()}
                 </div>
               </DrawerContent>

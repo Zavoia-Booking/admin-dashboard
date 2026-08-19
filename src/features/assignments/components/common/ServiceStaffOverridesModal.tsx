@@ -26,6 +26,7 @@ import { PersonAvatar } from "../../../../shared/components/common/PersonAvatar"
 import { getCurrencyDisplay } from "../../../../shared/utils/currency";
 import { PriceDisplay } from "../../../../shared/components/common/PriceDisplay";
 import { useIsMobile } from "../../../../shared/hooks/use-mobile";
+import { useKeyboardVisible } from "../../../../shared/hooks/useKeyboardVisible";
 import { DashedDivider } from "../../../../shared/components/common/DashedDivider";
 import { cn } from "../../../../shared/lib/utils";
 import { Skeleton } from "../../../../shared/components/ui/skeleton";
@@ -358,6 +359,8 @@ export function ServiceStaffOverridesModal({
   const { t } = useTranslation("assignments");
   const dispatch = useDispatch();
   const isMobile = useIsMobile();
+  // Native keyboard covers the mobile footer instead of pushing it up.
+  const keyboardVisible = useKeyboardVisible();
 
   const [staffOverrides, setStaffOverrides] = useState<StaffOverrideData[]>([]);
   const [originalStaffOverrides, setOriginalStaffOverrides] = useState<
@@ -620,7 +623,7 @@ export function ServiceStaffOverridesModal({
             {renderContent()}
           </div>
           {/* Mobile footer */}
-          <div className="bg-surface shrink-0">
+          <div className={cn("bg-surface shrink-0", keyboardVisible && "hidden")}>
             <DashedDivider
               marginTop="mt-0"
               className="mb-0"

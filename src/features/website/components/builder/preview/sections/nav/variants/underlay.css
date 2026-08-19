@@ -127,12 +127,18 @@
 .mc-nav-underlay-panel .mc-nav-menu-footer { margin-top: 0; }
 
 .mc-root.mc-nav-underlay-active .mc-page-flow {
+  overflow: clip;
+  transition: none;
+}
+/* Page-slide machinery only while the menu is engaged (open or animating — Underlay.tsx manages the class).
+   Merely SELECTING this variant must not promote the whole page: an always-on transform + will-change here
+   forced Chrome to rasterise every section at native scale (worst in the scaled-down desktop preview, where
+   that meant tile-memory blowout and checkerboard flashes). Same promote-only-while-live rule as the hero. */
+.mc-root.mc-nav-underlay-engaged .mc-page-flow {
   border-top-right-radius: calc(22px * var(--mc-underlay-progress, 0));
   border-bottom-right-radius: calc(22px * var(--mc-underlay-progress, 0));
   box-shadow: 34px 0 90px -28px rgba(20,16,14,calc(.5 * var(--mc-underlay-progress, 0)));
-  overflow: clip;
   transform: translate3d(calc(-1 * var(--mc-underlay-travel) * var(--mc-underlay-progress, 0)), 0, 0);
-  transition: none;
   will-change: transform, border-radius, box-shadow;
 }
 

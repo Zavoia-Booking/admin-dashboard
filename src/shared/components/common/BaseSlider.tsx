@@ -5,7 +5,9 @@ import type { LucideIcon } from "lucide-react";
 import { Button } from "../ui/button";
 import { DashedDivider } from "./DashedDivider";
 import { cn } from "../../lib/utils";
+import { ignoreToastPointerDown } from "../../lib/toastInteraction";
 import { PortalContainerContext } from "../../contexts/PortalContainerContext";
+import { useKeyboardVisible } from "../../hooks/useKeyboardVisible";
 
 /**
  * Slide-in panel built on Vaul (right-direction drawer).
@@ -62,6 +64,8 @@ export const BaseSlider: React.FC<BaseSliderProps> = ({
   footer,
 }) => {
   const panelRef = useRef<HTMLDivElement>(null);
+  // Native keyboard covers the footer (like the bottom nav) instead of pushing it up.
+  const keyboardVisible = useKeyboardVisible();
 
   return (
     <VaulDrawer.Root
@@ -97,6 +101,7 @@ export const BaseSlider: React.FC<BaseSliderProps> = ({
         {/* Sliding panel */}
         <VaulDrawer.Content
           ref={panelRef}
+          onPointerDownOutside={ignoreToastPointerDown()}
           className={cn(
             "fixed z-[80] bg-surface outline-none",
             // Mobile: full width, flush to the right edge, full height.
@@ -115,7 +120,9 @@ export const BaseSlider: React.FC<BaseSliderProps> = ({
             <div
               className={cn(
                 "relative flex flex-col bg-surface",
-                "p-4 px-0 md:p-6",
+                // Mobile panel is edge-to-edge (top-0), so the status bar inset
+                // (stable var survives keyboard-open env() collapse) + breathing room.
+                "pt-[max(1rem,calc(var(--safe-area-top-stable,env(safe-area-inset-top,0px))+0.5rem))] pb-4 px-0 md:p-6 md:pt-6",
                 headerClassName,
               )}
             >
@@ -197,6 +204,7 @@ export const BaseSlider: React.FC<BaseSliderProps> = ({
               <div
                 className={cn(
                   "flex flex-col bg-surface shrink-0 z-100",
+                  keyboardVisible && "hidden",
                   footerClassName,
                 )}
               >
@@ -206,7 +214,8 @@ export const BaseSlider: React.FC<BaseSliderProps> = ({
                   paddingTop="pt-0 md:pt-4"
                   dashPattern="1 1"
                 />
-                <div className="px-3 md:px-6 md:pb-2">{footer}</div>
+                {/* Mobile: clear the gesture bar (env inset) with a small floor on web. */}
+                <div className="px-3 pb-[max(0.5rem,env(safe-area-inset-bottom,0px))] md:px-6 md:pb-2">{footer}</div>
               </div>
             )}
           </PortalContainerContext.Provider>

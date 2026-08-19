@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState, type ReactElement, type ReactNode } from "react";
-import { ArrowLeft, Check, CircleAlert, Eye, LoaderCircle, Save as SaveIcon } from "lucide-react";
+import { Check, ChevronLeft, CircleAlert, Eye, LoaderCircle, Save as SaveIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { Button } from "../../../../shared/components/ui/button";
 import {
   Tooltip,
   TooltipContent,
@@ -20,6 +21,15 @@ export type AtelierSaveStatus =
 
 interface WebsiteAtelierHeaderProps {
   variant: "desktop" | "mobile";
+  /** Phone layout (<768px) inside the mobile variant: labeled Save pill, preview lives in the ⋯ sheet. */
+  phone?: boolean;
+  /** Phone only: preview would be the ⋯ sheet's only row, so it renders as a header button instead. */
+  phoneShowsPreviewInline?: boolean;
+  /** Phone Save pill only exists while there is something to save. */
+  hasUnsavedChanges?: boolean;
+  saveMode?: "save" | "retry";
+  /** Edit-only plans: replaces "Not published yet" so the caption says why publish is absent. */
+  draftPlanCaption?: string | null;
   businessName?: string | null;
   brandColor?: string | null;
   monogramFontFamily?: string;
@@ -91,8 +101,9 @@ function SaveStatus({
     const previous = previousStatus.current;
     previousStatus.current = status;
 
+    // Flash only after a real save lands (not after discard/reload, which also end "saved").
     if (status !== "saved") return;
-    if (previous === "saved") return;
+    if (previous !== "saving" && previous !== "queued") return;
 
     setShowSavedFlash(true);
     const timeout = window.setTimeout(() => setShowSavedFlash(false), 1800);
@@ -196,6 +207,11 @@ function ActionReasonTooltip({
 
 export function WebsiteAtelierHeader({
   variant,
+  phone = false,
+  phoneShowsPreviewInline = false,
+  hasUnsavedChanges = false,
+  saveMode = "save",
+  draftPlanCaption,
   businessName,
   brandColor,
   monogramFontFamily,
@@ -224,6 +240,17 @@ export function WebsiteAtelierHeader({
   const { t } = useTranslation("website");
   const saveReasonId = useId();
   const publishReasonId = useId();
+  // Phone caption flashes "Saved" briefly on save (the desktop SaveStatus does the same).
+  const previousSaveStatus = useRef(saveStatus);
+  const [mobileSavedFlash, setMobileSavedFlash] = useState(false);
+  useEffect(() => {
+    const previous = previousSaveStatus.current;
+    previousSaveStatus.current = saveStatus;
+    if (saveStatus !== "saved" || (previous !== "saving" && previous !== "queued")) return;
+    setMobileSavedFlash(true);
+    const timeout = window.setTimeout(() => setMobileSavedFlash(false), 1800);
+    return () => window.clearTimeout(timeout);
+  }, [saveStatus]);
   const title = businessName?.trim() || t("page.identity.fallbackName");
   const isSaveWarning =
     saveStatus === "invalid" ||
@@ -232,10 +259,10 @@ export function WebsiteAtelierHeader({
     saveStatus === "conflict";
   const mobilePublicationSummary =
     publishStatus === "live"
-      ? t("page.status.upToDate")
+      ? `${t("page.status.published")} · ${t("page.status.upToDate")}`
       : publishStatus === "stale"
         ? t("page.status.draftAheadOfLive")
-        : t("page.status.notPublishedYet");
+        : draftPlanCaption || t("page.status.notPublishedYet");
   const mobileStatusLabel =
     saveStatus === "invalid" && blockingIssueCount > 0
       ? t(
@@ -246,7 +273,16 @@ export function WebsiteAtelierHeader({
         )
       : saveStatus === "saving" || saveStatus === "queued" || isSaveWarning
         ? t(saveStatusKey[saveStatus])
-        : mobilePublicationSummary;
+        : saveStatus === "unsaved"
+          ? t("page.status.unsaved")
+          : mobileSavedFlash
+            ? t("page.status.saved")
+            : mobilePublicationSummary;
+  const mobileStatusTone = isSaveWarning
+    ? "text-[var(--atelier-warning)]"
+    : saveStatus === "saved" && (mobileSavedFlash || publishStatus === "live")
+      ? "text-[var(--atelier-success)]"
+      : "text-[var(--atelier-ink-soft)]";
   const saveActionLabel = saveLabel ?? t("page.actions.saveChanges");
   const desktopPublishLabel = publishLabel ?? (publishSavesChanges
     ? t("page.actions.savePublish")
@@ -267,6 +303,10 @@ export function WebsiteAtelierHeader({
     : saveStatus === "saved"
       ? "text-[var(--atelier-success)]"
       : "text-[var(--atelier-ink)]";
+  // Saved + nothing to do: render as inert status, not a bordered control — a bordered
+  // check at the top-right of a phone screen reads as "Done" and invites a tap that does nothing.
+  const mobileSaveInert = saveStatus === "saved" && !saveBusy;
+  const mobileSaveSpinning = saveBusy || saveStatus === "saving" || saveStatus === "queued";
   const publishAriaLabel = (label: string) =>
     publishBusy
       ? t("page.status.publishing")
@@ -287,56 +327,98 @@ export function WebsiteAtelierHeader({
   if (variant === "mobile") {
     return (
       <div className="flex h-[54px] w-full min-w-0 items-center gap-2.5 px-3">
-        <button
-          type="button"
+        {/* Same recipe as the app's mobile page header (Breadcrumbs): nav chrome follows the app, not the skin. */}
+        <Button
+          variant="ghost"
+          size="icon"
+          rounded="full"
           onClick={onBack}
-          className="website-atelier-focus website-atelier-press relative grid size-8 shrink-0 place-items-center rounded-[8px] text-[var(--atelier-ink-soft)] after:absolute after:-inset-1.5 after:content-[''] hover:bg-[var(--atelier-field)]"
+          className="h-8 !w-8 shrink-0 text-[var(--atelier-ink-soft)] hover:bg-[var(--atelier-field)] hover:text-[var(--atelier-ink)]"
           aria-label={t("page.actions.backToDashboard")}
         >
-          <ArrowLeft className="size-[17px]" strokeWidth={1.9} aria-hidden />
-        </button>
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1.5">
-            <span className="truncate text-[15px] font-[650] tracking-[-0.01em]">{t("page.title")}</span>
-            <span
-              className="size-1.5 shrink-0 rounded-full"
-              style={{
-                backgroundColor:
-                  publishStatus === "live"
-                    ? "var(--atelier-success)"
-                    : publishStatus === "stale"
-                      ? "var(--atelier-warning)"
-                      : "#d8d2c1",
-              }}
-              aria-hidden
-            />
-          </div>
+          {/* Publish state lives in the caption text; no dot echoing it next to the title. */}
+          <p className="truncate text-[15px] font-[650] tracking-[-0.01em]">{t("page.title")}</p>
           {saveStatus === "invalid" && onReviewBlockingIssues ? (
             <button
               type="button"
               onClick={onReviewBlockingIssues}
-              className="website-atelier-focus mt-0.5 block max-w-full truncate rounded-[4px] text-left text-[10.5px] text-[var(--atelier-warning)] underline decoration-current/35 underline-offset-2 hover:decoration-current"
+              className="website-atelier-focus mt-px block max-w-full truncate rounded-[4px] text-left text-[12px] text-[var(--atelier-warning)] underline decoration-current/35 underline-offset-2 hover:decoration-current"
               aria-live="polite"
             >
               {mobileStatusLabel}
             </button>
           ) : (
-            <p className="mt-0.5 truncate text-[10.5px] text-[var(--atelier-muted)]" aria-live="polite">
+            <p className={`mt-px truncate text-[12px] ${mobileStatusTone}`} aria-live="polite">
               {mobileStatusLabel}
             </p>
           )}
         </div>
-        {onPreview ? (
+        {onPreview && phoneShowsPreviewInline ? (
+          // Same recipe as the Save pill: a labeled header action, since it's the screen's
+          // only control here — a bare icon square would be under-designed standing alone.
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            rounded="full"
+            onClick={onPreview}
+            className="!min-h-0 shrink-0 gap-1.5 px-3 text-xs font-medium"
+          >
+            <Eye className="h-3.5 w-3.5 text-primary" strokeWidth={1.7} aria-hidden />
+            {t("page.actions.preview")}
+          </Button>
+        ) : onPreview && !phone ? (
           <button
             type="button"
             onClick={onPreview}
-            className="website-atelier-focus website-atelier-press relative grid h-8 w-[34px] shrink-0 place-items-center rounded-[9px] border border-[var(--atelier-border)] bg-[var(--atelier-surface-strong)] text-[var(--atelier-ink-soft)] after:absolute after:-inset-[5px] after:content-[''] hover:border-[color-mix(in_srgb,var(--atelier-ink)_28%,transparent)] max-[400px]:hidden"
+            className="website-atelier-focus website-atelier-press relative grid h-8 w-[34px] shrink-0 place-items-center rounded-[9px] border border-[var(--atelier-border)] bg-[var(--atelier-surface-strong)] text-[var(--atelier-ink-soft)] after:absolute after:-inset-[5px] after:content-[''] hover:border-[color-mix(in_srgb,var(--atelier-ink)_28%,transparent)]"
             aria-label={t("businessPage.builder.openPreview")}
           >
             <Eye className="size-3.5" strokeWidth={1.7} aria-hidden />
           </button>
         ) : null}
-        {onSave ? (
+        {onSave && phone ? (
+          hasUnsavedChanges ? (
+            <>
+              {/* Same recipe as the calendar's "Today" pill: a labeled header action, present only while it has work to do. */}
+              <ActionReasonTooltip reason={saveDisabledReason}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  rounded="full"
+                  onClick={handleSave}
+                  loading={mobileSaveSpinning}
+                  aria-disabled={saveDisabled || saveBusy}
+                  aria-describedby={saveDisabledReason ? saveReasonId : undefined}
+                  aria-label={
+                    saveDisabledReason
+                      ? `${saveActionLabel}: ${saveDisabledReason}`
+                      : saveActionLabel
+                  }
+                  className={`!min-h-0 shrink-0 gap-1.5 px-3 text-xs font-medium aria-disabled:cursor-not-allowed aria-disabled:opacity-50 ${
+                    saveMode === "retry" ? "text-[var(--atelier-warning)]" : ""
+                  }`}
+                >
+                  {saveMode === "retry" ? (
+                    <CircleAlert className="h-3.5 w-3.5 text-[var(--atelier-warning)]" strokeWidth={1.9} aria-hidden />
+                  ) : (
+                    <SaveIcon className="h-3.5 w-3.5 text-primary" strokeWidth={1.8} aria-hidden />
+                  )}
+                  {saveMode === "retry" ? t("page.actions.retry") : t("page.actions.save")}
+                </Button>
+              </ActionReasonTooltip>
+              {saveDisabledReason ? (
+                <span id={saveReasonId} className="sr-only">
+                  {saveDisabledReason}
+                </span>
+              ) : null}
+            </>
+          ) : null
+        ) : onSave ? (
           <>
             <ActionReasonTooltip reason={saveDisabledReason}>
               <button
@@ -350,13 +432,15 @@ export function WebsiteAtelierHeader({
                     ? `${saveActionLabel}: ${saveDisabledReason}`
                     : saveActionLabel
                 }
-                className={`website-atelier-focus website-atelier-press relative grid size-[34px] shrink-0 place-items-center rounded-[9px] border border-[var(--atelier-border)] bg-[var(--atelier-surface-strong)] after:absolute after:-inset-[5px] after:content-[''] hover:border-[color-mix(in_srgb,var(--atelier-ink)_28%,transparent)] aria-disabled:cursor-not-allowed ${
-                  saveStatus === "saved" || isSaveWarning
-                    ? "aria-disabled:opacity-100"
-                    : "aria-disabled:opacity-45"
+                className={`website-atelier-focus relative grid size-[34px] shrink-0 place-items-center rounded-[9px] border after:absolute after:-inset-[5px] after:content-[''] ${
+                  mobileSaveInert
+                    ? "border-transparent bg-transparent aria-disabled:cursor-default aria-disabled:opacity-100"
+                    : `website-atelier-press border-[var(--atelier-border)] bg-[var(--atelier-surface-strong)] hover:border-[color-mix(in_srgb,var(--atelier-ink)_28%,transparent)] aria-disabled:cursor-not-allowed ${
+                        isSaveWarning ? "aria-disabled:opacity-100" : "aria-disabled:opacity-45"
+                      }`
                 } ${mobileSaveTone}`}
               >
-                {saveBusy || saveStatus === "saving" || saveStatus === "queued" ? (
+                {mobileSaveSpinning ? (
                   <LoaderCircle className="size-3.5 animate-spin motion-reduce:animate-none" aria-hidden />
                 ) : saveStatus === "saved" ? (
                   <Check className="size-3.5" strokeWidth={2} aria-hidden />

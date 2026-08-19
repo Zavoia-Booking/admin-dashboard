@@ -1,4 +1,14 @@
 {
+  "pushPrimer": {
+    "title": "Nu rata nicio programare",
+    "subtitle": "Primești o alertă imediat ce apare ceva important:",
+    "benefitBookings": "Programări noi de la clienți",
+    "benefitCancellations": "Anulări și reprogramări",
+    "benefitConfirmations": "Confirmări de programări",
+    "benefitTeam": "Actualizări de la echipă",
+    "enable": "Activează notificările",
+    "notNow": "Nu acum"
+  },
   "title": "Notificări",
   "subtitle": "{{count}} notificări",
   "subtitleEmpty": "Nicio notificare încă",

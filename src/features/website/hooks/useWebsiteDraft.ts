@@ -35,6 +35,8 @@ import {
   collectWebsiteDraftIssues,
   type WebsiteDraftIssue,
 } from "../components/builder/draftValidation";
+import { isTeamLocked, isTestimonialsLocked } from "../components/builder/sectionDataRequirements";
+import { marqueeItems, MARQUEE_MIN_ITEMS } from "../components/builder/preview/sections/marquee/model";
 import type { ReconciledCheckoutIntent } from "../checkoutIntent";
 
 interface UseWebsiteDraftProps {
@@ -159,6 +161,8 @@ interface DraftBaseline {
   values: DraftValues;
   version: number;
   contentSignature: string;
+  /** True when a data lock hid a section the server still stores as visible (see applyDataLocks). */
+  dataLockChanged: boolean;
 }
 
 function cloneValues(values: DraftValues): DraftValues {
@@ -209,32 +213,63 @@ function initialAboutContent(
   return canSeed ? joinAboutContent("", story) : "";
 }
 
+/**
+ * Data-backed sections (marquee/team/testimonials) cannot be shown below their data threshold; the
+ * builder force-hides them (SectionBuilder's data-lock effect). Applying that same rule to the
+ * baseline keeps a locked-but-saved-visible section from reading as an unsaved edit the moment
+ * the workspace mounts. `dataLockChanged` reports whether the rule rewrote anything, so publish can
+ * still persist the hidden state before going live.
+ */
+function applyDataLocks(
+  layout: SectionEntry[],
+  locations: WebsiteBuilderLocation[],
+): { layout: SectionEntry[]; dataLockChanged: boolean } {
+  const locked = new Set<string>();
+  if (marqueeItems(locations).length < MARQUEE_MIN_ITEMS) locked.add("marquee");
+  if (isTeamLocked(locations)) locked.add("team");
+  if (isTestimonialsLocked(locations)) locked.add("testimonials");
+  let dataLockChanged = false;
+  const next = layout.map((entry) => {
+    if (!locked.has(entry.type) || !entry.visible) return entry;
+    dataLockChanged = true;
+    return { ...entry, visible: false };
+  });
+  return { layout: dataLockChanged ? next : layout, dataLockChanged };
+}
+
 function valuesFromDraft(
   draft: WebsiteDraft | null,
-  defaultAboutStory?: string | null,
-): DraftValues {
+  defaultAboutStory: string | null | undefined,
+  locations: WebsiteBuilderLocation[],
+): { values: DraftValues; dataLockChanged: boolean } {
+  const { layout, dataLockChanged } = applyDataLocks(buildInitialLayout(draft?.pageLayout), locations);
   return {
-    tagline: draft?.tagline ?? "",
-    aboutContent: initialAboutContent(draft, defaultAboutStory),
-    establishedYear: draft?.establishedYear ?? null,
-    brandColorHex: draft?.brandColorHex ?? "",
-    brandColorKey: draft?.brandColorKey ?? draft?.pageTheme?.brandColorKey ?? "",
-    layout: buildInitialLayout(draft?.pageLayout),
-    fontKey: initialFontKey(draft?.pageTheme),
-    faqItems: normalizeFaqItems(draft?.faq),
-    announcementContent: normalizeAnnouncement(draft?.announcement),
+    dataLockChanged,
+    values: {
+      tagline: draft?.tagline ?? "",
+      aboutContent: initialAboutContent(draft, defaultAboutStory),
+      establishedYear: draft?.establishedYear ?? null,
+      brandColorHex: draft?.brandColorHex ?? "",
+      brandColorKey: draft?.brandColorKey ?? draft?.pageTheme?.brandColorKey ?? "",
+      layout,
+      fontKey: initialFontKey(draft?.pageTheme),
+      faqItems: normalizeFaqItems(draft?.faq),
+      announcementContent: normalizeAnnouncement(draft?.announcement),
+    },
   };
 }
 
 function baselineFromDraft(
   draft: WebsiteDraft | null,
-  defaultAboutStory?: string | null,
+  defaultAboutStory: string | null | undefined,
+  locations: WebsiteBuilderLocation[],
 ): DraftBaseline {
-  const values = valuesFromDraft(draft, defaultAboutStory);
+  const { values, dataLockChanged } = valuesFromDraft(draft, defaultAboutStory, locations);
   return {
     values,
     version: draft?.version ?? 0,
     contentSignature: serializeValues(values),
+    dataLockChanged,
   };
 }
 
@@ -348,7 +383,7 @@ export function useWebsiteDraft({
   const { t, i18n } = useTranslation("website");
   const [initialAboutStory] = useState(() => defaultAboutStory?.trim() || null);
   const [baseline, setBaseline] = useState<DraftBaseline>(() =>
-    baselineFromDraft(draft, initialAboutStory),
+    baselineFromDraft(draft, initialAboutStory, locations),
   );
   const baselineRef = useRef<DraftBaseline>(baseline);
   const [tagline, setTagline] = useState<string>(baseline.values.tagline);
@@ -443,7 +478,12 @@ export function useWebsiteDraft({
     applyWorkingValues(baselineRef.current.values);
   }, [applyWorkingValues]);
 
-  const serverBaseline = baselineFromDraft(draft, initialAboutStory);
+  // Recomputed per render (draft and locations both arrive async); the effect below only reacts
+  // when the resulting version:content signature actually changes.
+  const serverBaseline = useMemo(
+    () => baselineFromDraft(draft, initialAboutStory, locations),
+    [draft, initialAboutStory, locations],
+  );
   const serverSignature = `${serverBaseline.version}:${serverBaseline.contentSignature}`;
   const processedServerSignatureRef = useRef(serverSignature);
 
@@ -497,6 +537,7 @@ export function useWebsiteDraft({
       }
       if (conflict) reconciliationRequiredRef.current = false;
       pendingSaveRef.current = null;
+      setPendingSave(null);
     }
   }, [conflict, saveFailure]);
 
@@ -928,7 +969,9 @@ export function useWebsiteDraft({
     // edit. Publish is an independent capability: a publish-only user must never issue an
     // unauthorized draft write, so the publish endpoint receives the existing version and
     // performs its own server-side validation/normalization.
-    if (isDirty || (baseline.version === 0 && saveEnabled)) {
+    // A data lock that hid a section the server still stores as visible is not "unsaved work"
+    // (no prompt, no Save button), but the live page must not publish the stale visible flag.
+    if (isDirty || ((baseline.version === 0 || baseline.dataLockChanged) && saveEnabled)) {
       const request = createSaveSnapshot();
       pendingSaveRef.current = request;
       setPendingSave(request);
@@ -939,6 +982,7 @@ export function useWebsiteDraft({
     return true;
   }, [
     baseline.version,
+    baseline.dataLockChanged,
     saveEnabled,
     conflict,
     createSaveSnapshot,

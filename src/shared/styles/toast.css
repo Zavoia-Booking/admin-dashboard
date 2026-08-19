@@ -10,6 +10,8 @@
 
 body [data-sonner-toaster] {
   font-family: var(--font-sans);
+  /* Radix sets body pointer-events:none behind modal layers; toasts must stay tappable there. */
+  pointer-events: auto;
 }
 
 body [data-sonner-toast][data-styled="true"] {

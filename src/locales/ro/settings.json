@@ -70,6 +70,8 @@
       "industryWarning1": "Dacă ai un anunț activ în marketplace, va fi setat temporar ca invizibil.",
       "industryWarning2": "După ce salvezi această modificare, mergi la anunțul tău din marketplace ca să actualizezi categoriile și să-l faci vizibil din nou.",
       "industryWarning3": "Astfel, businessul tău nu apare în categoria greșită și clienții te găsesc mai ușor.",
+      "changingCurrency": "Prețurile nu sunt convertite",
+      "currencyWarning": "Serviciile își păstrează sumele actuale; se schimbă doar moneda. Verifică și ajustează manual prețurile după salvare.",
       "descriptionPlaceholder": "Descrie ce oferi, cui te adresezi și zona în care activezi.",
       "currency": "Moneda implicită *",
       "currencyDescription": "Folosită pentru prețuri, facturi și programări.",
@@ -145,6 +147,8 @@
       "title": "Notificări push",
       "description": "Alege ce actualizări primești pe telefon.",
       "loadFailed": "Preferințele de notificare nu au putut fi încărcate.",
+      "osDenied": "Notificările sunt oprite pentru acest dispozitiv. Activează-le din setările de sistem pentru a primi alerte.",
+      "osDeniedCta": "Deschide setările",
       "saved": "Preferința de notificare a fost salvată.",
       "saveFailed": "Preferințele de notificare nu au putut fi salvate.",
       "master": {

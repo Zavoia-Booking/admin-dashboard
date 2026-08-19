@@ -8,7 +8,7 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import { ArrowRight } from "lucide-react";
-import { prefersReducedMotion } from "../../../shared/util";
+import { useReducedMotion } from "../../../shared/hooks";
 import { useGalleryFanSpread } from "../../gallery/parts/useGalleryFan";
 import { RvHead } from "../parts/RvHead";
 import { RvStackFace } from "../parts/RvStackFace";
@@ -44,7 +44,7 @@ const easeOutQuart = (value: number) => 1 - (1 - value) ** 4;
  *  the stack. An invisible sizer locks the deck to the tallest voice. Mirrors the source `RvStack`. */
 export function Deck({ quotes, showHeading, heading, kicker, no, italic, businessName, t }: ReviewsViewProps) {
   const n = quotes.length;
-  const reduced = prefersReducedMotion();
+  const reduced = useReducedMotion();
   const [hover, setHover] = useState(false);
   const [vw, setVw] = useState(() => (typeof window !== "undefined" ? window.innerWidth : 1200));
   const deckRef = useRef<HTMLDivElement>(null);

@@ -18,7 +18,7 @@
       "purchaseCancelled": "Payment cancelled. Your premium selection is unchanged.",
       "purchaseStatusUnavailable": "We couldn't confirm this payment. Your premium selection is unchanged.",
       "published": "The latest saved version is now published.",
-      "unpublished": "The published version was withdrawn. Your draft is still saved.",
+      "unpublished": "Your website has been unpublished. Your draft is still saved.",
       "publishFailed": "We couldn't publish your website",
       "unpublishFailed": "We couldn't unpublish your website",
       "publishLockedItems": "Unlock or replace premium options before publishing",
@@ -39,6 +39,8 @@
       "notPublished": "Not published",
       "notPublishedDetail": "not published",
       "notPublishedYet": "Not published yet",
+      "draftPlanWeb": "Draft · publishing needs Plus",
+      "draftPlanNative": "Draft · publishing not included",
       "upToDate": "up to date",
       "changesToPublish": "draft differs from live",
       "draftAheadOfLive": "Draft ahead of published version"
@@ -71,6 +73,8 @@
       "skipToBuilder": "Skip to Web Studio",
       "save": "Save",
       "saveChanges": "Save",
+      "retry": "Retry",
+      "preview": "Preview",
       "discardChanges": "Discard changes",
       "retrySave": "Retry save",
       "reload": "Load newer version",
@@ -93,7 +97,8 @@
       "needsAttention_other": "{{count}} things need attention",
       "unsavedDraft": "Draft has unsaved changes",
       "changesReady": "Changes ready to publish",
-      "ready": "Ready to publish"
+      "ready": "Ready to publish",
+      "unpublishHint": "Your website becomes unavailable to visitors"
     },
     "conflict": {
       "title": "A newer version is available",
@@ -114,7 +119,7 @@
       "discardAndLeave": "Discard & leave",
       "keepEditing": "Keep editing",
       "closeAndKeepEditing": "Close and keep editing",
-      "updateInProgress": "Wait for the current website update to finish before leaving.",
+      "updateInProgress": "The website is still updating. Wait for it to finish, or discard your changes and leave now.",
       "stay": "Stay",
       "discard": "Discard changes"
     },
@@ -131,7 +136,7 @@
     },
     "unpublishConfirm": {
       "title": "Unpublish website?",
-      "description": "The published version will be withdrawn. Your draft stays saved, and you can publish again later.",
+      "description": "Your website will be unpublished. Your draft stays saved, and you can publish again later.",
       "confirm": "Unpublish",
       "cancel": "Keep published"
     },
@@ -228,6 +233,10 @@
       "description": "Your draft is saved and stays yours. Upgrade to the Plus plan to take your website live.",
       "cta": "Upgrade to Plus",
       "notNow": "Not now"
+    },
+    "planNotice": {
+      "lead": "This is where you build and save your website draft.",
+      "native": "Publishing isn't included in your current plan."
     },
     "saveReason": {
       "readOnly": "Your current access doesn't allow editing",
@@ -622,10 +631,10 @@
       "accentColor": "Accent color",
       "fontLabel": "Font style",
       "fonts": {
-        "modern": "Modern",
-        "classic": "Classic",
-        "elegant": "Elegant",
-        "friendly": "Friendly",
+        "modern": "Geist",
+        "classic": "Libre Caslon",
+        "elegant": "Bodoni Moda",
+        "friendly": "Bricolage",
         "playfair": "Playfair",
         "cormorant": "Cormorant",
         "italiana": "Italiana",
@@ -767,9 +776,9 @@
       },
       "toast": {
         "undo": "Undo",
-        "sectionMoved": "{{section}} moved.",
-        "sectionShown": "{{section}} shown.",
-        "sectionHidden": "{{section}} hidden."
+        "sectionMoved": "{{section}} section moved.",
+        "sectionShown": "{{section}} section shown.",
+        "sectionHidden": "{{section}} section hidden."
       },
       "settings": {
         "contentSourceLabel": "Content source",

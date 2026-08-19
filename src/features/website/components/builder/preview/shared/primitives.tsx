@@ -2,11 +2,11 @@ import { useEffect, useState, type CSSProperties } from "react";
 import { Star, ArrowRight } from "lucide-react";
 import { cn } from "../../../../../../shared/lib/utils";
 import { DISPLAY } from "./constants";
+import { useReducedMotion } from "./hooks";
 
 /** Count-up that re-runs on mount — eases 0→value with a cubic ease-out (mirrors the microsite RollNum). */
 export function CountUp({ value, decimals = 0, durationMs = 760, delayMs = 0 }: { value: number; decimals?: number; durationMs?: number; delayMs?: number }) {
-  const reduce =
-    typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+  const reduce = useReducedMotion();
   const [shown, setShown] = useState(reduce ? value : 0);
   useEffect(() => {
     if (reduce) return;

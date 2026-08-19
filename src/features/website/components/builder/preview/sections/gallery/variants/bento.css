@@ -37,8 +37,10 @@
   transition: opacity 450ms var(--ease-out-strong), transform 1s var(--ease-out-strong);
 }
 
-.mc-bento-image:hover .mc-gallery-image {
-  transform: scale(1.05);
+@media (hover: hover) and (pointer: fine) {
+  .mc-bento-image:hover .mc-gallery-image {
+    transform: scale(1.05);
+  }
 }
 
 @container (min-width: 721px) and (max-width: 1024px) {

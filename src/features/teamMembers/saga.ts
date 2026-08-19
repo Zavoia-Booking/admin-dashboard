@@ -1,3 +1,4 @@
+import { maybeShowPushPrimer } from "../push-notifications/primer";
 import { takeLatest, call, put, all } from "redux-saga/effects";
 import { getSubscriptionSummaryAction } from "../settings/actions";
 import { fetchCurrentUserAction } from "../auth/actions";
@@ -14,6 +15,9 @@ function* handleInviteTeamMember(action: ReturnType<typeof inviteTeamMemberActio
   try {
     const response: InviteTeamMemberResponse = yield call(inviteTeamMemberApi, action.payload);
     yield put(inviteTeamMemberAction.success(response));
+    // Value moment for the push-permission soft ask ("get notified when they
+    // accept"); policy-gated no-op when ineligible.
+    void maybeShowPushPrimer("team-invited");
     yield put(listTeamMembersAction.request());
  
   } catch (error: unknown) {

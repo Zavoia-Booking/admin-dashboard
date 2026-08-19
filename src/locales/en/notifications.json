@@ -1,4 +1,14 @@
 {
+  "pushPrimer": {
+    "title": "Never miss an appointment",
+    "subtitle": "Get an alert the moment something needs your attention:",
+    "benefitBookings": "New appointments from customers",
+    "benefitCancellations": "Cancellations and reschedules",
+    "benefitConfirmations": "Appointment confirmations",
+    "benefitTeam": "Updates from your team",
+    "enable": "Turn on notifications",
+    "notNow": "Not now"
+  },
   "title": "Notifications",
   "subtitle": "{{count}} notifications",
   "subtitleEmpty": "No notifications yet",

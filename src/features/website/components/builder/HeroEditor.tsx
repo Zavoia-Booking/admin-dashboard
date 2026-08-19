@@ -60,6 +60,9 @@ export function HeroEditor({
   const showRating = config.showRating !== false;
   const inheritedEyebrow = defaultHeroEyebrow(locations, t);
   const coverRequired = heroVariantRequiresCoverImage(previewVariant);
+  // Text panel (the free base) also takes an optional cover: with one it renders the cover-plate
+  // layout, without it the drenched accent field — so the upload stays available, just not required.
+  const coverSupported = coverRequired || previewVariant === "default";
   const issueFor = (controlId: string) => blockingIssues.find(
     (issue) => issue.controlId === controlId && (!issue.locale || issue.locale === locale),
   )?.message;
@@ -98,13 +101,15 @@ export function HeroEditor({
         className={cn("!pt-0", variant === "atelier" && "atelier-hero-tagline-field")}
       />
 
-      {coverRequired ? (
+      {coverSupported ? (
         <div id="hero-cover-upload" tabIndex={-1} className="outline-none focus-visible:ring-2 focus-visible:ring-focus">
           <div className="mb-2 flex items-center justify-between gap-3">
             <span className={GROUP_LABEL}>{t("businessPage.branding.hero.label")}</span>
-            <span className="font-mono text-[9px] font-semibold uppercase tracking-[0.12em] text-destructive">
-              {t("businessPage.builder.hero.coverRequired")}
-            </span>
+            {coverRequired ? (
+              <span className="font-mono text-[9px] font-semibold uppercase tracking-[0.12em] text-destructive">
+                {t("businessPage.builder.hero.coverRequired")}
+              </span>
+            ) : null}
           </div>
           <HeroImageUpload
             heroImageUrl={heroImageUrl}

@@ -11,11 +11,13 @@ apply from: "../capacitor-cordova-android-plugins/cordova.variables.gradle"
 dependencies {
     implementation project(':capacitor-community-safe-area')
     implementation project(':capacitor-firebase-messaging')
+    implementation project(':capacitor-app')
     implementation project(':capacitor-browser')
     implementation project(':capacitor-haptics')
     implementation project(':capacitor-keyboard')
     implementation project(':capacitor-preferences')
     implementation project(':capgo-capacitor-social-login')
+    implementation project(':capacitor-native-settings')
 
 }
 

@@ -95,6 +95,7 @@ export function GoogleSignInButton({ context, disabled, className, onBeforeStart
     {nativeOverlay}
     <Button
       variant="outline"
+      rounded="full"
       type="button"
       onClick={() => {
         if (onBeforeStart && !onBeforeStart()) return;

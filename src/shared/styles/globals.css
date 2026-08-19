@@ -918,9 +918,16 @@ textarea {
  * end-of-motion deceleration. Open path is untouched (Vaul's default open
  * feels right; [data-state="closed"] only matches during close).
  */
+/* `forwards` keeps the final off-screen frame applied after the animation ends.
+ * Without it the drawer snaps back to fully open until React commits the
+ * unmount — a commit that arrives late when the close coincides with a route
+ * mount (More drawer → flow), which read as the drawer reopening for ~300ms.
+ * Radix Presence pins this itself but releases the pin after one macrotask,
+ * losing the race against the route-mount render. */
 [data-vaul-drawer][data-state="closed"] {
   animation-duration: 250ms !important;
   animation-timing-function: linear !important;
+  animation-fill-mode: forwards !important;
 }
 
 /* Vaul's no-snap backdrop also closes with a keyframe animation. Match the
@@ -928,6 +935,7 @@ textarea {
 [data-vaul-overlay][data-vaul-snap-points="false"][data-state="closed"] {
   animation-duration: 250ms !important;
   animation-timing-function: linear !important;
+  animation-fill-mode: forwards !important;
 }
 
 /* Mobile: hide scrollbar but keep scrolling working */

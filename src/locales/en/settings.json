@@ -70,6 +70,8 @@
       "industryWarning1": "If you have an active marketplace listing, it will be temporarily set to invisible.",
       "industryWarning2": "After you save this change, go to your marketplace listing to update your industry categories and make it visible again.",
       "industryWarning3": "This keeps your business from showing in the wrong category and helps customers find you more easily.",
+      "changingCurrency": "Prices are not converted",
+      "currencyWarning": "Your services keep their current amounts; only the currency changes. Review and adjust your prices manually after saving.",
       "descriptionPlaceholder": "Describe what you offer, who you help, and where you operate.",
       "currency": "Default currency *",
       "currencyDescription": "Used for prices, invoices, and bookings.",
@@ -145,6 +147,8 @@
       "title": "Push notifications",
       "description": "Choose which updates you receive on your phone.",
       "loadFailed": "Couldn't load your notification preferences.",
+      "osDenied": "Notifications are turned off for this device. Enable them in system settings to receive alerts.",
+      "osDeniedCta": "Open settings",
       "saved": "Notification preference saved.",
       "saveFailed": "Couldn't save your notification preferences.",
       "master": {

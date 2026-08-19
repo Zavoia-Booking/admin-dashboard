@@ -1,6 +1,6 @@
 import { takeEvery, call, select, all } from "redux-saga/effects";
 import { setAuthUserAction, logoutRequestAction } from "../auth/actions";
-import { registerForPush, unregisterFromPush } from "./service";
+import { registerIfGranted, unregisterFromPush } from "./service";
 import type { RootState } from "../../app/providers/store";
 import type { AuthUser } from "../auth/types";
 
@@ -12,8 +12,10 @@ function* handleAuthUserSet(action: ReturnType<typeof setAuthUserAction>): Gener
   if (user.role === "dashboard_user") return;
   if (lastRegisteredUserId === user.id) return;
 
+  // Silent only: registers when the OS permission is already granted. The
+  // system prompt is never fired from auth flow — the primer owns that.
   lastRegisteredUserId = user.id;
-  yield call(registerForPush);
+  yield call(registerIfGranted);
 }
 
 function* handleLogoutRequest(): Generator<any, void, any> {

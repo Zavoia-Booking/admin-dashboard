@@ -31,6 +31,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "../../ui/popover";
 import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
 import { useIsMobile } from "../../../hooks/use-mobile";
+import { useKeyboardVisible } from "../../../hooks/useKeyboardVisible";
 import { cn } from "../../../lib/utils";
 import { SearchInput } from "../SearchInput";
 import { SortSelect, type SortGroup } from "../SortSelect";
@@ -79,6 +80,8 @@ export function ManageServicesSheet({
   const { t } = useTranslation("services");
   const isSingleSelect = mode === 'single';
   const isMobile = useIsMobile();
+  // Native keyboard covers the mobile footer instead of pushing it up.
+  const keyboardVisible = useKeyboardVisible();
   const currentUser = useSelector(selectCurrentUser);
   const businessCurrency = currentUser?.business?.businessCurrency || "eur";
   const currencyDisplay = { ...getCurrencyDisplay(businessCurrency), currency: businessCurrency };
@@ -787,7 +790,7 @@ export function ManageServicesSheet({
   const renderFooter = (isMobileFooter = false) => {
     if (isSingleSelect) return null;
     return (
-    <div className={isMobileFooter ? "md:hidden bg-surface" : "hidden md:flex flex-col bg-surface shrink-0"}>
+    <div className={cn(isMobileFooter ? "md:hidden bg-surface" : "hidden md:flex flex-col bg-surface shrink-0", isMobileFooter && keyboardVisible && "hidden")}>
       <DashedDivider marginTop="mt-0" className="mb-0" paddingTop={isMobileFooter ? "pt-2" : "pt-4"} dashPattern="1 1" />
       <div className={isMobileFooter ? "flex justify-between gap-2 mt-0 md:mb-2 p-4" : "px-6 pb-2"}>
         <div className={isMobileFooter ? "contents" : "flex justify-between gap-2 mt-4 mb-3 md:mb-2"}>

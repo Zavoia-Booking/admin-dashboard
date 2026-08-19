@@ -18,7 +18,7 @@ type Props = {
   defaultEmail?: string;
   /** Lock the email field to defaultEmail (e.g. account-linking, where the tx pins the email). */
   emailReadOnly?: boolean;
-  autoFocusField?: "email" | "password";
+  autoFocusField?: "email" | "password" | "none";
   className?: string;
   onEmailChange?: (email: string) => void;
   showPasswordField?: boolean;
@@ -33,7 +33,14 @@ function CredentialsFormBase({
   isLoading,
   defaultEmail,
   emailReadOnly = false,
-  autoFocusField = "email",
+  // Default: autofocus the email field on pointer devices only. On touch,
+  // autofocus pops the keyboard over the freshly-rendered screen (and on
+  // every login/register tab switch, since the form remounts) — callers that
+  // want it there must opt in explicitly.
+  autoFocusField = typeof window !== "undefined" &&
+  window.matchMedia("(hover: hover) and (pointer: fine)").matches
+    ? "email"
+    : "none",
   className,
   onEmailChange,
   showPasswordField = true,

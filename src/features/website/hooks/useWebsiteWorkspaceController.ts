@@ -456,15 +456,15 @@ export function useWebsiteWorkspaceController({
           ? t("page.saveReason.busy")
           : null;
 
+  // Guard only when leaving would lose something: real edits (isDirty covers dirty/invalid/
+  // offline/failed/conflict once there are changes) or a write still in flight. A load-time
+  // validation issue on an untouched draft (saveStatus "invalid" without isDirty) must not
+  // arm the prompt — there is nothing new to lose.
   const navigationBlocker = useUnsavedChangesBlocker({
     when:
-      form.saveStatus === "dirty" ||
-      form.saveStatus === "invalid" ||
+      form.isDirty ||
       form.saveStatus === "saving" ||
       form.saveStatus === "queued" ||
-      form.saveStatus === "offline" ||
-      form.saveStatus === "failed" ||
-      form.saveStatus === "conflict" ||
       isHeroMutating ||
       isPublishing ||
       isUnpublishing,
@@ -492,6 +492,17 @@ export function useWebsiteWorkspaceController({
     form.resetToBaseline();
     return true;
   }, [discardDisabled, dispatch, form]);
+
+  /** Leave-guard escape hatch: unlike the same-page revert, this stays available while a write is
+   * in flight or queued, so a stalled save can never lock the owner on the page (native has no
+   * tab to close). Cancelling bumps the mutation generation: a late result is suppressed and the
+   * lane refetches server truth; only an unresolved conflict still needs its own decision. */
+  const discardChangesAndLeave = useCallback(() => {
+    if (conflict) return false;
+    dispatch(cancelWebsiteMutationIntentsAction());
+    form.resetToBaseline();
+    return true;
+  }, [conflict, dispatch, form]);
 
   const clearConflict = useCallback(() => {
     dispatch(clearWebsiteConflictAction());
@@ -663,6 +674,7 @@ export function useWebsiteWorkspaceController({
       disabledReason: discardDisabledReason,
       busy: discardBusy,
       discard: discardChanges,
+      discardAndLeave: discardChangesAndLeave,
     },
     publishBlockers,
     hasLockedBlockers,

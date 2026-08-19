@@ -462,7 +462,10 @@ export function collectWebsiteDraftIssues({
       ? null
       : editorialUrlMessage
   );
-  if (urlMessage) {
+  // A disabled button never renders (see Announcement.tsx's `showCta`), so a stale URL left
+  // over from before it was turned off has no effect on the live site — mirrors the label
+  // check above, which is already gated on `cta.enabled`.
+  if (announcementContent.cta.enabled && urlMessage) {
     issues.push({
       id: "announcement:cta-url",
       surface: "section",

@@ -5,6 +5,8 @@ import { AlertCircle, RotateCcw } from 'lucide-react'
 import { Button } from './shared/components/ui/button'
 import ProtectedRoute from './features/auth/components/ProtectedRoute'
 import { warmMainRoutes } from './shared/utils/routePreload'
+import { getHomeRouteForRole } from './shared/lib/permissions'
+import { usePermissions } from './shared/hooks/usePermissions'
 import PublicRoute from './features/auth/components/PublicRoute'
 import AccountLinkingModal from './features/auth/components/AccountLinkingModal'
 import AccountLinkingRequiredModal from './features/auth/components/AccountLinkingRequiredModal'
@@ -13,6 +15,7 @@ import SeatOverflowGate from './features/teamMembers/components/SeatOverflowGate
 import SeatOverflowDetector from './features/teamMembers/components/SeatOverflowDetector'
 import { SubscriptionBlocker } from './shared/components/common/subscription/SubscriptionBlocker'
 import PushListenersBootstrap from './features/push-notifications/PushListenersBootstrap'
+import PushPrimerSheet from './features/push-notifications/PushPrimerSheet'
 import SplashGate from './shared/components/splash/SplashGate'
 import { MobileBottomNav } from './shared/components/navigation/mobile-bottom-nav'
 import { useIsMobile } from './shared/hooks/use-mobile'
@@ -134,9 +137,14 @@ function RootLayout() {
       <SeatOverflowGate />
       <SubscriptionBlocker />
       <PushListenersBootstrap />
+      <PushPrimerSheet />
       <SplashGate />
       <Toaster
         position="top-right"
+        // Keep toasts below the native status bar; the stable var survives
+        // keyboard-open env() collapses (see shared/lib/safeArea.ts). 0 on web.
+        offset={{ top: "calc(var(--safe-area-top-stable, env(safe-area-inset-top)) + 24px)" }}
+        mobileOffset={{ top: "calc(var(--safe-area-top-stable, env(safe-area-inset-top)) + 16px)" }}
         expand={isWebsiteBuilder}
         visibleToasts={isWebsiteBuilder ? 3 : undefined}
         gap={isWebsiteBuilder ? 8 : undefined}
@@ -165,6 +173,17 @@ function AppNavLayout() {
       {isMobile && <MobileBottomNav />}
     </>
   )
+}
+
+/**
+ * The bare root is an entry alias only (native cold start loads the server root,
+ * so the router mounts at "/"). Normalize to the role-aware home route so the
+ * app never rests on a path the chrome route lists (Breadcrumbs back-button,
+ * notification bell) don't know about.
+ */
+function HomeRedirect() {
+  const { role } = usePermissions()
+  return <Navigate to={getHomeRouteForRole(role)} replace />
 }
 
 /** Resolve the retired Marketplace Website Builder tab before Marketplace mounts or fetches. */
@@ -207,7 +226,7 @@ const router = createBrowserRouter(
 
       {/* Main — shared AppNavLayout keeps the mobile bottom nav mounted across navigations */}
       <Route element={<AppNavLayout />}>
-        <Route path="/" element={<ProtectedRoute element={<DashboardPage />} />} />
+        <Route path="/" element={<ProtectedRoute element={<HomeRedirect />} />} />
         <Route path="/dashboard" element={<ProtectedRoute element={<DashboardPage />} />} />
         <Route path="/dashboard/:locationId" element={<ProtectedRoute element={<DashboardPage />} />} />
         <Route path="/calendar" element={<ProtectedRoute element={<CalendarPage />} />} />

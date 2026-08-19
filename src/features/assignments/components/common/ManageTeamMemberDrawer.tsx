@@ -13,6 +13,7 @@ import {
 import { Skeleton } from "../../../../shared/components/ui/skeleton";
 import { Button } from "../../../../shared/components/ui/button";
 import { useIsMobile } from "../../../../shared/hooks/use-mobile";
+import { useKeyboardVisible } from "../../../../shared/hooks/useKeyboardVisible";
 import { getCurrencyDisplay } from "../../../../shared/utils/currency";
 import { selectCurrentUser } from "../../../auth/selectors";
 import { DashedDivider } from "../../../../shared/components/common/DashedDivider";
@@ -56,6 +57,8 @@ export function ManageTeamMemberDrawer({
 }: ManageTeamMemberDrawerProps) {
   const { t } = useTranslation("assignments");
   const isMobile = useIsMobile();
+  // Native keyboard covers the mobile footer (like the bottom nav) instead of pushing it up.
+  const keyboardVisible = useKeyboardVisible();
   const currentUser = useSelector(selectCurrentUser);
   const businessCurrency =
     currency || currentUser?.business?.businessCurrency || "eur";
@@ -629,7 +632,7 @@ export function ManageTeamMemberDrawer({
           </DrawerDescription>
           {modalContent}
           {/* Mobile footer */}
-          <div className="md:hidden bg-surface">
+          <div className={cn("md:hidden bg-surface", keyboardVisible && "hidden")}>
             <DashedDivider
               marginTop="mt-0"
               className="mb-0"
