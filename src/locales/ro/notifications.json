@@ -15,6 +15,13 @@
   "markAllAsRead": "Marchează toate ca citite",
   "markAsRead": "Marchează ca citită",
   "deleteAllLoaded": "Șterge toate",
+  "deleteOne": "Șterge",
+  "deleteToast": {
+    "one": "Notificare ștearsă",
+    "many": "{{count}} notificări șterse"
+  },
+  "undo": "Anulează",
+  "moreActions": "Mai multe opțiuni",
   "deleting": "Se șterge...",
   "deleteConfirm": {
     "title": "Ștergi toate notificările încărcate?",

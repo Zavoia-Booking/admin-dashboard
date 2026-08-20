@@ -1,0 +1,15 @@
+/* Recharts marks its chart wrapper focusable for keyboard users (accessibility
+ * layer, on by default in v3). On a touch WebView a tap moves focus there and
+ * the platform paints its own focus outline — an amber box sitting around the
+ * donut that nothing in our CSS drew and that no tap elsewhere clears.
+ * Coarse pointers have no keyboard to navigate the chart with, so the outline
+ * is pure artifact there; desktop keyboard focus is left untouched.
+ */
+@media (hover: none) {
+  .dashboard-widget .recharts-wrapper:focus,
+  .dashboard-widget .recharts-wrapper:focus-visible,
+  .dashboard-widget .recharts-surface:focus,
+  .dashboard-widget .recharts-surface:focus-visible {
+    outline: none;
+  }
+}

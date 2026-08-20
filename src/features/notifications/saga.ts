@@ -1,12 +1,14 @@
-import { all, call, put, select, takeLatest } from "redux-saga/effects";
+import { all, call, delay, put, race, select, take, takeEvery, takeLatest } from "redux-saga/effects";
 import {
   listNotificationsAction,
   loadMoreNotificationsAction,
   markNotificationReadAction,
   markAllNotificationsReadAction,
   deleteNotificationsAction,
+  undoDeleteNotificationsAction,
   decrementUnreadCount,
   resetUnreadCount,
+  UNDO_COMMIT_DELAY_MS,
 } from "./actions";
 import {
   listNotificationsRequest,
@@ -14,11 +16,12 @@ import {
   markAllNotificationsReadRequest,
   deleteNotificationRequest,
 } from "./api";
-import type { ActionType } from "typesafe-actions";
+import { getType, type ActionType } from "typesafe-actions";
 import { toast } from "sonner";
 import { getErrorMessage } from "../../shared/utils/error";
 import type { ListNotificationsResponse, MarkAllReadResponse } from "./types";
 import type { RootState } from "../../app/providers/store";
+import { logoutRequestAction } from "../auth/actions";
 
 function* handleListNotifications(
   action: ActionType<typeof listNotificationsAction.request>
@@ -98,11 +101,29 @@ function* handleMarkAllNotificationsRead(): Generator<any, void, any> {
 function* handleDeleteNotifications(
   action: ActionType<typeof deleteNotificationsAction.request>
 ): Generator<any, void, any> {
+  const { batchId, notifications } = action.payload;
+
+  // The rows are already out of the list. Hold the request open for the length of
+  // the undo toast: an undo for this batch wins the race and nothing is ever sent.
+  const { undone, loggedOut } = yield race({
+    undone: take(
+      (candidate: any) =>
+        candidate.type === getType(undoDeleteNotificationsAction) &&
+        candidate.payload?.batchId === batchId
+    ),
+    loggedOut: take(getType(logoutRequestAction.success)),
+    timeout: delay(UNDO_COMMIT_DELAY_MS),
+  });
+
+  // Logging out drops the batch with the rest of the state; firing the deletes
+  // afterwards would only 401 and toast over the login screen.
+  if (undone || loggedOut) return;
+
   try {
     const deletedIds: number[] = [];
     let unreadDeletedCount = 0;
 
-    for (const notification of action.payload.notifications) {
+    for (const notification of notifications) {
       yield call(deleteNotificationRequest, notification.id);
       deletedIds.push(notification.id);
 
@@ -113,6 +134,7 @@ function* handleDeleteNotifications(
 
     yield put(
       deleteNotificationsAction.success({
+        batchId,
         ids: deletedIds,
         unreadDeletedCount,
       })
@@ -124,7 +146,7 @@ function* handleDeleteNotifications(
   } catch (error: unknown) {
     const errorMessage = getErrorMessage(error);
     toast.error(errorMessage);
-    yield put(deleteNotificationsAction.failure({ message: errorMessage }));
+    yield put(deleteNotificationsAction.failure({ batchId, message: errorMessage }));
   }
 }
 
@@ -134,6 +156,6 @@ export function* notificationsSaga(): Generator<unknown, void, unknown> {
     takeLatest(loadMoreNotificationsAction.request, handleLoadMoreNotifications),
     takeLatest(markNotificationReadAction.request, handleMarkNotificationRead),
     takeLatest(markAllNotificationsReadAction.request, handleMarkAllNotificationsRead),
-    takeLatest(deleteNotificationsAction.request, handleDeleteNotifications),
+    takeEvery(deleteNotificationsAction.request, handleDeleteNotifications),
   ]);
 }

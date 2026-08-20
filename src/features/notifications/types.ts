@@ -42,8 +42,16 @@ export interface DeleteNotificationRequestItem {
 }
 
 export interface DeleteNotificationsSuccessPayload {
+  batchId: string;
   ids: number[];
   unreadDeletedCount: number;
+}
+
+/** Rows removed from the list but not yet deleted server-side — the undo window's
+ *  holding area. Restoring a batch puts these back exactly where they were. */
+export interface PendingDeletionBatch {
+  batchId: string;
+  items: BusinessNotification[];
 }
 
 export interface NotificationsState {
@@ -56,4 +64,5 @@ export interface NotificationsState {
   isDeleting: boolean;
   error: string | null;
   hasMore: boolean;
+  pendingDeletions: PendingDeletionBatch[];
 }

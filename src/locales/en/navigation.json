@@ -16,7 +16,8 @@
     "support": "Support",
     "account": "Account",
     "home": "Home",
-    "detail": "Detail"
+    "detail": "Detail",
+    "notifications": "Notifications"
   },
   "sidebar": {
     "navigation": "Main navigation",

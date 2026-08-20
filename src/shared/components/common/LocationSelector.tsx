@@ -21,6 +21,12 @@ interface LocationSelectorProps {
     noLocationsLabel?: string;
     groupHeading?: string;
     closedClassName?: string;
+    /** Open/closed state of the selected location, shown as a presence dot on the
+     *  pin. Opt-in: pass it only where that signal has somewhere to be useful. */
+    isOpen?: boolean | null;
+    /** Reader-facing wording for `isOpen` — the dot alone carries no meaning for
+     *  screen readers, and the labels live in the caller's namespace. */
+    statusLabel?: string;
     mobile?: boolean;
     onOpenChange?: (open: boolean) => void;
 }
@@ -36,6 +42,8 @@ export const LocationSelector: FC<LocationSelectorProps> = ({
     noLocationsLabel,
     groupHeading,
     closedClassName,
+    isOpen,
+    statusLabel,
     mobile,
     onOpenChange,
 }) => {
@@ -125,7 +133,21 @@ export const LocationSelector: FC<LocationSelectorProps> = ({
                         ),
                 )}
             >
-                <MapPin className={cn("h-4 w-4 shrink-0 transition-colors", showListContainer ? "text-primary" : "text-muted-foreground group-hover:text-primary")} aria-hidden />
+                <span className="relative shrink-0">
+                    <MapPin className={cn("h-4 w-4 transition-colors", showListContainer ? "text-primary" : "text-muted-foreground group-hover:text-primary")} aria-hidden />
+                    {typeof isOpen === "boolean" && (
+                        <>
+                            <span
+                                className={cn(
+                                    "absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full ring-2 ring-surface dark:ring-neutral-900",
+                                    isOpen ? "bg-success" : "bg-error",
+                                )}
+                                aria-hidden
+                            />
+                            {statusLabel ? <span className="sr-only">{statusLabel}</span> : null}
+                        </>
+                    )}
+                </span>
                 <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground-1">
                     {selectedLocation?.name ?? resolvedPlaceholder}
                 </span>

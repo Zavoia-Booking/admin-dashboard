@@ -44,18 +44,31 @@ function capacityTier(pct: number): Tier {
   return { labelKey: 'capacityUtilization.high', colorVar: 'var(--error)', textClass: 'text-error', bgClass: 'bg-error' };
 }
 
-function CapacityBar({ pct, tier, measured }: { pct: number; tier: Tier; measured: boolean }) {
+function CapacityBar({
+  pct,
+  tier,
+  measured,
+  unmeasuredLabel,
+}: {
+  pct: number;
+  tier: Tier;
+  measured: boolean;
+  /** Wording for the unmeasured state; `null` renders nothing, for rows whose
+   *  explanation is already given once above them. */
+  unmeasuredLabel?: string | null;
+}) {
   const t = useTranslation('dashboard').t;
   const safe = Math.max(0, Math.min(100, pct));
 
   // Nothing to divide by — no opening hours, or nobody assigned to work them.
-  // An empty bar reading "0% booked" would claim the period is wide open.
+  // An empty bar reading "0% booked" would claim the period is wide open, and a
+  // dashed rail reads as another section divider, so the state is text only.
   if (!measured) {
+    if (unmeasuredLabel === null) return null;
     return (
-      <div className="w-full">
-        <div className="h-2 w-full rounded-full border border-dashed border-border-strong/60" />
-        <p className="mt-1 text-[11px] text-foreground-3">{t('capacityUtilization.notMeasured')}</p>
-      </div>
+      <p className="text-[11px] text-foreground-3">
+        {unmeasuredLabel ?? t('capacityUtilization.notMeasured')}
+      </p>
     );
   }
 
@@ -74,6 +87,34 @@ function CapacityBar({ pct, tier, measured }: { pct: number; tier: Tier; measure
         </span>
       </div>
     </div>
+  );
+}
+
+type CapacityHintValue = { text: string; linkLabel?: string; to?: string };
+
+/** The unmeasured-capacity line: what the situation is, then where to fix it.
+ *  Inline rather than a bordered note — this sits inside a compact card and must
+ *  not outweigh the numbers it explains. */
+function CapacityHint({ hint }: { hint: CapacityHintValue }) {
+  const navigate = useNavigate();
+  return (
+    <p className="text-xs leading-relaxed text-foreground-3">
+      {hint.text}
+      {hint.linkLabel && hint.to ? (
+        <>
+          {' '}
+          <button
+            type="button"
+            onClick={() => navigate(hint.to!)}
+            // Opts out of the global 44px button floor, same as AssignmentReminderNote.
+            className="!min-h-0 !min-w-0 inline-flex cursor-pointer items-center gap-0.5 rounded-sm align-baseline font-semibold text-primary transition-colors hover:text-primary-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-focus/40"
+          >
+            {hint.linkLabel}
+            <ArrowUpRight className="h-3 w-3" aria-hidden />
+          </button>
+        </>
+      ) : null}
+    </p>
   );
 }
 
@@ -129,6 +170,39 @@ export function LocationCapacityWidget({
   // keeps rendering percentages instead of flipping everything to "unknown".
   const isMeasured = (period: CapacityPeriod) => period.hasCapacityData !== false;
   const todayMeasured = isMeasured(capacity.today);
+  // The API collapses "no hours/staff configured" and "shut today" into the same
+  // hasCapacityData:false. The week range contains today, so a measurable week
+  // with an unmeasurable today means the location is set up and simply closed —
+  // a state with nothing to fix, and the wrong place for a setup prompt.
+  const closedToday = !todayMeasured && isMeasured(capacity.week);
+
+  // Capacity is hours x active staff, so an unmeasurable period has exactly one of
+  // three causes. Pending invitations are the subtle one: they appear in the team
+  // list below but take no bookings, so they never count toward capacity.
+  const activeStaffCount = (staff ?? []).filter((m) => m.invitationPending !== true).length;
+  const hasOnlyPendingStaff = activeStaffCount === 0 && (staff?.length ?? 0) > 0;
+
+  const capacityHint: CapacityHintValue | null = todayMeasured
+    ? null
+    : closedToday
+      ? { text: t('locationCapacity.closedToday') }
+      : activeStaffCount > 0
+        ? {
+            text: t('locationCapacity.noWorkingHours'),
+            linkLabel: t('locationCapacity.noWorkingHoursLink'),
+            to: `/locations?locationId=${locationId}`,
+          }
+        : hasOnlyPendingStaff
+          ? {
+              text: t('locationCapacity.staffPendingOnly'),
+              linkLabel: t('locationCapacity.staffPendingOnlyLink'),
+              to: '/team-members',
+            }
+          : {
+              text: t('locationCapacity.noStaffAssigned'),
+              linkLabel: t('locationCapacity.noStaffAssignedLink'),
+              to: `/assignments?locationId=${locationId}`,
+            };
 
   const periods = [
     {
@@ -166,40 +240,6 @@ export function LocationCapacityWidget({
 
   return (
     <div className="flex flex-col gap-5">
-      {/* Header — mobile (real title hierarchy + distinct navigate button) */}
-      <div className="md:hidden flex items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <h3 className="truncate text-[22px] font-semibold -tracking-[0.02em] text-foreground-1 leading-[1.1]">
-            {locationName}
-          </h3>
-          <p className="mt-1.5 inline-flex items-center gap-1.5 text-xs">
-            <span
-              className={`h-1.5 w-1.5 rounded-full ${
-                isCurrentlyOpen ? 'bg-success animate-pulse' : 'bg-error'
-              }`}
-            />
-            <span
-              className={`font-medium ${isCurrentlyOpen ? 'text-success' : 'text-error'}`}
-            >
-              {isCurrentlyOpen ? t('todayOverview.openNow') : t('todayOverview.closed')}
-            </span>
-          </p>
-          <p className="mt-2 text-xs leading-relaxed text-foreground-3">
-            {t('locationCapacity.subtitle')}
-          </p>
-        </div>
-        {canSeeLocation && (
-          <button
-            type="button"
-            onClick={() => navigate(`/assignments?locationId=${locationId}`)}
-            aria-label={`${t('todayOverview.goToLocation')}: ${locationName}`}
-            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-border bg-surface text-primary transition-all hover:bg-primary/5 active:scale-[0.95] active:bg-primary/10 ${IOS_EASE}`}
-          >
-            <ArrowUpRight className="h-[18px] w-[18px]" />
-          </button>
-        )}
-      </div>
-
       {/* Header — desktop (MapPin + title + see-location link) */}
       <div className="hidden md:flex items-start justify-between gap-3">
         <div className="flex items-start gap-3 min-w-0">
@@ -248,7 +288,9 @@ export function LocationCapacityWidget({
           pct={capacity.today.filledPercentage}
           tier={todayTier}
           measured={todayMeasured}
+          unmeasuredLabel={null}
         />
+        {capacityHint && <CapacityHint hint={capacityHint} />}
         {nextAppointment && (
           <p className="flex items-baseline gap-1.5 text-xs leading-tight">
             <span className="text-foreground-3 shrink-0">
@@ -311,14 +353,9 @@ export function LocationCapacityWidget({
         <div className="border-l border-border-subtle pl-5">
           <p className={EYEBROW}>{t('capacityUtilization.title')}</p>
           {!todayMeasured ? (
-            <>
-              <p className="mt-1.5 text-sm font-medium text-foreground-2">
-                {t('capacityUtilization.notMeasured')}
-              </p>
-              <p className="mt-1 text-xs leading-relaxed text-foreground-3">
-                {t('locationCapacity.capacityUnavailableHelper')}
-              </p>
-            </>
+            <div className="mt-1.5">
+              {capacityHint && <CapacityHint hint={capacityHint} />}
+            </div>
           ) : capacity.today.filledPercentage > 0 ? (
             <>
               <p className="mt-1.5 text-2xl font-semibold leading-none text-foreground-1 tabular-nums">
@@ -364,7 +401,12 @@ export function LocationCapacityWidget({
               <span className="text-sm font-semibold text-foreground-1 tabular-nums">
                 {formatCurrency(p.revenue)}
               </span>
-              <CapacityBar pct={p.pct} tier={tier} measured={p.measured} />
+              <CapacityBar
+                pct={p.pct}
+                tier={tier}
+                measured={p.measured}
+                unmeasuredLabel={capacityHint?.text}
+              />
             </div>
           );
         })}
@@ -390,7 +432,12 @@ export function LocationCapacityWidget({
                   </strong>
                 </span>
               </div>
-              <CapacityBar pct={p.pct} tier={tier} measured={p.measured} />
+              <CapacityBar
+                pct={p.pct}
+                tier={tier}
+                measured={p.measured}
+                unmeasuredLabel={todayMeasured ? undefined : null}
+              />
             </div>
           );
         })}
@@ -405,9 +452,9 @@ export function LocationCapacityWidget({
           </p>
           <button
             onClick={() => navigate('/team-members?action=invite')}
-            className={`inline-flex h-9 items-center gap-1.5 rounded-full border border-primary/30 bg-primary/5 px-3 text-xs font-semibold text-primary transition-all hover:bg-primary/10 active:bg-primary/15 active:scale-[0.97] ${IOS_EASE}`}
+            className={`inline-flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-border bg-surface px-3 text-xs font-semibold text-foreground-1 transition-[background-color,border-color,transform] hover:bg-surface-hover hover:border-border-strong active:bg-surface-active active:scale-[0.97] ${IOS_EASE}`}
           >
-            <UserPlus className="h-3.5 w-3.5" />
+            <UserPlus className="h-3.5 w-3.5 text-primary" />
             <span>{t('todayOverview.inviteStaff')}</span>
           </button>
         </div>

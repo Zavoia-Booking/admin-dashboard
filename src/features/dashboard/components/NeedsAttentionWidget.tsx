@@ -218,10 +218,16 @@ export function NeedsAttentionWidget({
       <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-2">
           {hasUrgentItems && (
-            <span
-              className="h-1.5 w-1.5 shrink-0 rounded-full bg-warning"
-              aria-hidden
-            />
+            // Both halves of the marketplace treatment: the expanding ping halo from
+            // the publish strip over the breathing dot from the listing view. At the
+            // 6px the eyebrow dot used to be, a 40%-opacity halo renders as nothing.
+            <span className="relative flex h-2 w-2 shrink-0" aria-hidden>
+              <span
+                className="absolute inline-flex h-full w-full animate-ping rounded-full bg-warning opacity-70 motion-reduce:animate-none"
+                style={{ animationDuration: '1.8s' }}
+              />
+              <span className="relative inline-flex h-full w-full rounded-full bg-warning animate-pulse motion-reduce:animate-none" />
+            </span>
           )}
           <p className={EYEBROW}>{t('needsAttention.title')}</p>
         </div>
@@ -1340,7 +1346,7 @@ function UnresolvedAppointmentsDialog({
     const mobileFooter = !isActionable ? undefined : pendingConfirm ? (
       // Confirm strip — same content as desktop, slightly tighter spacing
       <div className={cn('flex w-full items-center justify-between gap-3', exitingConfirm ? 'pointer-events-none animate-out fade-out-0 slide-out-to-bottom-2 duration-200 fill-mode-forwards' : 'animate-in fade-in-0 slide-in-from-bottom-2 duration-200', 'motion-reduce:animate-none motion-reduce:translate-y-0 motion-reduce:opacity-100')}>
-        <p className="min-w-0 text-xs text-foreground-2 truncate">
+        <p className="min-w-0 text-xs text-foreground-2 line-clamp-2">
           {pendingConfirm === 'completed' ? t('needsAttention.confirmCompleted', { count: selected.size }) : t('needsAttention.confirmNoShow', { count: selected.size })}
         </p>
         <div className="flex shrink-0 items-center gap-2">
