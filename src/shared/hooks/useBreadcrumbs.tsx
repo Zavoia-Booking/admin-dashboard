@@ -1,8 +1,8 @@
 import { useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { 
-  Home, 
+import {
+  Home,
   Calendar,
   MapPin,
   Settings,
@@ -13,6 +13,7 @@ import {
   Globe,
   Headphones,
   LayoutDashboard,
+  Bell,
 } from 'lucide-react';
 import type { BreadcrumbItemType } from '../components/Breadcrumbs';
 
@@ -32,6 +33,7 @@ const routeToKey: Record<string, string> = {
   '/support': 'breadcrumbs.support',
   '/account': 'breadcrumbs.account',
   '/my-account': 'breadcrumbs.account',
+  '/notifications': 'breadcrumbs.notifications',
 };
 
 const routeIcons: Record<string, React.ReactNode> = {
@@ -49,6 +51,7 @@ const routeIcons: Record<string, React.ReactNode> = {
   '/support': <Headphones className="w-4 h-4" />,
   '/account': <Settings className="w-4 h-4" />,
   '/my-account': <Settings className="w-4 h-4" />,
+  '/notifications': <Bell className="w-4 h-4" />,
 };
 
 export function useBreadcrumbs(): BreadcrumbItemType[] {

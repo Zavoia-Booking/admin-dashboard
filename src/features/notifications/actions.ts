@@ -1,10 +1,16 @@
 import { createAsyncAction, createAction } from "typesafe-actions";
 import type {
+  BusinessNotification,
   ListNotificationsResponse,
   MarkAllReadResponse,
-  DeleteNotificationRequestItem,
   DeleteNotificationsSuccessPayload,
 } from "./types";
+
+/** How long the undo toast stays up, and how long the saga waits before it
+ *  actually deletes. The commit trails the toast so a click on the very last
+ *  frame still lands before the request goes out. */
+export const UNDO_TOAST_MS = 6500;
+export const UNDO_COMMIT_DELAY_MS = 7000;
 
 export const listNotificationsAction = createAsyncAction(
   "LIST/NOTIFICATIONS/REQUEST",
@@ -34,7 +40,15 @@ export const deleteNotificationsAction = createAsyncAction(
   "DELETE/NOTIFICATIONS/REQUEST",
   "DELETE/NOTIFICATIONS/SUCCESS",
   "DELETE/NOTIFICATIONS/FAILURE"
-)<{ notifications: DeleteNotificationRequestItem[] }, DeleteNotificationsSuccessPayload, { message: string }>();
+)<
+  { batchId: string; notifications: BusinessNotification[] },
+  DeleteNotificationsSuccessPayload,
+  { batchId: string; message: string }
+>();
+
+export const undoDeleteNotificationsAction = createAction(
+  "DELETE/NOTIFICATIONS/UNDO"
+)<{ batchId: string }>();
 
 export const decrementUnreadCount = createAction("NOTIFICATIONS/DECREMENT_UNREAD")<number>();
 export const resetUnreadCount = createAction("NOTIFICATIONS/RESET_UNREAD")();

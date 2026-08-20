@@ -1,0 +1,37 @@
+/* Same recipe as .reviews-list-stagger (src/features/reviews/components/Reviews.css):
+ * a diminishing 50ms cascade on first mount so a freshly-opened list reads as
+ * "deliberately revealed" instead of popping in as one block. Re-uses the app's
+ * existing entrance curve rather than inventing a new one. Only fires on initial
+ * mount (CSS animations don't replay on re-render), so loading more or marking
+ * items read never re-triggers it.
+ */
+@keyframes notification-item-enter {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.notifications-list-stagger > * {
+  animation: notification-item-enter 420ms cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+
+.notifications-list-stagger > *:nth-child(1) { animation-delay: 0ms; }
+.notifications-list-stagger > *:nth-child(2) { animation-delay: 40ms; }
+.notifications-list-stagger > *:nth-child(3) { animation-delay: 80ms; }
+.notifications-list-stagger > *:nth-child(4) { animation-delay: 120ms; }
+.notifications-list-stagger > *:nth-child(5) { animation-delay: 160ms; }
+.notifications-list-stagger > *:nth-child(6) { animation-delay: 195ms; }
+.notifications-list-stagger > *:nth-child(7) { animation-delay: 225ms; }
+.notifications-list-stagger > *:nth-child(8) { animation-delay: 250ms; }
+.notifications-list-stagger > *:nth-child(n + 9) { animation-delay: 270ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  .notifications-list-stagger > * {
+    animation: none;
+  }
+}

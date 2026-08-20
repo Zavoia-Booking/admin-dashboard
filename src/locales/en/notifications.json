@@ -15,6 +15,13 @@
   "markAllAsRead": "Mark all as read",
   "markAsRead": "Mark as read",
   "deleteAllLoaded": "Delete all",
+  "deleteOne": "Delete",
+  "deleteToast": {
+    "one": "Notification deleted",
+    "many": "{{count}} notifications deleted"
+  },
+  "undo": "Undo",
+  "moreActions": "More actions",
   "deleting": "Deleting...",
   "deleteConfirm": {
     "title": "Delete all loaded notifications?",

@@ -22,6 +22,7 @@ import { getAllLocationsSelector, getLocationListErrorSelector, getLocationLoadi
 import { selectCurrentUser } from "../../auth/selectors";
 import type { RootState } from "../../../app/providers/store";
 import BusinessSetupGate from "../../../shared/components/guards/BusinessSetupGate";
+import "../components/Dashboard.css";
 
 const WIDGET_CONFIG: Record<string, { span: number }> = {
   locationCapacity: { span: 3 },
@@ -155,7 +156,65 @@ function DashboardSkeleton() {
         </div>
       </div>
 
-      {/* Row 2: Appointment Breakdown (full width) */}
+      {/* Row 2: Needs Attention (2col) + Reviews (1col) */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Needs Attention */}
+        <div className="lg:col-span-2 bg-surface border border-border rounded-2xl p-5">
+          <div className="flex items-center justify-between mb-4">
+            <Skeleton className="h-3 w-28" />
+            <Skeleton className="h-5 w-16 rounded" />
+          </div>
+          <div className="space-y-3">
+            {[0, 1].map((i) => (
+              <div key={i} className="flex items-center gap-3 py-2">
+                <Skeleton className="h-2 w-2 rounded-full shrink-0" />
+                <Skeleton className="h-4 w-4 rounded shrink-0" />
+                <div className="flex-1 space-y-1">
+                  <Skeleton className="h-3 w-40" />
+                  <Skeleton className="h-2 w-56" />
+                </div>
+                <Skeleton className="h-5 w-16 rounded shrink-0" />
+              </div>
+            ))}
+            {/* Unresolved appointment rows */}
+            {[0, 1, 2].map((i) => (
+              <div key={`appt-${i}`} className="flex items-center gap-2 py-2">
+                <Skeleton className="h-6 w-6 rounded-full shrink-0" />
+                <div className="flex-1 space-y-1">
+                  <Skeleton className="h-3 w-32" />
+                  <Skeleton className="h-2 w-24" />
+                </div>
+                <div className="flex gap-1.5">
+                  <Skeleton className="h-6 w-20 rounded-full" />
+                  <Skeleton className="h-6 w-18 rounded-full" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Reviews */}
+        <div className="bg-surface border border-border rounded-2xl p-5">
+          <div className="flex items-center justify-between mb-5">
+            <Skeleton className="h-3 w-16" />
+            <Skeleton className="h-4 w-14 rounded" />
+          </div>
+          {/* Gauge arc */}
+          <div className="flex justify-center mb-4">
+            <Skeleton className="h-[100px] w-[180px] rounded-t-full rounded-b-none" />
+          </div>
+          {/* Gradient bar */}
+          <div className="max-w-[160px] mx-auto space-y-1">
+            <Skeleton className="h-[5px] w-full rounded-full" />
+            <div className="flex justify-between">
+              <Skeleton className="h-2 w-8" />
+              <Skeleton className="h-2 w-12" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Row 3: Appointment Breakdown (full width) */}
       <div className="bg-surface border border-border rounded-2xl p-5">
         <Skeleton className="h-3 w-44 mb-4" />
         <div className="flex flex-col md:flex-row gap-5">
@@ -205,64 +264,6 @@ function DashboardSkeleton() {
                 <Skeleton className="h-2.5 w-12 hidden md:block" />
                 <Skeleton className="h-2.5 w-10 hidden md:block" />
                 <Skeleton className="h-2.5 w-14" />
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Row 3: Reviews (1col) + Needs Attention (2col) */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Reviews */}
-        <div className="bg-surface border border-border rounded-2xl p-5">
-          <div className="flex items-center justify-between mb-5">
-            <Skeleton className="h-3 w-16" />
-            <Skeleton className="h-4 w-14 rounded" />
-          </div>
-          {/* Gauge arc */}
-          <div className="flex justify-center mb-4">
-            <Skeleton className="h-[100px] w-[180px] rounded-t-full rounded-b-none" />
-          </div>
-          {/* Gradient bar */}
-          <div className="max-w-[160px] mx-auto space-y-1">
-            <Skeleton className="h-[5px] w-full rounded-full" />
-            <div className="flex justify-between">
-              <Skeleton className="h-2 w-8" />
-              <Skeleton className="h-2 w-12" />
-            </div>
-          </div>
-        </div>
-
-        {/* Needs Attention */}
-        <div className="lg:col-span-2 bg-surface border border-border rounded-2xl p-5">
-          <div className="flex items-center justify-between mb-4">
-            <Skeleton className="h-3 w-28" />
-            <Skeleton className="h-5 w-16 rounded" />
-          </div>
-          <div className="space-y-3">
-            {[0, 1].map((i) => (
-              <div key={i} className="flex items-center gap-3 py-2">
-                <Skeleton className="h-2 w-2 rounded-full shrink-0" />
-                <Skeleton className="h-4 w-4 rounded shrink-0" />
-                <div className="flex-1 space-y-1">
-                  <Skeleton className="h-3 w-40" />
-                  <Skeleton className="h-2 w-56" />
-                </div>
-                <Skeleton className="h-5 w-16 rounded shrink-0" />
-              </div>
-            ))}
-            {/* Unresolved appointment rows */}
-            {[0, 1, 2].map((i) => (
-              <div key={`appt-${i}`} className="flex items-center gap-2 py-2">
-                <Skeleton className="h-6 w-6 rounded-full shrink-0" />
-                <div className="flex-1 space-y-1">
-                  <Skeleton className="h-3 w-32" />
-                  <Skeleton className="h-2 w-24" />
-                </div>
-                <div className="flex gap-1.5">
-                  <Skeleton className="h-6 w-20 rounded-full" />
-                  <Skeleton className="h-6 w-18 rounded-full" />
-                </div>
               </div>
             ))}
           </div>
@@ -380,7 +381,7 @@ export default function DashboardPage() {
   const currentUser = useSelector(selectCurrentUser);
   const businessCurrency = currentUser?.business?.businessCurrency || 'eur';
 
-  const defaultWidgetOrder = ["locationCapacity", "appointmentBreakdown", "reviews", "needsAttention"];
+  const defaultWidgetOrder = ["locationCapacity", "needsAttention", "reviews", "appointmentBreakdown"];
 
   // URL param (old links) wins over the stored selection; both are validated
   // against the loaded locations list before any fetch.
@@ -496,9 +497,10 @@ export default function DashboardPage() {
 
                 return (
                   <div key={widgetId} className={`
+                    dashboard-widget
                     bg-surface border border-border rounded-2xl p-5
                     shadow-sm
-                    transition-all duration-200
+                    transition-[transform,box-shadow,border-color] duration-200
                     md:hover:-translate-y-0.5 md:hover:shadow-md md:hover:border-border-strong
                     ${colSpanUtil}
                   `}>
@@ -523,6 +525,16 @@ export default function DashboardPage() {
       selectedLocationId={selectedLocationId}
       onSelect={handleLocationChange}
       placeholder={t("page.selectLocation")}
+      // Mobile only: the phone card no longer carries a header, so the picker is
+      // the one place left for it. Desktop still shows the labelled pill in the card.
+      isOpen={isMobile && data?.locationWidget ? data.locationWidget.isCurrentlyOpen : undefined}
+      statusLabel={
+        isMobile && data?.locationWidget
+          ? data.locationWidget.isCurrentlyOpen
+            ? t("todayOverview.openNow")
+            : t("todayOverview.closed")
+          : undefined
+      }
     />
   );
 
