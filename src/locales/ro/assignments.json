@@ -1,5 +1,52 @@
 {
   "page": {
+    "summary": {
+      "readyLabel": "Gata pentru programări",
+      "attentionLabel": "Necesită atenție",
+      "groupLabel": "Înainte ca clienții să poată rezerva aici",
+      "progressDone": "{{done}}/{{total}} rezolvate",
+      "resolve": "Rezolvă",
+      "view": "Vezi",
+      "items": {
+        "servicesEnabled": {
+          "pending": "Nu sunt oferite servicii în această locație",
+          "done": "Sunt oferite servicii în această locație"
+        },
+        "teamAssigned": {
+          "pending": "Niciun membru al echipei nu lucrează în această locație",
+          "done": "Există membri ai echipei care lucrează în această locație"
+        },
+        "servicesWithoutStaff": {
+          "pending_one": "{{count}} serviciu de aici nu poate fi rezervat — nimeni nu îl poate presta",
+          "pending_few": "{{count}} servicii de aici nu pot fi rezervate — nimeni nu le poate presta",
+          "pending_other": "{{count}} de servicii de aici nu pot fi rezervate — nimeni nu le poate presta",
+          "done": "Fiecare serviciu de aici are pe cineva care îl poate presta"
+        },
+        "staffWithoutServices": {
+          "pending_one": "{{count}} membru al echipei de aici nu poate fi rezervat — fără servicii alocate",
+          "pending_few": "{{count}} membri ai echipei de aici nu pot fi rezervați — fără servicii alocate",
+          "pending_other": "{{count}} de membri ai echipei de aici nu pot fi rezervați — fără servicii alocate",
+          "done": "Fiecare membru al echipei de aici poate presta cel puțin un serviciu"
+        },
+        "bundlesUnbookable": {
+          "pending_one": "{{count}} pachet conține un serviciu care nu e oferit aici",
+          "pending_few": "{{count}} pachete conțin servicii care nu sunt oferite aici",
+          "pending_other": "{{count}} de pachete conțin servicii care nu sunt oferite aici",
+          "done": "Serviciile din fiecare pachet sunt oferite aici"
+        }
+      },
+      "hints": {
+        "membersNotHere_one": "{{count}} membru al echipei nu e alocat acestei locații",
+        "membersNotHere_few": "{{count}} membri ai echipei nu sunt alocați acestei locații",
+        "membersNotHere_other": "{{count}} de membri ai echipei nu sunt alocați acestei locații",
+        "servicesNotHere_one": "{{count}} serviciu al tău nu e oferit aici",
+        "servicesNotHere_few": "{{count}} servicii ale tale nu sunt oferite aici",
+        "servicesNotHere_other": "{{count}} de servicii ale tale nu sunt oferite aici",
+        "bundlesNotHere_one": "{{count}} pachet al tău nu e oferit aici",
+        "bundlesNotHere_few": "{{count}} pachete ale tale nu sunt oferite aici",
+        "bundlesNotHere_other": "{{count}} de pachete ale tale nu sunt oferite aici"
+      }
+    },
     "title": "Alocări",
     "subtitle": "Gestionați alocările de servicii și personal pe locații",
     "assignments": {

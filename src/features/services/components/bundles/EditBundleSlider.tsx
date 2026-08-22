@@ -15,6 +15,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { BaseSlider } from "../../../../shared/components/common/BaseSlider";
+import { sanitizeDecimalInput } from "../../../../shared/utils/decimalInput";
 import { FormFooter } from "../../../../shared/components/forms/FormFooter";
 import { DeleteConfirmDialog } from "../../../../shared/components/common/DeleteConfirmDialog";
 import { TextField } from "../../../../shared/components/forms/fields/TextField";
@@ -220,7 +221,9 @@ const EditBundleSlider: React.FC<EditBundleSliderProps> = ({
       if (value === undefined || value === null) {
         return text("bundles.editBundle.validation.discountRequired");
       }
-      if (value < 0) {
+      // A discount of 0 is not a discount — the SUM price type already covers
+      // "no reduction", so let the field say so instead of saving a no-op.
+      if (value <= 0) {
         return text("bundles.editBundle.validation.discountMin");
       }
       if (value > 100) {
@@ -277,6 +280,28 @@ const EditBundleSlider: React.FC<EditBundleSliderProps> = ({
       validate: validateDiscountPercentage,
     },
   });
+
+  /* Typing buffer for the discount field. Without it the controlled value is a
+   * number, so a keystroke like "15." round-trips through parseFloat and loses
+   * the separator — "15.5" ends up as 155. The buffer holds the sanitised
+   * string (comma read as the decimal point, max 2 decimals, 0-100 fits the
+   * decimal(5,2) column) while the form field keeps the parsed number. */
+  const [discountInput, setDiscountInput] = useState<string>(
+    discountField.value !== undefined && discountField.value !== null
+      ? String(discountField.value)
+      : "",
+  );
+  const discountValueRef = useRef(discountField.value);
+  if (discountValueRef.current !== discountField.value) {
+    // Reset from the outside (price-type switch, form reset, loaded bundle).
+    discountValueRef.current = discountField.value;
+    const external =
+      discountField.value !== undefined && discountField.value !== null
+        ? String(discountField.value)
+        : "";
+    if (parseFloat(discountInput) !== discountField.value) setDiscountInput(external);
+  }
+
 
   // Get current fixed price value from field (for real-time updates)
   const currentFixedPriceValue = fixedPriceField.value ?? fixedPriceAmountMinor;
@@ -990,17 +1015,14 @@ const EditBundleSlider: React.FC<EditBundleSliderProps> = ({
                         {/* Discount Percentage Input */}
                         <div>
                           <TextField
-                            value={
-                              discountField.value !== undefined &&
-                              discountField.value !== null
-                                ? String(discountField.value)
-                                : ""
-                            }
+                            value={discountInput}
                             onChange={(value) => {
-                              const numValue = value
-                                ? parseFloat(value)
-                                : undefined;
-                              discountField.onChange(numValue);
+                              const sanitized = sanitizeDecimalInput(value, 2, 3);
+                              setDiscountInput(sanitized);
+                              const parsed = parseFloat(sanitized);
+                              const next = isNaN(parsed) ? undefined : parsed;
+                              discountValueRef.current = next;
+                              discountField.onChange(next);
                             }}
                             error={discountState.error?.message}
                             label={text(

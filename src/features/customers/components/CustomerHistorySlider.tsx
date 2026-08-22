@@ -16,6 +16,7 @@ import { buildCustomerHistoryPdfBlob } from '../buildCustomerHistoryPdf';
 import { useFormatPrice } from '../../../shared/hooks/useFormatPrice';
 import { formatDuration } from '../../../shared/utils/formatDuration';
 import type {
+  Customer,
   FullActivityItem,
   AppointmentActivityMetadata,
   MilestoneActivityMetadata,
@@ -48,9 +49,11 @@ interface CustomerHistorySliderProps {
   isOpen: boolean;
   onClose: () => void;
   customerId: number | null;
-  /** Used for download filename: firstName-lastName.pdf */
-  customerFirstName?: string;
-  customerLastName?: string;
+  /**
+   * The customer this history belongs to, when the page has already loaded it.
+   * Drives the download filename and the contact card printed in the PDF.
+   */
+  customer?: Customer | null;
   elevated?: boolean;
 }
 
@@ -85,8 +88,7 @@ const CustomerHistorySlider: React.FC<CustomerHistorySliderProps> = ({
   isOpen,
   onClose,
   customerId,
-  customerFirstName,
-  customerLastName,
+  customer,
   elevated,
 }) => {
   const { t, i18n } = useTranslation('customers');
@@ -99,6 +101,9 @@ const CustomerHistorySlider: React.FC<CustomerHistorySliderProps> = ({
   const [isLoadingInitial, setIsLoadingInitial] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [isDownloadingHistory, setIsDownloadingHistory] = useState(false);
+
+  const customerFirstName = customer?.firstName;
+  const customerLastName = customer?.lastName;
 
   const abortRef = useRef<AbortController | null>(null);
 
@@ -179,6 +184,19 @@ const CustomerHistorySlider: React.FC<CustomerHistorySliderProps> = ({
         timezone,
         locale: i18n.language,
         heading,
+        contact: customer
+          ? {
+              name: nameParts.join(' ') || undefined,
+              email: customer.email,
+              phone: customer.phone,
+              source: customer.source,
+              customerSince: customer.createdAt
+                ? new Intl.DateTimeFormat(i18n.language, { dateStyle: 'long' }).format(
+                    new Date(customer.createdAt),
+                  )
+                : undefined,
+            }
+          : undefined,
         translations: {
           headingDefault: t('details.history.pdf.heading'),
           emptyState: t('details.history.pdf.emptyState'),
@@ -198,6 +216,13 @@ const CustomerHistorySlider: React.FC<CustomerHistorySliderProps> = ({
           pageFooter: t('details.history.pdf.pageFooter'),
           hourShort: t('common:units.hourShort'),
           minuteShort: t('common:units.minuteShort'),
+          contactHeading: t('details.history.pdf.contactHeading'),
+          contactNameLabel: t('details.history.pdf.contactName'),
+          contactEmailLabel: t('details.email'),
+          contactPhoneLabel: t('details.phone'),
+          contactSourceLabel: t('details.source'),
+          contactSinceLabel: t('details.customerSince'),
+          contactNotProvided: t('details.notProvided'),
         },
       });
       const pdfUrl = URL.createObjectURL(pdfBlob);
@@ -216,6 +241,26 @@ const CustomerHistorySlider: React.FC<CustomerHistorySliderProps> = ({
     }
   };
 
+  const downloadAction = (
+    <Button
+      type="button"
+      variant="ghost"
+      size="sm"
+      rounded="full"
+      onClick={handleDownloadHistory}
+      disabled={!customerId || isDownloadingHistory}
+      // `mr-*` clears BaseSlider's absolutely positioned close button on desktop.
+      className="mr-1 inline-flex !h-8 !min-h-8 shrink-0 items-center gap-1.5 px-3 text-xs font-medium text-primary hover:bg-primary/10 focus-visible:ring-focus/60 md:mr-10 md:px-3.5 md:text-sm"
+    >
+      {isDownloadingHistory ? (
+        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+      ) : (
+        <Download className="h-3.5 w-3.5" />
+      )}
+      <span>{t('details.history.downloadButton')}</span>
+    </Button>
+  );
+
   return (
     <BaseSlider
       isOpen={isOpen}
@@ -224,6 +269,7 @@ const CustomerHistorySlider: React.FC<CustomerHistorySliderProps> = ({
       subtitle={t('details.history.subtitle')}
       icon={History}
       iconColor="text-foreground-1"
+      headerActions={downloadAction}
       contentClassName="bg-surface scrollbar-hide"
       {...(elevated && {
         backdropClassName: 'z-[80]',
@@ -231,24 +277,6 @@ const CustomerHistorySlider: React.FC<CustomerHistorySliderProps> = ({
       })}
     >
       <div className="p-4 md:p-5">
-        <div className="-mt-1 mb-3 flex justify-end md:mb-4">
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            rounded="full"
-            onClick={handleDownloadHistory}
-            disabled={!customerId || isDownloadingHistory}
-            className="inline-flex !h-8 !min-h-8 items-center gap-1.5 px-3.5 text-xs font-medium text-primary hover:bg-primary/10 focus-visible:ring-focus/60 md:text-sm"
-          >
-            {isDownloadingHistory ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <Download className="h-3.5 w-3.5" />
-            )}
-            <span>{t('details.history.downloadButton')}</span>
-          </Button>
-        </div>
         {isLoadingInitial ? (
           <div className="flex items-center justify-center py-16">
             <Loader2 className="h-7 w-7 animate-spin text-primary" />

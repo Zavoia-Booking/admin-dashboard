@@ -21,6 +21,7 @@ import { useIsMobile } from "../../../../shared/hooks/use-mobile";
 import { cn } from "../../../../shared/lib/utils";
 import type { StaffService } from "../../types";
 import type { CurrencyDisplay } from "../../../../shared/components/common/ManageServicesSheet/types";
+import { sanitizeDurationInput } from "../../../../shared/utils/duration";
 
 interface StaffServiceItemProps {
   service: StaffService;
@@ -151,31 +152,28 @@ export function StaffServiceItem({
   };
 
   const handleDurationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const inputValue = e.target.value;
+    // Digits only, capped at 24h — see sanitizeDurationInput.
+    const inputValue = sanitizeDurationInput(e.target.value);
+    setLocalDurationInput(inputValue);
+    // Clear error when user types
+    setDurationError(null);
 
-    // Only allow digits
-    if (inputValue === "" || /^\d+$/.test(inputValue)) {
-      setLocalDurationInput(inputValue);
-      // Clear error when user types
-      setDurationError(null);
+    // If empty, set to null (revert to inherited)
+    if (inputValue === "") {
+      onSetCustomDuration(service.serviceId, null);
+      return;
+    }
 
-      // If empty, set to null (revert to inherited)
-      if (inputValue === "") {
+    // Parse to integer
+    const numValue = parseInt(inputValue, 10);
+
+    // Only validate if it's a complete value
+    if (numValue > 0) {
+      // If the value equals inherited, set to null to revert
+      if (numValue === service.inheritedDuration) {
         onSetCustomDuration(service.serviceId, null);
-        return;
-      }
-
-      // Parse to integer
-      const numValue = parseInt(inputValue, 10);
-
-      // Only validate if it's a complete value
-      if (numValue > 0) {
-        // If the value equals inherited, set to null to revert
-        if (numValue === service.inheritedDuration) {
-          onSetCustomDuration(service.serviceId, null);
-        } else {
-          onSetCustomDuration(service.serviceId, numValue);
-        }
+      } else {
+        onSetCustomDuration(service.serviceId, numValue);
       }
     }
   };

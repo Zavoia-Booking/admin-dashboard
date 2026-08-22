@@ -33,6 +33,7 @@ import { DashedDivider } from "../../../../shared/components/common/DashedDivide
 import { cn } from "../../../../shared/lib/utils";
 import { ServiceStaffOverridesModal } from "./ServiceStaffOverridesModal";
 import type { LocationService } from "../../types";
+import { sanitizeDurationInput } from "../../../../shared/utils/duration";
 
 interface LocationServiceRowProps {
   service: LocationService;
@@ -148,14 +149,12 @@ export function LocationServiceRow({
   };
 
   const handleDurationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const inputValue = e.target.value;
-    // Only allow digits
-    if (inputValue === "" || /^\d+$/.test(inputValue)) {
-      setLocalDurationInput(inputValue);
-      setLocalDuration(inputValue);
-      // Clear error when user types
-      setDurationError(null);
-    }
+    // Digits only, capped at 24h — see sanitizeDurationInput.
+    const inputValue = sanitizeDurationInput(e.target.value);
+    setLocalDurationInput(inputValue);
+    setLocalDuration(inputValue);
+    // Clear error when user types
+    setDurationError(null);
   };
 
   const handleDurationFocus = (e: React.FocusEvent<HTMLInputElement>) => {

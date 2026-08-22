@@ -187,6 +187,8 @@
         "typeAppointment": "Programare",
         "typeMilestone": "Reper",
         "metaLine": "{{date}} · {{count}} înregistrări",
+        "contactHeading": "Date de contact",
+        "contactName": "Nume",
         "pageFooter": "Pagina {{page}} din {{pages}}"
       }
     }

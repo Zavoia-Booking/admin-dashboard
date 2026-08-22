@@ -1384,6 +1384,15 @@
   flex-direction: column;
   padding: 18px 18px 0;
   border-radius: 14px;
+  /* The panel paints its own base tone rather than relying on the skin alone.
+   * `overflow: hidden` clips the skin and the grain to the rounded box on
+   * desktop, but both are composited layers (animated transforms, and
+   * `mix-blend-mode` on the grain) and mobile engines clip those to the
+   * element's RECT, not its rounded rect — which showed the page behind as four
+   * pale corner slivers. This fills the arc with the card's own colour, and it
+   * morphs for free: --bv2-g3 is a registered @property already in the
+   * transition list. */
+  background: var(--bv2-g3);
   transition:
     --bv2-g1 var(--bv2-morph) var(--bv2-ease-in-out), --bv2-g2 var(--bv2-morph) var(--bv2-ease-in-out),
     --bv2-g3 var(--bv2-morph) var(--bv2-ease-in-out), --bv2-g4 var(--bv2-morph) var(--bv2-ease-in-out),
@@ -1400,6 +1409,10 @@
   inset: 0;
   z-index: 0;
   pointer-events: none;
+  /* Round the layers themselves, so the corners survive even where the
+   * ancestor's rounded clip is not applied to a composited child. */
+  border-radius: inherit;
+  overflow: hidden;
   background: linear-gradient(152deg,
     var(--bv2-g1) 0%, var(--bv2-g2) 28%, var(--bv2-g3) 62%, var(--bv2-g4) 100%);
 }
@@ -1477,6 +1490,7 @@
   inset: 0;
   z-index: 2;
   pointer-events: none;
+  border-radius: inherit;
   mix-blend-mode: overlay;
   opacity: var(--bv2-grain-rest);
   background-image:

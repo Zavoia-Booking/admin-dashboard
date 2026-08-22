@@ -241,12 +241,7 @@ export default function CustomersPage() {
         isOpen={isHistorySliderOpen}
         onClose={() => setIsHistorySliderOpen(false)}
         customerId={selectedCustomerId}
-        customerFirstName={
-          currentCustomer?.id === selectedCustomerId ? currentCustomer.firstName : undefined
-        }
-        customerLastName={
-          currentCustomer?.id === selectedCustomerId ? currentCustomer.lastName : undefined
-        }
+        customer={currentCustomer?.id === selectedCustomerId ? currentCustomer : null}
         elevated={isDetailsPopupOpen}
       />
 

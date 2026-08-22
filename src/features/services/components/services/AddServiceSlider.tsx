@@ -36,6 +36,7 @@ import {
 import { toast } from "sonner";
 import { ServiceFormSkeleton } from "./ServiceFormSkeleton";
 import { getLocationLoadingSelector } from "../../../locations/selectors";
+import { sanitizeDurationInput, MAX_DURATION_MINUTES } from "../../../../shared/utils/duration";
 
 interface AddServiceSliderProps {
   isOpen: boolean;
@@ -170,6 +171,12 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
       min: {
         value: 1,
         message: text("addService.form.validation.duration.min"),
+      },
+      // Belt and braces: the input clamps as you type, but a value loaded from
+      // an older record can still be over the cap.
+      max: {
+        value: MAX_DURATION_MINUTES,
+        message: text("addService.form.validation.duration.max"),
       },
     },
   });
@@ -542,18 +549,16 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
                               onChange={(
                                 e: React.ChangeEvent<HTMLInputElement>
                               ) => {
-                                const inputValue = e.target.value;
-                                // Only allow digits
-                                if (
-                                  inputValue === "" ||
-                                  /^\d+$/.test(inputValue)
-                                ) {
-                                  const numValue =
-                                    inputValue === ""
-                                      ? ""
-                                      : parseInt(inputValue, 10);
-                                  durationField.onChange(numValue);
-                                }
+                                // Digits only, capped at 24h — see
+                                // sanitizeDurationInput.
+                                const inputValue = sanitizeDurationInput(
+                                  e.target.value,
+                                );
+                                durationField.onChange(
+                                  inputValue === ""
+                                    ? ""
+                                    : parseInt(inputValue, 10),
+                                );
                               }}
                               className="!pl-10 !pr-20 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none transition-all focus-visible:ring-1 focus-visible:ring-offset-0 border-border dark:border-border-subtle hover:border-border-strong focus:border-focus focus-visible:ring-focus"
                               aria-invalid={!!durationState.error?.message}

@@ -120,7 +120,7 @@
         "managePopoverDescription": "Gestionează categoriile folosite de serviciile tale, astfel încât totul să rămână organizat.",
         "managePopoverHelperText": "Poți șterge o categorie doar dacă nu are niciun serviciu alocat.",
         "manageConfirmTitle": "Aplici modificările la categorii?",
-        "manageConfirmDescription": "Aceste modificări vor actualiza lista de categorii folosită în serviciile tale. Poți reveni oricând la lista inițială din această pagină.",
+        "manageConfirmDescription": "Categoriile noi sunt create, iar modificările de nume sau culoare sunt salvate. Serviciile păstrează categoriile în care sunt deja alocate.",
         "manageConfirmConfirm": "Aplică modificările",
         "manageConfirmCancel": "Anulează",
         "manageApplySuccess": "Categoriile au fost actualizate cu succes.",
@@ -181,7 +181,8 @@
         },
         "duration": {
           "required": "Durata este obligatorie",
-          "min": "Durata trebuie să fie de cel puțin 1 minut"
+          "min": "Durata trebuie să fie de cel puțin 1 minut",
+          "max": "Durata nu poate depăși 24 de ore (1440 de minute)"
         },
         "category": {
           "required": "Te rugăm să selectezi sau să creezi o categorie"
@@ -373,8 +374,8 @@
         },
         "discountPercentage": {
           "label": "Procent Reducere",
-          "placeholder": "0",
-          "help": "Introdu reducerea dorită (între 0 și 100%)"
+          "placeholder": "10",
+          "help": "Introdu reducerea dorită (între 0,01 și 100%)"
         }
       },
       "pricing": {
@@ -401,7 +402,7 @@
         "fixedPriceRequired": "Prețul fix este obligatoriu",
         "fixedPriceMin": "Prețul fix trebuie să fie mai mare sau egal cu 0",
         "discountRequired": "Procentul de reducere este obligatoriu",
-        "discountMin": "Procentul de reducere trebuie să fie cel puțin 0",
+        "discountMin": "Procentul de reducere trebuie să fie mai mare decât 0",
         "discountMax": "Procentul de reducere nu trebuie să depășească 100",
         "servicesMinimum": "Cel puțin 2 servicii trebuie selectate pentru un pachet"
       },
@@ -447,8 +448,8 @@
         },
         "discountPercentage": {
           "label": "Procent Reducere",
-          "placeholder": "0",
-          "help": "Introdu reducerea dorită (între 0 și 100%)"
+          "placeholder": "10",
+          "help": "Introdu reducerea dorită (între 0,01 și 100%)"
         }
       },
       "pricing": {
@@ -475,7 +476,7 @@
         "fixedPriceRequired": "Prețul fix este obligatoriu",
         "fixedPriceMin": "Prețul fix trebuie să fie mai mare sau egal cu 0",
         "discountRequired": "Procentul de reducere este obligatoriu",
-        "discountMin": "Procentul de reducere trebuie să fie cel puțin 0",
+        "discountMin": "Procentul de reducere trebuie să fie mai mare decât 0",
         "discountMax": "Procentul de reducere nu trebuie să depășească 100",
         "servicesRequired": "Cel puțin un serviciu trebuie selectat",
         "servicesMinimum": "Cel puțin 2 servicii trebuie selectate pentru un pachet"

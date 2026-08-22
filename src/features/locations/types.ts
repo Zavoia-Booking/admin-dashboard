@@ -14,6 +14,9 @@ export interface LocationState {
   error: string | null;
   // List-load failures only — `error` is shared with create/update/fetch flows.
   listError: string | null;
+  // True once a list request has settled (success or failure). Distinguishes
+  // "no locations yet, still loading" from "this business has no locations".
+  listLoaded: boolean;
   allLocations: LocationType[];
   isDeleting: boolean;
   deleteError: string | null;

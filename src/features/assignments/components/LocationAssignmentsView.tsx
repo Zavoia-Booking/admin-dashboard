@@ -1,22 +1,22 @@
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
-import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { MapPin, ArrowRight } from "lucide-react";
 import { Card, CardContent } from "../../../shared/components/ui/card";
 import { Button } from "../../../shared/components/ui/button";
 import { Skeleton } from "../../../shared/components/ui/skeleton";
+import { LocationSelector } from "../../../shared/components/common/LocationSelector";
+import { HeaderTitleSlot } from "../../../shared/components/layouts/HeaderRightSlot";
 import {
-  AssignmentListPanel,
-  type ListItem,
-} from "./common/AssignmentListPanel";
+  AssignmentsSummary,
+  type AssignmentsSummaryTarget,
+} from "./AssignmentsSummary";
 import { LocationServicesSection } from "./common/LocationServicesSection";
 import { LocationBundlesSection } from "./common/LocationBundlesSection";
 import { LocationTeamMembersSection } from "./common/LocationTeamMembersSection";
 import { ManageTeamMemberDrawer } from "./common/ManageTeamMemberDrawer";
 import { DashedDivider } from "../../../shared/components/common/DashedDivider";
-import { highlightMatches } from "../../../shared/utils/highlight";
-import { cn } from "../../../shared/lib/utils";
 import {
   selectLocationAction,
   fetchLocationFullAssignmentAction,
@@ -36,10 +36,12 @@ import {
   getStaffServicesLoadingSelector,
 } from "../selectors";
 import { ErrorState } from "../../../shared/components/common/ErrorState";
+import { scrollAppContentToElement } from "../../../shared/utils/scroll";
+import { cn } from "../../../shared/lib/utils";
 import {
   getAllLocationsSelector,
   getLocationListErrorSelector,
-  getLocationLoadingSelector,
+  getLocationsListLoadedSelector,
 } from "../../locations/selectors";
 import { listLocationsAction } from "../../locations/actions";
 import { selectCurrentUser } from "../../auth/selectors";
@@ -49,12 +51,23 @@ import { openReconciliationAction } from "../../reconciliation/actions";
 import type { LocationType } from "../../../shared/types/location";
 import type { StaffService } from "../types";
 
+/** Per-feature key, same pattern as the dashboard's and the calendar's, so the
+ *  location picked here survives a reload without leaking into other pages. */
+const LOCATION_STORAGE_KEY = "zavoia_assignments_selected_location";
+
+function readStoredLocationId(): number | null {
+  const raw = localStorage.getItem(LOCATION_STORAGE_KEY);
+  const parsed = raw ? parseInt(raw, 10) : NaN;
+  return Number.isNaN(parsed) ? null : parsed;
+}
+
 export function LocationAssignmentsView() {
   const { t } = useTranslation("assignments");
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const location = useLocation();
   const [searchParams] = useSearchParams();
+  const servicesSectionRef = useRef<HTMLDivElement>(null);
+  const bundlesSectionRef = useRef<HTMLDivElement>(null);
   const teamMembersSectionRef = useRef<HTMLDivElement>(null);
 
   // Selectors
@@ -62,7 +75,7 @@ export function LocationAssignmentsView() {
   const loadError = useSelector(getLoadErrorSelector);
   const isSaving = useSelector(getIsSavingSelector);
   const allLocations = useSelector(getAllLocationsSelector);
-  const isLocationsLoading = useSelector(getLocationLoadingSelector);
+  const locationsLoaded = useSelector(getLocationsListLoadedSelector);
   const locationsListError = useSelector(getLocationListErrorSelector);
   const selectedLocationId = useSelector(getSelectedLocationIdSelector);
   const selectedLocation = useSelector(getSelectedLocationFullSelector);
@@ -70,16 +83,8 @@ export function LocationAssignmentsView() {
   const isStaffServicesLoading = useSelector(getStaffServicesLoadingSelector);
   const currentUser = useSelector(selectCurrentUser);
   const businessCurrency = currentUser?.business?.businessCurrency || "eur";
-  const isInitialLocationsLoading =
-    isLocationsLoading && allLocations.length === 0;
-
-  // Track navigation to reset auto-selection state
-  const lastLocationKeyRef = useRef<string | null>(null);
-  const lastLocationIdFromUrlRef = useRef<string | null>(null);
 
   // Local state
-  const [searchTerm, setSearchTerm] = useState("");
-  const [hasAutoSelected, setHasAutoSelected] = useState(false);
   const [managingMemberId, setManagingMemberId] = useState<number | null>(null);
   const [saveOperation, setSaveOperation] = useState<
     "staff" | "services" | "teamMembers" | null
@@ -88,112 +93,92 @@ export function LocationAssignmentsView() {
   const [savingTeamMemberIds, setSavingTeamMemberIds] = useState<Set<number>>(
     new Set(),
   );
+  // Section the summary last pointed at — rings it briefly once the scroll lands.
+  const [attentionSection, setAttentionSection] =
+    useState<AssignmentsSummaryTarget | null>(null);
+  const attentionTimersRef = useRef<number[]>([]);
   // Track teamMembers state when saving starts - only clear when it changes from this
   const teamMembersWhenSavingStartedRef = useRef<number[] | null>(null);
-
-  // Filter locations by search
-  const filteredLocations = useMemo(() => {
-    if (!searchTerm.trim()) return allLocations;
-
-    const query = searchTerm.trim().toLowerCase();
-    const tokens = query.split(/\s+/).filter(Boolean);
-
-    return allLocations.filter((location: LocationType) => {
-      const name = (location.name || "").toLowerCase();
-      const address = (location.address || "").toLowerCase();
-      return tokens.every(
-        (token) => name.includes(token) || address.includes(token),
-      );
-    });
-  }, [allLocations, searchTerm]);
+  // The location whose /full payload has already been asked for. Guards the
+  // resolver below from re-firing on every unrelated store update.
+  const requestedLocationIdRef = useRef<number | null>(null);
 
   // Load locations on mount
   useEffect(() => {
     dispatch(listLocationsAction.request());
   }, [dispatch]);
 
-  // Reset hasAutoSelected when navigating to the page or when locationId in URL changes
+  // /assignments?locationId=… is an entry alias only: adopt it, then strip it
+  // from the URL so a later switch can't be dragged back to the stale id.
   useEffect(() => {
-    const locationIdFromUrl = searchParams.get("locationId");
-    const currentLocationKey = location.key;
-    const locationIdChanged =
-      locationIdFromUrl !== lastLocationIdFromUrlRef.current;
-    const navigationChanged = currentLocationKey !== lastLocationKeyRef.current;
-
-    if (navigationChanged || locationIdChanged) {
-      // Reset auto-selection state when navigating to page or URL locationId changes
-      setHasAutoSelected(false);
-      lastLocationKeyRef.current = currentLocationKey;
-      lastLocationIdFromUrlRef.current = locationIdFromUrl;
+    const raw = searchParams.get("locationId");
+    if (!raw) return;
+    const id = parseInt(raw, 10);
+    if (!Number.isNaN(id)) {
+      localStorage.setItem(LOCATION_STORAGE_KEY, String(id));
+      dispatch(selectLocationAction(id));
     }
-  }, [location.key, searchParams]);
+    navigate("/assignments", { replace: true });
+  }, [searchParams, navigate, dispatch]);
 
-  // Auto-select location from URL
+  // The one place that decides which location is shown and the one place that
+  // asks for its data. Selecting and fetching in the same pass is what keeps
+  // the first paint to a single skeleton instead of empty → skeleton → empty →
+  // skeleton → data.
   useEffect(() => {
-    const locationIdFromUrl = searchParams.get("locationId");
-    if (locationIdFromUrl && !hasAutoSelected && allLocations.length > 0) {
-      const locationId = parseInt(locationIdFromUrl, 10);
-      const locationExists = allLocations.some(
-        (l: LocationType) => l.id === locationId,
-      );
-      if (locationExists && !isNaN(locationId)) {
-        // Only auto-select if the current selection doesn't match
-        // This ensures we respect URL locationId even if something else was selected
-        if (selectedLocationId !== locationId) {
-          // Use a small delay to ensure this runs after any clearing from AssignmentsPage
-          const timeoutId = setTimeout(() => {
-            dispatch(selectLocationAction(locationId));
-            dispatch(fetchLocationFullAssignmentAction.request({ locationId }));
-            setHasAutoSelected(true);
-          }, 0);
-          return () => clearTimeout(timeoutId);
-        } else {
-          // Already selected correctly, just mark as auto-selected to prevent re-running
-          setHasAutoSelected(true);
-        }
-      }
+    // Let the alias effect above clear the param first, otherwise it would win
+    // the selection back on the next pass.
+    if (searchParams.get("locationId")) return;
+    if (!locationsLoaded || allLocations.length === 0) return;
+
+    const exists = (id: number | null): id is number =>
+      id !== null && allLocations.some((l: LocationType) => l.id === id);
+
+    const stored = readStoredLocationId();
+    const target = exists(selectedLocationId)
+      ? selectedLocationId
+      : exists(stored)
+        ? stored
+        : allLocations[0].id;
+
+    if (requestedLocationIdRef.current === target) return;
+    requestedLocationIdRef.current = target;
+
+    localStorage.setItem(LOCATION_STORAGE_KEY, String(target));
+    if (target !== selectedLocationId) {
+      dispatch(selectLocationAction(target));
     }
+
+    // Coming back with this location's payload still in the store: refresh it
+    // quietly so the content never blinks back to a skeleton.
+    dispatch(
+      fetchLocationFullAssignmentAction.request({
+        locationId: target,
+        skipLoading: selectedLocation?.id === target,
+      }),
+    );
   }, [
     searchParams,
+    locationsLoaded,
     allLocations,
-    hasAutoSelected,
     selectedLocationId,
+    selectedLocation,
     dispatch,
   ]);
 
-  // Auto-select first location when page loads (if no locationId in URL and no selection)
-  useEffect(() => {
-    const locationIdFromUrl = searchParams.get("locationId");
-    if (
-      !locationIdFromUrl &&
-      !hasAutoSelected &&
-      !isLocationsLoading &&
-      allLocations.length > 0 &&
-      selectedLocationId === null
-    ) {
-      // Use a small delay to ensure this runs after any clearing from AssignmentsPage
-      const timeoutId = setTimeout(() => {
-        const firstLocation = allLocations[0];
-        if (firstLocation) {
-          dispatch(selectLocationAction(firstLocation.id));
-          dispatch(
-            fetchLocationFullAssignmentAction.request({
-              locationId: firstLocation.id,
-            }),
-          );
-          setHasAutoSelected(true);
-        }
-      }, 0);
-      return () => clearTimeout(timeoutId);
-    }
-  }, [
-    searchParams,
-    allLocations,
-    hasAutoSelected,
-    isLocationsLoading,
-    selectedLocationId,
-    dispatch,
-  ]);
+  // One gate for the whole first paint: the details stay a skeleton until the
+  // location list is known AND the selected location's payload has landed.
+  const hasLocations = allLocations.length > 0;
+  const detailsMatchSelection =
+    selectedLocation !== null && selectedLocation.id === selectedLocationId;
+  const isBootstrapping =
+    !locationsLoaded ||
+    (hasLocations &&
+      !loadError &&
+      // A team-member toggle refreshes in place; it must never fall back to a
+      // skeleton (that is what scrolls the list out from under the switch).
+      saveOperation !== "teamMembers" &&
+      (selectedLocationId === null || isLoading || !detailsMatchSelection));
 
   // Consolidated save completion handler
   useEffect(() => {
@@ -248,6 +233,9 @@ export function LocationAssignmentsView() {
       if (selectedLocationId === locationId) {
         return;
       }
+      // Claim the fetch here so the resolver effect doesn't fire a second one.
+      requestedLocationIdRef.current = locationId;
+      localStorage.setItem(LOCATION_STORAGE_KEY, String(locationId));
       dispatch(selectLocationAction(locationId));
       // Refetch user data to get updated currency
       dispatch(fetchCurrentUserAction.request());
@@ -494,102 +482,71 @@ export function LocationAssignmentsView() {
     );
   }, [managingMemberId, selectedLocation]);
 
-  // Transform locations for list panel
-  const listItems: ListItem[] = useMemo(() => {
-    return filteredLocations.map((location: LocationType) => ({
-      id: location.id,
-      title: location.name,
-      subtitle: location.address || undefined,
-      badges: [],
-    }));
-  }, [filteredLocations]);
-
-  // Custom render for location items
-  const renderLocationItem = useCallback(
-    (item: ListItem, isSelected: boolean) => {
-      const hasSubtitle = Boolean(item.subtitle);
-      return (
-        <button
-          onClick={() => handleSelectLocation(Number(item.id))}
-          className={cn(
-            "group relative cursor-pointer flex gap-3 w-full px-2 py-3 pr-4 rounded-lg border text-left",
-            "focus:outline-none focus-visible:ring-2 focus-visible:ring-focus/60 focus-visible:ring-offset-0",
-            hasSubtitle ? "items-start" : "items-center",
-            isSelected
-              ? "border-border-strong bg-white dark:bg-surface shadow-xs"
-              : "border-border bg-white dark:bg-surface hover:border-border-strong hover:bg-surface-hover active:scale-[0.99]",
-          )}
-        >
-          {/* Selection indicator - align with first line; no extra top when no subtitle */}
-          <div className={cn("flex-shrink-0", hasSubtitle && "mt-2.5")}>
-            <div
-              className={cn(
-                "h-4.5 w-4.5 rounded-full border-2 flex items-center justify-center",
-                isSelected
-                  ? "border-primary bg-primary"
-                  : "border-border-strong group-hover:border-primary",
-              )}
-            >
-              {isSelected && (
-                <svg
-                  className="h-3.5 w-3.5 text-white"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={3}
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M5 13l4 4L19 7"
-                  />
-                </svg>
-              )}
+  // No locations at all: the picker has nothing to offer, so the page says so
+  // once, full width, and points at where locations are created.
+  const renderNoLocations = () => (
+    <Card className="py-3 cursor-default">
+      <CardContent className="px-3">
+        <div className="flex flex-col items-center justify-center py-12 px-4">
+          <div className="flex flex-col items-center justify-center space-y-4 text-center max-w-sm">
+            <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center">
+              <MapPin className="w-8 h-8 text-muted-foreground" />
             </div>
-          </div>
-
-          {/* Content */}
-          <div className="flex-1 min-w-0 flex flex-col gap-1">
-            <div className="font-semibold text-sm text-foreground-1 truncate">
-              {searchTerm ? highlightMatches(item.title, searchTerm) : item.title}
+            <div className="space-y-2">
+              <h3 className="text-lg font-semibold text-foreground">
+                {t("page.assignments.emptyState.noLocationsAvailable")}
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                {t("page.assignments.emptyState.noLocationsAvailableDescription")}
+              </p>
             </div>
-            {item.subtitle && (
-              <div className="text-xs text-muted-foreground truncate">
-                {searchTerm
-                  ? highlightMatches(item.subtitle, searchTerm)
-                  : item.subtitle}
-              </div>
-            )}
+            <Button onClick={() => navigate("/locations")} className="mt-2">
+              {t("page.assignments.emptyState.goToLocations")}
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </Button>
           </div>
-        </button>
-      );
-    },
-    [handleSelectLocation, searchTerm],
+        </div>
+      </CardContent>
+    </Card>
   );
 
-  // Empty state for locations list
-  const emptyStateComponent =
-    allLocations.length === 0 ? (
-      <div className="flex flex-col items-center justify-center py-12 px-4">
-        <div className="flex flex-col items-center justify-center space-y-4 text-center max-w-sm">
-          <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center">
-            <MapPin className="w-8 h-8 text-muted-foreground" />
-          </div>
-          <div className="space-y-2">
-            <h3 className="text-lg font-semibold text-foreground">
-              {t("page.assignments.emptyState.noLocationsAvailable")}
-            </h3>
-            <p className="text-sm text-muted-foreground">
-              {t("page.assignments.emptyState.noLocationsAvailableDescription")}
-            </p>
-          </div>
-          <Button onClick={() => navigate("/locations")} className="mt-2">
-            {t("page.assignments.emptyState.goToLocations")}
-            <ArrowRight className="w-4 h-4 ml-2" />
-          </Button>
-        </div>
-      </div>
-    ) : undefined;
+  /* Summary → section: scroll the content pane (not the window — see
+   * shared/utils/scroll) to the owning section, then ring it. The ring waits
+   * for the smooth scroll to land, otherwise it plays off screen. */
+  const focusSection = useCallback((target: AssignmentsSummaryTarget) => {
+    const el = {
+      services: servicesSectionRef,
+      bundles: bundlesSectionRef,
+      teamMembers: teamMembersSectionRef,
+    }[target].current;
+    if (!el) return;
+
+    attentionTimersRef.current.forEach(window.clearTimeout);
+    attentionTimersRef.current = [];
+    setAttentionSection(null);
+
+    requestAnimationFrame(() => {
+      scrollAppContentToElement(el, { block: "start", offset: 12 });
+    });
+    attentionTimersRef.current.push(
+      window.setTimeout(() => setAttentionSection(target), 400),
+      window.setTimeout(() => setAttentionSection(null), 2200),
+    );
+  }, []);
+
+  useEffect(
+    () => () => {
+      attentionTimersRef.current.forEach(window.clearTimeout);
+    },
+    [],
+  );
+
+  const attentionClass = (target: AssignmentsSummaryTarget) =>
+    cn(
+      "rounded-2xl transition-shadow duration-300 ease-out",
+      attentionSection === target &&
+        "ring-2 ring-primary/45 ring-offset-4 ring-offset-background",
+    );
 
   // Loading skeleton for details panel - matches actual layout structure
   const renderDetailsSkeleton = () => (
@@ -731,59 +688,20 @@ export function LocationAssignmentsView() {
     </Card>
   );
 
-  // Empty state for details panel
-  const renderEmptyDetails = () => (
-    <Card className="col-span-8 md:col-span-8 py-3 cursor-default">
-      <CardContent className="px-3">
-        <div className="flex flex-col items-center justify-start md:py-8 text-center gap-6 md:min-h-[400px]">
-          <div className="relative w-full max-w-md h-28 md:h-44 text-left mb-14">
-            <div className="absolute inset-0 -top-4 -bottom-4 bg-gradient-to-b from-primary/5 dark:from-primary/10 via-transparent to-transparent blur-2xl opacity-50 dark:opacity-40" />
-            <div className="absolute inset-x-10 top-2 md:h-28 h-20 rounded-2xl bg-neutral-50 dark:bg-neutral-900/60 border border-border shadow-lg opacity-70 rotate-[-14deg] blur-[0.5px]" />
-            <div className="absolute inset-x-6 top-10 md:h-30 h-25 rounded-2xl bg-neutral-50 dark:bg-neutral-900/70 border border-border shadow-xl opacity-85 rotate-[10deg] blur-[0.5px]" />
-            <div className="absolute inset-x-2 top-6 h-25 md:h-32 rounded-2xl bg-surface dark:bg-neutral-900 border border-border dark:border-border-surface shadow-xl overflow-hidden">
-              <div className="h-full w-full px-4 py-2 flex flex-col gap-3">
-                <div className="flex flex-col gap-2">
-                  <div className="h-4 w-40 rounded bg-neutral-300 dark:bg-neutral-800" />
-                  <div className="flex items-start gap-1.5">
-                    <div className="h-3 w-3 rounded bg-neutral-300/80 dark:bg-neutral-800/80 flex-shrink-0 mt-0.5" />
-                    <div className="flex-1 space-y-1">
-                      <div className="h-2.5 w-full rounded bg-neutral-300/70 dark:bg-neutral-800/70" />
-                      <div className="h-2.5 w-2/3 rounded bg-neutral-300/60 dark:bg-neutral-800/60" />
-                    </div>
-                  </div>
-                </div>
-                <div className="h-px bg-border dark:bg-border-surface" />
-                <div className="flex flex-col gap-1.5">
-                  <div className="flex items-center gap-2">
-                    <div className="h-3.5 w-3.5 rounded-full bg-neutral-300/90 dark:bg-neutral-800/90 flex-shrink-0" />
-                    <div className="flex-1">
-                      <div className="h-3 w-28 rounded bg-neutral-300/90 dark:bg-neutral-800/90" />
-                    </div>
-                    <div className="h-3.5 w-12 rounded bg-neutral-300/80 dark:bg-neutral-800/80" />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="space-y-2 max-w-xl px-4">
-            <h3 className="text-lg font-semibold text-foreground-1">
-              {t("page.assignments.emptyState.selectLocationTitle")}
-            </h3>
-            <p className="text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed">
-              {t("page.assignments.emptyState.selectLocationDescription")}
-            </p>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+  // The picker: one control, two hosts. The breadcrumb header only exists below
+  // md, so projecting into it unconditionally is free on desktop and — unlike a
+  // useIsMobile branch — costs no first-paint flicker on phones.
+  const locationSelectorNode = !locationsLoaded ? (
+    <Skeleton className="h-11 w-full rounded-full" />
+  ) : (
+    <LocationSelector
+      locations={allLocations}
+      selectedLocationId={selectedLocationId}
+      onSelect={handleSelectLocation}
+    />
   );
 
-  if (
-    locationsListError &&
-    allLocations.length === 0 &&
-    !isInitialLocationsLoading
-  ) {
+  if (locationsListError && allLocations.length === 0 && locationsLoaded) {
     return (
       <ErrorState
         variant="page"
@@ -794,44 +712,20 @@ export function LocationAssignmentsView() {
   }
 
   return (
-    <div className="flex flex-col md:flex-row gap-2 w-full">
-      {/* Left list panel */}
-      <div className="w-full md:w-[32%] min-w-0">
-        <AssignmentListPanel
-          title={t("page.assignments.titleWithCount", {
-            count: filteredLocations.length,
-            ofTotal: searchTerm
-              ? t("page.assignments.titleOfTotal", {
-                  total: allLocations.length,
-                })
-              : "",
-          })}
-          items={listItems}
-          selectedId={selectedLocationId ?? null}
-          onSelect={(id) => handleSelectLocation(Number(id))}
-          isLoading={isInitialLocationsLoading}
-          emptyMessage={
-            searchTerm
-              ? t("page.assignments.emptyState.noLocationsMatchSearch")
-              : t("page.assignments.emptyState.noLocations")
-          }
-          emptyStateComponent={emptyStateComponent}
-          renderItem={renderLocationItem}
-          searchValue={searchTerm}
-          onSearchChange={setSearchTerm}
-          searchPlaceholder={t("page.assignments.searchPlaceholder")}
-          showSearch
-        />
-      </div>
+    <div className="flex flex-col gap-4 w-full">
+      {/* Mobile: sits in the app header, on the notification bell's row. */}
+      <HeaderTitleSlot>{locationSelectorNode}</HeaderTitleSlot>
 
-      {/* Right details panel */}
-      <div className="w-full md:flex-1 min-w-0">
-        {isInitialLocationsLoading ? (
+      {/* Desktop: same control at the top of the page, as on the dashboard. */}
+      <div className="hidden md:block md:w-[280px]">{locationSelectorNode}</div>
+
+      <div className="w-full min-w-0">
+        {isBootstrapping ||
+        ((isLoading || forceLoading) && saveOperation !== "teamMembers") ? (
           renderDetailsSkeleton()
-        ) : (isLoading || forceLoading) && saveOperation !== "teamMembers" ? (
-          renderDetailsSkeleton()
-        ) : loadError && selectedLocationId &&
-          (!selectedLocation || selectedLocation.id !== selectedLocationId) ? (
+        ) : !hasLocations ? (
+          renderNoLocations()
+        ) : loadError && selectedLocationId && !detailsMatchSelection ? (
           <Card className="py-3 cursor-default">
             <CardContent className="px-3">
               <ErrorState
@@ -844,11 +738,21 @@ export function LocationAssignmentsView() {
             </CardContent>
           </Card>
         ) : !selectedLocation ? (
-          renderEmptyDetails()
+          renderDetailsSkeleton()
         ) : (
+          <>
+          {/* First thing on the page: what still blocks bookings here. */}
+          <div className="mb-4">
+            <AssignmentsSummary
+              location={selectedLocation}
+              onResolve={focusSection}
+            />
+          </div>
+
           <Card className="py-3 cursor-default">
             <CardContent className="px-3 space-y-8">
               {/* Services Section */}
+              <div ref={servicesSectionRef} className={attentionClass("services")}>
               <LocationServicesSection
                 locationName={selectedLocation.name}
                 services={selectedLocation.services}
@@ -859,6 +763,7 @@ export function LocationAssignmentsView() {
                 locationId={selectedLocationId || undefined}
                 onSaveStart={handleOverridesSaveStart}
               />
+              </div>
 
               <DashedDivider
                 className="mb-1 md:mb-4"
@@ -867,6 +772,7 @@ export function LocationAssignmentsView() {
               />
 
               {/* Bundles Section */}
+              <div ref={bundlesSectionRef} className={attentionClass("bundles")}>
               <LocationBundlesSection
                 locationName={selectedLocation.name}
                 bundles={selectedLocation.bundles || []}
@@ -875,6 +781,7 @@ export function LocationAssignmentsView() {
                 currency={businessCurrency}
                 locationId={selectedLocationId || undefined}
               />
+              </div>
 
               <DashedDivider
                 className="mb-1 md:mb-4"
@@ -883,7 +790,10 @@ export function LocationAssignmentsView() {
               />
 
               {/* Team Members Section */}
-              <div ref={teamMembersSectionRef}>
+              <div
+                ref={teamMembersSectionRef}
+                className={attentionClass("teamMembers")}
+              >
                 <LocationTeamMembersSection
                   locationName={selectedLocation.name}
                   teamMembers={selectedLocation.teamMembers}
@@ -899,6 +809,7 @@ export function LocationAssignmentsView() {
               </div>
             </CardContent>
           </Card>
+          </>
         )}
       </div>
 

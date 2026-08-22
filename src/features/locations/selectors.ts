@@ -10,6 +10,10 @@ export const getLocationLoadingSelector = createSelector(getLocationStateSelecto
     return state.isLoading
 });
 
+export const getLocationsListLoadedSelector = createSelector(getLocationStateSelector, (state): boolean => {
+    return state.listLoaded ?? false
+});
+
 export const getLocationErrorSelector = createSelector(getLocationStateSelector, (state) => {
     return state.error
 });

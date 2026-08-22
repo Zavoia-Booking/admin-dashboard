@@ -33,6 +33,7 @@ import { Skeleton } from "../../../../shared/components/ui/skeleton";
 import { updateStaffServicesAction } from "../../actions";
 import { fetchServiceStaffOverridesRequest } from "../../api";
 import type { StaffOverrideData } from "../../types";
+import { sanitizeDurationInput } from "../../../../shared/utils/duration";
 
 // Inner component for member override row with proper state management
 interface MemberOverrideRowProps {
@@ -76,24 +77,22 @@ function MemberOverrideRow({
     : currentDurationValue.toString();
 
   const handleDurationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const inputValue = e.target.value;
+    // Digits only, capped at 24h — see sanitizeDurationInput.
+    const inputValue = sanitizeDurationInput(e.target.value);
+    setLocalDurationInput(inputValue);
+    setDurationError(null);
 
-    if (inputValue === "" || /^\d+$/.test(inputValue)) {
-      setLocalDurationInput(inputValue);
-      setDurationError(null);
+    if (inputValue === "") {
+      onUpdateService(member.userId, member.customPrice, null);
+      return;
+    }
 
-      if (inputValue === "") {
+    const numValue = parseInt(inputValue, 10);
+    if (numValue > 0) {
+      if (numValue === inheritedDuration) {
         onUpdateService(member.userId, member.customPrice, null);
-        return;
-      }
-
-      const numValue = parseInt(inputValue, 10);
-      if (numValue > 0) {
-        if (numValue === inheritedDuration) {
-          onUpdateService(member.userId, member.customPrice, null);
-        } else {
-          onUpdateService(member.userId, member.customPrice, numValue);
-        }
+      } else {
+        onUpdateService(member.userId, member.customPrice, numValue);
       }
     }
   };

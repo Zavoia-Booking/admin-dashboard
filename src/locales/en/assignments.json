@@ -1,5 +1,46 @@
 {
   "page": {
+    "summary": {
+      "readyLabel": "Ready for bookings",
+      "attentionLabel": "Needs your attention",
+      "groupLabel": "Before customers can book here",
+      "progressDone": "{{done}}/{{total}} done",
+      "resolve": "Fix",
+      "view": "View",
+      "items": {
+        "servicesEnabled": {
+          "pending": "No services are offered at this location",
+          "done": "Services are offered at this location"
+        },
+        "teamAssigned": {
+          "pending": "No team members work at this location",
+          "done": "Team members work at this location"
+        },
+        "servicesWithoutStaff": {
+          "pending_one": "{{count}} service here can't be booked — nobody can perform it",
+          "pending_other": "{{count}} services here can't be booked — nobody can perform them",
+          "done": "Every service here has someone to perform it"
+        },
+        "staffWithoutServices": {
+          "pending_one": "{{count}} team member here can't be booked — no services assigned",
+          "pending_other": "{{count}} team members here can't be booked — no services assigned",
+          "done": "Every team member here can perform at least one service"
+        },
+        "bundlesUnbookable": {
+          "pending_one": "{{count}} bundle includes a service not offered here",
+          "pending_other": "{{count}} bundles include services not offered here",
+          "done": "Every bundle's services are offered here"
+        }
+      },
+      "hints": {
+        "membersNotHere_one": "{{count}} team member isn't assigned to this location",
+        "membersNotHere_other": "{{count}} team members aren't assigned to this location",
+        "servicesNotHere_one": "{{count}} of your services isn't offered here",
+        "servicesNotHere_other": "{{count}} of your services aren't offered here",
+        "bundlesNotHere_one": "{{count}} of your bundles isn't offered here",
+        "bundlesNotHere_other": "{{count}} of your bundles aren't offered here"
+      }
+    },
     "title": "Assignments",
     "subtitle": "Manage service and staff assignments by location",
     "assignments": {

@@ -1,11 +1,10 @@
-import React, { useState, useMemo } from "react";
-import { useTranslation } from "react-i18next";
+import React, { useState } from "react";
 import { Label } from "../../ui/label";
 import { Input } from "../../ui/input";
 import { AlertCircle } from "lucide-react";
 import type { NumberFieldProps } from "./NumberField";
-import { priceToStorage, priceFromStorage, formatPriceValue } from "../../../utils/currency";
-import { resolveIntlLocale } from "../../../hooks/useFormatPrice";
+import { priceToStorage, priceFromStorage } from "../../../utils/currency";
+import { sanitizeDecimalInput } from "../../../utils/decimalInput";
 
 export interface PriceFieldProps
   extends Omit<NumberFieldProps, "onChange" | "value"> {
@@ -28,11 +27,12 @@ export interface PriceFieldProps
  *
  * Features:
  * - Right-aligned numeric text
- * - Locale-aware thousands grouping (`1,234.56` on EN, `1.234,56` on RO)
- * - Locale-aware decimal separator: users can type / paste either form;
- *   the normalizer interprets dots vs commas based on the active locale
- *   and produces canonical dot-decimal for storage
- * - Format on blur, raw value when focused
+ * - One canonical format everywhere — plain dot-decimal, no thousands
+ *   grouping — so what the field shows is exactly what it accepts. A comma
+ *   typed on a RO/DE numeric keypad is read as the decimal point.
+ * - Input is sanitised as it is typed (see {@link sanitizeDecimalInput}); the
+ *   field cannot be made to hold a malformed price.
+ * - Padded to `decimalPlaces` on blur, raw buffer while focused
  * - Auto-select on focus for easier editing
  * - Mobile-friendly decimal keyboard
  * - Automatic conversion between display and storage formats
@@ -60,16 +60,6 @@ export const PriceField: React.FC<PriceFieldProps> = ({
   storageFormat = "cents", // Default to 'cents' - prices are stored as integer minor units
   liveUpdate = false, // When true, calls onChange on every keystroke
 }) => {
-  const { i18n } = useTranslation();
-  const locale = resolveIntlLocale(i18n.language);
-  // Detect which char this locale uses as the decimal separator. Anything
-  // else (between digits) is treated as a thousands separator and stripped
-  // by the normalizer below. Memoized to avoid creating an Intl instance
-  // on every render.
-  const decimalSeparator = useMemo<"." | ",">(
-    () => (new Intl.NumberFormat(locale).format(1.1).includes(",") ? "," : "."),
-    [locale],
-  );
   const [isFocused, setIsFocused] = useState(false);
   const [localInputValue, setLocalInputValue] = useState<string>("");
   const hasIcon = !!Icon;
@@ -95,118 +85,51 @@ export const PriceField: React.FC<PriceFieldProps> = ({
 
   const displayValueNum = getDisplayValue();
 
-  // Display formatted value when not focused, raw input when focused.
-  // Formatting goes through the shared currency util so PriceField inputs,
-  // dashboard widgets, and badges all render the same grouped, locale-aware
-  // number — no more "12,321,699.00 in the input, 699.00 in the badge"
-  // mismatches.
+  // Blurred: the same canonical dot-decimal the field accepts, just padded to
+  // `decimalPlaces`. Deliberately NOT locale-grouped — a field that reads
+  // `1.234,50` but only takes `1234.50` is a trap, and on RO the old grouping
+  // made a typed `12.50` mean 1250. Grouped, locale-aware output still belongs
+  // on read-only surfaces (badges, widgets) via formatPrice*.
   const displayValue = isFocused
     ? localInputValue
     : displayValueNum === 0
     ? ""
-    : formatPriceValue(displayValueNum, currency, { locale, decimalPlaces });
+    : displayValueNum.toFixed(decimalPlaces);
 
-  /**
-   * Normalizes input to canonical dot-decimal so `parseFloat` can read it.
-   *
-   * Strategy: whatever char this locale uses as the *decimal* separator
-   * survives (converted to `.` if needed); the *other* char is treated as
-   * a thousands grouping and stripped.
-   *
-   * Examples (RO locale, decimal = `,`):
-   *   `12.321.699,50`  → `12321699.50`
-   *   `1234,5`         → `1234.5`
-   *   `1234.5`         → `12345` (dots are thousands here; matches RO convention)
-   *
-   * Examples (EN locale, decimal = `.`):
-   *   `12,321,699.50`  → `12321699.50`
-   *   `1234.5`         → `1234.5`
-   *   `1234,5`         → `12345` (commas are thousands)
-   */
-  const normalizeDecimalInput = (input: string): string => {
-    const cleaned = input.replace(/\s/g, "");
-    if (decimalSeparator === ",") {
-      // RO-style: dots are thousands separators, comma is decimal.
-      return cleaned.replace(/\./g, "").replace(/,/g, ".");
-    }
-    // EN-style: commas are thousands separators, dot is decimal.
-    return cleaned.replace(/,/g, "");
+  /** Pushes the buffer out in whichever storage format the caller asked for. */
+  const commit = (buffer: string) => {
+    const parsed = parseFloat(buffer);
+    // NaN covers "" and a lone "." — both mean "no price yet".
+    const safeValue = isNaN(parsed) ? 0 : Math.max(0, parsed);
+    onChange(
+      storageFormat === "cents"
+        ? priceToStorage(safeValue, currency)
+        : safeValue,
+    );
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const inputValue = e.target.value;
-
-    // Allow free typing AND pasting of locale-formatted values while
-    // focused. The blur normalizer (or liveUpdate path) cleans it up.
-    // Only constraint: digits, dots, commas, whitespace. No letters, no
-    // sign characters (prices can't be negative).
-    const isValidInput =
-      inputValue === "" || /^[\d.,\s]*$/.test(inputValue);
-
-    if (isValidInput) {
-      setLocalInputValue(inputValue);
-
-      // If liveUpdate is enabled, call onChange immediately
-      if (liveUpdate) {
-        const normalized = normalizeDecimalInput(inputValue);
-        const parsed = parseFloat(normalized);
-
-        if (!isNaN(parsed) && normalized !== "") {
-          const safeValue = Math.max(0, parsed);
-          if (storageFormat === "cents") {
-            const storageValue = priceToStorage(safeValue, currency);
-            onChange(storageValue);
-          } else {
-            onChange(safeValue);
-          }
-        } else if (normalized === "" || normalized === ".") {
-          onChange(storageFormat === "cents" ? 0 : 0);
-        }
-      }
-    }
+    // Sanitise on the way in rather than validating on the way out: the field
+    // only ever holds a well-formed price, so there is no malformed state for
+    // a blur, a submit, or a `liveUpdate` consumer to read.
+    const sanitized = sanitizeDecimalInput(e.target.value, decimalPlaces);
+    setLocalInputValue(sanitized);
+    if (liveUpdate) commit(sanitized);
   };
 
   const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
     setIsFocused(true);
-    // Initialize the editable buffer with an *unformatted* value rendered
-    // in the locale's decimal style so it matches what the user just saw
-    // (e.g. RO user blurs to see `12.321.699,50`, focuses to edit
-    // `12321699,50` — same separator they're used to typing).
-    let currentDisplay = "";
-    if (displayValueNum !== 0) {
-      const canonical = String(displayValueNum);
-      currentDisplay =
-        decimalSeparator === "," ? canonical.replace(".", ",") : canonical;
-    }
-    setLocalInputValue(currentDisplay);
+    // Editable buffer = the value without the blur padding, in the same
+    // canonical form the field accepts (`12.5`, not `12.50` or `12,50`).
+    setLocalInputValue(displayValueNum === 0 ? "" : String(displayValueNum));
     // Select all text on focus for easier editing
     e.target.select();
   };
 
   const handleBlur = () => {
     setIsFocused(false);
-
-    // Normalize the input (handle comma as decimal separator)
-    const normalized = normalizeDecimalInput(localInputValue);
-    const parsed = parseFloat(normalized);
-
-    if (!isNaN(parsed) && normalized !== "") {
-      // Ensure non-negative (prices can't be negative)
-      const safeValue = Math.max(0, parsed);
-
-      // Convert to storage format
-      if (storageFormat === "cents") {
-        const storageValue = priceToStorage(safeValue, currency);
-        onChange(storageValue);
-      } else {
-        onChange(safeValue);
-      }
-    } else if (normalized === "") {
-      // Empty - set to 0
-      onChange(storageFormat === "cents" ? 0 : 0);
-    }
-
-    // Clear local input value
+    // The buffer is already canonical, so blur only has to publish it.
+    commit(localInputValue);
     setLocalInputValue("");
   };
 

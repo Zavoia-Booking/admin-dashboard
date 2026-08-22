@@ -24,9 +24,32 @@ export interface CustomerHistoryPdfTranslations {
   pageFooter: string;
   hourShort: string;
   minuteShort: string;
+  contactHeading: string;
+  contactNameLabel: string;
+  contactEmailLabel: string;
+  contactPhoneLabel: string;
+  contactSourceLabel: string;
+  contactSinceLabel: string;
+  contactNotProvided: string;
+}
+
+/**
+ * Who the history belongs to. Printed as the first card so the export stands on
+ * its own — a downloaded timeline with no way back to the person it describes
+ * is useless once it leaves the dashboard.
+ */
+export interface CustomerHistoryPdfContact {
+  name?: string;
+  email?: string;
+  phone?: string;
+  /** Raw `manual` / `marketplace` / `import`; labelled via the translations. */
+  source?: string;
+  /** Preformatted by the caller, which owns the locale-aware date format. */
+  customerSince?: string;
 }
 
 const COLORS = {
+  stripeContact: [201, 74, 42] as [number, number, number],
   stripeAppointment: [59, 130, 246] as [number, number, number],
   stripeMilestone: [107, 114, 128] as [number, number, number],
   cardFill: [248, 250, 252] as [number, number, number],
@@ -183,6 +206,118 @@ function drawHorizontalRule(
   doc.setLineWidth(0.2);
 }
 
+function buildContactRows(
+  contact: CustomerHistoryPdfContact,
+  t: CustomerHistoryPdfTranslations,
+): Array<{ label: string; value: string }> {
+  const rows: Array<{ label: string; value: string }> = [];
+  const name = contact.name?.trim();
+  if (name) rows.push({ label: `${t.contactNameLabel}:`, value: name });
+  // Email and phone are printed even when empty: "not provided" is itself the
+  // answer someone reading the export is looking for.
+  rows.push({ label: `${t.contactEmailLabel}:`, value: contact.email?.trim() || t.contactNotProvided });
+  rows.push({ label: `${t.contactPhoneLabel}:`, value: contact.phone?.trim() || t.contactNotProvided });
+  if (contact.source) {
+    rows.push({ label: `${t.contactSourceLabel}:`, value: getSourceLabel(contact.source, t) });
+  }
+  if (contact.customerSince?.trim()) {
+    rows.push({ label: `${t.contactSinceLabel}:`, value: contact.customerSince.trim() });
+  }
+  return rows;
+}
+
+function drawRows(
+  doc: jsPDF,
+  rows: Array<{ label: string; value: string }>,
+  innerX: number,
+  valueW: number,
+  startY: number,
+): number {
+  let y = startY;
+  for (const row of rows) {
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...COLORS.label);
+    doc.text(row.label, innerX, y);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(...COLORS.body);
+    const valueLines = doc.splitTextToSize(row.value, valueW);
+    let valueY = y;
+    for (const line of valueLines) {
+      doc.text(line, innerX + LABEL_COL_MM, valueY);
+      valueY += LINE_H;
+    }
+    y = Math.max(y + LINE_H, valueY) + 1;
+    doc.setTextColor(...COLORS.body);
+  }
+  return y;
+}
+
+function measureRowsHeight(
+  doc: jsPDF,
+  rows: Array<{ label: string; value: string }>,
+  valueW: number,
+): number {
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  let h = 0;
+  for (const row of rows) {
+    const valueLines = doc.splitTextToSize(row.value, valueW);
+    h += Math.max(LINE_H, valueLines.length * LINE_H) + 1;
+  }
+  return h;
+}
+
+/** Same card shape as an entry, minus the type/date line. */
+function drawContactCard(
+  doc: jsPDF,
+  contact: CustomerHistoryPdfContact,
+  startY: number,
+  pageWidth: number,
+  t: CustomerHistoryPdfTranslations,
+): number {
+  const contentW = pageWidth - PAGE_MARGIN * 2;
+  const innerX = PAGE_MARGIN + CARD_PAD;
+  const innerW = contentW - CARD_PAD * 2;
+  const valueW = Math.max(20, innerW - LABEL_COL_MM - 2);
+
+  const rows = buildContactRows(contact, t);
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'bold');
+  const headingLines = doc.splitTextToSize(t.contactHeading, innerW);
+  const cardH =
+    STRIPE_H +
+    GAP_MD +
+    headingLines.length * LINE_H_TITLE +
+    GAP_SM +
+    1 +
+    GAP_MD +
+    measureRowsHeight(doc, rows, valueW) +
+    CARD_PAD;
+
+  doc.setFillColor(...COLORS.cardFill);
+  doc.setDrawColor(...COLORS.cardStroke);
+  doc.roundedRect(PAGE_MARGIN, startY, contentW, cardH, 1.2, 1.2, 'FD');
+  doc.setFillColor(...COLORS.stripeContact);
+  doc.rect(PAGE_MARGIN, startY, contentW, STRIPE_H, 'F');
+
+  let y = startY + STRIPE_H + GAP_MD + LINE_H * 0.75;
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...COLORS.body);
+  for (const line of headingLines) {
+    doc.text(line, innerX, y);
+    y += LINE_H_TITLE;
+  }
+
+  y += GAP_SM;
+  drawHorizontalRule(doc, innerX, PAGE_MARGIN + contentW - CARD_PAD, y, COLORS.divider);
+  y += GAP_MD;
+
+  drawRows(doc, rows, innerX, valueW, y);
+  return startY + cardH + GAP_MD;
+}
+
 function drawEntryCard(
   doc: jsPDF,
   item: FullActivityItem,
@@ -241,23 +376,7 @@ function drawEntryCard(
   drawHorizontalRule(doc, innerX, PAGE_MARGIN + contentW - CARD_PAD, ruleY, COLORS.divider);
   y = ruleY + GAP_MD;
 
-  const rows = buildRows(item, t, locale);
-  for (const row of rows) {
-    doc.setFontSize(8);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(...COLORS.label);
-    doc.text(row.label, innerX, y);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(...COLORS.body);
-    const valueLines = doc.splitTextToSize(row.value, valueW);
-    let valueY = y;
-    for (const line of valueLines) {
-      doc.text(line, innerX + LABEL_COL_MM, valueY);
-      valueY += LINE_H;
-    }
-    y = Math.max(y + LINE_H, valueY) + 1;
-    doc.setTextColor(...COLORS.body);
-  }
+  drawRows(doc, buildRows(item, t, locale), innerX, valueW, y);
 
   return startY + cardH + GAP_MD;
 }
@@ -269,6 +388,7 @@ export function buildCustomerHistoryPdfBlob(
     heading?: string;
     translations: CustomerHistoryPdfTranslations;
     locale?: string;
+    contact?: CustomerHistoryPdfContact;
   },
 ): Blob {
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
@@ -304,6 +424,11 @@ export function buildCustomerHistoryPdfBlob(
   y += GAP_MD + 2;
 
   doc.setTextColor(...COLORS.body);
+
+  if (options.contact) {
+    y = drawContactCard(doc, options.contact, y, pageWidth, options.translations);
+    y += GAP_SM;
+  }
 
   if (items.length === 0) {
     y = ensureY(doc, y, 24);

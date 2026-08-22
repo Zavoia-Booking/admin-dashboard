@@ -140,6 +140,14 @@ export function ManageTeamMemberDrawer({
     }
   }, [localServices, filter]);
 
+  // `isLoading` only covers the request. The sync effect above fills
+  // localServices one commit later, so without this second term the empty state
+  // ("no services") flashes for a frame between the two. Every skeleton stage
+  // gates on this, not on isLoading.
+  const isHydrating =
+    isLoading ||
+    (localServices.length === 0 && localLocationServices.length > 0);
+
   // Check for changes
   const hasChanges = useMemo(() => {
     if (localServices.length !== initialServices.length) return true;
@@ -301,7 +309,7 @@ export function ManageTeamMemberDrawer({
   } | null>(null);
 
   useLayoutEffect(() => {
-    if (!isOpen || isLoading) {
+    if (!isOpen || isHydrating) {
       setIndicatorStyle(null);
       return;
     }
@@ -327,7 +335,7 @@ export function ManageTeamMemberDrawer({
     }, 50); // Slightly longer delay to ensure buttons are rendered after loading
 
     return () => clearTimeout(timeoutId);
-  }, [filter, isOpen, isLoading]);
+  }, [filter, isOpen, isHydrating]);
 
   // Empty state
   const renderEmptyState = () => (
@@ -362,21 +370,68 @@ export function ManageTeamMemberDrawer({
     </>
   );
 
+  // Toolbar skeleton. Mirrors the real toolbar's box model exactly — same
+  // padding, same pill height, same select-all button — so the header does not
+  // shift when the services land. (The old one had a stray border-b and no
+  // select-all, which is what made the swap visibly jump.)
   const renderToolbarSkeleton = (isDesktop = false) => (
     <div
       className={cn(
-        "p-4 flex flex-col border-b border-border",
-        isDesktop ? "pt-2 gap-2" : "gap-2"
+        "flex flex-col gap-2",
+        isDesktop ? "p-4 pt-2 pb-2" : "p-2 pt-0 pb-2"
       )}
     >
-      {/* Filter buttons row skeleton */}
-      <div className="w-full">
+      <div className="flex items-center gap-2 w-full">
+        <div className="flex-1 min-w-0">
+          <Skeleton
+            className={cn("w-full rounded-full", isDesktop ? "h-8" : "h-10")}
+          />
+        </div>
         <Skeleton
-          className={cn("!h-6 rounded-full", isDesktop ? "w-2/3" : "!w-full")}
+          className={cn(
+            "shrink-0 rounded-full",
+            isDesktop ? "h-8 w-36" : "h-10 w-16"
+          )}
         />
       </div>
     </div>
   );
+
+  // Row skeleton. StaffServiceItem rows start COLLAPSED, so this models the
+  // collapsed row (~56px desktop / ~80px mobile) rather than the expanded
+  // price+duration form the previous skeleton drew at roughly triple the height.
+  const renderServiceListSkeleton = (isDesktop = false) =>
+    Array.from({ length: 6 }).map((_, i) => (
+      <div key={i} className="rounded-lg border border-border">
+        {isDesktop ? (
+          <div className="flex items-center gap-4 px-2 py-4">
+            <Skeleton className="h-5 w-9 shrink-0 rounded-full" />
+            {/* flex-1 wrapper, not a flex-1 bar: the real name cell fills the
+                row and pushes the price/duration summary to the right edge. */}
+            <div className="flex-1 min-w-0">
+              <Skeleton className="h-4 w-1/2" />
+            </div>
+            <Skeleton className="h-4 w-16 shrink-0" />
+            <Skeleton className="h-4 w-12 shrink-0" />
+            <Skeleton className="h-4 w-4 shrink-0" />
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3 px-3 py-3">
+            <div className="flex items-center gap-3">
+              <Skeleton className="h-5 w-9 shrink-0 rounded-full" />
+              <div className="flex-1 min-w-0">
+                <Skeleton className="h-4 w-3/5" />
+              </div>
+              <Skeleton className="h-4 w-4 shrink-0" />
+            </div>
+            <div className="flex items-center gap-5">
+              <Skeleton className="h-4 w-16" />
+              <Skeleton className="h-4 w-14" />
+            </div>
+          </div>
+        )}
+      </div>
+    ));
 
   // Desktop modal content
   const modalContent = (
@@ -414,7 +469,7 @@ export function ManageTeamMemberDrawer({
       </DrawerHeader>
 
       {/* Toolbar */}
-      {isLoading ? (
+      {isHydrating ? (
         renderToolbarSkeleton(false)
       ) : (
         <div className="p-2 pt-0 pb-2 flex flex-col gap-2">
@@ -505,41 +560,17 @@ export function ManageTeamMemberDrawer({
       {/* Services list */}
       <div
         className={cn(
-          "flex-1 space-y-3",
-          filteredServices.length > 0
+          "flex-1 space-y-3 p-4",
+          // Centering is only for the empty state. While the skeleton is up the
+          // list is also "empty", which is what pushed it into the middle of the
+          // modal instead of starting at the top.
+          isHydrating || filteredServices.length > 0
             ? "overflow-y-auto"
-            : "overflow-hidden flex items-center justify-center",
-          "p-4"
+            : "overflow-hidden flex items-center justify-center"
         )}
       >
-        {isLoading ? (
-          // Loading skeleton
-          <div className="space-y-3 w-full">
-            {[1, 2, 3, 4].map((i) => (
-              <div
-                key={i}
-                className="rounded-lg border border-border p-3 space-y-3"
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2 flex-1">
-                    <Skeleton className="h-5 w-9 rounded-full" />
-                    <Skeleton className="h-4 w-32" />
-                  </div>
-                  <Skeleton className="h-5 w-16 rounded-full" />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <Skeleton className="h-3 w-12" />
-                    <Skeleton className="h-9 w-full" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Skeleton className="h-3 w-16" />
-                    <Skeleton className="h-9 w-full" />
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+        {isHydrating ? (
+          renderServiceListSkeleton(false)
         ) : filteredServices.length === 0 ? (
           renderEmptyState()
         ) : (
@@ -571,7 +602,7 @@ export function ManageTeamMemberDrawer({
               type="button"
               rounded="full"
               onClick={handleSave}
-              disabled={!hasChanges || hasErrors || isSaving || isLoading}
+              disabled={!hasChanges || hasErrors || isSaving || isHydrating}
               className="group gap-2 h-11 cursor-pointer w-72"
             >
               {isSaving ? (
@@ -654,7 +685,7 @@ export function ManageTeamMemberDrawer({
                 type="button"
                 rounded="full"
                 onClick={handleSave}
-                disabled={!hasChanges || hasErrors || isSaving || isLoading}
+                disabled={!hasChanges || hasErrors || isSaving || isHydrating}
                 className="group gap-2 h-11 cursor-pointer flex-1"
               >
                 {isSaving ? (
@@ -730,7 +761,7 @@ export function ManageTeamMemberDrawer({
 
           <div className="flex-1 overflow-hidden flex flex-col">
             {/* Toolbar */}
-            {isLoading ? (
+            {isHydrating ? (
               renderToolbarSkeleton(true)
             ) : (
               <div className="p-4 pt-2 pb-2 flex flex-col gap-2">
@@ -820,40 +851,15 @@ export function ManageTeamMemberDrawer({
 
             <div
               className={cn(
-                "flex-1 space-y-3 scrollbar-hide relative",
-                filteredServices.length > 0
+                "flex-1 space-y-3 scrollbar-hide relative p-4",
+                // See the mobile list: centering belongs to the empty state only.
+                isHydrating || filteredServices.length > 0
                   ? "overflow-y-auto"
-                  : "overflow-hidden flex items-center justify-center",
-                "p-4"
+                  : "overflow-hidden flex items-center justify-center"
               )}
             >
-              {isLoading ? (
-                <div className="space-y-3 w-full">
-                  {[1, 2, 3, 4].map((i) => (
-                    <div
-                      key={i}
-                      className="rounded-lg border border-border p-3 space-y-3"
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2 flex-1">
-                          <Skeleton className="h-5 w-9 rounded-full" />
-                          <Skeleton className="h-4 w-32" />
-                        </div>
-                        <Skeleton className="h-5 w-16 rounded-full" />
-                      </div>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-1.5">
-                          <Skeleton className="h-3 w-12" />
-                          <Skeleton className="h-9 w-full" />
-                        </div>
-                        <div className="space-y-1.5">
-                          <Skeleton className="h-3 w-16" />
-                          <Skeleton className="h-9 w-full" />
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+              {isHydrating ? (
+                renderServiceListSkeleton(true)
               ) : filteredServices.length === 0 ? (
                 renderEmptyState()
               ) : (
@@ -886,7 +892,7 @@ export function ManageTeamMemberDrawer({
                   type="button"
                   rounded="full"
                   onClick={handleSave}
-                  disabled={!hasChanges || hasErrors || isSaving || isLoading}
+                  disabled={!hasChanges || hasErrors || isSaving || isHydrating}
                   className="group gap-2 h-11 cursor-pointer w-2/3"
                 >
                   {isSaving ? (

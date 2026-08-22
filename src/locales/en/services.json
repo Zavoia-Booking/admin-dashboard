@@ -120,7 +120,7 @@
         "managePopoverDescription": "Manage the categories your services use so everything stays organized and consistent.",
         "managePopoverHelperText": "You can remove a category only if it doesn’t have any services assigned to it.",
         "manageConfirmTitle": "Apply category changes?",
-        "manageConfirmDescription": "These changes will update the category list used across your services. You can always come back and edit more categories later.",
+        "manageConfirmDescription": "New categories are created, and any name or colour changes are saved. Your services keep the categories they are already assigned to.",
         "manageConfirmConfirm": "Apply changes",
         "manageConfirmCancel": "Cancel",
         "manageApplySuccess": "Categories updated successfully.",
@@ -181,7 +181,8 @@
         },
         "duration": {
           "required": "Duration is required",
-          "min": "Duration must be at least 1 minute"
+          "min": "Duration must be at least 1 minute",
+          "max": "Duration can't be longer than 24 hours (1440 minutes)"
         },
         "category": {
           "required": "Please select or create a category"
@@ -373,8 +374,8 @@
         },
         "discountPercentage": {
           "label": "Discount Percentage",
-          "placeholder": "0",
-          "help": "Enter the discount you want to offer (between 0 and 100%)"
+          "placeholder": "10",
+          "help": "Enter the discount you want to offer (between 0.01 and 100%)"
         }
       },
       "pricing": {
@@ -401,7 +402,7 @@
         "fixedPriceRequired": "Fixed price is required",
         "fixedPriceMin": "Fixed price must be greater than or equal to 0",
         "discountRequired": "Discount percentage is required",
-        "discountMin": "Discount percentage must be at least 0",
+        "discountMin": "Discount percentage must be greater than 0",
         "discountMax": "Discount percentage must not exceed 100",
         "servicesMinimum": "At least 2 services must be selected for a bundle"
       },
@@ -447,8 +448,8 @@
         },
         "discountPercentage": {
           "label": "Discount Percentage",
-          "placeholder": "0",
-          "help": "Enter the discount you want to offer (between 0 and 100%)"
+          "placeholder": "10",
+          "help": "Enter the discount you want to offer (between 0.01 and 100%)"
         }
       },
       "pricing": {
@@ -475,7 +476,7 @@
         "fixedPriceRequired": "Fixed price is required",
         "fixedPriceMin": "Fixed price must be greater than or equal to 0",
         "discountRequired": "Discount percentage is required",
-        "discountMin": "Discount percentage must be at least 0",
+        "discountMin": "Discount percentage must be greater than 0",
         "discountMax": "Discount percentage must not exceed 100",
         "servicesRequired": "At least one service must be selected",
         "servicesMinimum": "At least 2 services must be selected for a bundle"

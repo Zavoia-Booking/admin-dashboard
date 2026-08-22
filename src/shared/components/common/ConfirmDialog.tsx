@@ -6,6 +6,13 @@ import { cn } from "../../lib/utils";
 import type { LucideIcon } from "lucide-react";
 import { Spinner } from "../ui/spinner.tsx";
 import {
+  Drawer,
+  DrawerContent,
+  DrawerTitle,
+  DrawerDescription,
+} from "../ui/drawer";
+import { useIsMobile } from "../../hooks/use-mobile";
+import {
   modalScrim,
   modalPanel,
   modalTitleCompact,
@@ -37,6 +44,9 @@ export interface ConfirmDialogProps {
   footerClassName?: string;
   cancelClassName?: string;
   confirmClassName?: string;
+  /** Render as a bottom sheet under `md` instead of a centred panel. Opt-in so
+   *  the ~13 existing call sites keep the modal they were designed around. */
+  mobileDrawer?: boolean;
 }
 
 /**
@@ -67,8 +77,10 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   footerClassName,
   cancelClassName,
   confirmClassName,
+  mobileDrawer = false,
 }) => {
   const { t } = useTranslation("common");
+  const isMobile = useIsMobile();
   const isConfirmDisabled = confirmDisabled || confirmBusy;
 
   const handleConfirm = () => {
@@ -84,6 +96,86 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
 
   const confirmPill = variant === "destructive" ? modalDestructive : modalPrimary;
   const hasBadge = Boolean(Icon) && iconBgColor !== "transparent";
+
+  const iconBadge = Icon && (
+    <span
+      className={cn(
+        "inline-flex shrink-0 items-center justify-center",
+        hasBadge && "h-10 w-10 rounded-full",
+        hasBadge ? iconBgColor : "",
+        iconColor.includes("text-") ? "" : iconColor,
+      )}
+    >
+      <Icon
+        className={cn("h-5 w-5", iconColor.includes("text-") ? iconColor : "text-primary")}
+        aria-hidden="true"
+      />
+    </span>
+  );
+
+  if (mobileDrawer && isMobile) {
+    return (
+      <Drawer
+        open={open}
+        onOpenChange={(next) => {
+          if (!next) handleCancel();
+        }}
+        autoFocus
+      >
+        {/* Above every other layer, like the modal's z-[300] scrim: a
+            confirmation is always the topmost thing on screen, and it is
+            routinely raised from inside another drawer or slider. */}
+        <DrawerContent
+          className={cn(
+            "!z-[300] bg-neutral-50 text-neutral-900 dark:bg-surface dark:text-foreground-1",
+            "px-5 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-1 text-left",
+            className,
+          )}
+          overlayClassName="!z-[299] bg-[oklch(15%_0.004_70/0.42)]"
+        >
+          <div className={cn("flex items-start gap-3.5 pt-4", headerClassName)}>
+            {iconBadge}
+            <div className="min-w-0 flex-1">
+              <DrawerTitle className={modalTitleCompact}>{title}</DrawerTitle>
+              <DrawerDescription asChild>
+                {description ? (
+                  <div className={cn(modalBody, "mt-2")}>{description}</div>
+                ) : (
+                  <span className="sr-only">{title}</span>
+                )}
+              </DrawerDescription>
+            </div>
+          </div>
+
+          {/* Stacked full-width actions: thumb-reachable, primary on top. */}
+          <div className={cn("mt-6 flex flex-col gap-2", footerClassName)}>
+            <button
+              type="button"
+              onClick={handleConfirm}
+              disabled={isConfirmDisabled}
+              aria-busy={confirmBusy || undefined}
+              className={cn(confirmPill, "w-full", confirmClassName)}
+            >
+              {confirmBusy ? (
+                <Spinner size="sm" color="white" />
+              ) : (
+                <span>{confirmTitle || "Confirm"}</span>
+              )}
+            </button>
+            {cancelTitle !== null && (
+              <button
+                type="button"
+                onClick={handleCancel}
+                className={cn(modalCancel, "w-full", cancelClassName)}
+              >
+                {cancelTitle || "Cancel"}
+              </button>
+            )}
+          </div>
+        </DrawerContent>
+      </Drawer>
+    );
+  }
 
   return (
     <AlertDialog.Root open={open} onOpenChange={onOpenChange || handleCancel}>
@@ -107,21 +199,7 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
           )}
 
           <div className={cn("flex items-start gap-3.5", showCloseButton && "pr-8", headerClassName)}>
-            {Icon && (
-              <span
-                className={cn(
-                  "inline-flex shrink-0 items-center justify-center",
-                  hasBadge && "h-10 w-10 rounded-full",
-                  hasBadge ? iconBgColor : "",
-                  iconColor.includes("text-") ? "" : iconColor,
-                )}
-              >
-                <Icon
-                  className={cn("h-5 w-5", iconColor.includes("text-") ? iconColor : "text-primary")}
-                  aria-hidden="true"
-                />
-              </span>
-            )}
+            {iconBadge}
             <div className="min-w-0 flex-1">
               <AlertDialog.Title className={modalTitleCompact}>{title}</AlertDialog.Title>
               <AlertDialog.Description asChild>

@@ -3,6 +3,8 @@ import { useDispatch, useSelector } from "react-redux";
 import { useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { AppLayout } from "../../../shared/components/layouts/app-layout";
+import { NotificationBell } from "../../../shared/components/common/NotificationBell";
+import { useIsMobile } from "../../../shared/hooks/use-mobile";
 import { PageHeader } from "../../../shared/components/layouts/PageHeader";
 import { Button } from "../../../shared/components/ui/button";
 import { Badge } from "../../../shared/components/ui/badge";
@@ -128,7 +130,7 @@ const STATUS_ICONS: Record<TicketStatus, typeof Bug> = {
 function TicketCardSkeleton() {
   return (
     <div className="rounded-xl ring-1 ring-border bg-surface overflow-hidden">
-      <div className="p-4 space-y-3">
+      <div className="p-3 space-y-3 md:p-4">
         {/* Header: icon + id + date */}
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
@@ -156,7 +158,7 @@ function TicketCardSkeleton() {
 
 function TicketListSkeleton() {
   return (
-    <div className="skeleton-delayed-reveal grid grid-cols-1 md:grid-cols-2 gap-3">
+    <div className="skeleton-delayed-reveal grid grid-cols-1 gap-2 md:grid-cols-2 md:gap-3">
       {Array.from({ length: 4 }).map((_, i) => (
         <TicketCardSkeleton key={i} />
       ))}
@@ -168,7 +170,7 @@ function ConversationSkeleton() {
   return (
     <div className="flex flex-col h-full">
       {/* Header skeleton */}
-      <div className="border-b border-border bg-surface-hover/40 flex-shrink-0 px-3 py-2.5 md:px-4 md:py-3 space-y-2">
+      <div className="border-b border-border bg-surface-hover/40 flex-shrink-0 px-2.5 py-2 md:px-4 md:py-3 space-y-2">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-1.5">
             <Skeleton className="h-8 w-8 rounded-full" />
@@ -185,7 +187,7 @@ function ConversationSkeleton() {
         </div>
       </div>
       {/* Messages skeleton */}
-      <div className="flex-1 py-4 px-4 space-y-4">
+      <div className="flex-1 px-2.5 py-3 space-y-4 md:px-4 md:py-4">
         <div className="flex justify-end">
           <Skeleton className="h-16 w-3/5 rounded-2xl" />
         </div>
@@ -197,7 +199,7 @@ function ConversationSkeleton() {
         </div>
       </div>
       {/* Input skeleton */}
-      <div className="flex-shrink-0 px-4 pb-4 pt-3 border-t border-border">
+      <div className="flex-shrink-0 px-2.5 pb-2.5 pt-2 border-t border-border md:px-4 md:pb-4 md:pt-3">
         <div className="flex items-end gap-2">
           <Skeleton className="h-10 flex-1 rounded-md" />
           <Skeleton className="h-10 w-10 rounded-md" />
@@ -243,7 +245,7 @@ function TicketListItem({
         <div className="h-0.5 bg-gradient-to-r from-primary via-primary/60 to-transparent" />
       )}
 
-      <div className="p-4 space-y-3">
+      <div className="p-3 space-y-3 md:p-4">
         {/* Header: Status icon + ID + Date */}
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
@@ -346,7 +348,7 @@ function ConversationView({
   return (
     <div className="flex flex-col h-full">
       {/* Conversation Header */}
-      <div className="border-b border-border bg-surface-hover/40 flex-shrink-0 px-3 py-2.5 md:px-4 md:py-3 space-y-2">
+      <div className="border-b border-border bg-surface-hover/40 flex-shrink-0 px-2.5 py-2 md:px-4 md:py-3 space-y-2">
         {/* Row 1: Back + Ticket ID + Close button */}
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-1.5 min-w-0">
@@ -382,7 +384,7 @@ function ConversationView({
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto py-4 px-4 space-y-3 min-h-0">
+      <div className="flex-1 overflow-y-auto px-2.5 py-3 space-y-3 min-h-0 md:px-4 md:py-4">
         {history.map((entry, i) => {
           const isAdmin = entry.createdBy === "admin";
           const isOwnMessage = !isAdmin;
@@ -430,7 +432,7 @@ function ConversationView({
       </div>
 
       {/* Input Area */}
-      <div className="flex-shrink-0 px-4 pb-4 pt-3 border-t border-border">
+      <div className="flex-shrink-0 px-2.5 pb-2.5 pt-2 border-t border-border md:px-4 md:pb-4 md:pt-3">
         {isClosed ? (
           <div className="flex items-center justify-center gap-2 py-3 text-foreground-3 text-sm">
             <Lock className="h-4 w-4" />
@@ -594,6 +596,7 @@ function NewTicketDialog({
 export default function SupportPage() {
   const { t } = useTranslation("support");
   const dispatch = useDispatch();
+  const isMobile = useIsMobile();
   const tickets = useSelector(getTicketsSelector);
   const currentTicket = useSelector(getCurrentTicketSelector);
   const isLoading = useSelector(getTicketsLoadingSelector);
@@ -669,16 +672,34 @@ export default function SupportPage() {
       onClick={() => setIsNewTicketOpen(true)}
       size="sm"
       rounded="full"
-      className="btn-primary shadow-lg shadow-primary/20 active:scale-95 transition-all duration-300 font-bold gap-1.5 !px-3.5 text-xs"
+      // globals.css gives every button a 44px min-height for touch — taller
+      // than the breadcrumb bar itself. Match the bell and back chevron (h-8).
+      className="btn-primary shadow-lg shadow-primary/20 active:scale-95 transition-all duration-300 font-bold gap-1.5 !h-8 !min-h-8 !py-0 !px-3.5 text-xs"
     >
       <Plus className="size-3.5 shrink-0" />
       {t("ticket.newTicket")}
     </Button>
   ) : undefined;
 
+  /* The breadcrumb header renders EITHER the page's right content or the bell,
+   * so pages with their own action lose the shortcut to notifications. Support
+   * carries both: the action first, bell last, where it sits on every other
+   * page. */
+  const headerRight = (
+    <div className="flex items-center gap-1">
+      {newTicketButton}
+      <NotificationBell variant="header" />
+    </div>
+  );
+
   return (
-    <AppLayout headerRightContent={newTicketButton}>
-      <div className="space-y-4 px-2 py-4 md:px-0 md:py-0 md:space-y-6">
+    <AppLayout headerRightContent={headerRight}>
+      <div
+        // Mobile leans on AppLayout's own px-2/py-4 and adds nothing: every
+        // extra layer here is screen real estate the chat and the ticket cards
+        // don't get. Desktop keeps its original rhythm.
+        className="space-y-0 px-0 py-0 md:space-y-6 md:px-0 md:py-0"
+      >
         {/* Page Header */}
         <PageHeader
           title={t("page.title")}
@@ -696,10 +717,19 @@ export default function SupportPage() {
         />
 
         {showConversation ? (
-          <div className="px-2 md:px-0">
+          <div className="md:px-0">
             <div
               className="bg-surface border border-border rounded-xl overflow-hidden flex flex-col"
-              style={{ height: "calc(100dvh - 140px)" }}
+              style={{
+                // Fill what's left of the viewport exactly, so the chat never
+                // scrolls the page under it. Mobile subtracts the breadcrumb
+                // header, AppLayout's padding and the bottom nav — plus the
+                // native status-bar and home-indicator insets, which are real
+                // height on Capacitor and zero on the web.
+                height: isMobile
+                  ? "calc(100dvh - 150px - var(--safe-area-top-stable, env(safe-area-inset-top, 0px)) - env(safe-area-inset-bottom, 0px))"
+                  : "calc(100dvh - 140px)",
+              }}
             >
               {isFetchingTicket ? (
                 <ConversationSkeleton />
@@ -730,7 +760,7 @@ export default function SupportPage() {
         ) : (
           <>
             {/* Ticket List */}
-            <div className="px-2 md:px-0">
+            <div className="md:px-0">
               {isLoading ? (
                 <TicketListSkeleton />
               ) : listError && tickets.length === 0 ? (
@@ -751,7 +781,7 @@ export default function SupportPage() {
                   }}
                 />
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-2 md:grid-cols-2 md:gap-3">
                   {filteredTickets.map((ticket) => (
                     <TicketListItem
                       key={ticket.id}

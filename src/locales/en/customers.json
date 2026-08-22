@@ -187,6 +187,8 @@
         "typeAppointment": "Appointment",
         "typeMilestone": "Milestone",
         "metaLine": "{{date}} · {{count}} entries",
+        "contactHeading": "Contact details",
+        "contactName": "Name",
         "pageFooter": "Page {{page}} of {{pages}}"
       }
     }

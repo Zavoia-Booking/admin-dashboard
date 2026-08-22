@@ -44,6 +44,7 @@ import { DashedDivider } from "../DashedDivider";
 import { CategoryAccordion } from "./CategoryAccordion";
 import { FilterBadges } from "./FilterBadges";
 import type { Service, CategoryGroup, SortField, SortDirection } from "./types";
+import { sanitizeDurationInput } from "../../../utils/duration";
 
 interface ManageServicesSheetProps {
   isOpen: boolean;
@@ -518,11 +519,9 @@ export function ManageServicesSheet({
                 type="text"
                 inputMode="numeric"
                 value={localDurationMin}
-                onChange={(e) => {
-                  if (e.target.value === "" || /^\d+$/.test(e.target.value)) {
-                    setLocalDurationMin(e.target.value);
-                  }
-                }}
+                // Digits only, capped at 24h — no service can be longer,
+                // so no filter bound needs to be either.
+                onChange={(e) => setLocalDurationMin(sanitizeDurationInput(e.target.value))}
                 placeholder={t("filters.minDurationPlaceholder")}
                 className="h-9 w-full text-sm !pl-10 !pr-3 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none transition-all focus-visible:ring-2 focus-visible:ring-offset-0 border-border hover:border-border-strong focus:border-focus focus-visible:ring-focus/50"
               />
@@ -538,11 +537,7 @@ export function ManageServicesSheet({
                 type="text"
                 inputMode="numeric"
                 value={localDurationMax}
-                onChange={(e) => {
-                  if (e.target.value === "" || /^\d+$/.test(e.target.value)) {
-                    setLocalDurationMax(e.target.value);
-                  }
-                }}
+                onChange={(e) => setLocalDurationMax(sanitizeDurationInput(e.target.value))}
                 placeholder={t("filters.maxDurationPlaceholder")}
                 className="h-9 w-full text-sm !pl-10 !pr-3 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none transition-all focus-visible:ring-2 focus-visible:ring-offset-0 border-border hover:border-border-strong focus:border-focus focus-visible:ring-focus/50"
               />
@@ -869,7 +864,22 @@ export function ManageServicesSheet({
           {isMobile ? (
             <Drawer autoFocus={true} open={showFilters} onOpenChange={setShowFilters}>
               <DrawerTrigger asChild>{renderFilterButton(showFilters)}</DrawerTrigger>
-              <DrawerContent className="outline-none !z-[100]" overlayClassName="!z-[95]">
+              <DrawerContent
+                className="outline-none !z-[100]"
+                overlayClassName="!z-[95]"
+                // `autoFocus` above is what gets focus off the trigger (Radix
+                // aria-hides it once the drawer opens), but left alone it lands
+                // on the first focusable child — the min-price field — which
+                // raises the soft keyboard before the user has picked a filter.
+                // Park focus on the panel instead, the same way the parent
+                // sheet does for its search field. The desktop Popover branch
+                // below already suppresses this.
+                tabIndex={-1}
+                onOpenAutoFocus={(event) => {
+                  event.preventDefault();
+                  (event.currentTarget as HTMLElement | null)?.focus?.();
+                }}
+              >
                 <DrawerTitle className="sr-only">{t("filters.addFilter")}</DrawerTitle>
                 <DrawerDescription className="sr-only">{t("filters.addFilter")}</DrawerDescription>
                 <div className="p-4 overflow-y-auto max-h-[80vh] space-y-4">

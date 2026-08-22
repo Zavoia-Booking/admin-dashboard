@@ -10,6 +10,7 @@ const initialState: LocationState = {
   isLoading: false,
   error: null,
   listError: null,
+  listLoaded: false,
   allLocations: [],
   isDeleting: false,
   deleteError: null,
@@ -45,10 +46,10 @@ export const LocationsReducer: Reducer<LocationState, any> = (state: LocationSta
       return { ...state, isLoading: true, error: null, listError: null };
 
     case getType(actions.listLocationsAction.success):
-      return { ...state, isLoading: false, allLocations: action.payload.locations, error: null, listError: null };
+      return { ...state, isLoading: false, listLoaded: true, allLocations: action.payload.locations, error: null, listError: null };
 
     case getType(actions.listLocationsAction.failure):
-      return { ...state, isLoading: false, error: action.payload.message, listError: action.payload.message };
+      return { ...state, isLoading: false, listLoaded: true, error: action.payload.message, listError: action.payload.message };
 
     case getType(actions.createLocationAction.failure):
       return { ...state, isLoading: false, error: action.payload.message };

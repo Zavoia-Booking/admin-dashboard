@@ -47,6 +47,7 @@ import {
   DrawerTitle,
   DrawerDescription,
 } from "../../../../shared/components/ui/drawer";
+import { sanitizeDurationInput } from "../../../../shared/utils/duration";
 
 interface ServiceFiltersProps {
   categories: Category[];
@@ -97,6 +98,26 @@ export const ServiceFilters: FC<ServiceFiltersProps> = ({
   useEffect(() => {
     setLocalFilters(appliedFilters || getDefaultServiceFilters());
   }, [appliedFilters]);
+
+  /* The manage panel is a staging area: its categories only exist in local
+   * state until Apply. Dismissing it therefore has to throw the draft away —
+   * otherwise the unapplied categories stayed in the parent's list, showed up
+   * in the filters, and were still sitting there on the next open. Applying
+   * closes the panel through its own state setter, which never calls this. */
+  const handleManageOpenChange = useCallback(
+    (open: boolean) => {
+      // While the confirmation is up, keep the panel mounted behind it.
+      if (showManageConfirm) return;
+      setShowManageCategories(open);
+      if (!open) {
+        onResetCategories?.();
+        setManageCategoryId(null);
+        setManageCategoryName("");
+        setManageCategoryColor("");
+      }
+    },
+    [showManageConfirm, onResetCategories],
+  );
 
   const getDisplayColor = (cat: Category): string => {
     if (cat?.color && cat.color.startsWith("#")) {
@@ -354,16 +375,14 @@ export const ServiceFilters: FC<ServiceFiltersProps> = ({
                             inputMode="numeric"
                             value={localFilters.durationMin}
                             onChange={(e) => {
-                              const inputValue = e.target.value;
-                              if (
-                                inputValue === "" ||
-                                /^\d+$/.test(inputValue)
-                              ) {
-                                setLocalFilters((prev) => ({
-                                  ...prev,
-                                  durationMin: inputValue,
-                                }));
-                              }
+                              // Digits only, capped at 24h — no service can be
+                              // longer, so no filter bound needs to be either.
+                              setLocalFilters((prev) => ({
+                                ...prev,
+                                durationMin: sanitizeDurationInput(
+                                  e.target.value,
+                                ),
+                              }));
                             }}
                             placeholder={text("filters.minDurationPlaceholder")}
                             className="h-9 w-full text-sm !pl-10 !pr-3 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none transition-all focus-visible:ring-1 focus-visible:ring-offset-0 border-border dark:border-border-subtle hover:border-border-strong focus:border-focus focus-visible:ring-focus"
@@ -385,16 +404,14 @@ export const ServiceFilters: FC<ServiceFiltersProps> = ({
                             inputMode="numeric"
                             value={localFilters.durationMax}
                             onChange={(e) => {
-                              const inputValue = e.target.value;
-                              if (
-                                inputValue === "" ||
-                                /^\d+$/.test(inputValue)
-                              ) {
-                                setLocalFilters((prev) => ({
-                                  ...prev,
-                                  durationMax: inputValue,
-                                }));
-                              }
+                              // Digits only, capped at 24h — no service can be
+                              // longer, so no filter bound needs to be either.
+                              setLocalFilters((prev) => ({
+                                ...prev,
+                                durationMax: sanitizeDurationInput(
+                                  e.target.value,
+                                ),
+                              }));
                             }}
                             placeholder={text("filters.maxDurationPlaceholder")}
                             className="h-9 w-full text-sm !pl-10 !pr-3 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none transition-all focus-visible:ring-1 focus-visible:ring-offset-0 border-border dark:border-border-subtle hover:border-border-strong focus:border-focus focus-visible:ring-focus"
@@ -657,15 +674,12 @@ export const ServiceFilters: FC<ServiceFiltersProps> = ({
                           type="text"
                           inputMode="numeric"
                           value={localFilters.durationMin}
-                          onChange={(e) => {
-                            const inputValue = e.target.value;
-                            if (inputValue === "" || /^\d+$/.test(inputValue)) {
+                          onChange={(e) =>
                               setLocalFilters((prev) => ({
                                 ...prev,
-                                durationMin: inputValue,
-                              }));
+                                durationMin: sanitizeDurationInput(e.target.value),
+                              }))
                             }
-                          }}
                           placeholder={text("filters.minDurationPlaceholder")}
                           className="h-9 w-full text-sm !pl-10 !pr-3 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none transition-all focus-visible:ring-1 focus-visible:ring-offset-0 border-border dark:border-border-subtle hover:border-border-strong focus:border-focus focus-visible:ring-focus"
                         />
@@ -685,15 +699,12 @@ export const ServiceFilters: FC<ServiceFiltersProps> = ({
                           type="text"
                           inputMode="numeric"
                           value={localFilters.durationMax}
-                          onChange={(e) => {
-                            const inputValue = e.target.value;
-                            if (inputValue === "" || /^\d+$/.test(inputValue)) {
+                          onChange={(e) =>
                               setLocalFilters((prev) => ({
                                 ...prev,
-                                durationMax: inputValue,
-                              }));
+                                durationMax: sanitizeDurationInput(e.target.value),
+                              }))
                             }
-                          }}
                           placeholder={text("filters.maxDurationPlaceholder")}
                           className="h-9 w-full text-sm !pl-10 !pr-3 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none transition-all focus-visible:ring-1 focus-visible:ring-offset-0 border-border dark:border-border-subtle hover:border-border-strong focus:border-focus focus-visible:ring-focus"
                         />
@@ -850,11 +861,7 @@ export const ServiceFilters: FC<ServiceFiltersProps> = ({
           {isMobile ? (
             <Drawer
               open={showManageCategories}
-              onOpenChange={(open) => {
-                // While the confirmation dialog is open, keep the drawer mounted
-                if (showManageConfirm) return;
-                setShowManageCategories(open);
-              }}
+              onOpenChange={handleManageOpenChange}
             >
               <DrawerTrigger asChild>
                 <Button
@@ -962,11 +969,7 @@ export const ServiceFilters: FC<ServiceFiltersProps> = ({
           ) : (
             <Popover
               open={showManageCategories}
-              onOpenChange={(open) => {
-                // While the confirmation dialog is open, keep the popover mounted
-                if (showManageConfirm) return;
-                setShowManageCategories(open);
-              }}
+              onOpenChange={handleManageOpenChange}
             >
               <PopoverTrigger asChild>
                 <Button
@@ -1081,6 +1084,11 @@ export const ServiceFilters: FC<ServiceFiltersProps> = ({
           await onApplyCategoryChanges();
           setShowManageCategories(false);
           setShowManageConfirm(false);
+          // Closing this way skips handleManageOpenChange (and must: the draft
+          // is now the applied state), so clear the editor fields here.
+          setManageCategoryId(null);
+          setManageCategoryName("");
+          setManageCategoryColor("");
         }}
         onCancel={() => setShowManageConfirm(false)}
         title={text("addService.form.category.manageConfirmTitle")}
@@ -1088,6 +1096,7 @@ export const ServiceFilters: FC<ServiceFiltersProps> = ({
         confirmTitle={text("addService.form.category.manageConfirmConfirm")}
         cancelTitle={text("addService.form.category.manageConfirmCancel")}
         showCloseButton={true}
+        mobileDrawer
       />
     </>
   );
