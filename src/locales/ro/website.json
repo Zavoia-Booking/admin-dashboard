@@ -33,17 +33,17 @@
       "lastSaved": "{{time}}",
       "checkingPurchase": "Confirmăm plata…",
       "publishing": "Se publică…",
-      "draft": "Ciornă",
+      "draft": "În lucru",
       "published": "Publicat",
       "publishedStale": "Publicat · modificări nepublicate",
       "notPublished": "Nepublicat",
-      "notPublishedDetail": "nepublicat",
+      "notPublishedDetail": "Nepublicat",
       "notPublishedYet": "Încă nepublicat",
-      "draftPlanWeb": "Ciornă · publicarea necesită Plus",
-      "draftPlanNative": "Ciornă · publicarea nu este inclusă",
+      "draftPlanWeb": "În lucru · publicarea necesită Plus",
+      "draftPlanNative": "În lucru · publicarea nu este inclusă",
       "upToDate": "actualizat",
-      "changesToPublish": "ciorna diferă de site-ul publicat",
-      "draftAheadOfLive": "Ciornă înaintea versiunii publicate"
+      "changesToPublish": "modificări nepublicate",
+      "draftAheadOfLive": "Publicat · modificări nepublicate"
     },
     "save": {
       "invalid": "Corectează câmpurile evidențiate",
@@ -243,7 +243,7 @@
       "notNow": "Nu acum"
     },
     "planNotice": {
-      "lead": "Aici construiești și salvezi ciorna site-ului.",
+      "lead": "Aici îți construiești și personalizezi website-ul înainte de publicare.",
       "native": "Publicarea nu este inclusă în planul tău actual."
     },
     "saveReason": {
@@ -297,6 +297,8 @@
       "includedBadge": "Inclus",
       "lockedBadge": "Premium",
       "ownedBadge": "Deblocat",
+      "unavailableBadge": "Indisponibil",
+      "unavailableTitle": "Acest stil nu mai este oferit. Alege altul — până atunci, la publicare secțiunea rămâne pe stilul ei implicit.",
       "inCartBadge": "Selectat",
       "previewBadge": "Previzualizare",
       "previewingLockedTitle": "Previzualizare stil premium",
@@ -502,7 +504,7 @@
         "description": "Răspunde la întrebările frecvente înainte ca vizitatorii să se programeze."
       },
       "footer": {
-        "label": "Subsol",
+        "label": "Footer",
         "description": "Încheie cu locațiile, datele de contact și opțiunea de programare."
       },
       "variants": {
@@ -693,7 +695,7 @@
       "title": "Secțiuni pagină",
       "previewLabel": "Previzualizarea site-ului",
       "draft": "Ciornă",
-      "draftPreview": "Previzualizare ciornă",
+      "draftPreview": "Previzualizează",
       "livePreview": "Previzualizare live",
       "currentSectionPreview": "Previzualizare: {{section}}",
       "previewExpand": "Deschide previzualizarea completă",
@@ -867,7 +869,7 @@
           "recommendationEyebrow": "Recomandat",
           "navigationEyebrow": "Navigare",
           "styleFitEyebrow": "Potrivire cu stilul",
-          "footerContentEyebrow": "Conținutul subsolului",
+          "footerContentEyebrow": "Conținutul footerului",
           "navEmptyTitle": "Meniul nu are linkuri către pagină",
           "navEmptyBody": "Afișează Despre, Servicii, Locații, Galerie, Echipă, Recenzii sau Întrebări, iar linkul va apărea automat.",
           "reviewSectionsAction": "Verifică secțiunile",
@@ -897,8 +899,8 @@
           "reviewsNoQuotesTitle": "Acest stil are nevoie de recenzii scrise",
           "reviewsNoQuotesBody": "Evaluarea este disponibilă, dar acest stil bazat pe citate nu are comentarii eligibile de cinci stele. Showcase poate prezenta în schimb rezumatul evaluării.",
           "previewShowcaseAction": "Previzualizează Showcase",
-          "footerNoLocationsTitle": "Adaugă o locație pentru acest subsol",
-          "footerNoLocationsBody": "Acest stil include o coloană Locații. Adaugă o locație sau alege un stil de subsol care nu depinde de ea.",
+          "footerNoLocationsTitle": "Adaugă o locație pentru acest footer",
+          "footerNoLocationsBody": "Acest stil include o coloană Locații. Adaugă o locație sau alege un stil de footer care nu depinde de ea.",
           "footerNoContactTitle": "Adaugă o metodă de contact",
           "footerNoContactBody": "Acest stil include o coloană Contact. Adaugă un e-mail, un număr de telefon sau un site pentru ca aceasta să nu rămână goală.",
           "editBusinessProfileAction": "Editează profilul businessului"
@@ -1059,10 +1061,10 @@
           }
         },
         "footerHeadlineLabel": "Titlu de încheiere",
-        "footerDescriptionLabel": "Descrierea subsolului",
+        "footerDescriptionLabel": "Descrierea footerului",
         "footerDescriptionOptional": "Opțional",
         "footerDescriptionPlaceholder": "Adaugă o scurtă descriere de încheiere",
-        "footerDescriptionHint": "Lasă câmpul gol pentru a ascunde descrierea din subsol.",
+        "footerDescriptionHint": "Lasă câmpul gol pentru a ascunde descrierea din footer.",
         "navSource": "Numele și logo-ul provin din profilul businessului. Linkurile meniului urmează secțiunile afișate momentan pe site.",
         "reviewsSource": "Recenziile clienților apar automat. Această secțiune folosește comentariile eligibile de cinci stele pentru citate.",
         "viewReviews": "Vezi recenziile ↗",

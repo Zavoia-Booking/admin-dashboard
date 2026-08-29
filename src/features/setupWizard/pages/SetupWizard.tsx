@@ -81,6 +81,9 @@ const WizardRunner: React.FC = () => {
   }, [hydratedFromDraft]);
 
   const handleSave = async () => {
+    // Belt and braces: the button is disabled while completing, but a click
+    // that slipped through must not overwrite the submission with a draft save.
+    if (completeRequested) return;
     let formData = {};
     if (stepRef.current) {
       formData = stepRef.current.getFormData();
@@ -99,12 +102,17 @@ const WizardRunner: React.FC = () => {
   const wizardError = useSelector((state: any) => state.setupWizard.error);
   const user = useSelector(selectCurrentUser);
   
+  // The final submission is in flight from the moment it is requested until the
+  // user comes back flagged as completed -- including the gap after the API call
+  // where the wizard is no longer "loading" but the redirect hasn't happened.
+  const isCompleting = completeRequested && !user?.wizardCompleted;
+
   // Show skeleton while loading OR before initial hydration completes
   // Also show skeleton during completion transition (when completeRequested is true
   // but user.wizardCompleted is still false, meaning we're waiting for user state update)
   const showSkeleton = isWizardLoading || 
   (!hasInitializedRef.current && !hydratedFromDraft) ||
-  (completeRequested && !user?.wizardCompleted);
+  isCompleting;
 
   // Handle completion flow: reset completeRequested when user state updates
   useEffect(() => {
@@ -129,6 +137,8 @@ const WizardRunner: React.FC = () => {
   }, [completeRequested, isWizardLoading, wizardError, user?.wizardCompleted]);
 
   const handleNext = async () => {
+    // A second "finish" click must not fire a second submission
+    if (isCompleting) return;
     if (stepRef.current) {
       const isValid = await stepRef.current.triggerValidation();
       if (!isValid) {
@@ -165,8 +175,9 @@ const WizardRunner: React.FC = () => {
       onPrevious={prevStep}
       onNext={handleNext}
       onSave={handleSave}
-      canProceed={canProceedToNext && !(completeRequested && isWizardLoading)}
+      canProceed={canProceedToNext}
       isLoading={isLoading}
+      isCompleting={isCompleting}
       showNext={true}
       nextLabel={currentStep === totalSteps ? t("layout.finishSetup") : t("layout.continue")}
       isLoadingDraft={showSkeleton }

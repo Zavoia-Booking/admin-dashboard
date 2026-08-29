@@ -47,6 +47,7 @@ export function WebsiteBuilderCore({
     heroImageUrl,
     variantCatalog,
     sectionCatalog,
+    unavailableVariants,
     themeAssetCatalog,
     isCatalogLoading,
     catalogLoaded,
@@ -159,6 +160,7 @@ export function WebsiteBuilderCore({
           ratingDistribution={ratingDistribution}
           variantCatalog={variantCatalog}
           sectionCatalog={sectionCatalog}
+          unavailableVariants={unavailableVariants}
           hasWebsiteBuilder={hasWebsiteBuilder}
           isCatalogLoading={isCatalogLoading}
           catalogLoaded={catalogLoaded}

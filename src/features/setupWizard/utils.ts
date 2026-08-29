@@ -1,13 +1,16 @@
 import type { WizardData } from "../../shared/hooks/useSetupWizard";
+import { getUnambiguousCountryTimezone } from "../../shared/utils/timezones";
+import { getDefaultCurrencyForCountry } from "../../shared/utils/currency";
 
 /**
  * Ensures businessInfo.timezone is set before wizard completion
- * Priority: location.timezone → browser timezone → UTC
+ * Priority: location.timezone → the country's only timezone → browser timezone → UTC
  */
 export const ensureBusinessTimezone = (wizardData: WizardData): void => {
   if (wizardData.businessInfo && !wizardData.businessInfo.timezone) {
     wizardData.businessInfo.timezone = 
       wizardData.location?.timezone || 
+      getUnambiguousCountryTimezone(wizardData.businessInfo.countryCode) ||
       Intl.DateTimeFormat().resolvedOptions().timeZone || 
       'UTC';
   }
@@ -69,11 +72,13 @@ export const applyBusinessContactToLocation = (wizardData: WizardData): void => 
 
 /**
  * Ensures businessInfo.businessCurrency is set before wizard completion
- * Defaults to 'eur' if not provided
+ * Falls back to the country's currency (Romania → RON, euro area → EUR)
  */
 export const ensureBusinessCurrency = (wizardData: WizardData): void => {
   if (wizardData.businessInfo && !wizardData.businessInfo.businessCurrency) {
-    wizardData.businessInfo.businessCurrency = 'eur';
+    wizardData.businessInfo.businessCurrency = getDefaultCurrencyForCountry(
+      wizardData.businessInfo.countryCode
+    );
   }
 };
 

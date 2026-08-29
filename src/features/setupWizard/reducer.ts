@@ -1,6 +1,8 @@
 import { getType } from "typesafe-actions";
 import type { WizardData } from "../../shared/hooks/useSetupWizard";
 import { defaultWorkingHours } from "../locations/constants";
+import { getUnambiguousCountryTimezone } from "../../shared/utils/timezones";
+import { getDefaultCurrencyForCountry } from "../../shared/utils/currency";
 import {
   wizardSaveAction,
   wizardCompleteAction,
@@ -14,6 +16,9 @@ import {
   logoutRequestAction,
   registerOwnerRequestAction,
 } from "../auth/actions";
+
+/** Only released country; the wizard's defaults are derived from it. */
+const DEFAULT_COUNTRY_CODE = 'ro';
 
 type WizardState = {
   currentStep: number;
@@ -52,11 +57,14 @@ const initialState: WizardState = {
       description: undefined as unknown as string,
       email: undefined as unknown as string,
       phone: undefined as unknown as string,
-      timezone: undefined as unknown as string,
+      // A country that spans a single timezone leaves nothing to pick, so the
+      // default country picks it: Romania -> Europe/Bucharest. Multi-timezone
+      // countries stay empty and the user chooses.
+      timezone: (getUnambiguousCountryTimezone(DEFAULT_COUNTRY_CODE) || '') as string,
       country: undefined as unknown as string,
-      countryCode: 'ro' as string, // Default to Romania (only released country)
+      countryCode: DEFAULT_COUNTRY_CODE as string, // Default to Romania (only released country)
       stripeCurrency: 'eur' as string, // Default to EUR (backend hardcoded)
-      businessCurrency: 'eur' as string, // Default to EUR
+      businessCurrency: getDefaultCurrencyForCountry(DEFAULT_COUNTRY_CODE), // Follows the country: Romania -> RON
       instagramUrl: undefined as unknown as string,
       facebookUrl: undefined as unknown as string,
       tiktokUrl: undefined as unknown as string,
@@ -126,15 +134,18 @@ export default function setupWizardReducer(
         };
       }
 
+      const countryCode = payload.businessInfo?.countryCode || state.data.businessInfo.countryCode || DEFAULT_COUNTRY_CODE;
+
       const mergedData = {
         ...state.data,
         ...payload,
         businessInfo: {
           ...state.data.businessInfo,
           ...(payload.businessInfo || ({} as any)),
-          countryCode: payload.businessInfo?.countryCode || state.data.businessInfo.countryCode || 'ro', // Ensure default (only released country)
+          countryCode: countryCode, // Ensure default (only released country)
+          timezone: payload.businessInfo?.timezone || state.data.businessInfo.timezone || getUnambiguousCountryTimezone(countryCode) || '', // Auto-selected for single-timezone countries
           stripeCurrency: payload.businessInfo?.stripeCurrency || state.data.businessInfo.stripeCurrency || 'eur', // Ensure default
-          businessCurrency: payload.businessInfo?.businessCurrency || state.data.businessInfo.businessCurrency || 'eur', // Ensure default
+          businessCurrency: payload.businessInfo?.businessCurrency || state.data.businessInfo.businessCurrency || getDefaultCurrencyForCountry(countryCode), // Ensure default
         },
         location: {
           ...state.data.location,

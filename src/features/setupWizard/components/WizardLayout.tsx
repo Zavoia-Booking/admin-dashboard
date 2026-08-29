@@ -19,6 +19,7 @@ const WizardLayout: React.FC<WizardLayoutProps> = ({
   onSave,
   canProceed,
   isLoading,
+  isCompleting = false,
   nextLabel,
   onClose,
   stepLabels,
@@ -28,6 +29,10 @@ const WizardLayout: React.FC<WizardLayoutProps> = ({
 }) => {
   const { t } = useTranslation("setupWizard");
   const resolvedNextLabel = nextLabel ?? t("layout.continue");
+  // Saving a draft and finishing the setup both write the same wizard: while
+  // either is in flight every header and footer action stays locked, so a slow
+  // connection can't let a stray click race -- or walk away from -- the write.
+  const isBusy = isLoading || isCompleting;
   return (
     <div className="min-h-[100svh] cursor-default">
       <div className="container mx-auto pt-0 md:pt-8 pb-0 md:pb-8 min-h-[100svh] flex flex-col">
@@ -137,7 +142,7 @@ const WizardLayout: React.FC<WizardLayoutProps> = ({
                         size="sm"
                         rounded="full"
                         onClick={onSave}
-                        disabled={isLoading}
+                        disabled={isBusy}
                         className="relative gap-2 h-8 w-28"
                       >
                         {isLoading ? (
@@ -164,6 +169,7 @@ const WizardLayout: React.FC<WizardLayoutProps> = ({
                         size="icon"
                         aria-label={t("layout.close")}
                         onClick={onClose}
+                        disabled={isBusy}
                         className="h-8 w-8"
                       >
                         <X />
@@ -180,7 +186,7 @@ const WizardLayout: React.FC<WizardLayoutProps> = ({
                       size="sm"
                       rounded="full"
                       onClick={onSave}
-                      disabled={isLoading}
+                      disabled={isBusy}
                       className="relative gap-2 cursor-pointer w-34"
                     >
                       {isLoading ? (
@@ -207,6 +213,7 @@ const WizardLayout: React.FC<WizardLayoutProps> = ({
                       size="icon"
                       aria-label={t("layout.close")}
                       onClick={onClose}
+                      disabled={isBusy}
                       className="h-8 w-8 ml-2 [&_svg]:!size-5"
                     >
                       <X />
@@ -257,7 +264,7 @@ const WizardLayout: React.FC<WizardLayoutProps> = ({
                   variant="outline"
                   rounded="full"
                   onClick={onPrevious}
-                  disabled={currentStep === 1 || isLoading}
+                  disabled={currentStep === 1 || isBusy}
                   className="gap-2 h-11 w-40 cursor-pointer"
                 >
                   <ArrowLeft className="h-4 w-4" />
@@ -267,7 +274,7 @@ const WizardLayout: React.FC<WizardLayoutProps> = ({
                   <Button
                     rounded="full"
                     onClick={onNext}
-                    disabled={!canProceed || isLoading}
+                    disabled={!canProceed || isBusy}
                     className={`gap-2 h-11 ${currentStep === 3 ? 'w-48' : 'w-40'} cursor-pointer`}
                   >
                     {resolvedNextLabel}
@@ -289,7 +296,7 @@ const WizardLayout: React.FC<WizardLayoutProps> = ({
                     variant="outline"
                     rounded="full"
                     onClick={onPrevious}
-                    disabled={currentStep === 1 || isLoading}
+                    disabled={currentStep === 1 || isBusy}
                     className="h-11 cursor-pointer flex-1"
                   >
                     <ArrowLeft className="h-4 w-4" />
@@ -299,7 +306,7 @@ const WizardLayout: React.FC<WizardLayoutProps> = ({
                     <Button
                       rounded="full"
                       onClick={onNext}
-                      disabled={!canProceed || isLoading}
+                      disabled={!canProceed || isBusy}
                       className="h-11 cursor-pointer flex-2"
                     >
                       {resolvedNextLabel}

@@ -15,6 +15,8 @@ import TextField from "../../../shared/components/forms/fields/TextField";
 import TextareaField from "../../../shared/components/forms/fields/TextareaField";
 import LogoUpload from "../../../shared/components/common/LogoUpload";
 import CurrencySelect from "../../../shared/components/common/CurrencySelect";
+import { getDefaultCurrencyForCountry } from "../../../shared/utils/currency";
+import { getUnambiguousCountryTimezone } from "../../../shared/utils/timezones";
 import CountrySelect from "../../../shared/components/common/CountrySelect";
 import { TimezoneSelect } from "../../../shared/components/common/TimezoneSelect";
 import type { WizardData } from "../../../shared/hooks/useSetupWizard";
@@ -143,7 +145,9 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
                 return validCodes.includes(value?.toLowerCase()) || tw('stepBusinessInfo.validation.currencyInvalid');
               },
             },
-        defaultValue: data.businessInfo?.businessCurrency || 'eur',
+        defaultValue:
+          data.businessInfo?.businessCurrency ||
+          getDefaultCurrencyForCountry((data.businessInfo as any)?.countryCode),
       });
 
     // Controlled country code with validation (required field)
@@ -179,7 +183,10 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
                 return value.includes('/') || value === 'UTC' || tw('stepBusinessInfo.validation.timezoneInvalid');
               },
             },
-        defaultValue: (data.businessInfo as any)?.timezone || '',
+        defaultValue:
+          (data.businessInfo as any)?.timezone ||
+          getUnambiguousCountryTimezone((data.businessInfo as any)?.countryCode) ||
+          '',
       });
 
     // Controlled business description with validation (optional field)
@@ -250,6 +257,32 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
       },
       [setValue]
     );
+
+    // The currency follows the country the same way the timezone does: a fresh
+    // wizard gets the country's currency (RO -> RON), and switching country
+    // re-derives it -- but a currency already chosen (by the user, or restored
+    // from a draft) is left alone.
+    const lastCountryCode = useRef<string | null>(null);
+    useEffect(() => {
+      const countryCode = (countryCodeField.value as string) || '';
+      const previousCountryCode = lastCountryCode.current;
+      lastCountryCode.current = countryCode;
+
+      if (isWizardLoading || !countryCode) return;
+
+      const countryChanged =
+        previousCountryCode !== null &&
+        previousCountryCode !== '' &&
+        previousCountryCode !== countryCode;
+      // Nothing to fill in and nothing to re-derive
+      if (!countryChanged && businessCurrencyField.value) return;
+
+      const nextCurrency = getDefaultCurrencyForCountry(countryCode);
+      if (nextCurrency !== businessCurrencyField.value) {
+        businessCurrencyField.onChange(nextCurrency);
+      }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [countryCodeField.value, isWizardLoading]);
 
     // Sync toggle state when account email is available and toggle is ON
     useEffect(() => {
@@ -356,9 +389,14 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
             businessInfo: {
               ...current.businessInfo,
               email: effectiveEmail,
-              businessCurrency: current.businessInfo?.businessCurrency || 'eur', // Ensure default
+              businessCurrency:
+                current.businessInfo?.businessCurrency ||
+                getDefaultCurrencyForCountry((current.businessInfo as any)?.countryCode), // Ensure default
               countryCode: (current.businessInfo as any)?.countryCode || '', // Include country code
-              timezone: (current.businessInfo as any)?.timezone || '', // Include timezone
+              timezone:
+                (current.businessInfo as any)?.timezone ||
+                getUnambiguousCountryTimezone((current.businessInfo as any)?.countryCode) ||
+                '', // Include timezone
             },
             useAccountEmail, // Include toggle state in saved data
           };
@@ -614,7 +652,7 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
             <CurrencySelect
               id="businessInfo.businessCurrency"
               ariaLabelledBy="businessInfo.businessCurrency-label"
-              value={(businessCurrencyField.value as string) || 'eur'}
+              value={(businessCurrencyField.value as string) || getDefaultCurrencyForCountry(countryCodeField.value as string)}
               onChange={(value) => businessCurrencyField.onChange(value)}
               error={(businessCurrencyState.isTouched || businessCurrencyState.isDirty || currencyHasDraft) ? (businessCurrencyState.error?.message as string) : undefined}
             />

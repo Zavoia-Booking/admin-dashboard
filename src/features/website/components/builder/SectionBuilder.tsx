@@ -81,6 +81,7 @@ import type {
   AnnouncementContent,
   WebsiteVariantCatalogEntry,
   WebsiteSectionCatalogEntry,
+  WebsiteUnavailableVariant,
   GalleryConfig,
 } from "../../types";
 import type { PreviewOnlyVariantSelections } from "../../checkoutIntent";
@@ -126,6 +127,7 @@ import {
   getPreviewNumber,
   isCatalogPending,
   isPaidCatalogEntryLocked,
+  isVariantUnavailable,
   isSectionOffered as sectionIsOffered,
   isTeamLocked,
   isTestimonialsLocked,
@@ -370,6 +372,10 @@ interface SectionBuilderProps {
   /** ACTIVE section catalog with per-business ownership. Once {@link catalogLoaded} is true it is
    *  authoritative: only its content types render (chrome always renders). Before then, all render. */
   sectionCatalog?: WebsiteSectionCatalogEntry[];
+  /** Styles this build renders that the catalog stopped selling. Nothing prices them and nothing
+   *  buys them, so a saved draft pointing at one shows it locked-and-unavailable rather than
+   *  falling through to Included; publishing lands the section on its default style. */
+  unavailableVariants?: WebsiteUnavailableVariant[];
   /** Plan includes the website builder (purchasing needs Plus/trial; locked pills still render without it). */
   hasWebsiteBuilder?: boolean;
   /** The catalog fetch is in flight — while true AND both catalogs are still empty, price-dependent
@@ -619,14 +625,16 @@ export function SectionBuilder(props: SectionBuilderProps) {
   }, [controlledPreviewOnlyVariants]);
   const variantCatalog = props.variantCatalog;
   const sectionCatalog = props.sectionCatalog;
+  const unavailableVariants = props.unavailableVariants;
   const {
     variantByKey: catalogByKey,
     baseVariantKeyByType: baseKeyByType,
     sectionByType: sectionCatalogByType,
     ownedVariantSectionTypes,
+    unavailableVariantKeys,
   } = useMemo(
-    () => buildSectionCatalogModel(variantCatalog, sectionCatalog),
-    [sectionCatalog, variantCatalog],
+    () => buildSectionCatalogModel(variantCatalog, sectionCatalog, unavailableVariants),
+    [sectionCatalog, unavailableVariants, variantCatalog],
   );
   const paidOnlyVariantSectionTypes = useMemo(() => {
     const paidOnlyTypes = new Set<string>();
@@ -1936,14 +1944,19 @@ export function SectionBuilder(props: SectionBuilderProps) {
     const variantOptions: SectionStyleOption[] = variants.map((variant) => {
       const catalogEntry = catalogByKey.get(`${entry.type}:${variant.id}`);
       const paid = !!catalogEntry && catalogEntry.priceMinor > 0;
+      // No catalog row under a type the catalog otherwise covers: the style is implemented but
+      // withdrawn. It reaches this list only as the saved selection (the filter above keeps it),
+      // and it must read as locked — a missing row is indistinguishable from free otherwise.
+      const unavailable = isVariantUnavailable(entry.type, variant.id, unavailableVariantKeys);
       return {
         variant,
         catalogEntry,
         paid,
-        locked: paid && !catalogEntry.owned,
-        owned: paid && catalogEntry.owned,
+        locked: unavailable || (paid && !catalogEntry.owned),
+        owned: !unavailable && paid && catalogEntry.owned,
         inCart: !!catalogEntry && (props.cartVariantIds ?? []).includes(catalogEntry.id),
         priceLabel: catalogEntry ? variantPriceLabel(formatPrice, catalogEntry) : null,
+        unavailable,
       };
     });
     const hasVariants = variantOptions.length > 1;
@@ -2134,6 +2147,8 @@ export function SectionBuilder(props: SectionBuilderProps) {
                   disabled={styleControlsDisabled}
                   isOptionDisabled={(option) => (!props.canWrite || dataLocked) && !option.locked}
                   onSelect={(option) => {
+                    // Withdrawn styles have no purchase route and nothing to select onto.
+                    if (option.unavailable) return;
                     selectionTickHaptic();
                     const revealCoverRequirement =
                       entry.type === "hero" &&

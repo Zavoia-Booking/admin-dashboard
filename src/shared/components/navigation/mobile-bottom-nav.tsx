@@ -123,6 +123,10 @@ export function MobileBottomNav() {
                     isActive
                       ? 'bg-surface-active font-medium border-border'
                       : 'bg-surface border-border hover:bg-surface-hover text-sidebar-foreground',
+                    // Same terracotta lift the sidebar gives this entry, so the
+                    // standout destination reads the same on both surfaces.
+                    item.accent
+                      && 'text-primary-700 dark:text-primary-500 border-primary-100 dark:border-primary-500/30',
                   )}
                 >
                   <div className="flex items-center gap-2">

@@ -534,11 +534,26 @@ export interface WebsiteThemeAssetCatalogItem {
   sortOrder: number;
 }
 
+/**
+ * A style this build implements that the catalog no longer sells. It has no row, so no price
+ * and no id: it cannot be bought, only replaced. Reported apart from `variants` because an
+ * entry the editor simply can't find would otherwise read as Included and hand out free what
+ * the catalog charges for.
+ */
+export interface WebsiteUnavailableVariant {
+  sectionType: string;
+  variantKey: string;
+  /** The free style the section renders instead; null where the type has no free style. */
+  fallbackVariantKey: string | null;
+}
+
 /** GET /website-variants/catalog — the builder's full server-driven offering. */
 export interface WebsiteCatalogResponse {
   sections: WebsiteSectionCatalogEntry[];
   variants: WebsiteVariantCatalogEntry[];
   themeAssets: WebsiteThemeAssetCatalogItem[];
+  /** Implemented styles with no catalog row — locked and unbuyable, never free. */
+  unavailableVariants?: WebsiteUnavailableVariant[];
 }
 
 /**
@@ -623,6 +638,8 @@ export interface WebsiteState {
   variantCatalog: WebsiteVariantCatalogEntry[];
   sectionCatalog: WebsiteSectionCatalogEntry[];
   themeAssetCatalog: WebsiteThemeAssetCatalogItem[];
+  /** Implemented styles the catalog stopped selling — shown locked and unbuyable, never free. */
+  unavailableVariants: WebsiteUnavailableVariant[];
   isLoadingCatalog: boolean;
   /** Catalog failures stay separate from the page-level builder load error. */
   catalogError: string | null;

@@ -26,6 +26,8 @@ export interface WizardLayoutProps {
 	onClose?: () => void;
 	canProceed: boolean;
 	isLoading: boolean;
+	/** True while the final wizard submission is in flight; locks every action. */
+	isCompleting?: boolean;
 	nextLabel?: string;
 	stepLabels?: string[];
 	onGoToStep?: (step: number) => void;

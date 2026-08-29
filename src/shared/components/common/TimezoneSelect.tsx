@@ -14,6 +14,7 @@ import { Button } from '../ui/button';
 import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from '../ui/command';
 import { cn } from '../../lib/utils';
 import { useIsMobile } from '../../hooks/use-mobile';
+import { detectTimezone, getCountryTimezones } from '../../utils/timezones';
 
 interface TimezoneSelectProps {
   value: string;
@@ -23,86 +24,6 @@ interface TimezoneSelectProps {
   /** ISO 3166-1 alpha-2 country code to filter timezones (e.g., "us", "ro") */
   countryCode?: string;
 }
-
-// Country code to IANA timezone mapping
-// Maps ISO 3166-1 alpha-2 codes to arrays of IANA timezone identifiers
-const COUNTRY_TIMEZONES: Record<string, string[]> = {
-  // Europe
-  ro: ['Europe/Bucharest'],
-  de: ['Europe/Berlin', 'Europe/Busingen'],
-  gb: ['Europe/London'],
-  fr: ['Europe/Paris'],
-  it: ['Europe/Rome'],
-  es: ['Europe/Madrid', 'Atlantic/Canary', 'Africa/Ceuta'],
-  nl: ['Europe/Amsterdam'],
-  be: ['Europe/Brussels'],
-  at: ['Europe/Vienna'],
-  ch: ['Europe/Zurich'],
-  pl: ['Europe/Warsaw'],
-  cz: ['Europe/Prague'],
-  hu: ['Europe/Budapest'],
-  bg: ['Europe/Sofia'],
-  pt: ['Europe/Lisbon', 'Atlantic/Madeira', 'Atlantic/Azores'],
-  gr: ['Europe/Athens'],
-  se: ['Europe/Stockholm'],
-  dk: ['Europe/Copenhagen'],
-  no: ['Europe/Oslo'],
-  fi: ['Europe/Helsinki'],
-  ie: ['Europe/Dublin'],
-  al: ['Europe/Tirane'],
-  ad: ['Europe/Andorra'],
-  am: ['Asia/Yerevan'],
-  az: ['Asia/Baku'],
-  by: ['Europe/Minsk'],
-  ba: ['Europe/Sarajevo'],
-  hr: ['Europe/Zagreb'],
-  cy: ['Asia/Nicosia', 'Asia/Famagusta'],
-  ee: ['Europe/Tallinn'],
-  ge: ['Asia/Tbilisi'],
-  is: ['Atlantic/Reykjavik'],
-  xk: ['Europe/Belgrade'], // Kosovo uses same as Serbia
-  lv: ['Europe/Riga'],
-  li: ['Europe/Vaduz'],
-  lt: ['Europe/Vilnius'],
-  lu: ['Europe/Luxembourg'],
-  mt: ['Europe/Malta'],
-  md: ['Europe/Chisinau'],
-  mc: ['Europe/Monaco'],
-  me: ['Europe/Podgorica'],
-  mk: ['Europe/Skopje'],
-  rs: ['Europe/Belgrade'],
-  sk: ['Europe/Bratislava'],
-  si: ['Europe/Ljubljana'],
-  ua: ['Europe/Kiev', 'Europe/Kyiv', 'Europe/Simferopol'],
-  // Americas
-  us: ['America/New_York', 'America/Chicago', 'America/Denver', 'America/Los_Angeles', 'America/Anchorage', 'Pacific/Honolulu', 'America/Phoenix', 'America/Detroit', 'America/Indiana/Indianapolis', 'America/Boise', 'America/Juneau', 'America/Adak'],
-  ca: ['America/Toronto', 'America/Vancouver', 'America/Edmonton', 'America/Winnipeg', 'America/Halifax', 'America/St_Johns', 'America/Regina', 'America/Whitehorse', 'America/Yellowknife'],
-  mx: ['America/Mexico_City', 'America/Tijuana', 'America/Cancun', 'America/Monterrey', 'America/Hermosillo', 'America/Chihuahua', 'America/Mazatlan'],
-  br: ['America/Sao_Paulo', 'America/Rio_Branco', 'America/Manaus', 'America/Cuiaba', 'America/Fortaleza', 'America/Recife', 'America/Belem', 'America/Bahia', 'America/Noronha'],
-  ar: ['America/Argentina/Buenos_Aires', 'America/Argentina/Cordoba', 'America/Argentina/Mendoza'],
-  cl: ['America/Santiago', 'Pacific/Easter'],
-  co: ['America/Bogota'],
-  // Asia-Pacific
-  au: ['Australia/Sydney', 'Australia/Melbourne', 'Australia/Brisbane', 'Australia/Perth', 'Australia/Adelaide', 'Australia/Darwin', 'Australia/Hobart'],
-  nz: ['Pacific/Auckland', 'Pacific/Chatham'],
-  jp: ['Asia/Tokyo'],
-  kr: ['Asia/Seoul'],
-  sg: ['Asia/Singapore'],
-  hk: ['Asia/Hong_Kong'],
-  tw: ['Asia/Taipei'],
-  cn: ['Asia/Shanghai', 'Asia/Urumqi'],
-  in: ['Asia/Kolkata'],
-  th: ['Asia/Bangkok'],
-  my: ['Asia/Kuala_Lumpur'],
-  ph: ['Asia/Manila'],
-  id: ['Asia/Jakarta', 'Asia/Makassar', 'Asia/Jayapura'],
-  vn: ['Asia/Ho_Chi_Minh'],
-  // Middle East & Africa
-  ae: ['Asia/Dubai'],
-  il: ['Asia/Jerusalem'],
-  tr: ['Europe/Istanbul'],
-  za: ['Africa/Johannesburg'],
-};
 
 interface DetectTimezoneButtonProps {
   onDetect: (timezone: string) => void;
@@ -175,15 +96,6 @@ const TimezoneItem = React.memo<{
 
 TimezoneItem.displayName = 'TimezoneItem';
 
-// Utility function to detect timezone
-const detectTimezone = (): string => {
-  try {
-    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
-  } catch {
-    return 'UTC';
-  }
-};
-
 // Exported button component for detecting timezone
 export const DetectTimezoneButton: React.FC<DetectTimezoneButtonProps> = ({
   onDetect,
@@ -229,11 +141,10 @@ export const TimezoneSelect: React.FC<TimezoneSelectProps> = React.memo(({
   const isMobile = useIsMobile();
 
   // Get timezones for the selected country (or all if no country specified)
-  const countryTimezones = useMemo(() => {
-    if (!countryCode) return null;
-    const code = countryCode.toLowerCase();
-    return COUNTRY_TIMEZONES[code] || null;
-  }, [countryCode]);
+  const countryTimezones = useMemo(
+    () => getCountryTimezones(countryCode),
+    [countryCode]
+  );
 
   // Auto-detect user timezone on mount, or auto-select if country has single timezone
   useEffect(() => {
@@ -274,7 +185,7 @@ export const TimezoneSelect: React.FC<TimezoneSelectProps> = React.memo(({
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [countryTimezones]); // Re-run when country changes
+  }, [countryTimezones, value]); // Re-run when the country changes or the value is cleared
 
   // Debounce search input (300ms delay)
   useEffect(() => {

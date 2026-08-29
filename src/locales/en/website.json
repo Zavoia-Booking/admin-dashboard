@@ -289,6 +289,8 @@
       "includedBadge": "Included",
       "lockedBadge": "Premium",
       "ownedBadge": "Unlocked",
+      "unavailableBadge": "Unavailable",
+      "unavailableTitle": "This style is no longer offered. Pick another one — publishing keeps your section on its default style until you do.",
       "inCartBadge": "Selected",
       "previewBadge": "Previewing",
       "previewingLockedTitle": "Premium style preview",

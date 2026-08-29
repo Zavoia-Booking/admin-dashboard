@@ -37,6 +37,7 @@ const initialState: WebsiteState = {
   conflict: null,
   publishLockedItems: null,
   variantCatalog: [],
+  unavailableVariants: [],
   sectionCatalog: [],
   themeAssetCatalog: [],
   isLoadingCatalog: false,
@@ -147,6 +148,7 @@ export const WebsiteReducer: Reducer<WebsiteState, any> = (state: WebsiteState =
         publishLockedItems: null,
         lastSavedRequestId: null,
         variantCatalog: [],
+        unavailableVariants: [],
         sectionCatalog: [],
         themeAssetCatalog: [],
         isLoadingCatalog: false,
@@ -310,6 +312,7 @@ export const WebsiteReducer: Reducer<WebsiteState, any> = (state: WebsiteState =
         variantCatalog: action.payload.variants,
         sectionCatalog: action.payload.sections,
         themeAssetCatalog,
+        unavailableVariants: action.payload.unavailableVariants ?? [],
         // A successful catalog read is authoritative: purchased, included, unavailable,
         // or removed theme assets must not survive into the next combined checkout.
         themeAssetCart: reconcileThemeAssetCart(state.themeAssetCart, themeAssetCatalog),

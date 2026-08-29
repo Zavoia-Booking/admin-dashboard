@@ -9,6 +9,7 @@ import {
 } from "../ui/collapsible"
 import { Link } from "react-router-dom"
 import { preloadRoute } from "../../utils/routePreload"
+import { cn } from "../../lib/utils"
 import {
   SidebarGroup,
   SidebarMenu,
@@ -34,6 +35,7 @@ export function NavMain({
     url: string
     icon?: LucideIcon
     isActive?: boolean
+    accent?: boolean
     showSeparatorBefore?: boolean
     items?: {
       title: string
@@ -82,7 +84,13 @@ export function NavMain({
       <SidebarMenu>
         {items.map((item) => {
           const popoverOpen = openPopovers[item.title] ?? false
-          
+          // Terracotta ink for the standout entry -- the brand accent already
+          // reads as "text" everywhere else in the app, so it lifts the row out
+          // of the neutral list without dressing it up as a permanent selection.
+          const accentClasses = item.accent
+            ? "text-primary-700 hover:text-primary-700 data-[active=true]:text-primary-700 dark:text-primary-500 dark:hover:text-primary-500 dark:data-[active=true]:text-primary-500"
+            : undefined
+
           return (
             <React.Fragment key={item.title}>
               {item.showSeparatorBefore && <SidebarSeparator className="my-2" />}
@@ -95,7 +103,7 @@ export function NavMain({
                         <SidebarMenuButton 
                           tooltip={item.title}
                           isActive={item.isActive}
-                          className="transition-all duration-200 sidebar-menu-button-compact cursor-pointer"
+                          className={cn("transition-all duration-200 sidebar-menu-button-compact cursor-pointer", accentClasses)}
                         >
                           {item.icon && <item.icon className="h-4 w-4" />}
                           <span className="font-medium group-data-[collapsible=icon]:hidden">{item.title}</span>
@@ -147,7 +155,7 @@ export function NavMain({
                       <SidebarMenuButton 
                         tooltip={item.title}
                         isActive={item.isActive}
-                        className="transition-all duration-200 px-3 py-3.5 sidebar-menu-button-compact cursor-pointer"
+                        className={cn("transition-all duration-200 px-3 py-3.5 sidebar-menu-button-compact cursor-pointer", accentClasses)}
                       >
                         {item.icon && <item.icon className="h-4 w-4" />}
                         <span className="font-medium group-data-[collapsible=icon]:hidden">{item.title}</span>
@@ -184,7 +192,7 @@ export function NavMain({
                     asChild
                     tooltip={item.title}
                     isActive={item.isActive}
-                    className="transition-all duration-200"
+                    className={cn("transition-all duration-200", accentClasses)}
                   >
                     <Link
                       to={item.url}

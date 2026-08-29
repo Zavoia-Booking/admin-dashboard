@@ -291,3 +291,32 @@ export function formatPriceMinor(amountMinor: number, currency: string, opts?: P
   return formatPrice(priceFromStorage(amountMinor, currency), currency, opts);
 }
 
+
+/**
+ * ISO 3166-1 alpha-2 country code -> the currency a business there bills in.
+ * Only countries whose currency isn't the euro need an entry; everything else
+ * falls back to EUR. Add a row when releasing a new country.
+ */
+const COUNTRY_CURRENCIES: Record<string, CurrencyCode> = {
+  ro: 'RON',
+  gb: 'GBP',
+  ch: 'CHF',
+  se: 'SEK',
+  no: 'NOK',
+  dk: 'DKK',
+  pl: 'PLN',
+  cz: 'CZK',
+  hu: 'HUF',
+  bg: 'BGN',
+  tr: 'TRY',
+  us: 'USD',
+};
+
+/**
+ * The currency to preselect for a country, lowercased to match the form fields
+ * and the API. Defaults to EUR for euro-area and unmapped countries.
+ */
+export const getDefaultCurrencyForCountry = (countryCode?: string | null): string => {
+  const code = countryCode?.toLowerCase();
+  return (code && COUNTRY_CURRENCIES[code] ? COUNTRY_CURRENCIES[code] : 'EUR').toLowerCase();
+};

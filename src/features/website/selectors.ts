@@ -19,6 +19,8 @@ export const selectWebsitePublishLockedItems = (state: RootState) => state.websi
 export const selectWebsiteVariantCatalog = (state: RootState) => state.website.variantCatalog;
 export const selectWebsiteSectionCatalog = (state: RootState) => state.website.sectionCatalog;
 export const selectWebsiteThemeAssetCatalog = (state: RootState) => state.website.themeAssetCatalog;
+/** Implemented styles the catalog stopped selling — locked and unbuyable, never Included. */
+export const selectWebsiteUnavailableVariants = (state: RootState) => state.website.unavailableVariants;
 export const selectWebsiteCatalogLoading = (state: RootState) => state.website.isLoadingCatalog;
 export const selectWebsiteCatalogLoaded = (state: RootState) => state.website.catalogLoaded;
 export const selectWebsiteCatalogError = (state: RootState) => state.website.catalogError;

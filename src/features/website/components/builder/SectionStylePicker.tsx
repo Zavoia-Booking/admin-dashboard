@@ -19,6 +19,11 @@ export interface SectionStyleOption {
   owned: boolean;
   inCart: boolean;
   priceLabel: string | null;
+  /**
+   * The catalog no longer sells this style. Locked, but with nothing to buy: it appears only
+   * because the saved draft still points at it, and the way out is another style, not checkout.
+   */
+  unavailable?: boolean;
 }
 
 /** Stand-in for SectionStylePicker while the catalog is still loading — the active variant's real
@@ -80,9 +85,9 @@ export function SectionStylePicker({
   // purchase dialog; Enter/Space (the button's native activation) commits.
   const activeIndex = variants.findIndex((o) => o.variant.id === selectedVariantId);
   const activeDisabled =
-    activeIndex >= 0 && (disabled || !!isOptionDisabled?.(variants[activeIndex]));
+    activeIndex >= 0 && (disabled || !!variants[activeIndex]?.unavailable || !!isOptionDisabled?.(variants[activeIndex]));
   const firstEnabledIndex = variants.findIndex(
-    (option) => !disabled && !isOptionDisabled?.(option),
+    (option) => !disabled && !option.unavailable && !isOptionDisabled?.(option),
   );
   const tabStopIndex =
     activeIndex >= 0 && !activeDisabled
@@ -231,7 +236,9 @@ export function SectionStylePicker({
             current={entry.variant === option.variant.id}
             previewOnly={previewOnlyVariantId === option.variant.id && option.locked}
             tabStop={i === tabStopIndex}
-            disabled={disabled || !!isOptionDisabled?.(option)}
+            // A withdrawn style has nothing to select and nothing to buy — it is shown so the
+            // owner can see what the saved draft still points at, then pick something else.
+            disabled={disabled || !!option.unavailable || !!isOptionDisabled?.(option)}
             onSelect={onSelect}
             t={t}
             isNative={isNative}
@@ -321,7 +328,9 @@ function VariantOptionCard({
     () => [{ type: sectionType, variant: variant.id, visible: true }],
     [sectionType, variant.id],
   );
-  const badge = isAtelier
+  const badge = option.unavailable
+    ? t("businessPage.paidVariants.unavailableBadge")
+    : isAtelier
     ? previewOnly
       ? t("businessPage.paidVariants.previewBadge")
       : option.locked
@@ -351,7 +360,9 @@ function VariantOptionCard({
       disabled={disabled}
       onClick={() => onSelect(option)}
       aria-label={
-        isAtelier
+        option.unavailable
+          ? `${t(variant.labelKey)}, ${t("businessPage.paidVariants.unavailableBadge")}`
+          : isAtelier
           ? badge
             ? `${t(variant.labelKey)}, ${badge}`
             : t(variant.labelKey)
@@ -364,7 +375,9 @@ function VariantOptionCard({
           : t(variant.labelKey)
       }
       title={
-        option.locked
+        option.unavailable
+          ? t("businessPage.paidVariants.unavailableTitle")
+          : option.locked
           ? isNative
             ? t("businessPage.paidVariants.nativeHint")
             : option.priceLabel

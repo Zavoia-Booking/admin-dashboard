@@ -42,6 +42,7 @@ import {
   selectWebsiteVariantCart,
   selectWebsiteSectionCart,
   selectWebsiteThemeAssetCatalog,
+  selectWebsiteUnavailableVariants,
   selectWebsiteThemeAssetCart,
   selectWebsiteCartBusinessId,
   selectWebsiteDraft,
@@ -115,6 +116,7 @@ export function useWebsiteBuilderController({
   const rawVariantCatalog = useSelector(selectWebsiteVariantCatalog);
   const rawSectionCatalog = useSelector(selectWebsiteSectionCatalog);
   const themeAssetCatalog = useSelector(selectWebsiteThemeAssetCatalog);
+  const unavailableVariants = useSelector(selectWebsiteUnavailableVariants);
   const variantCatalog = useMemo(
     () => localizeWebsiteVariantCatalog(rawVariantCatalog, t),
     [rawVariantCatalog, t],
@@ -890,6 +892,7 @@ export function useWebsiteBuilderController({
     heroImageUrl: draft?.heroImageUrl ?? null,
     variantCatalog,
     sectionCatalog,
+    unavailableVariants,
     themeAssetCatalog,
     isCatalogLoading,
     catalogLoaded,

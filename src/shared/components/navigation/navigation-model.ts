@@ -38,6 +38,12 @@ interface NavigationItemDefinition {
   url: string;
   icon: LucideIcon;
   requiredPermission: Permission;
+  /**
+   * Paints the entry in the brand terracotta instead of the neutral nav ink, so
+   * it reads as its own destination rather than one more routine section. Meant
+   * for a single standout entry -- more than one and none of them stand out.
+   */
+  accent?: boolean;
   showSeparatorBefore?: boolean;
   subItems?: readonly NavigationSubItemDefinition[];
   hideSubItemsOnNative?: boolean;
@@ -54,6 +60,7 @@ export interface DesktopNavigationItem {
   url: string;
   icon: LucideIcon;
   isActive: boolean;
+  accent: boolean;
   showSeparatorBefore: boolean;
   items?: Array<{
     id: string;
@@ -68,6 +75,7 @@ export interface MobileNavigationItem {
   url: string;
   icon: LucideIcon;
   isActive: boolean;
+  accent: boolean;
 }
 
 const NAVIGATION_ITEMS: readonly NavigationItemDefinition[] = [
@@ -189,6 +197,7 @@ const NAVIGATION_ITEMS: readonly NavigationItemDefinition[] = [
     url: '/website',
     icon: Globe,
     requiredPermission: Permission.ACCESS_WEBSITE,
+    accent: true,
     mobile: { group: 'more', order: 0 },
   },
   {
@@ -321,6 +330,7 @@ export function useAppNavigation() {
         title: t(item.titleKey),
         url: item.url,
         icon: item.icon,
+        accent: item.accent === true,
         showSeparatorBefore: index > 0 && item.showSeparatorBefore === true,
         items: visibleSubItems,
         isActive:
@@ -337,6 +347,7 @@ export function useAppNavigation() {
         title: t(item.mobile?.titleKey ?? item.titleKey),
         url: item.url,
         icon: item.icon,
+        accent: item.accent === true,
         isActive: matchesPath(item.url, pathname, true),
         group: item.mobile?.group ?? 'more',
         order: item.mobile?.order ?? 0,
@@ -348,6 +359,7 @@ export function useAppNavigation() {
       url: item.url,
       icon: item.icon,
       isActive: item.isActive,
+      accent: item.accent,
     });
 
     return {

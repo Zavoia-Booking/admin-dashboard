@@ -9,6 +9,7 @@ import type {
   WebsiteBuilderLocation,
   SectionEntry,
   WebsiteSectionCatalogEntry,
+  WebsiteUnavailableVariant,
   WebsiteVariantCatalogEntry,
 } from "../../types";
 import { aboutHeadline, splitAboutContent } from "./aboutContent";
@@ -44,12 +45,15 @@ export {
 export type VariantCatalogByKey = ReadonlyMap<string, WebsiteVariantCatalogEntry>;
 export type BaseVariantKeyByType = ReadonlyMap<string, string>;
 export type SectionCatalogByType = ReadonlyMap<string, WebsiteSectionCatalogEntry>;
+/** `sectionType:variantKey` of styles this build renders but the catalog no longer sells. */
+export type UnavailableVariantKeys = ReadonlySet<string>;
 
 export interface SectionCatalogModel {
   variantByKey: VariantCatalogByKey;
   baseVariantKeyByType: BaseVariantKeyByType;
   sectionByType: SectionCatalogByType;
   ownedVariantSectionTypes: ReadonlySet<string>;
+  unavailableVariantKeys: UnavailableVariantKeys;
 }
 
 export interface IndexedSectionEntry {
@@ -171,11 +175,13 @@ const catalogKey = (sectionType: string, variantKey: string) => `${sectionType}:
 export function buildSectionCatalogModel(
   variantCatalog?: readonly WebsiteVariantCatalogEntry[],
   sectionCatalog?: readonly WebsiteSectionCatalogEntry[],
+  unavailableVariants?: readonly WebsiteUnavailableVariant[],
 ): SectionCatalogModel {
   const variantByKey = new Map<string, WebsiteVariantCatalogEntry>();
   const baseVariantKeyByType = new Map<string, string>();
   const sectionByType = new Map<string, WebsiteSectionCatalogEntry>();
   const ownedVariantSectionTypes = new Set<string>();
+  const unavailableVariantKeys = new Set<string>();
 
   for (const entry of variantCatalog ?? []) {
     variantByKey.set(catalogKey(entry.sectionType, entry.variantKey), entry);
@@ -187,11 +193,18 @@ export function buildSectionCatalogModel(
     sectionByType.set(entry.sectionType, entry);
   }
 
+  // A style the catalog dropped can still be sitting in a saved draft. It has no entry above,
+  // and a missing entry is what "free" looks like to every check below — hence this set.
+  for (const entry of unavailableVariants ?? []) {
+    unavailableVariantKeys.add(catalogKey(entry.sectionType, entry.variantKey));
+  }
+
   return {
     variantByKey,
     baseVariantKeyByType,
     sectionByType,
     ownedVariantSectionTypes,
+    unavailableVariantKeys,
   };
 }
 
@@ -199,6 +212,19 @@ export function isPaidCatalogEntryLocked(
   entry: Pick<WebsiteVariantCatalogEntry, "priceMinor" | "owned"> | undefined | null,
 ): boolean {
   return !!entry && entry.priceMinor > 0 && !entry.owned;
+}
+
+/**
+ * A style this build renders but the server sells no row for. Locked like a paid style, minus
+ * the purchase: there is no id to buy and no price to show, so the editor offers replacement
+ * rather than checkout. Publishing substitutes the section default server-side.
+ */
+export function isVariantUnavailable(
+  sectionType: string,
+  variantKey: string,
+  unavailableVariantKeys: UnavailableVariantKeys,
+): boolean {
+  return unavailableVariantKeys.has(catalogKey(sectionType, variantKey));
 }
 
 /** Required page chrome is never locked, regardless of server catalog data. */
