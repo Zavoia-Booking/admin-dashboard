@@ -7,6 +7,7 @@ import { Plus, MapPin, Phone, Mail, Edit, Users, Briefcase } from "lucide-react"
 import { useTranslation } from "react-i18next";
 import { AppLayout } from '../../../shared/components/layouts/app-layout';
 import BusinessSetupGate from '../../../shared/components/guards/BusinessSetupGate';
+import TrialBanner from '../../teamMembers/components/TrialBanner';
 import AddLocationSlider from '../components/AddLocationSlider';
 import EditLocationSlider from '../components/EditLocationSlider';
 import { LocationFilters } from '../components/LocationFilters';
@@ -87,6 +88,9 @@ export default function LocationsPage() {
                 {text("page.title")}
               </h1>
             </div>
+
+            {/* Trial Banner */}
+            <TrialBanner />
 
             {/* While locations are loading, show full-page skeleton (including filters) */}
             {isLocationsLoading ? (

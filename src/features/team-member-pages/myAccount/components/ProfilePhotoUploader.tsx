@@ -78,7 +78,7 @@ export const ProfilePhotoUploader: React.FC<ProfilePhotoUploaderProps> = ({
 
   return (
     <div className="flex items-center gap-4">
-      <Avatar className="h-16 w-16">
+      <Avatar className="h-16 w-16 border border-border">
         {profileImage && <AvatarImage src={profileImage} alt={displayedName} />}
         <AvatarFallback>{initials}</AvatarFallback>
       </Avatar>

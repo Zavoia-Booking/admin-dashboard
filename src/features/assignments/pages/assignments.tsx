@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import { AppLayout } from "../../../shared/components/layouts/app-layout";
 import { LocationAssignmentsView } from "../components/LocationAssignmentsView";
 import BusinessSetupGate from "../../../shared/components/guards/BusinessSetupGate";
+import TrialBanner from "../../teamMembers/components/TrialBanner";
 
 export default function AssignmentsPage() {
   const { t } = useTranslation("assignments");
@@ -15,6 +16,7 @@ export default function AssignmentsPage() {
               {t("page.title")}
             </h1>
           </div>
+          <TrialBanner />
           <LocationAssignmentsView />
         </div>
       </BusinessSetupGate>

@@ -292,6 +292,7 @@ export default function MyProfilePage() {
             ref={profileTabRef}
             initialProfile={profile}
             onProfileSaved={handleProfileSaved}
+            showPhotoUploader
           />
         </>
       ),

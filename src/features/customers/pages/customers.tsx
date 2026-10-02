@@ -25,6 +25,7 @@ import { highlightMatches as highlight } from '../../../shared/utils/highlight';
 import { EmptyState } from '../../../shared/components/common/EmptyState';
 import CustomersListSkeleton from '../components/CustomersListSkeleton';
 import BusinessSetupGate from '../../../shared/components/guards/BusinessSetupGate';
+import TrialBanner from '../../teamMembers/components/TrialBanner';
 
 export default function CustomersPage() {
   const dispatch = useDispatch();
@@ -111,6 +112,9 @@ export default function CustomersPage() {
               {text("page.title")}
             </h1>
           </div>
+
+          {/* Trial Banner */}
+          <TrialBanner />
 
           {isLoading ? (
             <CustomersListSkeleton />

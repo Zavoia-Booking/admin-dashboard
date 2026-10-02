@@ -20,6 +20,8 @@ import {
   AVAILABLE_INTERESTS,
 } from '../api';
 import { getErrorMessage } from '../../../../shared/utils/error';
+import { ProfilePhotoUploader } from '../../myAccount/components/ProfilePhotoUploader';
+import { getTeamMemberProfile } from '../../myAccount/api';
 import {
   validateUrlField,
   validateDisplayName,
@@ -77,10 +79,15 @@ export interface ProfileTabProps {
   onProfileSaved: (profile: MarketplaceProfile) => void;
   /** Drop the card chrome when already inside a surface (e.g. the owner slider). */
   embedded?: boolean;
+  /**
+   * Show the account photo uploader under Basic information. Off by default:
+   * the owner slider renders its own uploader above an embedded ProfileTab.
+   */
+  showPhotoUploader?: boolean;
 }
 
 function ProfileTabInner(
-  { initialProfile, onProfileSaved, embedded = false }: ProfileTabProps,
+  { initialProfile, onProfileSaved, embedded = false, showPhotoUploader = false }: ProfileTabProps,
   ref: React.ForwardedRef<ProfileTabRef>
 ) {
   const { t } = useTranslation('myProfile');
@@ -104,6 +111,23 @@ function ProfileTabInner(
 
   const user = useSelector(selectCurrentUser);
   const accountName = [user?.firstName, user?.lastName].filter(Boolean).join(' ').trim();
+
+  // The account photo lives on /team-member-account/profile — the session user
+  // doesn't carry profileImage (same reason OwnerProfessionalProfileSection
+  // fetches it). Secondary: a failure just leaves the avatar on its initials.
+  const [accountPhoto, setAccountPhoto] = useState<string | null>(null);
+  useEffect(() => {
+    if (!showPhotoUploader) return;
+    let cancelled = false;
+    getTeamMemberProfile()
+      .then((r) => {
+        if (!cancelled) setAccountPhoto(r.profile.profileImage || null);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [showPhotoUploader]);
 
   // When no profile exists yet, prefill the display name from the account name
   // so creating a profile is one Save away. Prefill goes into BOTH baselines —
@@ -247,6 +271,17 @@ function ProfileTabInner(
             <p className="text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed px-1">
               {t('profileTab.basicInfoDescription')}
             </p>
+            {showPhotoUploader && (
+              // Same account photo as My Account — saves on pick; onUploaded swaps
+              // the preview in place without a refetch.
+              <div className="px-1 pb-2">
+                <ProfilePhotoUploader
+                  profileImage={accountPhoto}
+                  displayedName={accountName || formData.displayName}
+                  onUploaded={setAccountPhoto}
+                />
+              </div>
+            )}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 px-1">
               <TextField
                 label={t('profileTab.displayName')}

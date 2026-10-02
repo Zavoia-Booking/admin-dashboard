@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
+import { MapPin } from 'lucide-react';
+import { Skeleton } from '../ui/skeleton';
 
 export interface MapViewProps {
   /**
@@ -105,6 +107,9 @@ export const MapView: React.FC<MapViewProps> = ({
   const markerRef = useRef<mapboxgl.Marker | null>(null);
   const initializedRef = useRef(false);
   const [hasError, setHasError] = useState(false);
+  // Skeleton stays up until the first 'idle' event — style, tiles and any
+  // pending renders (marker included) are all done by then.
+  const [isReady, setIsReady] = useState(false);
 
   // Keep the latest onError callback reachable from the init effect (which
   // only runs once and captures its dependencies via a ref).
@@ -163,6 +168,14 @@ export const MapView: React.FC<MapViewProps> = ({
 
     initializedRef.current = true;
 
+    // Reveal the map only once everything is drawn. 'idle' fires after 'load'
+    // (where the marker is added), when all visible tiles have rendered — so
+    // the user goes straight from skeleton to a finished map with the marker
+    // on it. The timeout is a safety net for very slow tile servers: better a
+    // partially-drawn map than a skeleton that never resolves.
+    map.current.once('idle', () => setIsReady(true));
+    const readyFallback = window.setTimeout(() => setIsReady(true), 15000);
+
     // Async failures (e.g. WebGL context lost after creation) surface here.
     map.current.on('error', (e) => {
       const message = (e as { error?: { message?: string } })?.error?.message ?? '';
@@ -207,6 +220,7 @@ export const MapView: React.FC<MapViewProps> = ({
 
     // Cleanup only when component unmounts
     return () => {
+      window.clearTimeout(readyFallback);
       if (markerRef.current) {
         markerRef.current.remove();
         markerRef.current = null;
@@ -278,10 +292,38 @@ export const MapView: React.FC<MapViewProps> = ({
 
   return (
     <div
-      ref={mapContainer}
-      className={`rounded-lg overflow-hidden focus:outline-none focus-visible:outline-none border-0 outline-none [&_canvas]:outline-none [&_canvas]:border-0 ${className}`}
+      className={`relative rounded-lg overflow-hidden ${className}`}
       style={{ height, width }}
-      tabIndex={-1}
-    />
+    >
+      <div
+        ref={mapContainer}
+        className="h-full w-full focus:outline-none focus-visible:outline-none border-0 outline-none [&_canvas]:outline-none [&_canvas]:border-0"
+        tabIndex={-1}
+      />
+      {/* Ghost layout mirroring the loaded map: street strokes, center pin,
+          nav controls top-right, Mapbox badge bottom-left, info bottom-right. */}
+      <Skeleton
+        aria-hidden
+        className={`absolute inset-0 z-10 rounded-lg transition-opacity duration-500 ${
+          isReady ? 'opacity-0 pointer-events-none' : 'opacity-100'
+        }`}
+      >
+        <div className="absolute -left-[10%] top-[30%] h-3.5 w-[120%] -rotate-6 rounded-full bg-surface/50" />
+        <div className="absolute -left-[10%] top-[70%] h-2.5 w-[120%] rotate-3 rounded-full bg-surface/35" />
+        <div className="absolute -top-[10%] left-[63%] h-[120%] w-2.5 rotate-12 rounded-full bg-surface/35" />
+        <div className="absolute inset-0 flex items-center justify-center">
+          <MapPin className="h-8 w-8 text-foreground-3 opacity-50" />
+        </div>
+        {showControls && (
+          <div className="absolute top-3 right-3 flex flex-col gap-px overflow-hidden rounded-lg shadow-sm">
+            <div className="h-8 w-8 bg-surface/90" />
+            <div className="h-8 w-8 bg-surface/90" />
+            <div className="h-8 w-8 bg-surface/90" />
+          </div>
+        )}
+        <div className="absolute bottom-2 left-2 h-5 w-20 rounded-full bg-surface/70" />
+        <div className="absolute right-2 bottom-2 h-6 w-6 rounded-full bg-surface/70" />
+      </Skeleton>
+    </div>
   );
 };
