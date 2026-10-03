@@ -108,18 +108,31 @@
     }
   },
   "statusStrip": {
-    "live": "Live on marketplace",
+    "live": "Published on marketplace",
     "notListed": "Not on the marketplace yet",
     "toGoLive": "To go live:",
     "progressDone": "{{done}} of {{total}} done",
+    "requirementsLabel": "Marketplace requirements",
+    "requiredProgressDone": "Required: {{done}}/{{total}}",
+    "locationSettingsLabel": "Location settings",
+    "recommendationsLabel": "Recommended next steps",
+    "ownerProfileSetupNeeded": "Your professional profile hasn't been set up yet.",
+    "locationPhotoGuidance": "<strong>{{name}}</strong> has no photos yet.",
     "resolve": "Resolve",
     "checklist": {
       "industryTag": "At least one industry tag",
       "detailsValid": "Business details valid",
       "websiteBuilder": "Web Studio valid",
-      "locationPhoto": "At least one photo per location"
+      "locationPhotosDone": "Required location photos added",
+      "locationPhotoNeeded": "Add a photo to at least one location",
+      "publicLocationPhotosNeeded": "Add photos to locations shown on the marketplace"
     },
-    "noLocationLive": "No location is live yet",
+    "noLocationLive": "No locations have been added",
+    "locationHidden": "<strong>{{name}}</strong> is hidden on the marketplace.",
+    "locationMissingPhotos": "{{name}} has no photos yet. Upload at least one photo to show this location on the marketplace.",
+    "onlineBookingOff": "Customers cannot book <strong>{{name}}</strong> online.",
+    "manageVisibility": "Manage visibility",
+    "manageBooking": "Manage booking",
     "locationNeedsImage": "A location is missing photos — add at least one",
     "locationsWaitingPublish": "Public locations will appear once you publish your business page."
   },

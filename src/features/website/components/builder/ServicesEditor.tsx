@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
+import { getMarketplacePhotosPath } from "../../../marketplace/utils/portfolioAttention";
 import { modalHelperSmall } from "../../../../shared/components/ui/modal-tokens";
 import { Button } from "../../../../shared/components/ui/button";
 import { Switch } from "../../../../shared/components/ui/switch";
@@ -63,9 +64,7 @@ function ServicesFeaturePhotoEditor({
           (ref) => isGalleryImageRef(ref) && ref.locationId === location.id,
         ) ?? null
       : null;
-  const managePhotosPath = location
-    ? `/marketplace?tab=locations&locationId=${location.id}`
-    : "/marketplace?tab=locations";
+  const managePhotosPath = getMarketplacePhotosPath(location?.id);
 
   const selectImage = (ref: GalleryImageRef) => {
     const currentRefs = Array.isArray(config.featureImageRefs)

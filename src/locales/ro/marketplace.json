@@ -108,18 +108,31 @@
     }
   },
   "statusStrip": {
-    "live": "Activ pe marketplace",
+    "live": "Publicat pe marketplace",
     "notListed": "Încă nu ești pe marketplace",
     "toGoLive": "Pentru a publica:",
     "progressDone": "{{done}} din {{total}} gata",
+    "requirementsLabel": "Cerințe pentru marketplace",
+    "requiredProgressDone": "Obligatorii: {{done}}/{{total}}",
+    "locationSettingsLabel": "Setările locațiilor",
+    "recommendationsLabel": "Pași recomandați",
+    "ownerProfileSetupNeeded": "Profilul tău profesional nu este încă configurat.",
+    "locationPhotoGuidance": "<strong>{{name}}</strong> nu are încă fotografii.",
     "resolve": "Rezolvă",
     "checklist": {
       "industryTag": "Cel puțin o specializare",
       "detailsValid": "Detaliile businessului sunt valide",
       "websiteBuilder": "Web Studio este valid",
-      "locationPhoto": "Cel puțin o fotografie pentru fiecare locație"
+      "locationPhotosDone": "Fotografiile necesare pentru locații au fost adăugate",
+      "locationPhotoNeeded": "Adaugă o fotografie la cel puțin o locație",
+      "publicLocationPhotosNeeded": "Adaugă fotografii la locațiile afișate pe marketplace"
     },
-    "noLocationLive": "Nicio locație nu este activă încă",
+    "noLocationLive": "Nu au fost adăugate locații",
+    "locationHidden": "<strong>{{name}}</strong> este ascunsă pe marketplace.",
+    "locationMissingPhotos": "{{name}} nu are încă fotografii. Adaugă cel puțin o fotografie pentru ca această locație să fie vizibilă pe marketplace.",
+    "onlineBookingOff": "Clienții nu pot face programări online la <strong>{{name}}</strong>.",
+    "manageVisibility": "Gestionează vizibilitatea",
+    "manageBooking": "Gestionează programările",
     "locationNeedsImage": "O locație nu are fotografii — adaugă cel puțin una",
     "locationsWaitingPublish": "Locațiile publice vor apărea după ce publici pagina businessului."
   },

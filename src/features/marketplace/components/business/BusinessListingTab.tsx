@@ -11,6 +11,7 @@ interface BusinessListingTabProps {
   industries: Industry[];
   industryTags: IndustryTag[];
   form: ReturnType<typeof useMarketplaceForm>;
+  onOwnerProfileSetupNeededChange?: (needed: boolean) => void;
 }
 
 export function BusinessListingTab({
@@ -19,6 +20,7 @@ export function BusinessListingTab({
   industries,
   industryTags,
   form,
+  onOwnerProfileSetupNeededChange,
 }: BusinessListingTabProps) {
   return (
     <div className="max-w-5xl mb-0 md:mb-8">
@@ -72,7 +74,10 @@ export function BusinessListingTab({
             descriptionError={form.descriptionError || undefined}
           />
           </div>
-          <OwnerProfessionalProfileSection canWrite={canWrite} />
+          <OwnerProfessionalProfileSection
+            canWrite={canWrite}
+            onProfileSetupNeededChange={onOwnerProfileSetupNeededChange}
+          />
         </div>
       </div>
     </div>

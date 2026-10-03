@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { ArrowUpRight } from 'lucide-react';
 import { usePermissions } from '../../../shared/hooks/usePermissions';
+import { getMarketplaceConfigurationPath } from '../../marketplace/utils/marketplaceNavigation';
 
 interface RatingDistribution {
   '5': number;
@@ -42,7 +43,7 @@ export function ReviewsWidget({
   const { t } = useTranslation('dashboard');
   const navigate = useNavigate();
   const { isTeamMember } = usePermissions();
-  const reviewsHref = isTeamMember ? '/my-profile?tab=reviews' : '/marketplace?tab=reviews';
+  const reviewsHref = isTeamMember ? '/my-profile?tab=reviews' : getMarketplaceConfigurationPath('reviews');
   const isEmpty = totalReviews === 0;
 
   const cx = 100;

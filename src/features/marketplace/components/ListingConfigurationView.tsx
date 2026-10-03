@@ -13,6 +13,10 @@ import type {
 } from "../types";
 import { useMarketplaceForm } from "../hooks/useMarketplaceForm";
 import { requestPortfolioAttention } from "../utils/portfolioAttention";
+import {
+  requestLocationSettingsAttention,
+  type LocationSettingsAttentionTarget,
+} from "../utils/locationSettingsAttention";
 import ConfirmDialog from "../../../shared/components/common/ConfirmDialog";
 import { useTranslation } from "react-i18next";
 import { ArrowLeft, ArrowRight, Save } from "lucide-react";
@@ -101,6 +105,7 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
 
   // State for unsaved changes confirmation dialog
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
+  const [ownerProfileSetupNeeded, setOwnerProfileSetupNeeded] = useState(false);
   // Mobile publish-checklist disclosure — lives here (not in the strip) because
   // the strip renders once per tab panel. Open by default: until the listing is
   // live, what is still missing is the point of the page.
@@ -453,11 +458,31 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
     requestAnimationFrame(() => tryScroll(0));
   };
 
-  // One strip per tab panel. All three get the visibility callback: a strip in a
-  // display:none panel never reports, because useInView marks its reading stale
-  // (see `settled`). Gating on `tabId === activeTab` instead would change the
-  // prop on every switch and re-render all three strips for nothing.
-  const renderStatusStrip = () => (
+  const handleLocationSummaryAction = (
+    locationId: number,
+    target: LocationSettingsAttentionTarget | "photos",
+    selectLocation?: (locationId: number) => void,
+  ) => {
+    if (selectLocation) {
+      selectLocation(locationId);
+    } else {
+      navigate(`/marketplace?tab=locations&locationId=${locationId}`, {
+        replace: true,
+        state: location.state,
+      });
+    }
+    requestAnimationFrame(() => {
+      if (target === "photos") requestPortfolioAttention(locationId);
+      else requestLocationSettingsAttention(locationId, target);
+    });
+  };
+
+  // One strip per tab panel. The Locations tab supplies its actual workspace
+  // selection, including the existing single-location and stored-selection flows.
+  const renderStatusStrip = (
+    selectedLocation?: LocationWithAssignments | null,
+    selectLocation?: (locationId: number) => void,
+  ) => (
     <div className="max-w-5xl mb-6">
       <MarketplacePublishStatusStrip
         isListed={isListed}
@@ -471,10 +496,6 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
         hasLocationPhoto={hasLocationPhoto}
         onPhotosNeeded={handlePhotosNeeded}
         onResolveChecklistItem={(item) => {
-          if (item === "locationPhoto") {
-            handlePhotosNeeded();
-            return;
-          }
           focusBusinessSection(
             item === "industryTag"
               ? "marketplace-industry-section"
@@ -482,6 +503,32 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
           );
         }}
         locations={locationsWithAssignments}
+        location={selectedLocation}
+        onManageVisibility={(locationId) =>
+          handleLocationSummaryAction(
+            locationId,
+            "visibility",
+            selectedLocation === null ? selectLocation : undefined,
+          )
+        }
+        onManageBooking={(locationId) =>
+          handleLocationSummaryAction(
+            locationId,
+            "booking",
+            selectedLocation === null ? selectLocation : undefined,
+          )
+        }
+        onManagePhotos={(locationId) =>
+          handleLocationSummaryAction(
+            locationId,
+            "photos",
+            selectedLocation === null ? selectLocation : undefined,
+          )
+        }
+        ownerProfileSetupNeeded={ownerProfileSetupNeeded}
+        onManageOwnerProfile={() =>
+          focusBusinessSection("marketplace-owner-profile-section")
+        }
         onPublish={handleCombinedSave}
         compactOnMobile={isLocationDetail}
         mobileChecklistOpen={mobileChecklistOpen}
@@ -505,6 +552,7 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
             industries={props.industries}
             industryTags={props.industryTags}
             form={form}
+            onOwnerProfileSetupNeededChange={setOwnerProfileSetupNeeded}
           />
         </>
       ),
@@ -540,10 +588,10 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
               </Button>
             </div>
           )}
-          {renderStatusStrip()}
           <LocationsTab
             locations={locationsWithAssignments}
             isActive={activeTab === "locations"}
+            renderStatusStrip={renderStatusStrip}
           />
         </LocationDetailSwipeBack>
       ),

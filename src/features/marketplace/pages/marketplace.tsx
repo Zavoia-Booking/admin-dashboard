@@ -49,22 +49,51 @@ export default function MarketplacePage() {
   // ("You need a business account…") toasts over the gate's screen.
   const hasBusiness = Boolean(currentUser?.businessId);
 
-  const [showConfiguration, setShowConfiguration] = useState(false);
+  const searchParams = new URLSearchParams(location.search);
+  const requestedTab = searchParams.get("tab");
+  const requestsPhotos =
+    requestedTab === "locations" &&
+    searchParams.get("section") === "photos";
+  const requestsConfigurationView =
+    searchParams.get("view") === "configuration" &&
+    ["business", "locations", "reviews"].includes(requestedTab ?? "");
+  const requestsConfiguration =
+    location.state?.marketplaceOpenConfiguration === true ||
+    requestsPhotos ||
+    requestsConfigurationView;
+  const [showConfiguration, setShowConfiguration] = useState(
+    () => requestsConfiguration,
+  );
+  const configurationOpen = showConfiguration || requestsConfiguration;
+  const [entryLoadState, setEntryLoadState] = useState<
+    "pending" | "loading" | "ready"
+  >("pending");
+
+  useEffect(() => {
+    if (requestsConfiguration) setShowConfiguration(true);
+  }, [requestsConfiguration]);
 
   // Fetch marketplace data on mount and when navigating back to this page
   useEffect(() => {
     if (!hasBusiness) return;
     dispatch(fetchMarketplaceListingAction.request());
+    setEntryLoadState("loading");
   }, [dispatch, location.pathname, hasBusiness]); // Refetch when pathname changes
+
+  useEffect(() => {
+    if (entryLoadState === "loading" && !isLoading && listing && !error) {
+      setEntryLoadState("ready");
+    }
+  }, [entryLoadState, isLoading, listing, error]);
 
   // The marketing view and the configuration view swap in place under the same AppLayout, so
   // <main> stays mounted and keeps its scroll offset. Someone who read the marketing page to the
   // bottom before tapping "Publish my listing" (the CTA lives in the sticky mobile header, so it's
   // reachable from anywhere) would land mid-page in the configuration form. Reset before paint.
   useLayoutEffect(() => {
-    if (!showConfiguration) return;
+    if (!configurationOpen) return;
     scrollAppContentToTop();
-  }, [showConfiguration]);
+  }, [configurationOpen]);
 
   const handleStartListing = () => {
     setShowConfiguration(true);
@@ -84,10 +113,18 @@ export default function MarketplacePage() {
     dispatch(publishMarketplaceListingAction.request(payload));
   };
 
-  // Show loading state — A7: only the initial load shows the skeleton. A refetch (e.g. the
-  // post-publish reload) keeps `listing` in state, so we keep the current view mounted instead of
-  // flashing the full skeleton over it.
-  if (isLoading && !listing) {
+  // Incoming location workspace links wait for a fresh catalog so a newly created
+  // location is not rejected against cached data. Later refetches keep the view mounted.
+  const waitingForLocationCatalog =
+    hasBusiness &&
+    (requestsPhotos ||
+      (requestsConfigurationView && requestedTab === "locations")) &&
+    entryLoadState !== "ready";
+  if (
+    (isLoading && !listing) ||
+    (waitingForLocationCatalog &&
+      (entryLoadState === "pending" || isLoading || !error))
+  ) {
     // ListingConfigurationSkeleton mirrors the real tabs and uses the same
     // `-mt-8` breakout, so treat it as a tabbed page too.
     return (
@@ -99,9 +136,9 @@ export default function MarketplacePage() {
     );
   }
 
-  // A5: fetch failed and we have nothing to show — surface the error with a retry instead of
-  // silently falling through to the generic "no listing data" message.
-  if (error && !listing) {
+  // Location entry requires a fresh catalog: keep its target intact on failure
+  // and offer a retry instead of resolving it against an older location list.
+  if (error && (!listing || waitingForLocationCatalog)) {
     return (
       <AppLayout>
         <BusinessSetupGate>
@@ -116,8 +153,8 @@ export default function MarketplacePage() {
     );
   }
 
-  // Show configuration view when listing is published OR user clicked "Start Listing"
-  if (listing && (listing.isListed || showConfiguration)) {
+  // Published listings, "Start Listing", and explicit setup links open configuration.
+  if (listing && (listing.isListed || configurationOpen)) {
     return (
       <AppLayout tabbedPage>
         <BusinessSetupGate>

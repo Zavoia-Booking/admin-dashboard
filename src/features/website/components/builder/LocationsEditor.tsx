@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
+import { getMarketplaceConfigurationPath } from "../../../marketplace/utils/marketplaceNavigation";
 import { Switch } from "../../../../shared/components/ui/switch";
 import {
   DropdownMenu,
@@ -347,7 +348,7 @@ export function LocationsEditor({
                     onPreviewLocationSelect={onPreviewLocationSelect}
                     onEditLocation={(id) => navigate(`/locations?locationId=${id}`)}
                     onManageLocationContent={(id) =>
-                      navigate(`/marketplace?tab=locations&locationId=${id}`)
+                      navigate(getMarketplaceConfigurationPath("locations", id))
                     }
                   />
                 ))}

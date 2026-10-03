@@ -1,10 +1,10 @@
 {
   "page": {
     "summary": {
-      "readyLabel": "Ready for bookings",
-      "attentionLabel": "Needs your attention",
-      "groupLabel": "Before customers can book here",
-      "progressDone": "{{done}}/{{total}} done",
+      "readyLabel": "Setup checks complete",
+      "attentionLabel": "Setup needs attention",
+      "groupLabel": "Location setup checks",
+      "progressDone": "{{done}}/{{total}} checks complete",
       "resolve": "Fix",
       "view": "View",
       "items": {
@@ -13,18 +13,19 @@
           "done": "Services are offered at this location"
         },
         "teamAssigned": {
-          "pending": "No team members work at this location",
-          "done": "Team members work at this location"
+          "pending": "No team members are assigned to this location",
+          "done": "Team members are assigned to this location"
         },
+        "serviceAssignmentsMissing": "No services are assigned to team members at this location",
         "servicesWithoutStaff": {
-          "pending_one": "{{count}} service here can't be booked — nobody can perform it",
-          "pending_other": "{{count}} services here can't be booked — nobody can perform them",
-          "done": "Every service here has someone to perform it"
+          "pending_one": "{{count}} service has no team member assigned",
+          "pending_other": "{{count}} services have no team member assigned",
+          "done": "Every service has a team member assigned"
         },
         "staffWithoutServices": {
-          "pending_one": "{{count}} team member here can't be booked — no services assigned",
-          "pending_other": "{{count}} team members here can't be booked — no services assigned",
-          "done": "Every team member here can perform at least one service"
+          "pending_one": "{{count}} team member has no services assigned",
+          "pending_other": "{{count}} team members have no services assigned",
+          "done": "Every team member has at least one service assigned"
         },
         "bundlesUnbookable": {
           "pending_one": "{{count}} bundle includes a service not offered here",
@@ -33,12 +34,12 @@
         }
       },
       "hints": {
-        "membersNotHere_one": "{{count}} team member isn't assigned to this location",
-        "membersNotHere_other": "{{count}} team members aren't assigned to this location",
-        "servicesNotHere_one": "{{count}} of your services isn't offered here",
-        "servicesNotHere_other": "{{count}} of your services aren't offered here",
-        "bundlesNotHere_one": "{{count}} of your bundles isn't offered here",
-        "bundlesNotHere_other": "{{count}} of your bundles aren't offered here"
+        "membersNotHere_one": "{{count}} team member can be assigned to this location",
+        "membersNotHere_other": "{{count}} team members can be assigned to this location",
+        "servicesNotHere_one": "{{count}} service can be offered at this location",
+        "servicesNotHere_other": "{{count}} services can be offered at this location",
+        "bundlesNotHere_one": "{{count}} bundle can be offered at this location",
+        "bundlesNotHere_other": "{{count}} bundles can be offered at this location"
       }
     },
     "title": "Assignments",

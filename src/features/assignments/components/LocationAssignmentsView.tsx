@@ -40,6 +40,7 @@ import { scrollAppContentToElement } from "../../../shared/utils/scroll";
 import { cn } from "../../../shared/lib/utils";
 import {
   getAllLocationsSelector,
+  getLocationLoadingSelector,
   getLocationListErrorSelector,
   getLocationsListLoadedSelector,
 } from "../../locations/selectors";
@@ -50,6 +51,10 @@ import { getLocationUnassignPreviewApi } from "../../teamMembers/api";
 import { openReconciliationAction } from "../../reconciliation/actions";
 import type { LocationType } from "../../../shared/types/location";
 import type { StaffService } from "../types";
+import {
+  requestLocationSettingsAttention,
+  type LocationSettingsAttentionTarget,
+} from "../../marketplace/utils/locationSettingsAttention";
 
 /** Per-feature key, same pattern as the dashboard's and the calendar's, so the
  *  location picked here survives a reload without leaking into other pages. */
@@ -75,6 +80,9 @@ export function LocationAssignmentsView() {
   const loadError = useSelector(getLoadErrorSelector);
   const isSaving = useSelector(getIsSavingSelector);
   const allLocations = useSelector(getAllLocationsSelector);
+  const locationsLoading = useSelector(getLocationLoadingSelector);
+  // Only use flags from this visit's existing list refresh, never retained data.
+  const [initialLocations] = useState(allLocations);
   const locationsLoaded = useSelector(getLocationsListLoadedSelector);
   const locationsListError = useSelector(getLocationListErrorSelector);
   const selectedLocationId = useSelector(getSelectedLocationIdSelector);
@@ -83,6 +91,12 @@ export function LocationAssignmentsView() {
   const isStaffServicesLoading = useSelector(getStaffServicesLoadingSelector);
   const currentUser = useSelector(selectCurrentUser);
   const businessCurrency = currentUser?.business?.businessCurrency || "eur";
+  const marketplaceLocation =
+    !locationsLoading &&
+    !locationsListError &&
+    allLocations !== initialLocations
+      ? allLocations.find((entry) => entry.id === selectedLocation?.id) ?? null
+      : null;
 
   // Local state
   const [managingMemberId, setManagingMemberId] = useState<number | null>(null);
@@ -548,6 +562,16 @@ export function LocationAssignmentsView() {
         "ring-2 ring-primary/45 ring-offset-4 ring-offset-background",
     );
 
+  const handleManageMarketplace = (target: LocationSettingsAttentionTarget) => {
+    if (!selectedLocation) return;
+    navigate(`/marketplace?tab=locations&locationId=${selectedLocation.id}`, {
+      state: { marketplaceOpenConfiguration: true },
+    });
+    requestAnimationFrame(() =>
+      requestLocationSettingsAttention(selectedLocation.id, target),
+    );
+  };
+
   // Loading skeleton for details panel - matches actual layout structure
   const renderDetailsSkeleton = () => (
     <Card className="py-3 cursor-default">
@@ -746,6 +770,8 @@ export function LocationAssignmentsView() {
             <AssignmentsSummary
               location={selectedLocation}
               onResolve={focusSection}
+              marketplaceLocation={marketplaceLocation}
+              onManageMarketplace={handleManageMarketplace}
             />
           </div>
 

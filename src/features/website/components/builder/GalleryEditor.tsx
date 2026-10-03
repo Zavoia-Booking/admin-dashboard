@@ -28,6 +28,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { getMarketplacePhotosPath } from "../../../marketplace/utils/portfolioAttention";
 import { useTranslation } from "react-i18next";
 import { Badge } from "../../../../shared/components/ui/badge";
 import { Button } from "../../../../shared/components/ui/button";
@@ -199,9 +200,9 @@ export function GalleryEditor({
     availableImages.length >= DEFAULT_GALLERY_IMAGES;
   const showLocationPicker =
     locations.length !== 1 || !includedIds.has(locations[0].id);
-  const managePhotosPath = locations.length === 1
-    ? `/marketplace?tab=locations&locationId=${locations[0].id}`
-    : "/marketplace?tab=locations";
+  const managePhotosPath = getMarketplacePhotosPath(
+    locations.length === 1 ? locations[0].id : undefined,
+  );
   const headingError = blockingIssues.find(
     (issue) => issue.controlId === "gallery-heading" && (!issue.locale || issue.locale === locale),
   )?.message;
