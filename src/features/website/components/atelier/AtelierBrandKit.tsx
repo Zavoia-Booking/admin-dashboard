@@ -1,5 +1,5 @@
-import { ArrowUpRight, Building2 } from "lucide-react";
-import { Link } from "react-router-dom";
+import type { Ref } from "react";
+import { Building2, Share2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { Business, WebsiteIdentity, WebsiteThemeAssetCatalogItem } from "../../types";
 import { BrandColorControl } from "../BrandingSection";
@@ -10,6 +10,12 @@ import { useAtelierCompactLayout } from "./useAtelierCompactLayout";
 interface AtelierBrandKitProps {
   business: Business | null;
   identity: WebsiteIdentity;
+  websiteUrl: string | null;
+  websiteAvailable: boolean;
+  onOpenWebsite?: () => void;
+  onShare?: () => void;
+  shareButtonRef?: Ref<HTMLButtonElement>;
+  shareDisabled?: boolean;
   canWrite: boolean;
   brandColorHex: string;
   setBrandColorHex: (value: string) => void;
@@ -32,12 +38,17 @@ const monogramFor = (name: string) => name.trim().charAt(0).toLocaleUpperCase() 
 
 /**
  * The compact, production-backed identity kit used by both Atelier editor modes.
- * It intentionally does not show the Business profile's external website URL. A public Website
- * Builder domain is not part of the current API contract, so the identity card stays domain-free.
+ * The website address comes from the workspace's publication state.
  */
 export function AtelierBrandKit({
   business,
   identity,
+  websiteUrl,
+  websiteAvailable,
+  onOpenWebsite,
+  onShare,
+  shareButtonRef,
+  shareDisabled = false,
   canWrite,
   brandColorHex,
   setBrandColorHex,
@@ -82,14 +93,44 @@ export function AtelierBrandKit({
         </div>
         <div className="min-w-0 flex-1">
           <p className="atelier-brand-name">{identityName}</p>
+          {websiteUrl ? (
+            websiteAvailable ? (
+              <a
+                href={websiteUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="atelier-brand-address website-atelier-focus"
+                title={websiteUrl}
+                aria-label={`${t("shareWebsite.open")}: ${websiteUrl}`}
+                onClick={onOpenWebsite ? (event) => {
+                  event.preventDefault();
+                  onOpenWebsite();
+                } : undefined}
+              >
+                {websiteUrl.replace(/^https?:\/\//i, "")}
+              </a>
+            ) : (
+              <span className="atelier-brand-address" title={websiteUrl}>
+                {websiteUrl.replace(/^https?:\/\//i, "")}
+              </span>
+            )
+          ) : (
+            <span className="atelier-brand-address">{t("page.status.notPublishedYet")}</span>
+          )}
         </div>
-        <Link
-          to="/account?tab=profile"
-          className="atelier-brand-profile-link website-atelier-focus website-atelier-press"
-          aria-label={t("page.identity.edit")}
-        >
-          <ArrowUpRight className="size-3.5" strokeWidth={1.75} aria-hidden />
-        </Link>
+        {onShare ? (
+          <button
+            ref={shareButtonRef}
+            type="button"
+            onClick={onShare}
+            disabled={shareDisabled}
+            className="atelier-brand-share website-atelier-focus website-atelier-press"
+            aria-label={t("shareWebsite.action")}
+          >
+            <Share2 className="size-3.5" strokeWidth={1.8} aria-hidden />
+            {t("shareWebsite.share")}
+          </button>
+        ) : null}
       </div>
 
       <p className="atelier-brand-kicker">{t("businessPage.branding.kitLabel")}</p>

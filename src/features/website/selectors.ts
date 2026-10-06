@@ -7,6 +7,8 @@ export const selectWebsiteDraft = (state: RootState) => state.website.draft;
 export const selectWebsiteLocations = (state: RootState) => state.website.locations;
 export const selectWebsiteAccess = (state: RootState) => state.website.access;
 export const selectWebsitePublish = (state: RootState) => state.website.publish;
+export const selectWebsitePublishReceipt = (state: RootState) => state.website.publishReceipt;
+export const selectWebsiteScopeKey = (state: RootState) => `${state.website.scopeBusinessId}:${state.website.scopeRevision}`;
 export const selectWebsitePublishing = (state: RootState) => state.website.isPublishing;
 export const selectWebsiteUnpublishing = (state: RootState) => state.website.isUnpublishing;
 export const selectWebsitePublishFailure = (state: RootState) => state.website.publishFailure;

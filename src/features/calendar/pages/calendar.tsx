@@ -436,6 +436,7 @@ const Calendar = () => {
     <AppLayout
       contentClassName="max-w-[2000px]"
       noPadding={isMobile}
+      mobileViewport={isMobile}
       headerRightContent={mobileHeaderRight}
       headerTitleOverride={mobileHeaderTitle}
       headerPrevAction={isMobile ? handleMobilePrev : undefined}

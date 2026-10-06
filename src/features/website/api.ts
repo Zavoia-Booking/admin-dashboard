@@ -6,7 +6,7 @@ import type {
   WebsiteCatalogResponse,
   WebsiteVariantCheckoutPayload,
   WebsiteCheckoutStatusResponse,
-  WebsitePublishState,
+  WebsitePublicationResponse,
 } from "./types";
 import { apiClient } from "../../shared/lib/http";
 
@@ -57,8 +57,8 @@ export const deleteWebsiteHeroApi = async (expectedVersion: number): Promise<Web
 /** Freezes the saved draft at exactly this version into the published snapshot (tier-2 only). */
 export const publishWebsiteApi = async (
   expectedVersion: number,
-): Promise<{ message: string; publish: WebsitePublishState }> => {
-  const { data } = await apiClient().post<{ message: string; publish: WebsitePublishState }>(
+): Promise<WebsitePublicationResponse> => {
+  const { data } = await apiClient().post<WebsitePublicationResponse>(
     '/website-builder/publish',
     { expectedVersion },
   );
@@ -66,8 +66,8 @@ export const publishWebsiteApi = async (
 };
 
 /** Takes the site offline (keeps the snapshot for instant re-publish). Idempotent. */
-export const unpublishWebsiteApi = async (): Promise<{ message: string; publish: WebsitePublishState }> => {
-  const { data } = await apiClient().post<{ message: string; publish: WebsitePublishState }>(
+export const unpublishWebsiteApi = async (): Promise<WebsitePublicationResponse> => {
+  const { data } = await apiClient().post<WebsitePublicationResponse>(
     '/website-builder/unpublish',
   );
   return data;

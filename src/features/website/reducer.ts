@@ -27,6 +27,7 @@ const initialState: WebsiteState = {
   locations: [],
   access: null,
   publish: null,
+  publishReceipt: null,
   isPublishing: false,
   isUnpublishing: false,
   publishFailure: null,
@@ -263,6 +264,10 @@ export const WebsiteReducer: Reducer<WebsiteState, any> = (state: WebsiteState =
         ...state,
         isPublishing: false,
         publish: action.payload.publish,
+        publishReceipt: {
+          sequence: (state.publishReceipt?.sequence ?? 0) + 1,
+          firstPublication: action.payload.firstPublication,
+        },
         publishFailure: null,
         conflict: null,
         publishLockedItems: null,

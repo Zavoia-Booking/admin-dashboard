@@ -1,3 +1,4 @@
+import type { Ref } from "react";
 import type {
   WebsiteBuilderLocation,
   WebsiteIdentity,
@@ -10,6 +11,12 @@ import { AtelierBrandKit } from "./atelier/AtelierBrandKit";
 
 interface WebsiteBuilderCoreProps {
   identity: WebsiteIdentity;
+  websiteUrl: string | null;
+  websiteAvailable: boolean;
+  onOpenWebsite?: () => void;
+  onShare?: () => void;
+  shareButtonRef?: Ref<HTMLButtonElement>;
+  shareDisabled?: boolean;
   canWrite: boolean;
   canPurchase: boolean;
   controller: WebsiteBuilderController;
@@ -31,6 +38,12 @@ interface WebsiteBuilderCoreProps {
  */
 export function WebsiteBuilderCore({
   identity,
+  websiteUrl,
+  websiteAvailable,
+  onOpenWebsite,
+  onShare,
+  shareButtonRef,
+  shareDisabled,
   canWrite,
   canPurchase,
   controller,
@@ -115,6 +128,12 @@ export function WebsiteBuilderCore({
             <AtelierBrandKit
               business={previewBusiness}
               identity={identity}
+              websiteUrl={websiteUrl}
+              websiteAvailable={websiteAvailable}
+              onOpenWebsite={onOpenWebsite}
+              onShare={onShare}
+              shareButtonRef={shareButtonRef}
+              shareDisabled={shareDisabled}
               canWrite={
                 canWrite &&
                 !checkoutReconciliationBusy &&

@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useLayoutEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { AppSidebar } from '../navigation/app-sidebar';
 import { SidebarInset, SidebarProvider } from '../ui/sidebar';
@@ -24,6 +24,8 @@ interface AppLayoutProps {
    */
   tabbedPage?: boolean;
   noPadding?: boolean;
+  /** Opt in to filling the mobile viewport, with scrolling owned by the page. */
+  mobileViewport?: boolean;
   /** Optional override for the breadcrumb header title (mobile). */
   headerTitleOverride?: string;
   /** Optional custom JSX rendered in place of the breadcrumb title (mobile).
@@ -49,14 +51,31 @@ export function AppLayout(props: AppLayoutProps) {
   );
 }
 
-function AppLayoutInner({ children, contentClassName, headerRightContent, noPadding, tabbedPage, headerTitleOverride, headerTitleContent, headerPrevAction, headerNextAction, headerHidden }: AppLayoutProps) {
+function AppLayoutInner({ children, contentClassName, headerRightContent, noPadding, tabbedPage, headerTitleOverride, headerTitleContent, headerPrevAction, headerNextAction, headerHidden, mobileViewport = false }: AppLayoutProps) {
   const isMobile = useIsMobile();
+  const fillMobileViewport = isMobile && mobileViewport;
+  const [bottomNavHeight, setBottomNavHeight] = useState(0);
   const breadcrumbs = useBreadcrumbs();
   const location = useLocation();
   const slotRightContent = useHeaderRightSlotValue();
   const effectiveRightContent = headerRightContent ?? slotRightContent ?? undefined;
   const slotTitleContent = useHeaderTitleSlotValue();
   const effectiveTitleContent = headerTitleContent ?? slotTitleContent ?? undefined;
+
+  useLayoutEffect(() => {
+    if (!fillMobileViewport) return;
+    const bottomNav = document.querySelector<HTMLElement>('.mobile-bottom-nav');
+    if (!bottomNav) return;
+
+    // Measure the nav including its safe-area padding. Layout sizes stay valid
+    // during the splash transform, unlike getBoundingClientRect().
+    setBottomNavHeight(bottomNav.offsetHeight);
+    const observer = new ResizeObserver(([entry]) => {
+      setBottomNavHeight(entry.borderBoxSize?.[0]?.blockSize ?? bottomNav.offsetHeight);
+    });
+    observer.observe(bottomNav, { box: 'border-box' });
+    return () => observer.disconnect();
+  }, [fillMobileViewport]);
 
   useEffect(() => {
     // remove the inline background colors set in index.html
@@ -68,22 +87,23 @@ function AppLayoutInner({ children, contentClassName, headerRightContent, noPadd
   }, []);
 
   return (
-    <SidebarProvider>
-      <div className="flex h-screen w-full bg-transparent">
+    <SidebarProvider className={fillMobileViewport ? 'min-h-0' : undefined}>
+      <div className={`flex ${fillMobileViewport ? 'h-dvh' : 'h-screen'} w-full bg-transparent`}>
         {/* Sidebar: on desktop it's a persistent rail; on mobile it's a sheet controlled via trigger */}
         <AppSidebar />
 
-        <SidebarInset>
+        <SidebarInset className={fillMobileViewport ? 'min-h-0' : undefined}>
           <main
             {...{ [APP_SCROLL_CONTAINER_ATTR]: '' }}
-            className={`flex-1 bg-transparent overflow-y-auto ${isMobile ? 'pb-19' : 'pb-0'} [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]`}
+            className={`flex-1 bg-transparent overflow-y-auto ${fillMobileViewport ? 'flex min-h-0 flex-col' : ''} ${isMobile && !fillMobileViewport ? 'pb-19' : 'pb-0'} [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]`}
+            style={fillMobileViewport ? { paddingBottom: bottomNavHeight } : undefined}
           >
-            <div className={`w-full bg-transparent max-w-full content-container ${contentClassName ?? 'md:max-w-220'}`}>
+            <div className={`w-full bg-transparent max-w-full content-container ${fillMobileViewport ? 'flex min-h-0 flex-1 flex-col' : ''} ${contentClassName ?? 'md:max-w-220'}`}>
               <div
                 // Shadow lives on this wrapper, not the Breadcrumbs box: on
                 // native the box top sits below the status-bar filler, and its
                 // shadow halo would paint a faint seam across the filler.
-                className={`sticky top-0 z-50 md:hidden bg-surface ${!headerHidden && !tabbedPage ? 'shadow-sm' : ''}`}
+                className={`sticky top-0 z-50 md:hidden bg-surface ${fillMobileViewport ? 'shrink-0' : ''} ${!headerHidden && !tabbedPage ? 'shadow-sm' : ''}`}
                 // Stable var, not raw env(): env() collapses to 0 while the
                 // Android keyboard is open (see shared/lib/safeArea.ts).
                 style={{ paddingTop: "var(--safe-area-top-stable, env(safe-area-inset-top))" }}
@@ -102,10 +122,10 @@ function AppLayoutInner({ children, contentClassName, headerRightContent, noPadd
                   />
                 )}
               </div>
-              {!tabbedPage && <LimitedAccessBanner />}
+              {!tabbedPage && <LimitedAccessBanner className={fillMobileViewport ? 'shrink-0' : undefined} />}
               <div
                 key={isMobile ? location.pathname : undefined}
-                className={`${noPadding ? '' : 'px-2 py-4 md:px-4'} animate-route-enter`}
+                className={`${noPadding ? '' : 'px-2 py-4 md:px-4'} ${fillMobileViewport ? 'flex min-h-0 flex-1 flex-col overflow-y-auto' : ''} animate-route-enter`}
               >
                 {children}
               </div>

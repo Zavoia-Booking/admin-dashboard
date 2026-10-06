@@ -5,7 +5,7 @@ import type {
   WebsiteDraftConflict,
   WebsiteCatalogResponse,
   WebsiteVariantCheckoutPayload,
-  WebsitePublishState,
+  WebsitePublicationResponse,
   WebsiteSaveFailureKind,
   WebsiteUnownedPublishItems,
   UpdateWebsiteDraftBody,
@@ -132,7 +132,7 @@ export const publishWebsiteAction = createAsyncAction(
   'website/PUBLISH_FAILURE',
 )<
   PublishWebsiteRequest,
-  ScopedWebsiteResult<{ publish: WebsitePublishState }>,
+  ScopedWebsiteResult<WebsitePublicationResponse & { firstPublication: boolean }>,
   // Structured E07 details are kept so an inactive or otherwise unavailable item that disappeared from the
   // catalog still has an actionable recovery path in the publish review.
   ScopedWebsiteError & {
@@ -147,7 +147,7 @@ export const unpublishWebsiteAction = createAsyncAction(
   'website/UNPUBLISH_REQUEST',
   'website/UNPUBLISH_SUCCESS',
   'website/UNPUBLISH_FAILURE',
-)<void, ScopedWebsiteResult<{ publish: WebsitePublishState }>, ScopedWebsiteError>();
+)<void, ScopedWebsiteResult<WebsitePublicationResponse>, ScopedWebsiteError>();
 
 // Store offering (sections + variants + theme assets): catalog with per-business ownership.
 // Fetched on builder load (and again after checkout reconciliation) so locked/owned
