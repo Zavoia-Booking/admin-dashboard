@@ -42,7 +42,7 @@ import type {
   WebsiteCatalogResponse,
   WebsiteDraft,
   WebsiteDraftConflict,
-  WebsitePublishState,
+  WebsitePublicationResponse,
   WebsiteSaveFailureKind,
   WebsiteUnownedPublishItems,
   UpdateWebsiteDraftPayload,
@@ -453,6 +453,8 @@ function* performSaveWebsiteDraft(
       }
     }
 
+    if (!(yield* isCurrentWebsiteMutationScope(scope))) return null;
+
     // A reconciliation GET that fails is still ambiguous, but it is not necessarily an
     // offline condition (a 5xx or an intermediary may be the cause). Preserve the local
     // snapshot and require an explicit GET-first retry; only show `offline` when the
@@ -580,6 +582,8 @@ function* heroMutationFailure(
     }
   }
 
+  if (!(yield* isCurrentWebsiteMutationScope(scope))) return;
+
   if (shouldShowFeatureErrorToast(error)) {
     // Access-block copy references plans/billing — never surface it in the native app.
     const neutralNativeBlock =
@@ -671,10 +675,13 @@ function* handlePublishWebsite(
   }
   if (!(yield* isCurrentWebsiteMutationScope(scope))) return;
 
+  const firstPublication: boolean = yield select(
+    (state: RootState) => state.website.publish?.publishedVersion == null,
+  );
   try {
-    const response: { publish: WebsitePublishState } = yield call(publishWebsiteApi, expectedVersion);
+    const response: WebsitePublicationResponse = yield call(publishWebsiteApi, expectedVersion);
     if (!(yield* isCurrentWebsiteMutationScope(scope))) return;
-    yield put(publishWebsiteAction.success({ publish: response.publish, ...scope }));
+    yield put(publishWebsiteAction.success({ publish: response.publish, firstPublication, ...scope }));
     toast.success(i18n.t('website:page.toasts.published'), {
       id: "website-published",
     });
@@ -686,20 +693,26 @@ function* handlePublishWebsite(
 
     // A lost response is ambiguous: publishing may have committed. Read once and
     // acknowledge only the exact published version; never replay POST automatically.
+    let publicationStatusUnknown = false;
     if (isAmbiguousMutationFailure(error)) {
       try {
         const current: WebsiteBuilderResponse = yield call(getWebsiteBuilderApi);
         if (!(yield* isCurrentWebsiteMutationScope(scope))) return;
         if (
           current.publish.isPublished &&
+          !!current.publish.slug &&
           current.publish.publishedVersion === expectedVersion
         ) {
           yield put(
             publishWebsiteAction.success({
               publish: current.publish,
+              firstPublication,
               ...scope,
             }),
           );
+          toast.success(i18n.t('website:page.toasts.published'), {
+            id: "website-published",
+          });
           return;
         }
         if (current.draft.version !== expectedVersion) {
@@ -722,9 +735,11 @@ function* handlePublishWebsite(
         }
       } catch {
         // Surface the failure below. A retry is a new explicit publish intent.
+        publicationStatusUnknown = true;
       }
     }
 
+    if (!(yield* isCurrentWebsiteMutationScope(scope))) return;
     if (codes.includes('WEBSITE_BUILDER.E02')) {
       const details = (error as { response?: { data?: { details?: WebsiteDraftConflict } } })?.response?.data?.details;
       if (shouldShowFeatureErrorToast(error)) {
@@ -789,13 +804,16 @@ function* handlePublishWebsite(
       );
       return;
     }
+    const failureMessage = publicationStatusUnknown
+      ? i18n.t('website:page.toasts.publishStatusUnknown')
+      : message;
     if (shouldShowFeatureErrorToast(error)) {
       // E01 (no Web Studio access) copy references billing — keep it off native toasts.
       const neutralNativeBlock = isNativeApp() && codes.includes('WEBSITE_BUILDER.E01');
       toast.error(
         neutralNativeBlock
           ? i18n.t('website:page.toasts.publishFailed')
-          : message || i18n.t('website:page.toasts.publishFailed'),
+          : failureMessage || i18n.t('website:page.toasts.publishFailed'),
         {
           id: "website-publish-failed",
         },
@@ -803,7 +821,7 @@ function* handlePublishWebsite(
     }
     yield put(
       publishWebsiteAction.failure({
-        message,
+        message: failureMessage,
         ...scope,
         failureKind: 'publish',
       }),
@@ -813,7 +831,7 @@ function* handlePublishWebsite(
 
 function* handleUnpublishWebsite(scope: WebsiteMutationScope) {
   try {
-    const response: { publish: WebsitePublishState } = yield call(unpublishWebsiteApi);
+    const response: WebsitePublicationResponse = yield call(unpublishWebsiteApi);
     if (!(yield* isCurrentWebsiteMutationScope(scope))) return;
     yield put(unpublishWebsiteAction.success({ publish: response.publish, ...scope }));
     toast.success(i18n.t('website:page.toasts.unpublished'), {
@@ -821,7 +839,30 @@ function* handleUnpublishWebsite(scope: WebsiteMutationScope) {
     });
   } catch (error: unknown) {
     if (!(yield* isCurrentWebsiteMutationScope(scope))) return;
-    const message = getErrorMessage(error);
+    let publicationStatusUnknown = false;
+    if (isAmbiguousMutationFailure(error)) {
+      try {
+        const current: WebsiteBuilderResponse = yield call(getWebsiteBuilderApi);
+        if (!(yield* isCurrentWebsiteMutationScope(scope))) return;
+        if (!current.publish.isPublished) {
+          yield put(unpublishWebsiteAction.success({
+            publish: current.publish,
+            ...scope,
+          }));
+          toast.success(i18n.t('website:page.toasts.unpublished'), {
+            id: "website-unpublished",
+          });
+          return;
+        }
+      } catch {
+        // Preserve the last acknowledged state when reconciliation also fails.
+        publicationStatusUnknown = true;
+      }
+    }
+    if (!(yield* isCurrentWebsiteMutationScope(scope))) return;
+    const message = publicationStatusUnknown
+      ? i18n.t('website:page.toasts.unpublishStatusUnknown')
+      : getErrorMessage(error);
     if (shouldShowFeatureErrorToast(error)) {
       toast.error(message || i18n.t('website:page.toasts.unpublishFailed'), {
         id: "website-unpublish-failed",

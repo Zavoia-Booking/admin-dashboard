@@ -192,7 +192,7 @@ export const MobileCalendarLayout: FC<MobileCalendarLayoutProps> = ({
 
   return (
     <div
-      className="flex flex-col h-[calc(100svh-136px)] bg-white dark:bg-surface"
+      className="flex min-h-0 flex-1 flex-col bg-white dark:bg-surface"
       style={{ overscrollBehaviorY: "contain" }}
     >
       {/* Compact mobile header — collapses on scroll-down, expands on scroll-up.

@@ -83,20 +83,12 @@ export const useSetupWizard = () => {
     [dispatch]
   );
 
-  const scrollToWizardContent = () => {
-    // Wait for React to render new step, then scroll to top
-    setTimeout(() => {
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }, 0);
-  };
-
   const nextStep = () => {
     if (currentStep < totalSteps) {
       setCurrentStep((prev) => {
         const next = prev + 1;
         return next;
       });
-      scrollToWizardContent();
     }
   };
 
@@ -106,14 +98,12 @@ export const useSetupWizard = () => {
         const next = prev - 1;
         return next;
       });
-      scrollToWizardContent();
     }
   };
 
   const goToStep = (step: number) => {
     if (step >= 1 && step <= totalSteps) {
       setCurrentStep(step);
-      scrollToWizardContent();
     }
   };
 

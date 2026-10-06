@@ -12,6 +12,13 @@ const PORTFOLIO_ATTENTION_EVENT = "zavoia:portfolio-attention";
 
 let pendingLocationId: number | null = null;
 
+/** Opens location photos even before the business publishes its listing. */
+export function getMarketplacePhotosPath(locationId?: number): string {
+  const params = new URLSearchParams({ tab: "locations", section: "photos" });
+  if (locationId != null) params.set("locationId", String(locationId));
+  return `/marketplace?${params.toString()}`;
+}
+
 export function requestPortfolioAttention(locationId: number): void {
   pendingLocationId = locationId;
   window.setTimeout(() => {

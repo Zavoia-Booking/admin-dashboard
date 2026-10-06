@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
+import { getMarketplacePhotosPath } from "../../../marketplace/utils/portfolioAttention";
 import {
   AlertCircle,
   ArrowRight,
@@ -63,9 +64,9 @@ function AboutPhotoEditor({ config, locations, onConfigChange }: AboutPhotoEdito
     () => resolveAboutImageSelection(config, locations),
     [config, locations],
   );
-  const managePhotosPath = locations.length === 1
-    ? `/marketplace?tab=locations&locationId=${locations[0].id}`
-    : "/marketplace?tab=locations";
+  const managePhotosPath = getMarketplacePhotosPath(
+    locations.length === 1 ? locations[0].id : undefined,
+  );
 
   const selectImage = (ref: GalleryImageRef) => {
     onConfigChange({ imageRef: ref });

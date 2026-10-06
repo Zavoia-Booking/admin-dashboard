@@ -24,6 +24,8 @@ import {
   selectWebsiteError,
   selectWebsiteSaveFailure,
   selectWebsitePublish,
+  selectWebsitePublishReceipt,
+  selectWebsiteScopeKey,
   selectWebsitePublishFailure,
   selectWebsitePublishLockedItems,
   selectWebsitePublishing,
@@ -100,6 +102,8 @@ export function useWebsiteWorkspaceController({
   const lastSavedRequestId = useSelector(selectWebsiteLastSavedRequestId);
   const saveFailure = useSelector(selectWebsiteSaveFailure);
   const publish = useSelector(selectWebsitePublish);
+  const publishReceipt = useSelector(selectWebsitePublishReceipt);
+  const scopeKey = useSelector(selectWebsiteScopeKey);
   const publishFailure = useSelector(selectWebsitePublishFailure);
   const isPublishing = useSelector(selectWebsitePublishing);
   const isUnpublishing = useSelector(selectWebsiteUnpublishing);
@@ -199,7 +203,9 @@ export function useWebsiteWorkspaceController({
     (form.isDirty ||
       (publish?.publishedVersion != null &&
         draft.version > publish.publishedVersion));
-  const isPublishedCurrent = isPublished && !hasUnpublishedChanges;
+  // Older snapshots may predate Website-owned address allocation. Keep Publish
+  // available so an explicit owner action can assign their missing address.
+  const isPublishedCurrent = isPublished && !hasUnpublishedChanges && !!publish?.slug;
   const publishBusy = isPublishing || isUnpublishing;
   const publishBlockers = useMemo<WebsitePublishBlocker[]>(() => {
     if (!catalogLoaded) return [];
@@ -640,6 +646,8 @@ export function useWebsiteWorkspaceController({
     },
     publication: {
       publish,
+      publishReceipt,
+      scopeKey,
       failure: publishFailure,
       retryPending: publishFailure != null,
       isPublished,

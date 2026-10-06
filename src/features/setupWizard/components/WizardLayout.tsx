@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useLayoutEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Progress } from "../../../shared/components/ui/progress";
 import { Button } from "../../../shared/components/ui/button";
@@ -28,6 +28,16 @@ const WizardLayout: React.FC<WizardLayoutProps> = ({
   isLoadingDraft = false,
 }) => {
   const { t } = useTranslation("setupWizard");
+  const headingRef = useRef<HTMLHeadingElement>(null);
+
+  // Orient each step after its actual content mounts, including restored drafts.
+  useLayoutEffect(() => {
+    if (isLoadingDraft) return;
+    // Explicitly bypass the document's global smooth scrolling.
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+    headingRef.current?.focus({ preventScroll: true });
+  }, [currentStep, isLoadingDraft]);
+
   const resolvedNextLabel = nextLabel ?? t("layout.continue");
   // Saving a draft and finishing the setup both write the same wizard: while
   // either is in flight every header and footer action stays locked, so a slow
@@ -247,7 +257,12 @@ const WizardLayout: React.FC<WizardLayoutProps> = ({
               </div>
               {/* Header */}
               <div className="mb-4 pt-0 md:pt-4">
-                <h2 className="text-lg md:text-xl font-semibold text-foreground-1 pt-6 md:pt-0">
+                <h2
+                  key={currentStep}
+                  ref={headingRef}
+                  tabIndex={-1}
+                  className="text-lg md:text-xl font-semibold text-foreground-1 pt-6 md:pt-0"
+                >
                   {title}
                 </h2>
                 {subtitle && (

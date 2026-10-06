@@ -13,9 +13,12 @@ dependencies {
     implementation project(':capacitor-firebase-messaging')
     implementation project(':capacitor-app')
     implementation project(':capacitor-browser')
+    implementation project(':capacitor-clipboard')
+    implementation project(':capacitor-filesystem')
     implementation project(':capacitor-haptics')
     implementation project(':capacitor-keyboard')
     implementation project(':capacitor-preferences')
+    implementation project(':capacitor-share')
     implementation project(':capgo-capacitor-social-login')
     implementation project(':capacitor-native-settings')
 

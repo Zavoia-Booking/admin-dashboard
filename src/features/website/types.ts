@@ -372,16 +372,28 @@ export interface WebsiteAccess {
 }
 
 /**
- * Publish state: owner intent + frozen snapshot metadata. No current frontend consumes
- * that snapshot as a public Website, so this type deliberately makes no delivery/URL claim.
+ * Owner intent, public address, and frozen snapshot metadata. Availability is evaluated
+ * by the API against the same business/entitlement gates as the public website.
  * `hasUnpublishedChanges` is the server's view at fetch time; the workspace derives it
  * live from draft.version vs publishedVersion.
  */
 export interface WebsitePublishState {
+  slug: string | null;
+  isAvailable: boolean;
   isPublished: boolean;
   publishedAt: string | null;
   publishedVersion: number | null;
   hasUnpublishedChanges: boolean;
+}
+
+export interface WebsitePublicationResponse {
+  publish: WebsitePublishState;
+}
+
+/** Only an acknowledged publish intent creates a receipt; GET hydration never does. */
+export interface WebsitePublishReceipt {
+  sequence: number;
+  firstPublication: boolean;
 }
 
 /** E07 details: paid content that must be unlocked before a snapshot can be published. */
@@ -618,6 +630,7 @@ export interface WebsiteState {
   access: WebsiteAccess | null;
   /** Publish state (null until the first fetch lands). */
   publish: WebsitePublishState | null;
+  publishReceipt: WebsitePublishReceipt | null;
   isPublishing: boolean;
   isUnpublishing: boolean;
   /** Kept after a failed publish command so the next explicit intent can be presented as a retry. */

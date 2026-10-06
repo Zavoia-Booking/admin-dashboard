@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useLayoutEffect, useRef } from "react";
 import { useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
 import { Button } from "../../../shared/components/ui/button";
@@ -36,6 +36,13 @@ const StepLaunch: React.FC<StepLaunchProps> = ({
   const isBusinessLoading = useSelector(getBusinessLoadingSelector);
   const isLocationsLoading = useSelector(getLocationLoadingSelector);
   const isLoading = isBusinessLoading || isLocationsLoading;
+  const headingRef = useRef<HTMLHeadingElement>(null);
+
+  useLayoutEffect(() => {
+    if (isLoading) return;
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+    headingRef.current?.focus({ preventScroll: true });
+  }, [isLoading]);
 
   const handleCreateService = () => {
     navigate("/services?open=add");
@@ -64,7 +71,11 @@ const StepLaunch: React.FC<StepLaunchProps> = ({
   return (
     <div className="space-y-6 px-4 md:px-0">
       <div className="text-center py-8 md:py-6 lg:py-8 md:mb-3">
-        <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-2 flex items-center justify-center gap-2">
+        <h2
+          ref={headingRef}
+          tabIndex={-1}
+          className="text-2xl md:text-3xl font-bold text-foreground mb-2 flex items-center justify-center gap-2"
+        >
           <span>{t("stepLaunch.welcomeAboard")}</span>
         </h2>
         <p className="text-lg text-foreground-3 dark:text-foreground-2">

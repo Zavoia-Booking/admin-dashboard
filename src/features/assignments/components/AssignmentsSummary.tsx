@@ -1,13 +1,12 @@
-import { useMemo, useState } from "react";
-import { useTranslation } from "react-i18next";
-import { ChevronDown, ChevronRight, CircleCheck } from "lucide-react";
+import { useMemo } from "react";
+import { Trans, useTranslation } from "react-i18next";
 import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "../../../shared/components/ui/collapsible";
-import { cn } from "../../../shared/lib/utils";
+  SetupSummaryPanel,
+  type SetupSummaryItem,
+} from "../../../shared/components/common/SetupSummaryPanel";
+import type { LocationType } from "../../../shared/types/location";
 import type { LocationFullAssignment } from "../types";
+import type { LocationSettingsAttentionTarget } from "../../marketplace/utils/locationSettingsAttention";
 
 /** Which section a summary row sends the reader to. */
 export type AssignmentsSummaryTarget = "services" | "bundles" | "teamMembers";
@@ -16,6 +15,11 @@ interface AssignmentsSummaryProps {
   location: LocationFullAssignment;
   /** Scrolls to the owning section and pulses it. */
   onResolve: (target: AssignmentsSummaryTarget) => void;
+  marketplaceLocation?: Pick<
+    LocationType,
+    "id" | "name" | "isPublic" | "allowOnlineBooking"
+  > | null;
+  onManageMarketplace?: (target: LocationSettingsAttentionTarget) => void;
 }
 
 interface SummaryItem {
@@ -32,20 +36,17 @@ interface SummaryHint {
 }
 
 /**
- * "What's left before this location can take bookings", as the first thing on
- * the page — the same contract as the marketplace publish strip: state the gap
- * in one line, then hand the reader a button that lands them on the fix.
- *
- * Every check reads the location payload that is already loaded, so the card
- * costs no extra request: `staffCount` per location service and
- * `servicesEnabled` per team member are exactly the two gaps that make a
- * service unbookable without anything else on the page looking wrong.
+ * Summarizes the selected location's setup using the loaded payload. Each
+ * issue type gets one counted row and a scroll action to its owning section.
  */
 export function AssignmentsSummary({
   location,
   onResolve,
+  marketplaceLocation,
+  onManageMarketplace,
 }: AssignmentsSummaryProps) {
   const { t } = useTranslation("assignments");
+  const { t: tMarketplace } = useTranslation("marketplace");
 
   const items = useMemo<SummaryItem[]>(() => {
     const services = location.services ?? [];
@@ -56,10 +57,9 @@ export function AssignmentsSummary({
     const staffWithoutServices = teamMembers.filter(
       (m) => m.servicesEnabled === 0,
     );
-    // A bundle is only bookable here if every service it contains is offered
-    // here — an easy gap to create by removing one service from the location.
+    // Check that every service included in a selected bundle is offered here.
     const enabledServiceIds = new Set(services.map((s) => s.serviceId));
-    const unbookableBundles = bundles.filter((b) =>
+    const bundlesWithMissingServices = bundles.filter((b) =>
       (b.serviceIds ?? []).some((id) => !enabledServiceIds.has(id)),
     );
 
@@ -86,46 +86,55 @@ export function AssignmentsSummary({
       },
     ];
 
-    // The coverage checks only mean anything once there is something to cover;
-    // a green "every service has staff" over an empty location is noise.
-    if (services.length > 0) {
-      list.push({
-        key: "servicesWithoutStaff",
-        ok: servicesWithoutStaff.length === 0,
-        target: "services",
-        label: t(
-          servicesWithoutStaff.length === 0
-            ? "page.summary.items.servicesWithoutStaff.done"
-            : "page.summary.items.servicesWithoutStaff.pending",
-          { count: servicesWithoutStaff.length },
-        ),
-      });
+    // Set up both sides before reporting missing service-to-member assignments.
+    if (services.length > 0 && teamMembers.length > 0) {
+      const noServiceAssignments =
+        servicesWithoutStaff.length === services.length &&
+        staffWithoutServices.length === teamMembers.length;
+
+      if (noServiceAssignments) {
+        list.push({
+          key: "serviceAssignmentsMissing",
+          ok: false,
+          target: "teamMembers",
+          label: t("page.summary.items.serviceAssignmentsMissing"),
+        });
+      } else {
+        list.push({
+          key: "servicesWithoutStaff",
+          ok: servicesWithoutStaff.length === 0,
+          target: "teamMembers",
+          label: t(
+            servicesWithoutStaff.length === 0
+              ? "page.summary.items.servicesWithoutStaff.done"
+              : "page.summary.items.servicesWithoutStaff.pending",
+            { count: servicesWithoutStaff.length },
+          ),
+        });
+        list.push({
+          key: "staffWithoutServices",
+          ok: staffWithoutServices.length === 0,
+          target: "teamMembers",
+          label: t(
+            staffWithoutServices.length === 0
+              ? "page.summary.items.staffWithoutServices.done"
+              : "page.summary.items.staffWithoutServices.pending",
+            { count: staffWithoutServices.length },
+          ),
+        });
+      }
     }
 
-    if (teamMembers.length > 0) {
-      list.push({
-        key: "staffWithoutServices",
-        ok: staffWithoutServices.length === 0,
-        target: "teamMembers",
-        label: t(
-          staffWithoutServices.length === 0
-            ? "page.summary.items.staffWithoutServices.done"
-            : "page.summary.items.staffWithoutServices.pending",
-          { count: staffWithoutServices.length },
-        ),
-      });
-    }
-
-    if (bundles.length > 0) {
+    if (bundles.length > 0 && services.length > 0) {
       list.push({
         key: "bundlesUnbookable",
-        ok: unbookableBundles.length === 0,
+        ok: bundlesWithMissingServices.length === 0,
         target: "bundles",
         label: t(
-          unbookableBundles.length === 0
+          bundlesWithMissingServices.length === 0
             ? "page.summary.items.bundlesUnbookable.done"
             : "page.summary.items.bundlesUnbookable.pending",
-          { count: unbookableBundles.length },
+          { count: bundlesWithMissingServices.length },
         ),
       });
     }
@@ -162,7 +171,7 @@ export function AssignmentsSummary({
     ).length;
 
     const list: SummaryHint[] = [];
-    if (membersElsewhere > 0) {
+    if (membersElsewhere > 0 && assignedMemberIds.size > 0) {
       list.push({
         key: "membersNotHere",
         target: "teamMembers",
@@ -171,7 +180,7 @@ export function AssignmentsSummary({
         }),
       });
     }
-    if (servicesElsewhere > 0) {
+    if (servicesElsewhere > 0 && enabledServiceIds.size > 0) {
       list.push({
         key: "servicesNotHere",
         target: "services",
@@ -192,149 +201,71 @@ export function AssignmentsSummary({
     return list;
   }, [location, t]);
 
-  const doneCount = items.filter((item) => item.ok).length;
-  const allDone = doneCount === items.length;
-  // Opens itself exactly when there is something to act on. Uncontrolled after
-  // that: reopening on every payload refresh would fight the reader.
-  const [open, setOpen] = useState(!allDone);
+  const summaryItems: SetupSummaryItem[] = items.map((item) => ({
+    key: item.key,
+    ok: item.ok,
+    label: item.label,
+    onResolve: () => onResolve(item.target),
+  }));
+
+  if (marketplaceLocation?.isPublic === false) {
+    summaryItems.push({
+      key: "marketplaceLocationHidden",
+      ok: false,
+      label: (
+        <Trans
+          ns="marketplace"
+          i18nKey="statusStrip.locationHidden"
+          values={{ name: marketplaceLocation.name }}
+          components={{ strong: <strong className="font-bold" /> }}
+        />
+      ),
+      actionLabel: tMarketplace("statusStrip.manageVisibility"),
+      stackActionOnMobile: true,
+      onResolve: onManageMarketplace
+        ? () => onManageMarketplace("visibility")
+        : undefined,
+    });
+  }
+
+  if (marketplaceLocation?.allowOnlineBooking === false) {
+    summaryItems.push({
+      key: "marketplaceOnlineBookingOff",
+      ok: false,
+      label: (
+        <Trans
+          ns="marketplace"
+          i18nKey="statusStrip.onlineBookingOff"
+          values={{ name: marketplaceLocation.name }}
+          components={{ strong: <strong className="font-bold" /> }}
+        />
+      ),
+      actionLabel: tMarketplace("statusStrip.manageBooking"),
+      stackActionOnMobile: true,
+      onResolve: onManageMarketplace
+        ? () => onManageMarketplace("booking")
+        : undefined,
+    });
+  }
 
   return (
-    <div className="rounded-[1.125rem] border border-border bg-surface px-4 py-4 shadow-xs">
-      <Collapsible open={open} onOpenChange={setOpen}>
-        <CollapsibleTrigger className="group flex w-full cursor-pointer items-center justify-between gap-3 rounded-md text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus/40">
-          <span className="inline-flex items-center gap-2 text-[14px] font-semibold text-foreground-1">
-            <span
-              className={cn(
-                "grid size-5 place-items-center rounded-full ring-1",
-                allDone
-                  ? "bg-green-50 ring-green-100 dark:bg-green-950/30 dark:ring-green-900/40"
-                  : "bg-amber-50 ring-amber-100 dark:bg-amber-950/30 dark:ring-amber-900/40",
-              )}
-            >
-              <StatusDot tone={allDone ? "ready" : "attention"} />
-            </span>
-            {t(
-              allDone ? "page.summary.readyLabel" : "page.summary.attentionLabel",
-            )}
-          </span>
-          <ChevronDown
-            className="size-4 shrink-0 text-foreground-3 transition-transform duration-200 ease-out group-data-[state=open]:rotate-180 motion-reduce:transition-none"
-            aria-hidden
-          />
-        </CollapsibleTrigger>
-
-        <div className="mt-2 flex items-center gap-3">
-          <div className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-muted/60">
-            <div
-              className="h-full rounded-full bg-green-500 transition-[width] duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:transition-none"
-              style={{ width: `${(doneCount / items.length) * 100}%` }}
-            />
-          </div>
-          <span className="shrink-0 text-xs font-medium tabular-nums text-foreground-3 dark:text-foreground-2">
-            {t("page.summary.progressDone", {
-              done: doneCount,
-              total: items.length,
-            })}
-          </span>
-        </div>
-
-        <CollapsibleContent>
-          {/* Padding inside the animated box so the height morph covers it. */}
-          <div className="pt-4">
-            <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-foreground-3">
-              {t("page.summary.groupLabel")}
-            </span>
-            <div className="mt-1">
-              {items.map((item) => (
-                <div
-                  key={item.key}
-                  className="flex min-h-11 items-center justify-between gap-3"
-                >
-                  <span
-                    className={cn(
-                      "flex min-w-0 items-center gap-2.5 text-[13px] font-medium leading-5",
-                      item.ok
-                        ? "text-green-700 dark:text-green-400"
-                        : "text-foreground-1",
-                    )}
-                  >
-                    {item.ok ? (
-                      <CircleCheck className="size-4 shrink-0" strokeWidth={2} />
-                    ) : (
-                      <span className="grid size-4 shrink-0 place-items-center">
-                        <StatusDot tone="attention" />
-                      </span>
-                    )}
-                    <span className="min-w-0">{item.label}</span>
-                  </span>
-                  {!item.ok && (
-                    <button
-                      type="button"
-                      onClick={() => onResolve(item.target)}
-                      className="group inline-flex h-11 shrink-0 cursor-pointer items-center gap-0.5 px-1 text-[13px] font-semibold text-primary focus-visible:rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus/40"
-                    >
-                      {t("page.summary.resolve")}
-                      <ChevronRight
-                        className="size-3.5 transition-transform duration-200 ease-out group-hover:translate-x-0.5 motion-reduce:transition-none"
-                        aria-hidden
-                      />
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        </CollapsibleContent>
-
-        {hints.length > 0 && (
-          <div className="mt-3 border-t border-border-subtle pt-1">
-            {hints.map((hint) => (
-              <div
-                key={hint.key}
-                className="flex min-h-10 items-center justify-between gap-3"
-              >
-                <span className="flex min-w-0 items-center gap-2.5 text-[13px] leading-5 text-foreground-3 dark:text-foreground-2">
-                  <span
-                    className="size-1.5 shrink-0 rounded-full bg-foreground-3/50"
-                    aria-hidden
-                  />
-                  <span className="min-w-0">{hint.label}</span>
-                </span>
-                <button
-                  type="button"
-                  onClick={() => onResolve(hint.target)}
-                  className="group inline-flex h-10 shrink-0 cursor-pointer items-center gap-0.5 px-1 text-[13px] font-medium text-foreground-2 hover:text-primary focus-visible:rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus/40"
-                >
-                  {t("page.summary.view")}
-                  <ChevronRight
-                    className="size-3.5 transition-transform duration-200 ease-out group-hover:translate-x-0.5 motion-reduce:transition-none"
-                    aria-hidden
-                  />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-      </Collapsible>
-    </div>
-  );
-}
-
-/** Pulsing dot: amber while something is pending, a slow green heartbeat once
- *  everything is covered. The ping is what draws the eye to the row. */
-function StatusDot({ tone }: { tone: "ready" | "attention" }) {
-  const color = tone === "ready" ? "bg-green-500" : "bg-amber-500";
-  return (
-    <span className="relative flex size-2" aria-hidden>
-      <span
-        className={cn(
-          "absolute inline-flex size-full animate-ping rounded-full opacity-50 motion-reduce:hidden",
-          color,
-        )}
-        style={{ animationDuration: tone === "ready" ? "2s" : "1.6s" }}
-      />
-      <span className={cn("relative inline-flex size-full rounded-full", color)} />
-    </span>
+    <SetupSummaryPanel
+      items={summaryItems}
+      hintsTone="normal"
+      hints={hints.map((hint) => ({
+        key: hint.key,
+        label: hint.label,
+        onResolve: () => onResolve(hint.target),
+      }))}
+      readyLabel={t("page.summary.readyLabel")}
+      attentionLabel={t("page.summary.attentionLabel")}
+      groupLabel={t("page.summary.groupLabel")}
+      resolveLabel={t("page.summary.resolve")}
+      viewLabel={t("page.summary.view")}
+      progressLabel={(done, total) =>
+        t("page.summary.progressDone", { done, total })
+      }
+    />
   );
 }
 

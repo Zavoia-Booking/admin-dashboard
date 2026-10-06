@@ -14,6 +14,8 @@ import {
 } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
+import { getMarketplaceConfigurationPath } from "../../../marketplace/utils/marketplaceNavigation";
+import { getMarketplacePhotosPath } from "../../../marketplace/utils/portfolioAttention";
 import {
   DndContext,
   closestCenter,
@@ -1163,7 +1165,7 @@ export function SectionBuilder(props: SectionBuilderProps) {
           required: MIN_TESTIMONIAL_REVIEWS,
         }),
         actionLabel: t("businessPage.builder.settings.reviewsLockedAction"),
-        actionPath: "/marketplace?tab=reviews",
+        actionPath: getMarketplaceConfigurationPath("reviews"),
       });
     }
 
@@ -1371,10 +1373,12 @@ export function SectionBuilder(props: SectionBuilderProps) {
           );
         } else if (props.locations.length === 0) {
           navigate("/locations");
-        } else if (props.locations.length === 1) {
-          navigate(`/marketplace?tab=locations&locationId=${props.locations[0].id}`);
         } else {
-          navigate("/marketplace?tab=locations");
+          navigate(
+            getMarketplacePhotosPath(
+              props.locations.length === 1 ? props.locations[0].id : undefined,
+            ),
+          );
         }
         return;
       }
@@ -1848,9 +1852,9 @@ export function SectionBuilder(props: SectionBuilderProps) {
         const title = t("businessPage.builder.settings.guidance.locationPhotosTitle", {
           count: guidance.missingCount,
         });
-        const photoPath = guidance.missingCount === 1
-          ? `/marketplace?tab=locations&locationId=${guidance.missingLocationId}`
-          : "/marketplace?tab=locations";
+        const photoPath = getMarketplacePhotosPath(
+          guidance.missingCount === 1 ? guidance.missingLocationId : undefined,
+        );
         return {
           ariaLabel: title,
           eyebrow: recommendationEyebrow,
@@ -1883,7 +1887,7 @@ export function SectionBuilder(props: SectionBuilderProps) {
             : t("businessPage.builder.settings.reviewsLockedAction"),
           onAction: canPreviewShowcase
             ? () => focusVariantOption("default")
-            : () => navigate("/marketplace?tab=reviews"),
+            : () => navigate(getMarketplaceConfigurationPath("reviews")),
         };
       }
       case "footer-no-locations": {

@@ -1,10 +1,10 @@
 {
   "page": {
     "summary": {
-      "readyLabel": "Gata pentru programări",
-      "attentionLabel": "Necesită atenție",
-      "groupLabel": "Înainte ca clienții să poată rezerva aici",
-      "progressDone": "{{done}}/{{total}} rezolvate",
+      "readyLabel": "Verificările configurării sunt complete",
+      "attentionLabel": "Configurarea necesită atenție",
+      "groupLabel": "Verificări pentru configurarea locației",
+      "progressDone": "{{done}}/{{total}} verificări complete",
       "resolve": "Rezolvă",
       "view": "Vezi",
       "items": {
@@ -13,20 +13,21 @@
           "done": "Sunt oferite servicii în această locație"
         },
         "teamAssigned": {
-          "pending": "Niciun membru al echipei nu lucrează în această locație",
-          "done": "Există membri ai echipei care lucrează în această locație"
+          "pending": "Niciun membru al echipei nu este alocat acestei locații",
+          "done": "Membrii echipei sunt alocați acestei locații"
         },
+        "serviceAssignmentsMissing": "Nu sunt alocate servicii membrilor echipei din această locație",
         "servicesWithoutStaff": {
-          "pending_one": "{{count}} serviciu de aici nu poate fi rezervat — nimeni nu îl poate presta",
-          "pending_few": "{{count}} servicii de aici nu pot fi rezervate — nimeni nu le poate presta",
-          "pending_other": "{{count}} de servicii de aici nu pot fi rezervate — nimeni nu le poate presta",
-          "done": "Fiecare serviciu de aici are pe cineva care îl poate presta"
+          "pending_one": "{{count}} serviciu nu are niciun membru al echipei alocat",
+          "pending_few": "{{count}} servicii nu au niciun membru al echipei alocat",
+          "pending_other": "{{count}} de servicii nu au niciun membru al echipei alocat",
+          "done": "Fiecare serviciu are cel puțin un membru al echipei alocat"
         },
         "staffWithoutServices": {
-          "pending_one": "{{count}} membru al echipei de aici nu poate fi rezervat — fără servicii alocate",
-          "pending_few": "{{count}} membri ai echipei de aici nu pot fi rezervați — fără servicii alocate",
-          "pending_other": "{{count}} de membri ai echipei de aici nu pot fi rezervați — fără servicii alocate",
-          "done": "Fiecare membru al echipei de aici poate presta cel puțin un serviciu"
+          "pending_one": "{{count}} membru al echipei nu are servicii alocate",
+          "pending_few": "{{count}} membri ai echipei nu au servicii alocate",
+          "pending_other": "{{count}} de membri ai echipei nu au servicii alocate",
+          "done": "Fiecare membru al echipei are cel puțin un serviciu alocat"
         },
         "bundlesUnbookable": {
           "pending_one": "{{count}} pachet conține un serviciu care nu e oferit aici",
@@ -36,15 +37,15 @@
         }
       },
       "hints": {
-        "membersNotHere_one": "{{count}} membru al echipei nu e alocat acestei locații",
-        "membersNotHere_few": "{{count}} membri ai echipei nu sunt alocați acestei locații",
-        "membersNotHere_other": "{{count}} de membri ai echipei nu sunt alocați acestei locații",
-        "servicesNotHere_one": "{{count}} serviciu al tău nu e oferit aici",
-        "servicesNotHere_few": "{{count}} servicii ale tale nu sunt oferite aici",
-        "servicesNotHere_other": "{{count}} de servicii ale tale nu sunt oferite aici",
-        "bundlesNotHere_one": "{{count}} pachet al tău nu e oferit aici",
-        "bundlesNotHere_few": "{{count}} pachete ale tale nu sunt oferite aici",
-        "bundlesNotHere_other": "{{count}} de pachete ale tale nu sunt oferite aici"
+        "membersNotHere_one": "{{count}} membru al echipei poate fi alocat acestei locații",
+        "membersNotHere_few": "{{count}} membri ai echipei pot fi alocați acestei locații",
+        "membersNotHere_other": "{{count}} de membri ai echipei pot fi alocați acestei locații",
+        "servicesNotHere_one": "{{count}} serviciu poate fi oferit în această locație",
+        "servicesNotHere_few": "{{count}} servicii pot fi oferite în această locație",
+        "servicesNotHere_other": "{{count}} de servicii pot fi oferite în această locație",
+        "bundlesNotHere_one": "{{count}} pachet poate fi oferit în această locație",
+        "bundlesNotHere_few": "{{count}} pachete pot fi oferite în această locație",
+        "bundlesNotHere_other": "{{count}} de pachete pot fi oferite în această locație"
       }
     },
     "title": "Alocări",

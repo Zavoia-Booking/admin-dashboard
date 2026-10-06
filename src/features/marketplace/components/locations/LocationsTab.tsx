@@ -4,6 +4,7 @@ import {
   useLayoutEffect,
   useRef,
   useState,
+  type ReactNode,
 } from "react";
 import {
   useLocation,
@@ -18,10 +19,15 @@ import { LocationPanel } from "./LocationPanel";
 import { LocationWorkspaceTransition } from "./LocationWorkspaceTransition";
 import { MarketplaceLocationList } from "./MarketplaceLocationList";
 import { ACTIVE_LOCATION_STORAGE_KEY as STORAGE_KEY } from "./useReturnToMarketplaceLocations";
+import { requestPortfolioAttention } from "../../utils/portfolioAttention";
 
 interface LocationsTabProps {
   locations: LocationWithAssignments[];
   isActive: boolean;
+  renderStatusStrip?: (
+    location: LocationWithAssignments | null,
+    selectLocation: (locationId: number) => void,
+  ) => ReactNode;
 }
 
 function useHasWideMarketplaceWorkspace() {
@@ -48,7 +54,11 @@ function useHasWideMarketplaceWorkspace() {
  * - xl screens use a persistent location rail and workspace;
  * - smaller screens use URL-driven list-to-detail navigation.
  */
-export function LocationsTab({ locations, isActive }: LocationsTabProps) {
+export function LocationsTab({
+  locations,
+  isActive,
+  renderStatusStrip,
+}: LocationsTabProps) {
   const { t } = useTranslation("marketplace");
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -90,6 +100,43 @@ export function LocationsTab({ locations, isActive }: LocationsTabProps) {
     if (!isWideWorkspace || !explicitLocation) return;
     window.localStorage.setItem(STORAGE_KEY, String(explicitLocation.id));
   }, [explicitLocation, isWideWorkspace]);
+
+  // Photo links use the existing workspace selection. On compact screens with
+  // several locations, retain the request until the user chooses a location.
+  const photoLocationId = isSingle ? locations[0].id : activeLocation?.id;
+  useEffect(() => {
+    if (
+      !isActive ||
+      searchParams.get("section") !== "photos" ||
+      photoLocationId == null ||
+      (rawLocationId && !explicitLocation)
+    ) {
+      return;
+    }
+
+    requestPortfolioAttention(photoLocationId);
+    const next = new URLSearchParams(searchParams);
+    next.delete("section");
+    const existingState =
+      routeLocation.state && typeof routeLocation.state === "object"
+        ? routeLocation.state
+        : {};
+    setSearchParams(next, {
+      replace: true,
+      state: {
+        ...existingState,
+        marketplaceOpenConfiguration: true,
+      },
+    });
+  }, [
+    explicitLocation,
+    isActive,
+    photoLocationId,
+    rawLocationId,
+    routeLocation.state,
+    searchParams,
+    setSearchParams,
+  ]);
 
   // Invalid location deep links return to a valid overview rather than leaving
   // URL and UI selection out of sync.
@@ -206,6 +253,7 @@ export function LocationsTab({ locations, isActive }: LocationsTabProps) {
   if (locations.length === 0) {
     return (
       <div className="max-w-5xl mb-0 md:mb-8 space-y-6">
+        {renderStatusStrip?.(null, selectLocation)}
         <LimitedAccessBanner className="!px-0 !pt-0" />
         <div className="p-8 text-center border-2 border-dashed border-border rounded-2xl bg-muted/5">
           <p className="text-sm text-muted-foreground font-medium">
@@ -222,6 +270,7 @@ export function LocationsTab({ locations, isActive }: LocationsTabProps) {
         ref={rootRef}
         className="max-w-5xl space-y-6 pb-[calc(1rem+env(safe-area-inset-bottom))] md:mb-8 md:pb-0"
       >
+        {renderStatusStrip?.(locations[0], selectLocation)}
         <LimitedAccessBanner className="!px-0 !pt-0" />
         <LocationPanel location={locations[0]} />
       </div>
@@ -239,6 +288,7 @@ export function LocationsTab({ locations, isActive }: LocationsTabProps) {
       ref={rootRef}
       className="max-w-5xl space-y-5 pb-[calc(1rem+env(safe-area-inset-bottom))] md:mb-8 md:pb-0"
     >
+      {renderStatusStrip?.(activeLocation, selectLocation)}
       <LimitedAccessBanner className="!px-0 !pt-0" />
 
       <div

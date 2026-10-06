@@ -28,4 +28,6 @@ export interface LocationType {
   servicesCount?: number;
   teamMembersCount?: number;
   mapPinConfirmed?: boolean;
+  isPublic?: boolean;
+  allowOnlineBooking?: boolean;
 }

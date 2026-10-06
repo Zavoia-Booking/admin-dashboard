@@ -1,4 +1,4 @@
-import { useEffect, useRef, type MutableRefObject, type ReactNode } from "react";
+import { useEffect, useRef, type MutableRefObject, type ReactNode, type Ref } from "react";
 import { EllipsisVertical, LoaderCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import {
@@ -29,6 +29,7 @@ interface WebsiteMobileMoreSheetProps {
   items: MobileMoreItem[];
   /** Spinner on the trigger while a menu-initiated request (e.g. unpublish) is in flight. */
   busy?: boolean;
+  triggerRef?: Ref<HTMLButtonElement>;
 }
 
 /** Runs the chosen action once the sheet content has unmounted, i.e. after its exit animation. */
@@ -55,6 +56,7 @@ export function WebsiteMobileMoreSheet({
   onOpenChange,
   items,
   busy = false,
+  triggerRef,
 }: WebsiteMobileMoreSheetProps) {
   const { t } = useTranslation("website");
   const pendingRef = useRef<(() => void) | null>(null);
@@ -94,6 +96,7 @@ export function WebsiteMobileMoreSheet({
     <Drawer open={open} onOpenChange={onOpenChange} repositionInputs={false}>
       <DrawerTrigger asChild>
         <button
+          ref={triggerRef}
           type="button"
           aria-label={t("page.actions.more")}
           className="website-atelier-focus website-atelier-press grid size-11 shrink-0 place-items-center rounded-[9px] text-[var(--atelier-muted)] hover:bg-[var(--atelier-field)]"

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import { useTranslation } from "react-i18next";
 import {
   AlertTriangle,
@@ -18,6 +18,7 @@ import {
   Palette,
   RotateCcw,
   Rows3,
+  Share2,
   TextCursorInput,
   Type,
   Undo2,
@@ -72,6 +73,10 @@ import {
 } from "./builder/PendingUnlocksTray";
 import { WebsiteMobileActionDock } from "./atelier/WebsiteMobileActionDock";
 import { PublishUpgradeDialog } from "./atelier/PublishUpgradeDialog";
+import { WebsiteShareDialog } from "./WebsiteShareDialog";
+import { buildWebsiteShareUrl, openCustomerWebUrl } from "../../../shared/lib/customerWeb";
+import { websiteSharingCapabilities } from "../websiteSharing";
+import { websiteToast as toast } from "../websiteToast";
 import { unlockTotalsByCurrency, variantPriceLabel } from "./builder/pricing";
 import { displayFontFor } from "./builder/theme";
 import { useWebsitePreviewFonts } from "../hooks/useWebsitePreviewFonts";
@@ -243,11 +248,11 @@ function PublishReviewFooter({
  *
  * Save persists the DRAFT only — every entitled plan edits and saves. Publish (Plus-gated
  * server-side) captures a synchronous draft snapshot, flushes it through the serialized
- * mutation lane, then freezes that exact version as the published snapshot. No current
- * frontend exposes a public URL.
+ * mutation lane, then freezes that exact version as the published snapshot. Sharing uses
+ * the API's stable business slug and the dashboard's current language.
  */
 export function WebsiteWorkspace({ identity, draft, locations, businessId }: WebsiteWorkspaceProps) {
-  const { t } = useTranslation("website");
+  const { t, i18n } = useTranslation("website");
   const { formatPrice } = useFormatPrice();
   const isPhone = useIsMobile();
   const navigate = useNavigate();
@@ -262,6 +267,19 @@ export function WebsiteWorkspace({ identity, draft, locations, businessId }: Web
     defaultAboutStory: identity.description,
   });
   const [publishReviewOpen, setPublishReviewOpen] = useState(false);
+  const [shareScopeKey, setShareScopeKey] = useState<string | null>(null);
+  const shareButtonRef = useRef<HTMLButtonElement>(null);
+  const desktopMoreTriggerRef = useRef<HTMLButtonElement>(null);
+  const compactMoreTriggerRef = useRef<HTMLButtonElement>(null);
+  const mobileMoreTriggerRef = useRef<HTMLButtonElement>(null);
+  const shareReturnFocusRef = useRef<{ scopeKey: string; target: HTMLElement | null } | null>(null);
+  const workspaceMountedRef = useRef(false);
+  useEffect(() => {
+    workspaceMountedRef.current = true;
+    return () => { workspaceMountedRef.current = false; };
+  }, []);
+  const publishReviewClosingRef = useRef(false);
+  const pendingShareScopeKeyRef = useRef<string | null>(null);
   const [reviewMode, setReviewMode] = useState<ReviewMode>("publish");
   const pendingReadinessFocusRef = useRef<WebsiteReadinessIssue | null>(null);
   const pendingBlockingFocusRef = useRef<WebsiteDraftIssue | null>(null);
@@ -324,7 +342,66 @@ export function WebsiteWorkspace({ identity, draft, locations, businessId }: Web
     reviewGuardDisabledReason: publishReviewGuardDisabledReason,
     failure: publishFailure,
     retryPending: publishRetryPending,
+    publish,
+    publishReceipt,
+    scopeKey,
   } = controller.publication;
+  const websiteUrl = buildWebsiteShareUrl(publish?.slug ?? null, i18n.resolvedLanguage || i18n.language);
+  const canShowShare = !!websiteUrl && !!publish?.isPublished;
+  const sharingCapabilities = websiteSharingCapabilities();
+  const canOpenWebsite = canShowShare && publish?.isAvailable === true &&
+    !publishBusy && !isWorkspaceLoading && sharingCapabilities.open;
+  const shareOpen = shareScopeKey === scopeKey && canShowShare;
+  const liveShareRef = useRef({ scopeKey, open: shareOpen, canShowShare, websiteUrl, canOpenWebsite });
+  liveShareRef.current = { scopeKey, open: shareOpen, canShowShare, websiteUrl, canOpenWebsite };
+  const openWebsite = async () => {
+    const isCurrent = () => workspaceMountedRef.current && liveShareRef.current.scopeKey === scopeKey &&
+      liveShareRef.current.websiteUrl === websiteUrl && liveShareRef.current.canOpenWebsite;
+    if (!websiteUrl || !isCurrent()) return;
+    try {
+      await openCustomerWebUrl(websiteUrl);
+    } catch {
+      if (isCurrent()) {
+        toast.error(t("shareWebsite.openFailed"), { id: `website-share-open-${scopeKey}` });
+      }
+    }
+  };
+  const openShare = (returnTarget: HTMLElement | null = null) => {
+    if (!workspaceMountedRef.current || liveShareRef.current.scopeKey !== scopeKey || !liveShareRef.current.canShowShare) return;
+    shareReturnFocusRef.current = { scopeKey, target: returnTarget };
+    setShareScopeKey(scopeKey);
+  };
+  const restoreShareFocus = (event: Event, closedScope: string) => {
+    event.preventDefault();
+    if (!workspaceMountedRef.current || liveShareRef.current.scopeKey !== closedScope || liveShareRef.current.open) return;
+    const returnFocus = shareReturnFocusRef.current;
+    if (!returnFocus || returnFocus.scopeKey !== closedScope) return;
+    window.requestAnimationFrame(() => {
+      if (!workspaceMountedRef.current || liveShareRef.current.scopeKey !== closedScope || liveShareRef.current.open ||
+        shareReturnFocusRef.current !== returnFocus) return;
+      const targets = [returnFocus.target, shareButtonRef.current, desktopMoreTriggerRef.current,
+        compactMoreTriggerRef.current, mobileMoreTriggerRef.current, document.getElementById("website-builder-main")];
+      const target = targets.find((element) => element?.isConnected && element.getClientRects().length > 0 &&
+        !element.closest('[inert], [aria-hidden="true"]') && window.getComputedStyle(element).visibility === "visible" &&
+        !(element instanceof HTMLButtonElement && element.disabled));
+      target?.focus({ preventScroll: true });
+      shareReturnFocusRef.current = null;
+    });
+  };
+  const observedPublishReceipt = useRef(publishReceipt);
+  useEffect(() => {
+    if (publishReceipt === observedPublishReceipt.current) return;
+    observedPublishReceipt.current = publishReceipt;
+    if (!publishReceipt) return;
+    setPublishReviewOpen(false);
+    if (publishReceipt.firstPublication) {
+      if (publishReviewOpen || publishReviewClosingRef.current) {
+        pendingShareScopeKeyRef.current = scopeKey;
+      } else {
+        openShare();
+      }
+    }
+  }, [publishReceipt, scopeKey, publishReviewOpen]);
   const {
     saveStatus,
     draftSave,
@@ -818,7 +895,7 @@ export function WebsiteWorkspace({ identity, draft, locations, businessId }: Web
     publishPlanGated ||
     (controller.permissions.canPublish && !workspaceIsPublishedCurrent);
 
-  const renderMoreControl = (includePublishReview: boolean) => {
+  const renderMoreControl = (includePublishReview: boolean, triggerRef: RefObject<HTMLButtonElement | null>) => {
     const showPublishReviewItem =
       includePublishReview &&
       (publishPlanGated ||
@@ -834,6 +911,7 @@ export function WebsiteWorkspace({ identity, draft, locations, businessId }: Web
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button
+            ref={triggerRef}
             type="button"
             aria-label={t("page.actions.more")}
             className="website-atelier-focus website-atelier-press grid size-11 shrink-0 place-items-center rounded-[9px] text-[var(--atelier-muted)] hover:bg-[var(--atelier-field)] min-[920px]:size-8"
@@ -845,7 +923,22 @@ export function WebsiteWorkspace({ identity, draft, locations, businessId }: Web
             )}
           </button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="min-w-48">
+        <DropdownMenuContent
+          align="end"
+          className="min-w-48"
+          onCloseAutoFocus={(event) => {
+            if (shareScopeKey === scopeKey) event.preventDefault();
+          }}
+        >
+          {canShowShare ? (
+            <DropdownMenuItem
+              disabled={publishBusy || isWorkspaceLoading}
+              onSelect={() => openShare(triggerRef.current)}
+            >
+              <Share2 className="size-4" strokeWidth={1.8} aria-hidden />
+              {t("shareWebsite.action")}
+            </DropdownMenuItem>
+          ) : null}
           {showPublishReviewItem ? (
             <DropdownMenuItem
               disabled={publishPlanGated ? false : workspacePublishReviewDisabled}
@@ -891,13 +984,22 @@ export function WebsiteWorkspace({ identity, draft, locations, businessId }: Web
       </DropdownMenu>
     );
   };
-  const desktopMoreControl = renderMoreControl(false);
+  const desktopMoreControl = renderMoreControl(false, desktopMoreTriggerRef);
 
   // Phone: secondary actions as a bottom sheet. Preview is always a candidate row, but when
   // it would be the sheet's only row, a kebab that opens a 1-item drawer isn't worth it — the
   // header shows the preview button directly instead (see phoneShowsPreviewInline below).
   const [mobileMoreOpen, setMobileMoreOpen] = useState(false);
   const mobileSecondaryItems: MobileMoreItem[] = [
+    ...(canShowShare
+      ? [{
+          key: "share",
+          label: t("shareWebsite.action"),
+          icon: <Share2 className="size-4" strokeWidth={1.8} aria-hidden />,
+          disabled: publishBusy || isWorkspaceLoading,
+          onSelect: () => openShare(mobileMoreTriggerRef.current),
+        } satisfies MobileMoreItem]
+      : []),
     ...(conflict
       ? [
           {
@@ -954,10 +1056,11 @@ export function WebsiteWorkspace({ identity, draft, locations, businessId }: Web
         onOpenChange={setMobileMoreOpen}
         items={mobileMoreItems}
         busy={isUnpublishing}
+        triggerRef={mobileMoreTriggerRef}
       />
     )
   ) : (
-    renderMoreControl(false)
+    renderMoreControl(false, compactMoreTriggerRef)
   );
 
   const blockingIssueLabel = (issue: WebsiteDraftIssue) => {
@@ -1198,6 +1301,7 @@ export function WebsiteWorkspace({ identity, draft, locations, businessId }: Web
           monogramFontFamily={monogramFont.stack}
           monogramFontWeight={monogramFont.weight}
           publishStatus={workspacePublishStatus}
+          isAvailable={publish?.isAvailable}
           saveStatus={saveStatus}
           onSave={draftSave.save}
           saveLabel={draftSave.label}
@@ -1235,6 +1339,7 @@ export function WebsiteWorkspace({ identity, draft, locations, businessId }: Web
           monogramFontFamily={monogramFont.stack}
           monogramFontWeight={monogramFont.weight}
           publishStatus={workspacePublishStatus}
+          isAvailable={publish?.isAvailable}
           saveStatus={saveStatus}
           onBack={handleBack}
           onPreview={controller.requestPreview}
@@ -1317,6 +1422,12 @@ export function WebsiteWorkspace({ identity, draft, locations, businessId }: Web
 
         <WebsiteBuilderCore
           identity={identity}
+          websiteUrl={canShowShare ? websiteUrl : null}
+          websiteAvailable={canOpenWebsite}
+          onOpenWebsite={sharingCapabilities.native ? () => void openWebsite() : undefined}
+          onShare={canShowShare ? () => openShare(shareButtonRef.current) : undefined}
+          shareButtonRef={shareButtonRef}
+          shareDisabled={publishBusy || isWorkspaceLoading}
           canWrite={canWrite}
           canPurchase={controller.permissions.canPurchase}
           controller={builderController}
@@ -1365,12 +1476,33 @@ export function WebsiteWorkspace({ identity, draft, locations, businessId }: Web
         />
       </div>
 
+      <WebsiteShareDialog
+        key={`${scopeKey}:${websiteUrl ?? ""}`}
+        open={shareOpen}
+        onOpenChange={(open) => open ? openShare() : setShareScopeKey(null)}
+        onCloseAutoFocus={(event) => restoreShareFocus(event, scopeKey)}
+        url={websiteUrl}
+        scopeKey={scopeKey}
+        businessName={identity.name}
+        hasUnpublishedChanges={controller.publication.hasUnpublishedChanges}
+        isAvailable={publish?.isAvailable === true && !publishBusy && !isWorkspaceLoading}
+        phone={isPhone}
+      />
+
       <PublishReviewSurface
         phone={isPhone}
         open={publishReviewOpen}
         reviewMode={reviewMode}
         onOpenChange={handleReviewOpenChange}
         onCloseAutoFocus={(event) => {
+            publishReviewClosingRef.current = false;
+            const pendingShareScope = pendingShareScopeKeyRef.current;
+            pendingShareScopeKeyRef.current = null;
+            if (pendingShareScope === scopeKey) {
+              event.preventDefault();
+              openShare();
+              return;
+            }
             const blockingIssue = pendingBlockingFocusRef.current;
             if (blockingIssue) {
               event.preventDefault();
@@ -1831,7 +1963,10 @@ export function WebsiteWorkspace({ identity, draft, locations, businessId }: Web
                   }
                   if (publishDisabled || publishReviewBlocked) return;
                   const accepted = form.handlePublish();
-                  if (accepted !== false) setPublishReviewOpen(false);
+                  if (accepted !== false) {
+                    publishReviewClosingRef.current = true;
+                    setPublishReviewOpen(false);
+                  }
                 }}
                 disabled={publishPlanGated ? isPublishing : publishDisabled || isPublishing}
                 className="h-[38px] rounded-[11px] bg-[var(--atelier-ink)] px-[18px] text-[13px] font-semibold text-[var(--atelier-canvas)] hover:bg-black"

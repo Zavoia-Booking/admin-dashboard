@@ -25,6 +25,7 @@ import { EditOwnerProfileSlider } from "./EditOwnerProfileSlider";
 interface OwnerProfessionalProfileSectionProps {
   /** The parent's dimming is CSS-only; a real disabled also blocks keyboard activation. */
   canWrite: boolean;
+  onProfileSetupNeededChange?: (needed: boolean) => void;
 }
 
 /**
@@ -34,6 +35,7 @@ interface OwnerProfessionalProfileSectionProps {
  */
 export const OwnerProfessionalProfileSection: React.FC<OwnerProfessionalProfileSectionProps> = ({
   canWrite,
+  onProfileSetupNeededChange,
 }) => {
   const { t } = useTranslation("marketplace");
   const navigate = useNavigate();
@@ -133,6 +135,10 @@ export const OwnerProfessionalProfileSection: React.FC<OwnerProfessionalProfileS
   }
 
   const hasProfile = profile !== null;
+
+  useEffect(() => {
+    onProfileSetupNeededChange?.(!isLoading && !loadError && !hasProfile);
+  }, [isLoading, loadError, hasProfile, onProfileSetupNeededChange]);
 
   return (
     <div className="space-y-6 scroll-mt-24" id="marketplace-owner-profile-section">

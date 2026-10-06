@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { ArrowUpRight, Info } from "lucide-react";
 import type { ReactNode } from "react";
+import { getMarketplaceConfigurationPath } from "../../../marketplace/utils/marketplaceNavigation";
 import { cn } from "../../../../shared/lib/utils";
 import { modalBody, modalHelperSmall } from "../../../../shared/components/ui/modal-tokens";
 import type {
@@ -421,7 +422,7 @@ export function SettingsPanel({
       {
         includeSource: true,
         sourceText: t("businessPage.builder.settings.reviewsSource"),
-        sourceLinkTo: "/marketplace?tab=reviews",
+        sourceLinkTo: getMarketplaceConfigurationPath("reviews"),
         sourceLinkText: t("businessPage.builder.settings.viewReviews"),
       },
     );

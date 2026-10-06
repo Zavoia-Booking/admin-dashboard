@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect, useCallback } from "react";
+import { useRef, useState, useEffect } from "react";
 import { useDispatch } from "react-redux";
 import { setLocationPortfolioAction } from "../actions";
 import {
@@ -16,7 +16,6 @@ import { Spinner } from "../../../shared/components/ui/spinner";
 import { cn } from "../../../shared/lib/utils";
 import { generateId } from "../../../shared/lib/id";
 import { getErrorMessage } from "../../../shared/utils/error";
-import { scrollAppContentToElement } from "../../../shared/utils/scroll";
 import { FullScreenImageCarousel } from "./FullScreenImageCarousel";
 import {
   uploadMarketplaceImageApi,
@@ -140,51 +139,121 @@ export function MarketplaceImagesSection({
   // the upload card into view, shakes it twice, and holds a soft ring briefly
   // (see utils/portfolioAttention).
   const uploadCardRef = useRef<HTMLDivElement | null>(null);
-  const attentionTimerRef = useRef<number | null>(null);
+  const pendingAttentionRef = useRef<number | null>(null);
   const [attentionActive, setAttentionActive] = useState(false);
 
-  const triggerAttention = useCallback(() => {
-    // Two frames, not one: the panel may have only just been revealed (the tabs keep
-    // every panel mounted behind `display:none`) or mounted by the master-list drill-in,
-    // and one frame isn't reliably enough for it to have laid out on a phone — measuring
-    // too early yields a stale offset and the pane lands nowhere near the card.
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        const card = uploadCardRef.current;
-        if (card) scrollAppContentToElement(card, { block: "center" });
-      });
-    });
-    if (attentionTimerRef.current) window.clearTimeout(attentionTimerRef.current);
-    // Let the smooth scroll land first so the shake is actually seen; it runs
-    // 0.7s, then the soft ring lingers a beat and fades via the card's own
-    // transition-all.
-    attentionTimerRef.current = window.setTimeout(() => {
-      setAttentionActive(true);
-      attentionTimerRef.current = window.setTimeout(
-        () => setAttentionActive(false),
-        1600,
-      );
-    }, 400);
-  }, []);
-
   useEffect(() => {
+    setAttentionActive(false);
     if (!locationId) return;
+
+    let retryTimer: number | null = null;
+    let highlightTimer: number | null = null;
+    let clearHighlightTimer: number | null = null;
+    let firstFrame = 0;
+    let secondFrame = 0;
+
+    const clearScheduledAttention = () => {
+      if (retryTimer !== null) window.clearTimeout(retryTimer);
+      if (highlightTimer !== null) window.clearTimeout(highlightTimer);
+      if (clearHighlightTimer !== null) window.clearTimeout(clearHighlightTimer);
+      if (firstFrame) window.cancelAnimationFrame(firstFrame);
+      if (secondFrame) window.cancelAnimationFrame(secondFrame);
+      retryTimer = null;
+      highlightTimer = null;
+      clearHighlightTimer = null;
+      firstFrame = 0;
+      secondFrame = 0;
+    };
+
+    const triggerAttention = () => {
+      clearScheduledAttention();
+      setAttentionActive(false);
+      const deadline = Date.now() + 5000;
+      const retry = () => {
+        if (Date.now() < deadline) {
+          retryTimer = window.setTimeout(attemptScroll, 50);
+        }
+      };
+      const attemptScroll = () => {
+        const card = uploadCardRef.current;
+        // Tabs remain mounted while hidden, and the location workspace can
+        // still be revealing this gallery when the request is consumed.
+        if (!card || card.getClientRects().length === 0) {
+          retry();
+          return;
+        }
+
+        // Let location navigation finish its heading scroll first. Measure
+        // only after the workspace height and gallery entrance have settled,
+        // otherwise the app scroller clamps the target to its old height.
+        firstFrame = window.requestAnimationFrame(() => {
+          secondFrame = window.requestAnimationFrame(() => {
+            if (!card.isConnected || card.getClientRects().length === 0) {
+              retry();
+              return;
+            }
+            let ancestor: HTMLElement | null = card;
+            while (ancestor) {
+              if (
+                ancestor.getAnimations().some(
+                  (animation) =>
+                    animation.playState === "running" &&
+                    animation.effect?.getComputedTiming().endTime !== Infinity,
+                ) &&
+                Date.now() < deadline
+              ) {
+                retry();
+                return;
+              }
+              ancestor = ancestor.parentElement;
+            }
+
+            const reduceMotion = window.matchMedia(
+              "(prefers-reduced-motion: reduce)",
+            ).matches;
+            // Follow the actual scrolling ancestor, including the desktop
+            // tab layout whose content can sit outside the app scroll pane.
+            card.scrollIntoView({
+              block: "center",
+              inline: "nearest",
+              behavior: reduceMotion ? "auto" : "smooth",
+            });
+            pendingAttentionRef.current = null;
+            // Preserve the existing highlight timing after the scroll lands.
+            highlightTimer = window.setTimeout(
+              () => setAttentionActive(true),
+              400,
+            );
+            clearHighlightTimer = window.setTimeout(
+              () => setAttentionActive(false),
+              2000,
+            );
+          });
+        });
+      };
+      attemptScroll();
+    };
+
     const onAttentionEvent = (event: Event) => {
       if (
         (event as CustomEvent<number>).detail === locationId &&
         consumePortfolioAttention(locationId)
       ) {
+        pendingAttentionRef.current = locationId;
         triggerAttention();
       }
     };
     window.addEventListener(PORTFOLIO_ATTENTION_EVENT, onAttentionEvent);
-    // Drill-in case: the request fired before this gallery mounted.
-    if (consumePortfolioAttention(locationId)) triggerAttention();
+    if (consumePortfolioAttention(locationId)) {
+      pendingAttentionRef.current = locationId;
+    }
+    // Retain a consumed request across effect cleanup/replay until it scrolls.
+    if (pendingAttentionRef.current === locationId) triggerAttention();
     return () => {
       window.removeEventListener(PORTFOLIO_ATTENTION_EVENT, onAttentionEvent);
-      if (attentionTimerRef.current) window.clearTimeout(attentionTimerRef.current);
+      clearScheduledAttention();
     };
-  }, [locationId, triggerAttention]);
+  }, [locationId]);
 
   // Keep ref in sync with images
   imagesRef.current = images;

@@ -35,6 +35,7 @@ interface WebsiteAtelierHeaderProps {
   monogramFontFamily?: string;
   monogramFontWeight?: number;
   publishStatus?: AtelierPublishStatus;
+  isAvailable?: boolean;
   saveStatus?: AtelierSaveStatus;
   pendingControl?: ReactNode;
   moreControl?: ReactNode;
@@ -161,28 +162,30 @@ function SaveStatus({
   );
 }
 
-function PublishPill({ status }: { status: AtelierPublishStatus }) {
+function PublishPill({ status, isAvailable }: { status: AtelierPublishStatus; isAvailable?: boolean }) {
   const { t } = useTranslation("website");
+  const unavailable = status !== "draft" && isAvailable === false;
   const label = status === "draft" ? t("page.status.draft") : t("page.status.published");
   const detail =
-    status === "live"
-      ? t("page.status.upToDate")
-      : status === "stale"
-        ? t("page.status.changesToPublish")
-        : t("page.status.notPublishedDetail");
-  const dot = status === "live" ? "var(--atelier-success)" : status === "stale" ? "var(--atelier-warning)" : "#d8d2c1";
+    unavailable
+      ? t("page.status.currentlyUnavailable")
+      : status === "live"
+        ? t("page.status.upToDate")
+        : status === "stale"
+          ? t("page.status.changesToPublish")
+          : t("page.status.notPublishedDetail");
+  const dot = unavailable ? "var(--atelier-muted)" : status === "live" ? "var(--atelier-success)" : status === "stale" ? "var(--atelier-warning)" : "#d8d2c1";
 
   return (
-    <div className="flex h-7 min-w-0 items-center gap-2 rounded-full border border-[var(--atelier-border)] bg-[var(--atelier-surface-strong)] px-3">
+    <div className="flex h-7 min-w-0 items-center gap-2 rounded-full border border-[var(--atelier-border)] bg-[var(--atelier-surface-strong)] px-3" aria-live="polite" aria-atomic="true">
       <span className="size-1.5 shrink-0 rounded-full" style={{ backgroundColor: dot }} aria-hidden />
-      <span className="truncate text-[12px] font-medium text-[var(--atelier-ink)]">{label}</span>
-      <span
-        className="hidden shrink-0 text-[12px] text-[var(--atelier-muted-soft)] min-[1120px]:inline"
-        aria-hidden
-      >
-        ·
-      </span>
-      <span className="hidden truncate text-[12px] text-[var(--atelier-muted)] min-[1120px]:inline">{detail}</span>
+      <span className="truncate text-[12px] font-medium text-[var(--atelier-ink)]">{label}{unavailable ? ` · ${detail}` : ""}</span>
+      {!unavailable ? (
+        <>
+          <span className="hidden shrink-0 text-[12px] text-[var(--atelier-muted-soft)] min-[1120px]:inline" aria-hidden>·</span>
+          <span className="hidden truncate text-[12px] text-[var(--atelier-muted)] min-[1120px]:inline">{detail}</span>
+        </>
+      ) : null}
     </div>
   );
 }
@@ -217,6 +220,7 @@ export function WebsiteAtelierHeader({
   monogramFontFamily,
   monogramFontWeight,
   publishStatus = "draft",
+  isAvailable,
   saveStatus = "saved",
   pendingControl,
   moreControl,
@@ -257,13 +261,16 @@ export function WebsiteAtelierHeader({
     saveStatus === "offline" ||
     saveStatus === "failed" ||
     saveStatus === "conflict";
+  const publicationUnavailable = publishStatus !== "draft" && isAvailable === false;
   const mobilePublicationSummary =
-    publishStatus === "live"
-      ? `${t("page.status.published")} · ${t("page.status.upToDate")}`
-      : publishStatus === "stale"
-        ? t("page.status.draftAheadOfLive")
-        : draftPlanCaption || t("page.status.notPublishedYet");
-  const mobileStatusLabel =
+    publicationUnavailable
+      ? `${t("page.status.published")} · ${t("page.status.currentlyUnavailable")}`
+      : publishStatus === "live"
+        ? `${t("page.status.published")} · ${t("page.status.upToDate")}`
+        : publishStatus === "stale"
+          ? t("page.status.draftAheadOfLive")
+          : draftPlanCaption || t("page.status.notPublishedYet");
+  const mobileStatusSummary =
     saveStatus === "invalid" && blockingIssueCount > 0
       ? t(
           onReviewBlockingIssues
@@ -278,9 +285,12 @@ export function WebsiteAtelierHeader({
           : mobileSavedFlash
             ? t("page.status.saved")
             : mobilePublicationSummary;
+  const mobileStatusLabel = publicationUnavailable && mobileStatusSummary !== mobilePublicationSummary
+    ? `${mobileStatusSummary} · ${t("page.status.currentlyUnavailable")}`
+    : mobileStatusSummary;
   const mobileStatusTone = isSaveWarning
     ? "text-[var(--atelier-warning)]"
-    : saveStatus === "saved" && (mobileSavedFlash || publishStatus === "live")
+    : !publicationUnavailable && saveStatus === "saved" && (mobileSavedFlash || publishStatus === "live")
       ? "text-[var(--atelier-success)]"
       : "text-[var(--atelier-ink-soft)]";
   const saveActionLabel = saveLabel ?? t("page.actions.saveChanges");
@@ -510,7 +520,7 @@ export function WebsiteAtelierHeader({
         <p className="truncate text-[14px] font-[650] tracking-[-0.01em] text-[var(--atelier-ink)]">{title}</p>
       </div>
       <span className="h-[18px] w-px shrink-0 bg-[var(--atelier-border)]" aria-hidden />
-      <PublishPill status={publishStatus} />
+      <PublishPill status={publishStatus} isAvailable={isAvailable} />
       <SaveStatus
         status={saveStatus}
         blockingIssueCount={blockingIssueCount}
