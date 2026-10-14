@@ -39,11 +39,13 @@ jobs:
       - name: Install JS dependencies
         run: yarn install --frozen-lockfile
 
-      - name: Write staging env file
-        # Optional: ENV_STAGING_NATIVE holds the contents of .env.staging-native.
-        # Vite tolerates a missing file, so the compile check still runs without it.
+      - name: Write staging env file and Firebase config
+        # Both secrets are optional here: Vite tolerates a missing env file, and
+        # a placeholder GoogleService-Info.plist is enough for the compile check
+        # (the file is a required build input since it is in the Resources phase).
         env:
           ENV_FILE: ${{ secrets.ENV_STAGING_NATIVE }}
+          GOOGLE_SERVICE_INFO: ${{ secrets.IOS_GOOGLE_SERVICE_INFO_PLIST_STAGING }}
         run: |
           if [ -n "$ENV_FILE" ]; then
             printf '%s\n' "$ENV_FILE" > .env.staging-native
@@ -51,6 +53,17 @@ jobs:
           else
             echo "ENV_STAGING_NATIVE secret not set; building without env file"
           fi
+          if [ -n "$GOOGLE_SERVICE_INFO" ]; then
+            printf '%s\n' "$GOOGLE_SERVICE_INFO" > ios/App/App/GoogleService-Info.plist
+            echo "Wrote GoogleService-Info.plist from secret"
+          else
+            echo "IOS_GOOGLE_SERVICE_INFO_PLIST_STAGING not set; writing placeholder plist"
+            printf '%s\n' '<?xml version="1.0" encoding="UTF-8"?>' \
+              '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">' \
+              '<plist version="1.0"><dict><key>PLACEHOLDER</key><true/></dict></plist>' \
+              > ios/App/App/GoogleService-Info.plist
+          fi
+          plutil -lint ios/App/App/GoogleService-Info.plist
 
       - name: Build web app and sync to iOS
         run: yarn ios:staging

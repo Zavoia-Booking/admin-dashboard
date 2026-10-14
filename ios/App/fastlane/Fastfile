@@ -1,0 +1,82 @@
+# fastlane lanes for the Capacitor iOS app. Run from ios/App.
+# All credentials come from environment variables set by the GitHub Actions
+# workflow; nothing here needs a Mac or an interactive Apple ID login.
+
+default_platform(:ios)
+
+TEAM_ID = "732AJ49RCF"
+DIST_CERT_ID = "5W3585TBL8" # Apple Distribution cert whose .p12 is in IOS_DIST_CERT_P12
+
+platform :ios do
+  desc "Build the staging app (com.zavoia.admin.staging) and upload it to TestFlight"
+  lane :staging do
+    build_and_upload(
+      bundle_id: "com.zavoia.admin.staging",
+      profile_name: "Zavoia Admin Staging AppStore",
+    )
+  end
+
+  private_lane :build_and_upload do |opts|
+    api_key = app_store_connect_api_key(
+      key_id: ENV.fetch("ASC_KEY_ID"),
+      issuer_id: ENV.fetch("ASC_ISSUER_ID"),
+      key_content: ENV.fetch("ASC_PRIVATE_KEY"),
+      is_key_content_base64: true,
+    )
+
+    # Temporary keychain holding only the distribution certificate.
+    keychain_name = "zavoia-ci"
+    keychain_password = SecureRandom.hex(16)
+    create_keychain(
+      name: keychain_name,
+      password: keychain_password,
+      default_keychain: true,
+      unlock: true,
+      timeout: 3600,
+      lock_when_sleeps: false,
+    )
+    import_certificate(
+      certificate_path: ENV.fetch("IOS_DIST_CERT_P12_PATH"),
+      certificate_password: ENV.fetch("IOS_DIST_CERT_PASSWORD"),
+      keychain_name: keychain_name,
+      keychain_password: keychain_password,
+    )
+
+    # Fetch (or create on first run) the App Store provisioning profile.
+    get_provisioning_profile(
+      api_key: api_key,
+      app_identifier: opts[:bundle_id],
+      provisioning_name: opts[:profile_name],
+      ignore_profiles_with_different_name: true,
+      cert_id: DIST_CERT_ID,
+      output_path: ".",
+    )
+
+    update_code_signing_settings(
+      path: "App.xcodeproj",
+      targets: ["App"],
+      use_automatic_signing: false,
+      team_id: TEAM_ID,
+      bundle_identifier: opts[:bundle_id],
+      code_sign_identity: "Apple Distribution",
+      profile_name: lane_context[SharedValues::SIGH_NAME],
+    )
+
+    build_app(
+      project: "App.xcodeproj",
+      scheme: "App",
+      configuration: "Release",
+      export_method: "app-store",
+      output_directory: "build",
+      output_name: "ZavoiaAdmin-staging.ipa",
+      cloned_source_packages_path: "SourcePackages",
+      xcargs: "CURRENT_PROJECT_VERSION=#{ENV.fetch('BUILD_NUMBER')}",
+    )
+
+    upload_to_testflight(
+      api_key: api_key,
+      ipa: lane_context[SharedValues::IPA_OUTPUT_PATH],
+      skip_waiting_for_build_processing: true,
+    )
+  end
+end
