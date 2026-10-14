@@ -38,6 +38,19 @@ const config: CapacitorConfig = {
     webContentsDebuggingEnabled: !isProduction,
   },
 
+  experimental: {
+    ios: {
+      spm: {
+        packageOptions: {
+          // Required by @capacitor-firebase/messaging under SPM: its package
+          // identity collides with the Firebase SDK's, so Capacitor links it
+          // through a symlink instead of the raw node_modules path.
+          '@capacitor-firebase/messaging': { symlink: true },
+        },
+      },
+    },
+  },
+
   plugins: {
     SplashScreen: {
       // Minimum visible duration. Native splash provides instant brand
