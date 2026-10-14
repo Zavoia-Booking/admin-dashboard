@@ -41,6 +41,12 @@ platform :ios do
       keychain_name: keychain_name,
       keychain_password: keychain_password,
     )
+    # The identity is only "valid" (and visible to sigh/codesign) when Apple's
+    # WWDR intermediate certificates are present in the keychain search path.
+    keychain_path = FastlaneCore::Helper.keychain_path(keychain_name)
+    FastlaneCore::CertChecker.install_missing_wwdr_certificates(in_keychain: keychain_path)
+    identities = sh("security find-identity -v -p codesigning #{keychain_path.shellescape}", log: true)
+    UI.user_error!("Distribution certificate was not imported as a valid signing identity") unless identities.include?("Apple Distribution")
 
     # Fetch (or create on first run) the App Store provisioning profile.
     get_provisioning_profile(
