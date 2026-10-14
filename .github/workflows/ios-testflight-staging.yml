@@ -8,7 +8,8 @@ name: iOS TestFlight (staging)
 on:
   workflow_dispatch:
   push:
-    branches: [staging]
+    # ios-build is temporary while the pipeline is being brought up.
+    branches: [staging, ios-build]
     paths:
       - 'ios/**'
       - 'src/**'
