@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react"
 import { Link, useNavigate, useSearchParams } from "react-router-dom"
-import { loginAction, clearAuthErrorAction } from "../actions"
-import { forgotPasswordApi } from "../api"
+import { loginAction, forgotPasswordAction, clearAuthErrorAction } from "../actions"
 import { useDispatch, useSelector } from "react-redux"
 import { toast } from "sonner"
 import type { RootState } from "../../../app/providers/store"
@@ -10,7 +9,6 @@ import CredentialsForm, { type CredentialsFormHandle } from "../../../shared/com
 import ForgotPasswordInline from "../../../shared/components/auth/ForgotPasswordInline"
 import { Banner } from "../../../shared/components/ui/banner"
 import { useTranslation } from "react-i18next"
-import { getErrorMessage } from "../../../shared/utils/error"
 
 /**
  * Renders only the form-side content of the login screen — the surrounding
@@ -24,7 +22,6 @@ export function LoginForm() {
   const [searchParams] = useSearchParams()
   const isForgotMode = searchParams.get('forgot') === '1'
   const [forgotSubmitted, setForgotSubmitted] = useState(false)
-  const [forgotSubmitting, setForgotSubmitting] = useState(false)
   const [showNoAccountBanner, setShowNoAccountBanner] = useState(false)
   const dispatch = useDispatch()
   const { isLoading, error: authError } = useSelector((s: RootState) => s.auth)
@@ -35,20 +32,6 @@ export function LoginForm() {
   useEffect(() => {
     if (!isForgotMode) setForgotSubmitted(false)
   }, [isForgotMode])
-
-  // Confirm only once the request succeeded; a failure keeps the form so the
-  // user can retry instead of waiting for an email that was never requested.
-  const handleForgotSubmit = async (email: string) => {
-    setForgotSubmitting(true)
-    try {
-      await forgotPasswordApi({ email })
-      setForgotSubmitted(true)
-    } catch (error) {
-      toast.error(getErrorMessage(error, t('page.errors.forgotPasswordFailed')), { duration: 8000 })
-    } finally {
-      setForgotSubmitting(false)
-    }
-  }
 
   const handleCredentialsSubmit = ({ email, password }: { email: string; password: string }) => {
     dispatch(loginAction.request({ email, password }))
@@ -82,8 +65,8 @@ export function LoginForm() {
     return (
       <ForgotPasswordInline
         isSubmitted={forgotSubmitted}
-        isLoading={forgotSubmitting}
-        onSubmit={handleForgotSubmit}
+        isLoading={isLoading}
+        onSubmit={(email) => { dispatch(forgotPasswordAction.request({ email })); setForgotSubmitted(true) }}
         onBack={() => navigate('/login')}
       />
     )

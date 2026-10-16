@@ -107,7 +107,7 @@
       "enterPassword": "Please enter a new password",
       "passwordMinLength": "Password must be at least 8 characters",
       "passwordsNoMatch": "Passwords do not match",
-      "passwordPolicyFailed": "Password must include uppercase, lowercase, number, and special character (e.g. ! @ # -)",
+      "passwordPolicyFailed": "Password must include uppercase, lowercase, number, and special character (@$!%*?&)",
       "passwordChanged": "Password changed.",
       "passwordSet": "Password set.",
       "passwordUpdateFailed": "Failed to update password",
