@@ -63,19 +63,20 @@ function AppLayoutInner({ children, contentClassName, headerRightContent, noPadd
   const effectiveTitleContent = headerTitleContent ?? slotTitleContent ?? undefined;
 
   useLayoutEffect(() => {
-    if (!fillMobileViewport) return;
+    if (!isMobile) return;
     const bottomNav = document.querySelector<HTMLElement>('.mobile-bottom-nav');
     if (!bottomNav) return;
 
-    // Measure the nav including its safe-area padding. Layout sizes stay valid
-    // during the splash transform, unlike getBoundingClientRect().
+    // Measure the nav including its safe-area padding (64px + home-indicator
+    // inset on iPhone), so the scroll area never ends underneath it. Layout
+    // sizes stay valid during the splash transform, unlike getBoundingClientRect().
     setBottomNavHeight(bottomNav.offsetHeight);
     const observer = new ResizeObserver(([entry]) => {
       setBottomNavHeight(entry.borderBoxSize?.[0]?.blockSize ?? bottomNav.offsetHeight);
     });
     observer.observe(bottomNav, { box: 'border-box' });
     return () => observer.disconnect();
-  }, [fillMobileViewport]);
+  }, [isMobile]);
 
   useEffect(() => {
     // remove the inline background colors set in index.html
@@ -95,8 +96,8 @@ function AppLayoutInner({ children, contentClassName, headerRightContent, noPadd
         <SidebarInset className={fillMobileViewport ? 'min-h-0' : undefined}>
           <main
             {...{ [APP_SCROLL_CONTAINER_ATTR]: '' }}
-            className={`flex-1 bg-transparent overflow-y-auto ${fillMobileViewport ? 'flex min-h-0 flex-col' : ''} ${isMobile && !fillMobileViewport ? 'pb-19' : 'pb-0'} [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]`}
-            style={fillMobileViewport ? { paddingBottom: bottomNavHeight } : undefined}
+            className={`flex-1 bg-transparent overflow-y-auto overscroll-contain ${fillMobileViewport ? 'flex min-h-0 flex-col' : ''} ${isMobile && !fillMobileViewport && !bottomNavHeight ? 'pb-19' : 'pb-0'} [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]`}
+            style={isMobile && (fillMobileViewport || bottomNavHeight) ? { paddingBottom: bottomNavHeight } : undefined}
           >
             <div className={`w-full bg-transparent max-w-full content-container ${fillMobileViewport ? 'flex min-h-0 flex-1 flex-col' : ''} ${contentClassName ?? 'md:max-w-220'}`}>
               <div
@@ -125,7 +126,7 @@ function AppLayoutInner({ children, contentClassName, headerRightContent, noPadd
               {!tabbedPage && <LimitedAccessBanner className={fillMobileViewport ? 'shrink-0' : undefined} />}
               <div
                 key={isMobile ? location.pathname : undefined}
-                className={`${noPadding ? '' : 'px-2 py-4 md:px-4'} ${fillMobileViewport ? 'flex min-h-0 flex-1 flex-col overflow-y-auto' : ''} animate-route-enter`}
+                className={`${noPadding ? '' : 'px-2 py-4 md:px-4'} ${fillMobileViewport ? 'flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain' : ''} animate-route-enter`}
               >
                 {children}
               </div>
