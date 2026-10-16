@@ -68,9 +68,17 @@ jobs:
           if [ -z "$CERT_B64" ]; then echo "::error::IOS_DIST_CERT_P12 secret is not set"; exit 1; fi
           echo "$CERT_B64" | base64 --decode > "$RUNNER_TEMP/dist.p12"
 
+      - name: Resolve Swift packages
+        # Done up front so fastlane's build-settings probe does not wait on a
+        # cold package resolution and time out.
+        working-directory: ios/App
+        run: xcodebuild -resolvePackageDependencies -project App.xcodeproj -scheme App -clonedSourcePackagesDirPath SourcePackages
+
       - name: Build and upload to TestFlight
         working-directory: ios/App
         env:
+          FASTLANE_XCODEBUILD_SETTINGS_TIMEOUT: "120"
+          FASTLANE_XCODEBUILD_SETTINGS_RETRIES: "3"
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
