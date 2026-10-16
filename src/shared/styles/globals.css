@@ -5,6 +5,18 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Status-bar inset for overlays that anchor to the top of the viewport
+   (dialogs, sheets, drawers, fullscreen panels). Native iOS draws the web view
+   edge-to-edge with no content inset, so anything fixed at top:0 sits under
+   the notch unless it pads by this. Uses the keyboard-stable pin from
+   shared/lib/safeArea.ts and falls back to env(); both are 0 on the web, so
+   web layouts are unaffected. --safe-top-2x exists because Tailwind arbitrary
+   values do not reliably accept `2*var()` math. */
+:root {
+  --safe-top: var(--safe-area-top-stable, env(safe-area-inset-top, 0px));
+  --safe-top-2x: calc(var(--safe-top) + var(--safe-top));
+}
+
 /* ============================================
    FONT FAMILY - SINGLE SOURCE OF TRUTH
    Geist is used app-wide. Do not override.

@@ -984,7 +984,7 @@ export function ManageServicesSheet({
           // on open. Preventing it (the previous behavior) left focus on the
           // trigger button, which Radix then hides inside the `aria-hidden`
           // sibling subtree — browser blocks that for a11y.
-          className="fixed inset-0 m-auto z-[90] bg-popover text-popover-foreground rounded-lg border shadow-lg max-w-2xl w-[calc(100%-2rem)] h-[85vh] flex flex-col p-0 overflow-hidden outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95"
+          className="fixed inset-0 m-auto z-[90] bg-popover text-popover-foreground rounded-lg border shadow-lg max-w-2xl w-[calc(100%-2rem)] h-[min(85vh,calc(100dvh-var(--safe-top-2x)-2rem))] flex flex-col p-0 overflow-hidden outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95"
         >
           <DialogPrimitive.Title className="sr-only">{resolvedTitle}</DialogPrimitive.Title>
           <DialogPrimitive.Description className="sr-only">{resolvedTitle}</DialogPrimitive.Description>

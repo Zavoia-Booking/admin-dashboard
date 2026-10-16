@@ -169,7 +169,7 @@ export function FullScreenImageCarousel({
           >
             {/* Top bar (counter left, close right) */}
             <div
-              className="absolute top-4 left-4 right-4 z-20 flex items-center justify-between gap-3"
+              className="absolute top-[calc(1rem+var(--safe-top))] left-4 right-4 z-20 flex items-center justify-between gap-3"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="text-white/80 text-sm font-semibold tracking-widest uppercase">

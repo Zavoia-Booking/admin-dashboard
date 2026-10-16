@@ -139,7 +139,7 @@ const SummaryShell: React.FC<SummaryShellProps> = ({
           onInteractOutside={guard}
           onEscapeKeyDown={guard}
           className={cn(
-            "z-[70] max-h-[92vh] bg-white dark:bg-surface border-border rounded-t-2xl overflow-hidden p-0 flex flex-col",
+            "z-[70] max-h-[min(92vh,calc(100dvh-var(--safe-top)-1.5rem))] bg-white dark:bg-surface border-border rounded-t-2xl overflow-hidden p-0 flex flex-col",
             APPOINTMENT_DIALOG_CURSOR,
           )}
           overlayClassName="z-[70]"
@@ -176,7 +176,7 @@ const SummaryShell: React.FC<SummaryShellProps> = ({
             "data-[state=open]:zoom-in-[0.97] data-[state=closed]:zoom-out-[0.97]",
             "data-[state=open]:slide-in-from-bottom-3 data-[state=closed]:slide-out-to-bottom-2",
             "data-[state=open]:duration-250 data-[state=closed]:duration-150",
-            "fixed left-[50%] top-[50%] z-[70] flex w-[calc(100%-2rem)] max-w-3xl max-h-[90vh] translate-x-[-50%] translate-y-[-50%]",
+            "fixed left-[50%] top-[50%] z-[70] flex w-[calc(100%-2rem)] max-w-3xl max-h-[min(90vh,calc(100dvh-var(--safe-top-2x)-2rem))] translate-x-[-50%] translate-y-[-50%]",
             "flex-col overflow-hidden rounded-2xl border border-border bg-white p-0 shadow-lg dark:bg-surface",
             "focus:outline-none focus-visible:outline-none",
             APPOINTMENT_DIALOG_CURSOR,

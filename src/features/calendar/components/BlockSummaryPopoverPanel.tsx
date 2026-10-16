@@ -62,7 +62,7 @@ export const blockSummaryDialogContentClassName = cn(
   "data-[state=open]:zoom-in-[0.97] data-[state=closed]:zoom-out-[0.97]",
   "data-[state=open]:slide-in-from-bottom-3 data-[state=closed]:slide-out-to-bottom-2",
   "data-[state=open]:duration-250 data-[state=closed]:duration-150",
-  "fixed left-[50%] top-[50%] z-[70] flex w-[calc(100%-2rem)] max-w-lg max-h-[90vh] translate-x-[-50%] translate-y-[-50%]",
+  "fixed left-[50%] top-[50%] z-[70] flex w-[calc(100%-2rem)] max-w-lg max-h-[min(90vh,calc(100dvh-var(--safe-top-2x)-2rem))] translate-x-[-50%] translate-y-[-50%]",
   "flex-col overflow-hidden rounded-2xl border border-border bg-white p-0 shadow-lg dark:bg-surface",
   "focus:outline-none focus-visible:outline-none",
   BLOCK_SUMMARY_PANEL_CURSOR,
@@ -337,7 +337,7 @@ export const BlockSummaryDialogShell: FC<BlockSummaryDialogShellProps> = ({
           onInteractOutside={preventWhenLocked}
           onEscapeKeyDown={preventWhenLocked}
           className={cn(
-            "z-[70] max-h-[92vh] bg-white dark:bg-surface border-border rounded-t-2xl overflow-hidden p-0 flex flex-col",
+            "z-[70] max-h-[min(92vh,calc(100dvh-var(--safe-top)-1.5rem))] bg-white dark:bg-surface border-border rounded-t-2xl overflow-hidden p-0 flex flex-col",
             BLOCK_SUMMARY_PANEL_CURSOR,
           )}
           overlayClassName="z-[70]"

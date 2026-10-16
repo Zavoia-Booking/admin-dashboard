@@ -139,7 +139,7 @@ const WizardLayout: React.FC<WizardLayoutProps> = ({
             {/* Right content */}
             <section className="md:col-span-8 md:px-6 pt-0 md:pb-4 flex flex-col min-h-0 pb-8">
               {/* Right column sticky header (actions only) */}
-              <div className="sticky top-0 z-100 -mx-4 md:-mx-6 px-4 md:px-6 py-4 border-b bg-surface h-auto min-h-20 max-[399px]:static max-[399px]:top-auto md:rounded-tr-2xl">
+              <div className="sticky top-0 z-100 -mx-4 md:-mx-6 px-4 md:px-6 pb-4 pt-[calc(1rem+var(--safe-top))] border-b bg-surface h-auto min-h-20 max-[399px]:static max-[399px]:top-auto md:rounded-tr-2xl">
                 {/* Mobile: first row (title + actions) */}
                 <div className="md:hidden flex items-center justify-between">
                   <div className="text-lg font-semibold text-foreground-1">
