@@ -9,7 +9,13 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         guard let windowScene = scene as? UIWindowScene else { return }
 
         window = UIWindow(windowScene: windowScene)
-        window?.rootViewController = CAPBridgeViewController()
+        // The keyboard shrinks the web view (Capacitor's `resize: native`), so
+        // the native window shows through the keyboard's rounded top corners.
+        // Match the app's light surface instead of the default black.
+        window?.backgroundColor = UIColor(red: 1.0, green: 1.0, blue: 1.0, alpha: 1.0)
+        let bridgeViewController = CAPBridgeViewController()
+        bridgeViewController.view.backgroundColor = window?.backgroundColor
+        window?.rootViewController = bridgeViewController
         window?.makeKeyAndVisible()
 
         SceneDelegateProxy.shared.scene(scene, willConnectTo: session, options: connectionOptions)

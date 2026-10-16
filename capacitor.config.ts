@@ -32,6 +32,11 @@ const config: CapacitorConfig = {
     webContentsDebuggingEnabled: !isProduction,
   },
 
+  // Web view background (both platforms). Matches the light surface the
+  // index.html boot script paints, so nothing black peeks out around the
+  // web view (keyboard corners, resize transitions).
+  backgroundColor: '#FFFFFF',
+
   ios: {
     // 'never' (Capacitor's default): the app pads its own header with
     // env(safe-area-inset-top), so a native inset on top of that made the

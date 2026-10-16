@@ -13,7 +13,9 @@ export const modalScrim =
 const panelBase =
   'fixed left-1/2 top-1/2 z-[300] -translate-x-1/2 -translate-y-1/2 ' +
   'w-[calc(100%-2rem)] ' +
-  'max-h-[calc(100dvh-2rem)] overflow-y-auto ' +
+  // Status-bar inset twice: keeps a centered box's top edge below the notch
+  // on native iOS (see --safe-top in globals.css; 0 on web).
+  'max-h-[calc(100dvh-var(--safe-top-2x)-2rem)] overflow-y-auto ' +
   'cursor-default select-text ' +
   'rounded-2xl bg-neutral-50 text-neutral-900 dark:bg-surface dark:text-foreground-1 ' +
   'p-6 sm:p-10 ' +
