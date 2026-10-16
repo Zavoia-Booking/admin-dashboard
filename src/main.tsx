@@ -11,6 +11,7 @@ import './shared/lib/i18n'
 import { syncSystemBarsWithTheme } from './shared/lib/theme'
 import { pinStableSafeAreaTop } from './shared/lib/safeArea'
 import { wireAndroidBackButton } from './shared/lib/backButton'
+import { wireKeyboardScrollAssist } from './shared/lib/keyboardScrollAssist'
 
 // @capacitor-community/safe-area v7 auto-enables when viewport-fit=cover is set in index.html.
 // It polyfills env(safe-area-inset-*) on Android WebViews where native values return 0.
@@ -27,6 +28,11 @@ pinStableSafeAreaTop()
 // Android back gesture/button closes the top-most overlay, then navigates
 // history, then minimizes. No-op on web and iOS.
 wireAndroidBackButton()
+
+// After the native keyboard opens, scroll the focused field into view inside
+// its own scroll container (iOS shrinks the web view but does not reveal
+// fields in overflow containers). No-op on web.
+wireKeyboardScrollAssist()
 
 
 
