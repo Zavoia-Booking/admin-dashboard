@@ -1,6 +1,7 @@
 import { SystemBars, SystemBarsStyle } from "@capacitor/core"
 import { Keyboard, KeyboardStyle } from "@capacitor/keyboard"
 import { isNativeApp } from "../../app/config/env"
+import { syncNativeWindowBackground } from "./nativeWindowBackground"
 
 /**
  * Single write-path for the theme: DOM class, persistence, and native
@@ -34,6 +35,7 @@ export function syncSystemBarsWithTheme(
   void Keyboard.setStyle({
     style: dark ? KeyboardStyle.Dark : KeyboardStyle.Light,
   }).catch(() => {})
+  syncNativeWindowBackground(dark)
 }
 
 /** Force light system-bar icons over a full-screen dark surface (e.g. the preview dialog); `false` re-syncs to the theme. */
