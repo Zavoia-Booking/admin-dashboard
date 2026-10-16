@@ -33,7 +33,12 @@ const config: CapacitorConfig = {
   },
 
   ios: {
-    contentInset: 'automatic',
+    // 'never' (Capacitor's default): the app pads its own header with
+    // env(safe-area-inset-top), so a native inset on top of that made the
+    // WKWebView content taller than its frame by the status-bar height. The
+    // whole page could then scroll by that amount and expose the black web
+    // view background above and below the app.
+    contentInset: 'never',
     scrollEnabled: true,
     webContentsDebuggingEnabled: !isProduction,
   },
