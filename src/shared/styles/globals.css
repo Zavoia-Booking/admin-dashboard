@@ -1286,6 +1286,17 @@ button.sidebar-menu-button-compact {
  * animation bindings, the .splash-target-* login hand-off styles, and
  * the splash slice of the prefers-reduced-motion overrides. */
 
+/* Native keyboard in motion (see shared/lib/keyboardTransitionFreeze.ts):
+   the web view is being resized frame by frame, so let layouts snap rather
+   than transition against a moving viewport. Animations are left alone so
+   drawer open/close still plays. */
+html.kb-animating *,
+html.kb-animating *::before,
+html.kb-animating *::after {
+  transition-duration: 0ms !important;
+  transition-delay: 0ms !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-tab-icon { animation: none; }
   .animate-dnd-lift { animation: none; }

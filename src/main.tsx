@@ -12,6 +12,7 @@ import { syncSystemBarsWithTheme } from './shared/lib/theme'
 import { pinStableSafeAreaTop } from './shared/lib/safeArea'
 import { wireAndroidBackButton } from './shared/lib/backButton'
 import { wireKeyboardScrollAssist } from './shared/lib/keyboardScrollAssist'
+import { wireKeyboardTransitionFreeze } from './shared/lib/keyboardTransitionFreeze'
 
 // @capacitor-community/safe-area v7 auto-enables when viewport-fit=cover is set in index.html.
 // It polyfills env(safe-area-inset-*) on Android WebViews where native values return 0.
@@ -33,6 +34,11 @@ wireAndroidBackButton()
 // its own scroll container (iOS shrinks the web view but does not reveal
 // fields in overflow containers). No-op on web.
 wireKeyboardScrollAssist()
+
+// While the native keyboard animates (and iOS resizes the web view with it),
+// suspend CSS transitions so viewport-sized surfaces snap instead of chasing
+// the moving height. No-op on web.
+wireKeyboardTransitionFreeze()
 
 
 
