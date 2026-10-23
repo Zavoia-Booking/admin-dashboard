@@ -28,7 +28,7 @@ export const getPasswordStrength = (password: string): StrengthLevel => {
   const hasLower = /[a-z]/.test(password);
   const hasUpper = /[A-Z]/.test(password);
   const hasNumber = /\d/.test(password);
-  const hasSymbol = /[@$!%*?&]/.test(password); // match backend set
+  const hasSymbol = /[^A-Za-z0-9]/.test(password); // match backend PASSWORD_REGEX (any non-alphanumeric)
 
   const checks = { hasMinLength, hasLower, hasUpper, hasNumber, hasSymbol };
 

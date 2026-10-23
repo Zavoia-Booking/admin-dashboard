@@ -107,7 +107,7 @@
       "enterPassword": "Introdu o parolă nouă",
       "passwordMinLength": "Parola trebuie să aibă cel puțin 8 caractere",
       "passwordsNoMatch": "Parolele nu coincid",
-      "passwordPolicyFailed": "Parola trebuie să conțină literă mare, literă mică, cifră și caracter special (@$!%*?&)",
+      "passwordPolicyFailed": "Parola trebuie să conțină literă mare, literă mică, cifră și caracter special (ex. ! @ # -)",
       "passwordChanged": "Parola a fost schimbată.",
       "passwordSet": "Parola a fost setată.",
       "passwordUpdateFailed": "Nu s-a putut actualiza parola",
