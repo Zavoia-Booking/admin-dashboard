@@ -7,10 +7,12 @@ import { Provider } from 'react-redux'
 import { store } from './app/providers/store.ts'
 import { GoogleOAuthProvider } from '@react-oauth/google'
 import { AppErrorBoundary } from './shared/components/common/AppErrorBoundary.tsx'
-import './shared/lib/i18n'
+import { languageReady } from './shared/lib/i18n'
 import { syncSystemBarsWithTheme } from './shared/lib/theme'
 import { pinStableSafeAreaTop } from './shared/lib/safeArea'
 import { wireAndroidBackButton } from './shared/lib/backButton'
+import { wireKeyboardScrollAssist } from './shared/lib/keyboardScrollAssist'
+import { wireKeyboardTransitionFreeze } from './shared/lib/keyboardTransitionFreeze'
 
 // @capacitor-community/safe-area v7 auto-enables when viewport-fit=cover is set in index.html.
 // It polyfills env(safe-area-inset-*) on Android WebViews where native values return 0.
@@ -28,6 +30,16 @@ pinStableSafeAreaTop()
 // history, then minimizes. No-op on web and iOS.
 wireAndroidBackButton()
 
+// After the native keyboard opens, scroll the focused field into view inside
+// its own scroll container (iOS shrinks the web view but does not reveal
+// fields in overflow containers). No-op on web.
+wireKeyboardScrollAssist()
+
+// While the native keyboard animates (and iOS resizes the web view with it),
+// suspend CSS transitions so viewport-sized surfaces snap instead of chasing
+// the moving height. No-op on web.
+wireKeyboardTransitionFreeze()
+
 
 
 
@@ -38,7 +50,9 @@ wireAndroidBackButton()
 
 const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
 
-createRoot(document.getElementById('root')!).render(
+// Native: wait for the device language (a single quick native call) so the
+// first frame isn't rendered in the wrong language.
+void languageReady.then(() => createRoot(document.getElementById('root')!).render(
   <AppErrorBoundary>
     <Provider store={store}>
       <GoogleOAuthProvider clientId={googleClientId}>
@@ -46,4 +60,4 @@ createRoot(document.getElementById('root')!).render(
       </GoogleOAuthProvider>
     </Provider>
   </AppErrorBoundary>
-)
+))

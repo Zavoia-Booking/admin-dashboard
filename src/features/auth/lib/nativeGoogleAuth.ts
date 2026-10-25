@@ -15,8 +15,16 @@ async function ensureInitialized(): Promise<void> {
   if (!webClientId) {
     throw new Error('google_not_configured')
   }
+  // iOS needs its own OAuth client (type "iOS", bound to the bundle id) for the
+  // native picker, while the server client id stays the web one so the ID
+  // token audience still matches the backend. Android ignores these.
+  const iOSClientId = import.meta.env.VITE_GOOGLE_IOS_CLIENT_ID
   await SocialLogin.initialize({
-    google: { webClientId, mode: 'online' },
+    google: {
+      webClientId,
+      mode: 'online',
+      ...(iOSClientId ? { iOSClientId, iOSServerClientId: webClientId } : {}),
+    },
   })
   initialized = true
 }

@@ -718,7 +718,7 @@ export function ManageTeamMemberDrawer({
       />
       <div className="fixed inset-0 z-80 flex items-center justify-center p-4 pointer-events-none">
         <div
-          className="bg-popover overflow-hidden text-popover-foreground rounded-lg border shadow-lg max-w-2xl w-full h-[85vh] flex flex-col p-0 pointer-events-auto animate-in fade-in-0 zoom-in-95"
+          className="bg-popover overflow-hidden text-popover-foreground rounded-lg border shadow-lg max-w-2xl w-full h-[min(85vh,calc(100dvh-var(--safe-top-2x)-2rem))] flex flex-col p-0 pointer-events-auto animate-in fade-in-0 zoom-in-95"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex flex-col bg-surface relative p-4 px-0 md:p-6 md:pb-0">

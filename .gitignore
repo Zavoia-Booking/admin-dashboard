@@ -55,3 +55,9 @@ ios/.DS_Store
 # Capacitor plugin files
 capacitor-cordova-android-plugins/
 capacitor-cordova-ios-plugins/
+ios/App/SourcePackages/
+ios/App/CapApp-SPM/symlinks/
+ios/App/CapApp-SPM/.build/
+ios/App/App/GoogleService-Info.plist
+ios/App/fastlane/report.xml
+ios/App/*.mobileprovision

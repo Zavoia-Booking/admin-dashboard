@@ -212,6 +212,11 @@
   dependencies:
     tslib "^2.1.0"
 
+"@capacitor/device@^8":
+  version "8.0.3"
+  resolved "https://registry.yarnpkg.com/@capacitor/device/-/device-8.0.3.tgz#9fb49223fa0c090541d38341269a3cb45a2cabfe"
+  integrity sha512-rliPCCZwxtjU6200jJNDAsQhioyozV3fGgiP+NgRqtDOI7i+Jdz+DYNwEup+3MGZZ4NEmkuFaBeWLM3T01vJRg==
+
 "@capacitor/filesystem@^8":
   version "8.1.4"
   resolved "https://registry.yarnpkg.com/@capacitor/filesystem/-/filesystem-8.1.4.tgz#58f640e65263735d8a5ff0c2ddb74fa470442b01"

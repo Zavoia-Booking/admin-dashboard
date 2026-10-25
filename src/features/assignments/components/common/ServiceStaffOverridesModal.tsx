@@ -572,7 +572,7 @@ export function ServiceStaffOverridesModal({
     return (
       <Drawer open={isOpen} onOpenChange={(open) => !open && handleCancel()}>
         <DrawerContent
-          className="h-auto max-h-[85vh] flex flex-col bg-popover text-popover-foreground !z-80"
+          className="h-auto max-h-[min(85vh,calc(100dvh-var(--safe-top)-1.5rem))] flex flex-col bg-popover text-popover-foreground !z-80"
           overlayClassName="!z-80"
           // Same as the row drawer: keep the keyboard down on open, and keep
           // focus inside the panel rather than on the aria-hidden trigger.
@@ -677,7 +677,7 @@ export function ServiceStaffOverridesModal({
       />
       <div className="fixed inset-0 z-80 flex items-center justify-center p-4 pointer-events-none">
         <div
-          className="bg-popover overflow-hidden text-popover-foreground rounded-lg border shadow-lg max-w-2xl w-full h-[85vh] flex flex-col p-0 pointer-events-auto animate-in fade-in-0 zoom-in-95"
+          className="bg-popover overflow-hidden text-popover-foreground rounded-lg border shadow-lg max-w-2xl w-full h-[min(85vh,calc(100dvh-var(--safe-top-2x)-2rem))] flex flex-col p-0 pointer-events-auto animate-in fade-in-0 zoom-in-95"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}

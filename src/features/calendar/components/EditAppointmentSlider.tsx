@@ -57,7 +57,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "../../../shared/components/ui/dialog";
-import { Drawer, DrawerContent } from "../../../shared/components/ui/drawer";
+import { Drawer, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle } from "../../../shared/components/ui/drawer";
 import { useIsMobile } from "../../../shared/hooks/use-mobile";
 import { DashedDivider } from "../../../shared/components/common/DashedDivider";
 import { CollapsibleFormSection } from "../../../shared/components/forms/CollapsibleFormSection";
@@ -139,7 +139,7 @@ const SummaryShell: React.FC<SummaryShellProps> = ({
           onInteractOutside={guard}
           onEscapeKeyDown={guard}
           className={cn(
-            "z-[70] max-h-[92vh] bg-white dark:bg-surface border-border rounded-t-2xl overflow-hidden p-0 flex flex-col",
+            "z-[70] max-h-[min(92vh,calc(100dvh-var(--safe-top)-1.5rem))] bg-white dark:bg-surface border-border rounded-t-2xl overflow-hidden p-0 flex flex-col",
             APPOINTMENT_DIALOG_CURSOR,
           )}
           overlayClassName="z-[70]"
@@ -176,7 +176,7 @@ const SummaryShell: React.FC<SummaryShellProps> = ({
             "data-[state=open]:zoom-in-[0.97] data-[state=closed]:zoom-out-[0.97]",
             "data-[state=open]:slide-in-from-bottom-3 data-[state=closed]:slide-out-to-bottom-2",
             "data-[state=open]:duration-250 data-[state=closed]:duration-150",
-            "fixed left-[50%] top-[50%] z-[70] flex w-[calc(100%-2rem)] max-w-3xl max-h-[90vh] translate-x-[-50%] translate-y-[-50%]",
+            "fixed left-[50%] top-[50%] z-[70] flex w-[calc(100%-2rem)] max-w-3xl max-h-[min(90vh,calc(100dvh-var(--safe-top-2x)-2rem))] translate-x-[-50%] translate-y-[-50%]",
             "flex-col overflow-hidden rounded-2xl border border-border bg-white p-0 shadow-lg dark:bg-surface",
             "focus:outline-none focus-visible:outline-none",
             APPOINTMENT_DIALOG_CURSOR,
@@ -674,6 +674,117 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
   const isCompleted = displayAppointment.status === "completed";
   const isNoShow = displayAppointment.status === "no_show";
   const isTerminal = isCancelled || isCompleted || isNoShow;
+
+  // Cancel confirmation — same body and actions on every platform; the
+  // container is a bottom drawer on mobile and a centered alert dialog on
+  // desktop (see the JSX below).
+  const cancelDialogBody = (
+                <div className="space-y-4 text-left">
+                  <p className={modalBody}>
+                    {t("page.appointments.edit.cancelIntro")}
+                  </p>
+
+                  <div className="space-y-2">
+                    <div className="flex items-baseline justify-between gap-2">
+                      <Label
+                        htmlFor="cancelReason"
+                        className="text-[13px] font-semibold tracking-[-0.005em] text-neutral-800 dark:text-foreground-1"
+                      >
+                        {t("page.appointments.edit.reasonForCancellation")}
+                      </Label>
+                      <span className={modalBodyMuted + " text-[12px]"}>
+                        {t("page.appointments.edit.reasonOptional")}
+                      </span>
+                    </div>
+                    <Textarea
+                      id="cancelReason"
+                      placeholder={t("page.appointments.edit.enterCancelReason")}
+                      value={cancelReason}
+                      onChange={(e) => setCancelReason(e.target.value)}
+                      className="min-h-[88px] resize-none rounded-xl border-neutral-300 dark:border-border-subtle bg-neutral-50 dark:bg-surface text-[14px] leading-[1.5] focus-visible:ring-2 focus-visible:ring-primary-500/30"
+                    />
+                  </div>
+
+                  <div className="rounded-xl border border-neutral-200 dark:border-border-subtle bg-neutral-50/60 dark:bg-surface/60 p-4 space-y-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2.5">
+                        <Switch
+                          id="notify-customer"
+                          checked={notifyCustomer}
+                          onCheckedChange={setNotifyCustomer}
+                          className="!h-5 !w-9 !min-h-0 !min-w-0"
+                        />
+                        <Label
+                          htmlFor="notify-customer"
+                          className="text-[14px] font-medium text-neutral-800 dark:text-foreground-1"
+                        >
+                          {t("page.appointments.edit.notifyCustomer")}
+                        </Label>
+                      </div>
+                    </div>
+
+                    {notifyCustomer && (
+                      <div className="space-y-2.5">
+                        <Label className="text-[12px] font-semibold uppercase tracking-[0.06em] text-neutral-500 dark:text-foreground-3">
+                          {t("page.appointments.edit.notificationMethod")}
+                        </Label>
+                        <div className="flex flex-wrap gap-2">
+                          {(["email", "sms", "both"] as const).map((method) => {
+                            const active = notificationMethod === method;
+                            return (
+                              <button
+                                key={method}
+                                type="button"
+                                onClick={() => handleNotificationMethodSelect(method)}
+                                className={cn(
+                                  "inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[12.5px] font-medium",
+                                  "border transition-colors duration-150",
+                                  active
+                                    ? "bg-primary-500 text-white border-primary-500 hover:bg-primary-600"
+                                    : "bg-neutral-50 dark:bg-surface border-neutral-300 dark:border-border-subtle text-neutral-700 dark:text-foreground-2 hover:border-neutral-400 hover:bg-neutral-100 dark:hover:bg-surface-hover",
+                                )}
+                              >
+                                {method === "email" && <Mail className="h-3 w-3" />}
+                                {method === "sms" && <MessageSquare className="h-3 w-3" />}
+                                {method === "both" && (
+                                  <div className="flex gap-0.5">
+                                    <Mail className="h-2.5 w-2.5" />
+                                    <MessageSquare className="h-2.5 w-2.5" />
+                                  </div>
+                                )}
+                                {t(`page.appointments.edit.notificationMethods.${method}`)}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+  );
+  const cancelDialogActions = (
+    <>
+              <button
+                type="button"
+                onClick={() => {
+                  setCancelReason("");
+                  setNotifyCustomer(true);
+                  setNotificationMethod("both");
+                  setCancelDialogOpen(false);
+                }}
+                className={modalCancel}
+              >
+                {t("page.appointments.back")}
+              </button>
+              <button
+                type="button"
+                onClick={handleCancelConfirm}
+                className={modalDestructive}
+              >
+                <span>{t("page.appointments.edit.cancelAppointmentTitle")}</span>
+              </button>
+    </>
+  );
 
   return (
     <>
@@ -1608,129 +1719,53 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
             </div>
       </SummaryShell>
 
-      {/* ── Cancel Dialog ── */}
-      <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
-        <AlertDialogPortal>
-          <AlertDialogOverlay onClick={() => setCancelDialogOpen(false)} />
-          <AlertDialogPrimitive.Content
-            className={cn(modalPanel, APPOINTMENT_DIALOG_CURSOR)}
+      {/* ── Cancel Dialog — bottom drawer on mobile, centered alert dialog on desktop ── */}
+      {isMobile ? (
+        <Drawer open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
+          <DrawerContent
+            className={cn(
+              "z-[90] bg-neutral-50 dark:bg-surface px-5 pb-[calc(1rem+env(safe-area-inset-bottom,0px))]",
+              APPOINTMENT_DIALOG_CURSOR,
+            )}
+            overlayClassName="z-[90]"
           >
-            <AlertDialogHeader className="space-y-4 !text-left">
+            <DrawerHeader className="gap-4 px-0 pt-2 text-left">
               <div className={modalEyebrow}>
                 {t("page.appointments.edit.cancelEyebrow")}
               </div>
-              <AlertDialogTitle className={`${modalTitleCompact} text-left`}>
+              <DrawerTitle className={`${modalTitleCompact} text-left`}>
                 {t("page.appointments.edit.cancelConfirmTitle")}
-              </AlertDialogTitle>
-              <AlertDialogDescription asChild>
-                <div className="space-y-4 text-left">
-                  <p className={modalBody}>
-                    {t("page.appointments.edit.cancelIntro")}
-                  </p>
-
-                  <div className="space-y-2">
-                    <div className="flex items-baseline justify-between gap-2">
-                      <Label
-                        htmlFor="cancelReason"
-                        className="text-[13px] font-semibold tracking-[-0.005em] text-neutral-800 dark:text-foreground-1"
-                      >
-                        {t("page.appointments.edit.reasonForCancellation")}
-                      </Label>
-                      <span className={modalBodyMuted + " text-[12px]"}>
-                        {t("page.appointments.edit.reasonOptional")}
-                      </span>
-                    </div>
-                    <Textarea
-                      id="cancelReason"
-                      placeholder={t("page.appointments.edit.enterCancelReason")}
-                      value={cancelReason}
-                      onChange={(e) => setCancelReason(e.target.value)}
-                      className="min-h-[88px] resize-none rounded-xl border-neutral-300 dark:border-border-subtle bg-neutral-50 dark:bg-surface text-[14px] leading-[1.5] focus-visible:ring-2 focus-visible:ring-primary-500/30"
-                    />
-                  </div>
-
-                  <div className="rounded-xl border border-neutral-200 dark:border-border-subtle bg-neutral-50/60 dark:bg-surface/60 p-4 space-y-4">
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-2.5">
-                        <Switch
-                          id="notify-customer"
-                          checked={notifyCustomer}
-                          onCheckedChange={setNotifyCustomer}
-                          className="!h-5 !w-9 !min-h-0 !min-w-0"
-                        />
-                        <Label
-                          htmlFor="notify-customer"
-                          className="text-[14px] font-medium text-neutral-800 dark:text-foreground-1"
-                        >
-                          {t("page.appointments.edit.notifyCustomer")}
-                        </Label>
-                      </div>
-                    </div>
-
-                    {notifyCustomer && (
-                      <div className="space-y-2.5">
-                        <Label className="text-[12px] font-semibold uppercase tracking-[0.06em] text-neutral-500 dark:text-foreground-3">
-                          {t("page.appointments.edit.notificationMethod")}
-                        </Label>
-                        <div className="flex flex-wrap gap-2">
-                          {(["email", "sms", "both"] as const).map((method) => {
-                            const active = notificationMethod === method;
-                            return (
-                              <button
-                                key={method}
-                                type="button"
-                                onClick={() => handleNotificationMethodSelect(method)}
-                                className={cn(
-                                  "inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[12.5px] font-medium",
-                                  "border transition-colors duration-150",
-                                  active
-                                    ? "bg-primary-500 text-white border-primary-500 hover:bg-primary-600"
-                                    : "bg-neutral-50 dark:bg-surface border-neutral-300 dark:border-border-subtle text-neutral-700 dark:text-foreground-2 hover:border-neutral-400 hover:bg-neutral-100 dark:hover:bg-surface-hover",
-                                )}
-                              >
-                                {method === "email" && <Mail className="h-3 w-3" />}
-                                {method === "sms" && <MessageSquare className="h-3 w-3" />}
-                                {method === "both" && (
-                                  <div className="flex gap-0.5">
-                                    <Mail className="h-2.5 w-2.5" />
-                                    <MessageSquare className="h-2.5 w-2.5" />
-                                  </div>
-                                )}
-                                {t(`page.appointments.edit.notificationMethods.${method}`)}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-                  </div>
+              </DrawerTitle>
+              <DrawerDescription asChild>{cancelDialogBody}</DrawerDescription>
+            </DrawerHeader>
+            <DrawerFooter className={`${modalFooterRowRight} px-0 pt-4`}>
+              {cancelDialogActions}
+            </DrawerFooter>
+          </DrawerContent>
+        </Drawer>
+      ) : (
+        <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
+          <AlertDialogPortal>
+            <AlertDialogOverlay onClick={() => setCancelDialogOpen(false)} />
+            <AlertDialogPrimitive.Content
+              className={cn(modalPanel, APPOINTMENT_DIALOG_CURSOR)}
+            >
+              <AlertDialogHeader className="space-y-4 !text-left">
+                <div className={modalEyebrow}>
+                  {t("page.appointments.edit.cancelEyebrow")}
                 </div>
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter className={`${modalFooterRowRight} mt-7`}>
-              <button
-                type="button"
-                onClick={() => {
-                  setCancelReason("");
-                  setNotifyCustomer(true);
-                  setNotificationMethod("both");
-                  setCancelDialogOpen(false);
-                }}
-                className={modalCancel}
-              >
-                {t("page.appointments.back")}
-              </button>
-              <button
-                type="button"
-                onClick={handleCancelConfirm}
-                className={modalDestructive}
-              >
-                <span>{t("page.appointments.edit.cancelAppointmentTitle")}</span>
-              </button>
-            </AlertDialogFooter>
-          </AlertDialogPrimitive.Content>
-        </AlertDialogPortal>
-      </AlertDialog>
+                <AlertDialogTitle className={`${modalTitleCompact} text-left`}>
+                  {t("page.appointments.edit.cancelConfirmTitle")}
+                </AlertDialogTitle>
+                <AlertDialogDescription asChild>{cancelDialogBody}</AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter className={`${modalFooterRowRight} mt-7`}>
+                {cancelDialogActions}
+              </AlertDialogFooter>
+            </AlertDialogPrimitive.Content>
+          </AlertDialogPortal>
+        </AlertDialog>
+      )}
     </>
   );
 };

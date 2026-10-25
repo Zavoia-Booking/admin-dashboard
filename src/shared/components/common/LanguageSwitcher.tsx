@@ -4,6 +4,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Check } from 'lucide-react';
 import { Button } from '../ui/button';
 import { languages } from './languages';
+import { chooseLanguage } from '../../lib/i18n';
 
 type LanguageSwitcherVariant = "sidebar" | "floating" | "embedded";
 
@@ -28,7 +29,7 @@ export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({ variant = "s
   const currentLanguage = languages.find(lang => lang.code === i18n.resolvedLanguage) || languages[0];
 
   const handleLanguageChange = (languageCode: string) => {
-    i18n.changeLanguage(languageCode);
+    void chooseLanguage(languageCode);
   };
 
   const triggerClassName =

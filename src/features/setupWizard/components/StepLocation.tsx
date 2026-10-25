@@ -221,7 +221,7 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
         // Location doesn't have coordinates - geocode the address first
         setIsGeocodingAddress(true);
         try {
-          const geocodeResult = await maptilerGeocode(address);
+          const geocodeResult = await maptilerGeocode(address, businessCountryCode);
           
           if (geocodeResult) {
             // Successfully geocoded - use these coordinates as initial position

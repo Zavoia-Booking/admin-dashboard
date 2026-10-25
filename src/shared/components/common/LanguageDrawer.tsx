@@ -12,6 +12,7 @@ import {
 import { Button } from '../ui/button';
 import { cn } from '../../lib/utils';
 import { languages } from './languages';
+import { chooseLanguage } from '../../lib/i18n';
 
 /**
  * Language selector that opens a bottom drawer — the mobile counterpart of
@@ -25,7 +26,7 @@ export function LanguageDrawer() {
     languages.find((lang) => lang.code === i18n.resolvedLanguage) || languages[0];
 
   const selectLanguage = (code: string) => {
-    i18n.changeLanguage(code);
+    void chooseLanguage(code);
     setOpen(false);
   };
 

@@ -1,0 +1,99 @@
+name: iOS TestFlight (staging)
+
+# Signed Release build of the staging app, uploaded to TestFlight.
+# Required secrets: ASC_KEY_ID, ASC_ISSUER_ID, ASC_PRIVATE_KEY,
+# IOS_DIST_CERT_P12, IOS_DIST_CERT_PASSWORD, ENV_STAGING_NATIVE,
+# IOS_GOOGLE_SERVICE_INFO_PLIST_STAGING.
+
+# Manual only: Actions tab > "iOS TestFlight (staging)" > Run workflow, pick the
+# branch, or `gh workflow run ios-testflight-staging.yml -r <branch>`.
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: ios-testflight-staging
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: macos-26
+    timeout-minutes: 90
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: yarn
+
+      - name: Install JS dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Write env and Firebase config from secrets
+        env:
+          ENV_FILE: ${{ secrets.ENV_STAGING_NATIVE }}
+          GOOGLE_SERVICE_INFO: ${{ secrets.IOS_GOOGLE_SERVICE_INFO_PLIST_STAGING }}
+        run: |
+          if [ -z "$ENV_FILE" ]; then echo "::error::ENV_STAGING_NATIVE secret is not set"; exit 1; fi
+          if [ -z "$GOOGLE_SERVICE_INFO" ]; then echo "::error::IOS_GOOGLE_SERVICE_INFO_PLIST_STAGING secret is not set"; exit 1; fi
+          printf '%s\n' "$ENV_FILE" > .env.staging-native
+          printf '%s\n' "$GOOGLE_SERVICE_INFO" > ios/App/App/GoogleService-Info.plist
+          plutil -lint ios/App/App/GoogleService-Info.plist
+
+      - name: Build web app and sync to iOS
+        run: yarn ios:staging
+
+      - name: Cache Swift packages
+        uses: actions/cache@v4
+        with:
+          path: ios/App/SourcePackages
+          key: spm-${{ runner.os }}-${{ hashFiles('ios/App/CapApp-SPM/Package.swift') }}
+          restore-keys: spm-${{ runner.os }}-
+
+      - name: Write distribution certificate
+        env:
+          CERT_B64: ${{ secrets.IOS_DIST_CERT_P12 }}
+        run: |
+          if [ -z "$CERT_B64" ]; then echo "::error::IOS_DIST_CERT_P12 secret is not set"; exit 1; fi
+          echo "$CERT_B64" | base64 --decode > "$RUNNER_TEMP/dist.p12"
+
+      - name: Resolve Swift packages
+        # Done up front so fastlane's build-settings probe does not wait on a
+        # cold package resolution and time out.
+        working-directory: ios/App
+        run: xcodebuild -resolvePackageDependencies -project App.xcodeproj -scheme App -clonedSourcePackagesDirPath SourcePackages
+
+      - name: Build and upload to TestFlight
+        working-directory: ios/App
+        env:
+          FASTLANE_XCODEBUILD_SETTINGS_TIMEOUT: "120"
+          FASTLANE_XCODEBUILD_SETTINGS_RETRIES: "3"
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+          IOS_DIST_CERT_P12_PATH: ${{ runner.temp }}/dist.p12
+          IOS_DIST_CERT_PASSWORD: ${{ secrets.IOS_DIST_CERT_PASSWORD }}
+          BUILD_NUMBER: ${{ github.run_number }}
+          FASTLANE_SKIP_UPDATE_CHECK: "1"
+          FASTLANE_HIDE_CHANGELOG: "1"
+        run: |
+          xcodebuild -version
+          fastlane --version
+          fastlane ios staging
+
+      - name: Upload IPA and logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-staging-build
+          path: |
+            ios/App/build/*.ipa
+            ios/App/build/*.dSYM.zip
+            ~/Library/Logs/gym/*.log
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Remove temporary keychain
+        if: always()
+        run: security delete-keychain zavoia-ci.keychain-db || true

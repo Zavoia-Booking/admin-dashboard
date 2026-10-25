@@ -391,7 +391,7 @@ export const MobileCalendarHeader: FC<MobileCalendarHeaderProps> = ({
           />
           {/* Search panel */}
           <div
-            className={`relative z-[95] bg-white dark:bg-surface px-3 pt-3 pb-3 shadow-lg transition-all duration-250 ease-out ${
+            className={`relative z-[95] bg-white dark:bg-surface px-3 pt-[calc(0.75rem+var(--safe-top))] pb-3 shadow-lg transition-all duration-250 ease-out ${
               customerSearchVisible
                 ? "translate-y-0 opacity-100"
                 : "-translate-y-full opacity-0"

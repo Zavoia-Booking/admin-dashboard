@@ -11,6 +11,7 @@ import { useTranslation } from 'react-i18next';
 import { useDispatch } from 'react-redux';
 import { cn } from '../../lib/utils';
 import { applyTheme } from '../../lib/theme';
+import { chooseLanguage } from '../../lib/i18n';
 import { useRef, useState } from 'react';
 import { logoutRequestAction } from '../../../features/auth/actions';
 import { useAppNavigation } from './navigation-model';
@@ -64,7 +65,7 @@ export function MobileBottomNav() {
   const cycleLang = () => {
     const idx = languages.findIndex(l => l.code === i18n.resolvedLanguage);
     const next = languages[(idx + 1) % languages.length];
-    i18n.changeLanguage(next.code);
+    void chooseLanguage(next.code);
   };
 
   const moreIsActive = isOpen || mobileMoreItems.some((item) => item.isActive);
