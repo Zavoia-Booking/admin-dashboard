@@ -5,20 +5,10 @@ name: iOS TestFlight (staging)
 # IOS_DIST_CERT_P12, IOS_DIST_CERT_PASSWORD, ENV_STAGING_NATIVE,
 # IOS_GOOGLE_SERVICE_INFO_PLIST_STAGING.
 
+# Manual only: Actions tab > "iOS TestFlight (staging)" > Run workflow, pick the
+# branch, or `gh workflow run ios-testflight-staging.yml -r <branch>`.
 on:
   workflow_dispatch:
-  push:
-    # ios-build is temporary while the pipeline is being brought up.
-    branches: [staging, ios-build]
-    paths:
-      - 'ios/**'
-      - 'src/**'
-      - 'package.json'
-      - 'yarn.lock'
-      - 'capacitor.config.ts'
-      - 'vite.config.ts'
-      - 'tsconfig*.json'
-      - '.github/workflows/ios-testflight-staging.yml'
 
 concurrency:
   group: ios-testflight-staging
