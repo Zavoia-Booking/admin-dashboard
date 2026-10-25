@@ -1,6 +1,7 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
+import { Device } from '@capacitor/device';
 import config from '../../app/config/env';
 
 // Mobile overlay bundles — only loaded when running in a Capacitor native container.
@@ -63,6 +64,17 @@ import roBusiness from '../../locales/ro/business.json';
 import enLocationMarketplaceDetails from '../../locales/en/locationMarketplaceDetails.json';
 import roLocationMarketplaceDetails from '../../locales/ro/locationMarketplaceDetails.json';
 import enIndustries from '../../locales/en/industries.json';
+
+/** localStorage key holding the user's explicit language pick (absent until they make one). */
+const LANGUAGE_CHOICE_KEY = 'zavoia.language';
+
+function storedLanguageChoice(): string | null {
+  try {
+    return localStorage.getItem(LANGUAGE_CHOICE_KEY);
+  } catch {
+    return null;
+  }
+}
 import roIndustries from '../../locales/ro/industries.json';
 
 const resources = {
@@ -128,6 +140,10 @@ i18n
   .init({
     resources,
     fallbackLng: 'en',
+    supportedLngs: ['en', 'ro'],
+    // "ro-RO" (browser/device) resolves to the bare "ro" resource.
+    nonExplicitSupportedLngs: true,
+    load: 'languageOnly',
     // Keep development consoles actionable. Set VITE_I18N_DEBUG=true only while
     // investigating translations instead of logging every initialization and fallback.
     debug: config.IS_DEV && import.meta.env.VITE_I18N_DEBUG === 'true',
@@ -136,9 +152,14 @@ i18n
       escapeValue: false, // React already does escaping
     },
 
+    // Language precedence: the user's explicit pick (chooseLanguage) for good,
+    // otherwise the device. Nothing is cached on detection, so an untouched app
+    // keeps following the device; on native the device language is read from
+    // the OS below (languageReady), on the web from the browser.
     detection: {
       order: ['localStorage', 'navigator', 'htmlTag'],
-      caches: ['localStorage'],
+      lookupLocalStorage: LANGUAGE_CHOICE_KEY,
+      caches: [],
     },
   });
 
@@ -165,5 +186,31 @@ if (config.IS_NATIVE) {
     }
   }
 }
+
+/** An explicit pick from a language switcher: applied now and kept over the device language. */
+export function chooseLanguage(code: string) {
+  try {
+    localStorage.setItem(LANGUAGE_CHOICE_KEY, code);
+  } catch {
+    // Storage unavailable: the pick still applies for this session.
+  }
+  return i18n.changeLanguage(code);
+}
+
+/**
+ * Native apps: until the user picks a language, use the phone's, read from the
+ * OS (Capacitor Device) rather than the WebView's navigator.language, which
+ * iOS doesn't keep reliably in step with the device. main.tsx renders once
+ * this settles, so the first frame is already in the right language.
+ */
+export const languageReady: Promise<void> =
+  config.IS_NATIVE && !storedLanguageChoice()
+    ? Device.getLanguageCode()
+        .then(({ value }) => i18n.changeLanguage(value.slice(0, 2).toLowerCase()))
+        .then(
+          () => undefined,
+          () => undefined,
+        )
+    : Promise.resolve();
 
 export default i18n;

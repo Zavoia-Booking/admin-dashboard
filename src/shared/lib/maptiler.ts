@@ -9,17 +9,34 @@ function getToken(): string | undefined {
   return (import.meta as any).env?.VITE_MAPTILER_API_KEY;
 }
 
+// Addresses are stored in the business country's own language ("București", not
+// "Bucharest"), whatever language the dashboard is in: that's how addresses are
+// written locally, and admin-api's city key (utils/city.ts normalizeCityKey) and
+// the marketplace app's city filter rely on the local name. MapTiler's default
+// language depends on the request shape, so it is always pinned explicitly.
+const COUNTRY_LANGUAGE: Record<string, string> = {
+  ro: 'ro', md: 'ro', bg: 'bg', hu: 'hu', de: 'de', at: 'de', fr: 'fr', it: 'it', es: 'es',
+  pt: 'pt', nl: 'nl', pl: 'pl', cz: 'cs', gb: 'en', ie: 'en', us: 'en',
+};
+
+/** `&language=` for a single known country, else nothing (MapTiler's default). */
+function localLanguageParam(countryCodes?: (string | null | undefined)[]): string {
+  const codes = (countryCodes ?? []).filter(Boolean).map((c) => String(c).toLowerCase());
+  const lang = codes.length === 1 ? COUNTRY_LANGUAGE[codes[0]] : undefined;
+  return lang ? `&language=${lang}` : '';
+}
+
 /**
  * Forward geocoding: Convert address string to coordinates
  */
-export async function maptilerGeocode(address: string): Promise<{ lat: number; lon: number; display_name: string; address: any } | null> {
+export async function maptilerGeocode(address: string, countryCode?: string | null): Promise<{ lat: number; lon: number; display_name: string; address: any } | null> {
   const token = getToken();
   if (!token) {
     console.warn('[MapTiler] Missing VITE_MAPTILER_API_KEY. Geocoding disabled.');
     return null;
   }
 
-  const url = `${BASE_URL}/${encodeURIComponent(address)}.json?key=${token}&limit=1`;
+  const url = `${BASE_URL}/${encodeURIComponent(address)}.json?key=${token}&limit=1${localLanguageParam([countryCode])}`;
 
   try {
     const res = await fetch(url);
@@ -125,6 +142,7 @@ export async function maptilerAutocomplete(params: {
     // MapTiler uses 'country' param with comma-separated ISO codes
     url += `&country=${params.countryCodes.join(',')}`;
   }
+  url += localLanguageParam(params.countryCodes);
 
   try {
     const res = await fetch(url);

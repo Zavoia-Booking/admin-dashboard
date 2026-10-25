@@ -7,7 +7,7 @@ import { Provider } from 'react-redux'
 import { store } from './app/providers/store.ts'
 import { GoogleOAuthProvider } from '@react-oauth/google'
 import { AppErrorBoundary } from './shared/components/common/AppErrorBoundary.tsx'
-import './shared/lib/i18n'
+import { languageReady } from './shared/lib/i18n'
 import { syncSystemBarsWithTheme } from './shared/lib/theme'
 import { pinStableSafeAreaTop } from './shared/lib/safeArea'
 import { wireAndroidBackButton } from './shared/lib/backButton'
@@ -50,7 +50,9 @@ wireKeyboardTransitionFreeze()
 
 const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
 
-createRoot(document.getElementById('root')!).render(
+// Native: wait for the device language (a single quick native call) so the
+// first frame isn't rendered in the wrong language.
+void languageReady.then(() => createRoot(document.getElementById('root')!).render(
   <AppErrorBoundary>
     <Provider store={store}>
       <GoogleOAuthProvider clientId={googleClientId}>
@@ -58,4 +60,4 @@ createRoot(document.getElementById('root')!).render(
       </GoogleOAuthProvider>
     </Provider>
   </AppErrorBoundary>
-)
+))

@@ -238,7 +238,7 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
     } else {
       setIsGeocodingAddress(true);
       try {
-        const geocodeResult = await maptilerGeocode(address);
+        const geocodeResult = await maptilerGeocode(address, businessCountryCode);
 
         if (geocodeResult) {
           const geocodedCoords: [number, number] = [
