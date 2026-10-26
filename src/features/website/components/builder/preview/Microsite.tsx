@@ -8,8 +8,8 @@ import { cn } from "../../../../../shared/lib/utils";
 
 import "./shared/animations.css";
 import { UNNUMBERED } from "./shared/constants";
-import { findScrollParent, prefersReducedMotion } from "./shared/util";
-import { PreviewAtRestContext, StaticPreviewContext, useFooterReveal } from "./shared/hooks";
+import { findScrollParent } from "./shared/util";
+import { PreviewAtRestContext, StaticPreviewContext, useFooterReveal, useReducedMotionPreference } from "./shared/hooks";
 import {
   AnnouncementBar,
   normalizeAnnouncementLayout,
@@ -147,7 +147,7 @@ function LivePreviewImpl({
   const rootRef = useRef<HTMLDivElement>(null);
   const footerRef = useRef<HTMLElement>(null);
   const [scrollProgress, setScrollProgress] = useState(0);
-  const reducedMotion = prefersReducedMotion();
+  const reducedMotion = useReducedMotionPreference();
   // Static snapshot (ScaledPreview): page at rest — nav un-frosted over the hero, no scroll-jack/parallax.
   const staticPreview = useContext(StaticPreviewContext);
   // Settled-but-scrollable (the phone's scaled-down desktop mock): heavy self-running motion parks; the

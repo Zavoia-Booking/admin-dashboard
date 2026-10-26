@@ -46,10 +46,11 @@ export function Deck({ quotes, showHeading, heading, kicker, no, italic, busines
   const n = quotes.length;
   const reduced = useReducedMotion();
   const [hover, setHover] = useState(false);
-  const [vw, setVw] = useState(() => (typeof window !== "undefined" ? window.innerWidth : 1200));
+  const [vw, setVw] = useState(1200);
   const deckRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const on = () => setVw(window.innerWidth);
+    on();
     window.addEventListener("resize", on);
     return () => window.removeEventListener("resize", on);
   }, []);

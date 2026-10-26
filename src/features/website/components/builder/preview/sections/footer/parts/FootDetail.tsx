@@ -1,15 +1,16 @@
 import { useEffect, useState } from "react";
 import type { WebsiteBuilderLocation } from "../../../../../../types";
 import { DAY_KEYS, prettyAddress, hasOpeningHours, telHref, mapHref, type DayKey } from "../../../shared/contact";
-import { prefersReducedMotion } from "../../../shared/util";
+import { useReducedMotion } from "../../../shared/hooks";
 import type { T } from "../../../shared/types";
 
 /** Editorial's selected-location detail. The parent keys it by location so the restrained row entrance
  * replays on every selection, exactly like the executable design. */
 export function FootDetail({ loc, t }: { loc: WebsiteBuilderLocation; t: T }) {
-  const [entering, setEntering] = useState(() => !prefersReducedMotion());
+  const reduced = useReducedMotion();
+  const [entering, setEntering] = useState(true);
   useEffect(() => {
-    if (!entering) return;
+    if (!entering || reduced) return;
     let secondFrame = 0;
     const firstFrame = window.requestAnimationFrame(() => {
       secondFrame = window.requestAnimationFrame(() => setEntering(false));
@@ -20,7 +21,7 @@ export function FootDetail({ loc, t }: { loc: WebsiteBuilderLocation; t: T }) {
       window.cancelAnimationFrame(secondFrame);
       window.clearTimeout(fallback);
     };
-  }, [entering]);
+  }, [entering, reduced]);
 
   const address = loc.address?.trim() || prettyAddress(loc);
   const map = mapHref(loc);
@@ -46,7 +47,7 @@ export function FootDetail({ loc, t }: { loc: WebsiteBuilderLocation; t: T }) {
   }, []);
 
   return (
-    <div className={`mc-foot-col mc-foot-detail${entering ? " is-entering" : ""}`}>
+    <div className={`mc-foot-col mc-foot-detail${entering && !reduced ? " is-entering" : ""}`}>
       <div className="mc-foot-label">{loc.name}</div>
       {address && (map ? (
         <a className="mc-foot-row mc-foot-link" href={map} target="_blank" rel="noopener noreferrer">

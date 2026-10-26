@@ -1,5 +1,20 @@
-import { createContext, useContext, useEffect, useLayoutEffect, useState } from "react";
+import { createContext, useContext, useEffect, useLayoutEffect, useState, useSyncExternalStore } from "react";
 import { findScrollParent, prefersReducedMotion } from "./util";
+
+const motionQuery = "(prefers-reduced-motion: reduce)";
+const serverReducedMotion = () => false;
+
+function subscribeReducedMotion(onChange: () => void) {
+  const media = window.matchMedia?.(motionQuery);
+  if (!media) return () => undefined;
+  media.addEventListener("change", onChange);
+  return () => media.removeEventListener("change", onChange);
+}
+
+/** OS-only preference for chrome that applies its preview scopes separately. */
+export function useReducedMotionPreference(): boolean {
+  return useSyncExternalStore(subscribeReducedMotion, prefersReducedMotion, serverReducedMotion);
+}
 
 /** True inside a static snapshot of the page (ScaledPreview: mobile peek, locked-view teaser, variant
  *  thumbnails). Those render the page scaled-down and non-interactive, so nothing in them should move. */
@@ -18,7 +33,9 @@ export const PreviewAtRestContext = createContext(false);
 export function useReducedMotion(): boolean {
   const staticPreview = useContext(StaticPreviewContext);
   const atRest = useContext(PreviewAtRestContext);
-  return staticPreview || atRest || prefersReducedMotion();
+  // Reuse the server value during hydration, then subscribe to the actual OS preference.
+  const reduced = useReducedMotionPreference();
+  return staticPreview || atRest || reduced;
 }
 
 /** IntersectionObserver gate (F5): tracks whether `ref` is in view (continuously, so callers can pause motion
