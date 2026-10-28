@@ -8,6 +8,7 @@ import { useBreadcrumbs } from '../../hooks/useBreadcrumbs';
 import { LimitedAccessBanner } from '../common/subscription/LimitedAccessBanner';
 import { HeaderRightSlotProvider, useHeaderRightSlotValue, useHeaderTitleSlotValue } from './HeaderRightSlot';
 import { APP_SCROLL_CONTAINER_ATTR } from '../../utils/scroll';
+import { holdIosRootScrollLock } from '../../lib/iosRootScrollLock';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -77,6 +78,9 @@ function AppLayoutInner({ children, contentClassName, headerRightContent, noPadd
     observer.observe(bottomNav, { box: 'border-box' });
     return () => observer.disconnect();
   }, [isMobile]);
+
+  // iOS: keep the keyboard from scrolling the whole web view on input focus.
+  useEffect(() => holdIosRootScrollLock(), []);
 
   useEffect(() => {
     // remove the inline background colors set in index.html
