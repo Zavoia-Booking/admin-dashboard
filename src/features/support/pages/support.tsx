@@ -20,6 +20,12 @@ import {
   DialogDescription,
 } from "../../../shared/components/ui/dialog";
 import {
+  Drawer,
+  DrawerContent,
+  DrawerTitle,
+  DrawerDescription,
+} from "../../../shared/components/ui/drawer";
+import {
   listTicketsAction,
   getTicketByIdAction,
   createTicketAction,
@@ -474,6 +480,7 @@ function NewTicketDialog({
   onSubmit: (category: TicketCategory, message: string) => void;
 }) {
   const { t } = useTranslation("support");
+  const isMobile = useIsMobile();
   const [category, setCategory] = useState<TicketCategory>("question");
   const [message, setMessage] = useState("");
 
@@ -489,6 +496,111 @@ function NewTicketDialog({
       setMessage("");
     }
   }, [open]);
+
+  const formBody = (
+    <div className="px-5 py-5 sm:px-6 space-y-5">
+      {/* Category */}
+      <div className="space-y-2">
+        <label className="text-sm font-medium text-foreground-1">{t("dialog.categoryLabel")}</label>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setCategory("question")}
+            className={cn(
+              "flex-1 flex items-center justify-center gap-2 rounded-full !px-3 !py-1.5 !min-h-0 !h-auto text-sm font-medium border transition-colors cursor-pointer",
+              category === "question"
+                ? "bg-primary/10 text-primary border-primary/20 font-semibold"
+                : "border-border bg-surface text-foreground-2 hover:bg-surface-hover",
+            )}
+          >
+            <HelpCircle className="h-4 w-4" />
+            {t("category.question")}
+          </button>
+          <button
+            type="button"
+            onClick={() => setCategory("bug")}
+            className={cn(
+              "flex-1 flex items-center justify-center gap-2 rounded-full !px-3 !py-1.5 !min-h-0 !h-auto text-sm font-medium border transition-colors cursor-pointer",
+              category === "bug"
+                ? "bg-primary/10 text-primary border-primary/20 font-semibold"
+                : "border-border bg-surface text-foreground-2 hover:bg-surface-hover",
+            )}
+          >
+            <Bug className="h-4 w-4" />
+            {t("category.bugReport")}
+          </button>
+        </div>
+      </div>
+
+      {/* Message */}
+      <div className="space-y-2">
+        <label className="text-sm font-medium text-foreground-1">{t("dialog.messageLabel")}</label>
+        <Textarea
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          placeholder={t("dialog.messagePlaceholder")}
+          className="min-h-32 resize-none transition-all focus-visible:ring-1 focus-visible:ring-offset-0 border-border hover:border-border-strong focus:border-focus focus-visible:ring-focus"
+          maxLength={10000}
+        />
+      </div>
+    </div>
+  );
+
+  const submitLabel = isCreating ? (
+    <Spinner size="sm" color="white" />
+  ) : (
+    <>
+      {t("ticket.submitTicket")}
+      <Send className="h-4 w-4 transition-transform duration-300 ease-out group-hover:translate-x-0.5" />
+    </>
+  );
+
+  // Mobile: bottom sheet with stacked full-width actions, submit on top.
+  // repositionInputs off: iOS already resizes the web view for the keyboard.
+  if (isMobile) {
+    return (
+      <Drawer open={open} onOpenChange={onOpenChange} repositionInputs={false} autoFocus>
+        <DrawerContent className="!bg-surface">
+          <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+            <div className="px-5 pt-4 pb-4 space-y-1 text-left">
+              <DrawerTitle className="text-lg font-semibold text-foreground-1">
+                {t("dialog.title")}
+              </DrawerTitle>
+              <DrawerDescription className="text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed">
+                {t("dialog.description")}
+              </DrawerDescription>
+            </div>
+
+            <div className="h-px bg-border dark:bg-border-strong" />
+
+            <div className="min-h-0 flex-1 overflow-y-auto">{formBody}</div>
+
+            <div className="h-px bg-border dark:bg-border-strong" />
+
+            <div className="flex flex-col gap-2 px-5 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+              <Button
+                type="submit"
+                rounded="full"
+                disabled={!message.trim() || isCreating}
+                className="group h-11 w-full cursor-pointer gap-2"
+              >
+                {submitLabel}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                rounded="full"
+                onClick={() => onOpenChange(false)}
+                className="h-11 w-full cursor-pointer"
+              >
+                {t("dialog.cancel")}
+              </Button>
+            </div>
+          </form>
+        </DrawerContent>
+      </Drawer>
+    );
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -509,53 +621,7 @@ function NewTicketDialog({
           {/* Divider */}
           <div className="h-px bg-border dark:bg-border-strong" />
 
-          {/* Form body */}
-          <div className="px-5 py-5 sm:px-6 space-y-5">
-            {/* Category */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground-1">{t("dialog.categoryLabel")}</label>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setCategory("question")}
-                  className={cn(
-                    "flex-1 flex items-center justify-center gap-2 rounded-full !px-3 !py-1.5 !min-h-0 !h-auto text-sm font-medium border transition-colors cursor-pointer",
-                    category === "question"
-                      ? "bg-primary/10 text-primary border-primary/20 font-semibold"
-                      : "border-border bg-surface text-foreground-2 hover:bg-surface-hover",
-                  )}
-                >
-                  <HelpCircle className="h-4 w-4" />
-                  {t("category.question")}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setCategory("bug")}
-                  className={cn(
-                    "flex-1 flex items-center justify-center gap-2 rounded-full !px-3 !py-1.5 !min-h-0 !h-auto text-sm font-medium border transition-colors cursor-pointer",
-                    category === "bug"
-                      ? "bg-primary/10 text-primary border-primary/20 font-semibold"
-                      : "border-border bg-surface text-foreground-2 hover:bg-surface-hover",
-                  )}
-                >
-                  <Bug className="h-4 w-4" />
-                  {t("category.bugReport")}
-                </button>
-              </div>
-            </div>
-
-            {/* Message */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground-1">{t("dialog.messageLabel")}</label>
-              <Textarea
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                placeholder={t("dialog.messagePlaceholder")}
-                className="min-h-32 resize-none transition-all focus-visible:ring-1 focus-visible:ring-offset-0 border-border hover:border-border-strong focus:border-focus focus-visible:ring-focus"
-                maxLength={10000}
-              />
-            </div>
-          </div>
+          {formBody}
 
           {/* Divider */}
           <div className="h-px bg-border dark:bg-border-strong" />
@@ -577,14 +643,7 @@ function NewTicketDialog({
               disabled={!message.trim() || isCreating}
               className="group h-11 flex-1 cursor-pointer gap-2"
             >
-              {isCreating ? (
-                <Spinner size="sm" color="white" />
-              ) : (
-                <>
-                  {t("ticket.submitTicket")}
-                  <Send className="h-4 w-4 transition-transform duration-300 ease-out group-hover:translate-x-0.5" />
-                </>
-              )}
+              {submitLabel}
             </Button>
           </div>
         </form>

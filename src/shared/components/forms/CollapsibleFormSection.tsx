@@ -22,6 +22,20 @@ export interface CollapsibleFormSectionProps {
   iconColor?: string;
   /** Tighter trigger + spacing for dense panels (e.g. appointment details). */
   compact?: boolean;
+  /** When opened by the user, scroll the nearest scrollable ancestor so the expanded section is visible. */
+  scrollIntoViewOnOpen?: boolean;
+}
+
+function getScrollParent(el: HTMLElement | null): HTMLElement | null {
+  let node = el?.parentElement ?? null;
+  while (node) {
+    const { overflowY } = getComputedStyle(node);
+    if ((overflowY === 'auto' || overflowY === 'scroll') && node.scrollHeight > node.clientHeight) {
+      return node;
+    }
+    node = node.parentElement;
+  }
+  return null;
 }
 
 export const CollapsibleFormSection: React.FC<CollapsibleFormSectionProps> = ({
@@ -36,10 +50,13 @@ export const CollapsibleFormSection: React.FC<CollapsibleFormSectionProps> = ({
   iconColor = 'text-primary',
   defaultOpen = false,
   compact = false,
+  scrollIntoViewOnOpen = false,
 }) => {
   const isMobile = useIsMobile();
   const contentRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const pendingScrollRef = useRef(false);
   const [closing, setClosing] = useState(false);
   const [expandStarted, setExpandStarted] = useState(false);
   const wasOpenRef = useRef(false);
@@ -87,9 +104,34 @@ export const CollapsibleFormSection: React.FC<CollapsibleFormSectionProps> = ({
     }
   }, [contentRendered, closing, open, expandStarted, updateHeight]);
 
+  const handleOpenChange = useCallback(
+    (next: boolean) => {
+      pendingScrollRef.current = scrollIntoViewOnOpen && next;
+      onOpenChange(next);
+    },
+    [onOpenChange, scrollIntoViewOnOpen],
+  );
+
+  // Scroll in step with the expand animation: target where the section's bottom will land once
+  // fully open, but never push its header above the top of the scroll area.
+  useEffect(() => {
+    if (!expandStarted || !pendingScrollRef.current) return;
+    pendingScrollRef.current = false;
+    const root = rootRef.current;
+    const scroller = getScrollParent(root);
+    if (!root || !scroller) return;
+    const rootRect = root.getBoundingClientRect();
+    const scrollerRect = scroller.getBoundingClientRect();
+    const remaining = (innerRef.current?.offsetHeight ?? 0) - (contentRef.current?.offsetHeight ?? 0);
+    const overflowBottom = rootRect.bottom + remaining - scrollerRect.bottom;
+    const maxDelta = rootRect.top - scrollerRect.top;
+    const delta = Math.min(overflowBottom, maxDelta);
+    if (delta > 0) scroller.scrollBy({ top: delta, behavior: 'smooth' });
+  }, [expandStarted]);
+
   return (
-    <Collapsible open={open} onOpenChange={onOpenChange} defaultOpen={defaultOpen}>
-      <div className={cn(compact ? 'space-y-2' : 'space-y-4', className)}>
+    <Collapsible open={open} onOpenChange={handleOpenChange} defaultOpen={defaultOpen}>
+      <div ref={rootRef} className={cn(compact ? 'space-y-2' : 'space-y-4', className)}>
         <CollapsibleTrigger className="w-full cursor-pointer mb-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-2 focus-visible:ring-offset-0 rounded-md focus-visible:border transition-colors">
           <div
             className={cn(

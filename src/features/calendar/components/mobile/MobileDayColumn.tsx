@@ -40,6 +40,8 @@ interface MobileDayColumnProps {
   onFilter: () => void;
   onAppointmentTap: (appt: SlimAppointment) => void;
   onBlockTap: (block: CalendarBlockDto) => void;
+  /** Empty-slot tap → create an appointment at that time. */
+  onSlotClick?: (hour: number, minute?: number, columnId?: number) => void;
   /** Optional header slot — when provided, replaces the default `MobileDayColumnHeader`. Useful for the shared gutter. */
   headerSlot?: ReactNode;
   /** Label for the Unassigned column fallback. */
@@ -79,6 +81,7 @@ export const MobileDayColumn: FC<MobileDayColumnProps> = memo(({
   onFilter,
   onAppointmentTap,
   onBlockTap,
+  onSlotClick,
   headerSlot,
   unassignedLabel,
   gridSlotStarts,
@@ -140,6 +143,7 @@ export const MobileDayColumn: FC<MobileDayColumnProps> = memo(({
               dndActive={dndActive}
               isPast={isPast}
               inDurationRange={durationHighlightSlotIds?.has(slotId) ?? false}
+              onSlotClick={onSlotClick}
             />
           );
         })}

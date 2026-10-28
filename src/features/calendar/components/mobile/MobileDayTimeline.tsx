@@ -31,9 +31,11 @@ import {
   getLocationOpen247,
   getDayAppointments,
   getDayBlocks,
+  getDayData,
 } from "../../selectors";
 import {
   toggleEditFormAction,
+  toggleAddForm,
   setScrollToNow,
   setStaffFilter,
   setCalendarPendingDrop,
@@ -126,6 +128,7 @@ export const MobileDayTimeline: FC = () => {
   const open247 = useSelector(getLocationOpen247);
   const dayAppointments = useSelector(getDayAppointments);
   const dayBlocks = useSelector(getDayBlocks);
+  const hasDayData = useSelector(getDayData) != null;
   const bufferTimeMinutes = bookingSettings?.bufferTimeMinutes ?? 0;
   const dayWorkingHours = timeline.dayWorkingHours;
 
@@ -187,8 +190,11 @@ export const MobileDayTimeline: FC = () => {
   }, []);
 
   // Same "scroll to now" behavior as desktop — only when the explicit flag is set.
+  // Waits for day data: on first mount `isDayLoading` is still false before the
+  // fetch starts, and consuming the flag then is lost when the skeleton swaps in
+  // and the grid remounts at the top.
   useLayoutEffect(() => {
-    if (!scrollToNow || !timeline.isToday || list.isDayLoading) return;
+    if (!scrollToNow || !timeline.isToday || list.isDayLoading || !hasDayData) return;
     const el = containerRef.current;
     if (!el) return;
     const scroller = findScrollParent(el);
@@ -196,7 +202,27 @@ export const MobileDayTimeline: FC = () => {
     const target = Math.max(0, timeline.nowGutterTop + MOBILE_HEADER_OFFSET - scroller.clientHeight / 2);
     scroller.scrollTop = target;
     dispatch(setScrollToNow(false));
-  }, [scrollToNow, timeline.isToday, list.isDayLoading, timeline.nowGutterTop, dispatch]);
+  }, [scrollToNow, timeline.isToday, list.isDayLoading, hasDayData, timeline.nowGutterTop, dispatch]);
+
+  // Tap an empty slot → open the add form prefilled with that time and staff, like desktop.
+  // Column id 0 is the unassigned column.
+  const handleSlotClick = useCallback(
+    (hour: number, minute?: number, columnId?: number) => {
+      const hh = String(hour).padStart(2, "0");
+      const mm = String(minute ?? 0).padStart(2, "0");
+      dispatch(
+        toggleAddForm({
+          open: true,
+          prefill: {
+            date: selectedDate,
+            time: `${hh}:${mm}`,
+            staffUserId: columnId ? columnId : undefined,
+          },
+        }),
+      );
+    },
+    [dispatch, selectedDate],
+  );
 
   const handleAppointmentTap = useCallback(
     (appt: SlimAppointment) => {
@@ -873,6 +899,7 @@ export const MobileDayTimeline: FC = () => {
                     onFilter={() => col.staff && handleColumnFilter(col.staff.id)}
                     onAppointmentTap={handleAppointmentTap}
                     onBlockTap={handleBlockTap}
+                    onSlotClick={handleSlotClick}
                     unassignedLabel={unassignedLabel}
                     headerSlot={<></>}
                     gridSlotStarts={isInactiveDragColumn ? undefined : dayGridSlotStarts}

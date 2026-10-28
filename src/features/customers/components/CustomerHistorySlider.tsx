@@ -3,6 +3,9 @@ import { useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import { toast } from 'sonner';
+import { Capacitor } from '@capacitor/core';
+import { Directory, Filesystem } from '@capacitor/filesystem';
+import { Share } from '@capacitor/share';
 import { History, Loader2, MapPin, Clock, ChevronDown, Download } from 'lucide-react';
 import { BaseSlider } from '../../../shared/components/common/BaseSlider';
 import { Button } from '../../../shared/components/ui/button';
@@ -22,6 +25,35 @@ import type {
   MilestoneActivityMetadata,
   CustomersPagination,
 } from '../../../shared/types/customer';
+
+function blobToBase64(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result).split(',')[1] ?? '');
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(blob);
+  });
+}
+
+/** Native WebViews ignore `<a download>`: write the PDF to the cache and hand it to the system
+ * share sheet, which offers Save to Files / Drive, AirDrop, mail, etc. */
+async function shareNativePdf(blob: Blob, filename: string, title: string): Promise<void> {
+  const { uri } = await Filesystem.writeFile({
+    path: `customer-history/${filename}`,
+    data: await blobToBase64(blob),
+    directory: Directory.Cache,
+    recursive: true,
+    // Omit encoding: the native plugins decode base64 into PDF bytes.
+  });
+  try {
+    await Share.share({ files: [uri], title, dialogTitle: title });
+  } catch (err) {
+    // Dismissing the share sheet is not a failure.
+    const message = (err as { message?: string } | null)?.message ?? '';
+    if (/cancel(?:l)?ed/i.test(message)) return;
+    throw err;
+  }
+}
 
 function sanitizeFilenameSegment(value: string | undefined): string {
   if (!value) return '';
@@ -225,10 +257,15 @@ const CustomerHistorySlider: React.FC<CustomerHistorySliderProps> = ({
           contactNotProvided: t('details.notProvided'),
         },
       });
+      const filename = buildHistoryPdfFilename(customerId, customerFirstName, customerLastName);
+      if (Capacitor.isNativePlatform()) {
+        await shareNativePdf(pdfBlob, filename, heading);
+        return;
+      }
       const pdfUrl = URL.createObjectURL(pdfBlob);
       const link = document.createElement('a');
       link.href = pdfUrl;
-      link.download = buildHistoryPdfFilename(customerId, customerFirstName, customerLastName);
+      link.download = filename;
       document.body.appendChild(link);
       link.click();
       link.remove();

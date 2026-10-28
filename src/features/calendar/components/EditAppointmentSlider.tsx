@@ -1389,6 +1389,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                     <CollapsibleFormSection
                       title={t("page.appointments.edit.services", { count: serviceDetailItems.length })}
                       compact
+                      scrollIntoViewOnOpen
                       description={t("page.appointments.edit.bookedServiceDescription")}
                       open={accServicesOpen}
                       onOpenChange={setAccServicesOpen}
@@ -1485,6 +1486,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                   <CollapsibleFormSection
                     title={t("page.appointments.edit.activity")}
                     compact
+                    scrollIntoViewOnOpen
                     description={t("page.appointments.edit.activityDescription")}
                     open={accHistoryOpen}
                     onOpenChange={setAccHistoryOpen}
@@ -1542,6 +1544,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                     <CollapsibleFormSection
                       title={t("page.appointments.edit.locationDetails")}
                       compact
+                      scrollIntoViewOnOpen
                       description={t("page.appointments.edit.locationDetailsDescription")}
                       open={accLocationOpen}
                       onOpenChange={setAccLocationOpen}
@@ -1704,6 +1707,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                     <CollapsibleFormSection
                       title={t("page.appointments.edit.cancellation")}
                       compact
+                      scrollIntoViewOnOpen
                       description={t("page.appointments.edit.cancellationDescription")}
                       open={accCancellationOpen}
                       onOpenChange={setAccCancellationOpen}
@@ -1721,7 +1725,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
 
       {/* ── Cancel Dialog — bottom drawer on mobile, centered alert dialog on desktop ── */}
       {isMobile ? (
-        <Drawer open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
+        <Drawer open={cancelDialogOpen} onOpenChange={setCancelDialogOpen} repositionInputs={false}>
           <DrawerContent
             className={cn(
               "z-[90] bg-neutral-50 dark:bg-surface px-5 pb-[calc(1rem+env(safe-area-inset-bottom,0px))]",

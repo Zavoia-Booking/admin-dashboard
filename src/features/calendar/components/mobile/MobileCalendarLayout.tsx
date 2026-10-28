@@ -198,9 +198,12 @@ export const MobileCalendarLayout: FC<MobileCalendarLayoutProps> = ({
       {/* Compact mobile header — collapses on scroll-down, expands on scroll-up.
        *  Uses translateY (not overflow-hidden) so location dropdown / popovers
        *  that extend below the header aren't clipped. Negative margin reclaims
-       *  the space when collapsed. */}
+       *  the space when collapsed. `will-change: transform` keeps the header on a
+       *  permanent compositing layer: iOS WebKit otherwise promotes/demotes it on
+       *  every collapse toggle and intermittently fails to repaint it, leaving a
+       *  blank 62px band until another toggle. */}
       <div
-        className="relative z-50 transition-[transform,margin] duration-150 ease-out"
+        className="relative z-50 transition-[transform,margin] duration-150 ease-out [will-change:transform]"
         style={{
           transform: headerCollapsed ? "translateY(-62px)" : "translateY(0)",
           marginBottom: headerCollapsed ? -62 : 0,

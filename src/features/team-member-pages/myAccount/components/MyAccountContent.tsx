@@ -16,6 +16,13 @@ import {
   AlertDialogDescription,
 } from '../../../../shared/components/ui/alert-dialog';
 import {
+  Drawer,
+  DrawerContent,
+  DrawerTitle,
+  DrawerDescription,
+} from '../../../../shared/components/ui/drawer';
+import { useIsMobile } from '../../../../shared/hooks/use-mobile';
+import {
   modalPanel,
   modalEyebrow,
   modalTitleCompact,
@@ -1010,10 +1017,16 @@ const MyAccountContent = ({ onDirtyChange, onSavingChange }: MyAccountContentPro
   );
 };
 
+// Mobile bottom-sheet styling, matching ConfirmDialog's mobileDrawer variant.
+const drawerContentClass =
+  '!z-[300] bg-neutral-50 text-neutral-900 dark:bg-surface dark:text-foreground-1 px-5 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-1 text-left';
+const drawerOverlayClass = '!z-[299] bg-[oklch(15%_0.004_70/0.42)]';
+
 const AdvancedAccountSection = () => {
   const dispatch = useDispatch();
   const { t } = useTranslation('advancedSettings');
   const { isDashboardUser } = usePermissions();
+  const isMobile = useIsMobile();
 
   // Leave organisation state
   const [isLeavingOrganisation, setIsLeavingOrganisation] = useState(false);
@@ -1076,6 +1089,66 @@ const AdvancedAccountSection = () => {
       setIsDeleting(false);
     }
   };
+
+  const leaveOrgConfirmBody = (
+    <div className="space-y-3 text-left">
+      <p className={modalBody}>{t('leaveOrganisation.confirmMessage')}</p>
+      <p className={modalBodyMuted}>{t('leaveOrganisation.confirmHint')}</p>
+    </div>
+  );
+
+  const leaveOrgConfirmLabel = isLeavingOrganisation ? (
+    <>
+      <Loader2 className="h-4 w-4 animate-spin" />
+      <span>{t('leaveOrganisation.leaving')}</span>
+    </>
+  ) : (
+    <span>{t('leaveOrganisation.confirmButton')}</span>
+  );
+
+  const leaveOrgSuccessBody = (
+    <div className="space-y-3 text-left">
+      <p className={modalBody}>{t('leaveOrganisation.successMessage')}</p>
+      <p className={modalBodyMuted}>{t('leaveOrganisation.successHint')}</p>
+    </div>
+  );
+
+  const activeAppointmentsBody = (
+    <div className="space-y-3 text-left">
+      {activeAppointmentsCount !== null && (
+        <p className={modalBody}>
+          {t('activeAppointments.message', { count: activeAppointmentsCount })}
+        </p>
+      )}
+      <p className={modalBodyMuted}>{t('activeAppointments.hint')}</p>
+    </div>
+  );
+
+  const deleteConfirmBody = (
+    <div className="space-y-4 text-left">
+      <p className={modalBody}>{t('deleteAccountDialog.intro')}</p>
+      <ul className={`${modalBody} list-disc space-y-1.5 pl-5 marker:text-neutral-400 dark:marker:text-neutral-500`}>
+        <li>{t('deleteAccountDialog.bullets.appointments')}</li>
+        <li>{t('deleteAccountDialog.bullets.account')}</li>
+      </ul>
+      <div className="flex items-start gap-2.5 rounded-xl border border-red-200 dark:border-red-800/60 bg-red-50 dark:bg-red-950/30 p-3.5">
+        <AlertTriangle className="h-4 w-4 shrink-0 text-destructive dark:text-red-300 mt-0.5" />
+        <p className="text-[14px] font-medium leading-[1.5] text-red-800 dark:text-red-200">
+          {t('deleteAccountDialog.irreversibleWarning')}
+        </p>
+      </div>
+      <p className={modalHelperSmall}>{t('deleteAccountDialog.otherAccountsHint')}</p>
+    </div>
+  );
+
+  const deleteConfirmLabel = isDeleting ? (
+    <>
+      <Loader2 className="h-4 w-4 animate-spin" />
+      <span>{t('deleteAccountDialog.deleting')}</span>
+    </>
+  ) : (
+    <span>{t('deleteAccountDialog.confirmDelete')}</span>
+  );
 
   return (
     <div className="profile-field-stack">
@@ -1143,150 +1216,218 @@ const AdvancedAccountSection = () => {
       </div>
 
       {/* Leave Organisation confirmation */}
-      <AlertDialog open={showLeaveOrgConfirm} onOpenChange={(open) => !open && setShowLeaveOrgConfirm(false)}>
-        <AlertDialogContent className={modalPanel}>
-          <AlertDialogHeader className="space-y-4 !text-left">
-            <div className={modalEyebrow}>{t('leaveOrganisation.confirmEyebrow')}</div>
-            <AlertDialogTitle className={`${modalTitleCompact} text-left`}>
-              {t('leaveOrganisation.confirmTitle')}
-            </AlertDialogTitle>
-            <AlertDialogDescription asChild>
-              <div className="space-y-3 text-left">
-                <p className={modalBody}>{t('leaveOrganisation.confirmMessage')}</p>
-                <p className={modalBodyMuted}>{t('leaveOrganisation.confirmHint')}</p>
-              </div>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className={`${modalFooterRowRight} mt-7`}>
-            <button
-              type="button"
-              onClick={() => setShowLeaveOrgConfirm(false)}
-              className={modalCancel}
-              disabled={isLeavingOrganisation}
-            >
-              {t('leaveOrganisation.cancel')}
-            </button>
-            <button
-              type="button"
-              onClick={handleLeaveOrgConfirm}
-              className={modalDestructive}
-              disabled={isLeavingOrganisation}
-            >
-              {isLeavingOrganisation ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>{t('leaveOrganisation.leaving')}</span>
-                </>
-              ) : (
-                <span>{t('leaveOrganisation.confirmButton')}</span>
-              )}
-            </button>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {isMobile ? (
+        <Drawer
+          open={showLeaveOrgConfirm}
+          onOpenChange={(open) => !open && setShowLeaveOrgConfirm(false)}
+          dismissible={!isLeavingOrganisation}
+          autoFocus
+        >
+          <DrawerContent className={drawerContentClass} overlayClassName={drawerOverlayClass}>
+            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto pt-4">
+              <div className={modalEyebrow}>{t('leaveOrganisation.confirmEyebrow')}</div>
+              <DrawerTitle className={modalTitleCompact}>{t('leaveOrganisation.confirmTitle')}</DrawerTitle>
+              <DrawerDescription asChild>{leaveOrgConfirmBody}</DrawerDescription>
+            </div>
+            <div className="mt-6 flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={handleLeaveOrgConfirm}
+                className={`${modalDestructive} w-full`}
+                disabled={isLeavingOrganisation}
+              >
+                {leaveOrgConfirmLabel}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowLeaveOrgConfirm(false)}
+                className={`${modalCancel} w-full`}
+                disabled={isLeavingOrganisation}
+              >
+                {t('leaveOrganisation.cancel')}
+              </button>
+            </div>
+          </DrawerContent>
+        </Drawer>
+      ) : (
+        <AlertDialog open={showLeaveOrgConfirm} onOpenChange={(open) => !open && setShowLeaveOrgConfirm(false)}>
+          <AlertDialogContent className={modalPanel}>
+            <AlertDialogHeader className="space-y-4 !text-left">
+              <div className={modalEyebrow}>{t('leaveOrganisation.confirmEyebrow')}</div>
+              <AlertDialogTitle className={`${modalTitleCompact} text-left`}>
+                {t('leaveOrganisation.confirmTitle')}
+              </AlertDialogTitle>
+              <AlertDialogDescription asChild>{leaveOrgConfirmBody}</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className={`${modalFooterRowRight} mt-7`}>
+              <button
+                type="button"
+                onClick={() => setShowLeaveOrgConfirm(false)}
+                className={modalCancel}
+                disabled={isLeavingOrganisation}
+              >
+                {t('leaveOrganisation.cancel')}
+              </button>
+              <button
+                type="button"
+                onClick={handleLeaveOrgConfirm}
+                className={modalDestructive}
+                disabled={isLeavingOrganisation}
+              >
+                {leaveOrgConfirmLabel}
+              </button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
 
       {/* Leave Organisation success */}
-      <AlertDialog open={showLeaveOrgSuccess} onOpenChange={(open) => !open && handleLeaveOrgSuccessOk()}>
-        <AlertDialogContent className={modalPanel}>
-          <AlertDialogHeader className="space-y-4 !text-left">
-            <div className={modalEyebrow}>{t('leaveOrganisation.successEyebrow')}</div>
-            <AlertDialogTitle className={`${modalTitleCompact} text-left`}>
-              {t('leaveOrganisation.successTitle')}
-            </AlertDialogTitle>
-            <AlertDialogDescription asChild>
-              <div className="space-y-3 text-left">
-                <p className={modalBody}>{t('leaveOrganisation.successMessage')}</p>
-                <p className={modalBodyMuted}>{t('leaveOrganisation.successHint')}</p>
-              </div>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className={`${modalFooterRowRight} mt-7`}>
-            <button type="button" onClick={handleLeaveOrgSuccessOk} className={modalPrimary}>
-              <span>{t('leaveOrganisation.successButton')}</span>
-            </button>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {isMobile ? (
+        <Drawer
+          open={showLeaveOrgSuccess}
+          onOpenChange={(open) => !open && handleLeaveOrgSuccessOk()}
+          autoFocus
+        >
+          <DrawerContent className={drawerContentClass} overlayClassName={drawerOverlayClass}>
+            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto pt-4">
+              <div className={modalEyebrow}>{t('leaveOrganisation.successEyebrow')}</div>
+              <DrawerTitle className={modalTitleCompact}>{t('leaveOrganisation.successTitle')}</DrawerTitle>
+              <DrawerDescription asChild>{leaveOrgSuccessBody}</DrawerDescription>
+            </div>
+            <div className="mt-6 flex flex-col gap-2">
+              <button type="button" onClick={handleLeaveOrgSuccessOk} className={`${modalPrimary} w-full`}>
+                <span>{t('leaveOrganisation.successButton')}</span>
+              </button>
+            </div>
+          </DrawerContent>
+        </Drawer>
+      ) : (
+        <AlertDialog open={showLeaveOrgSuccess} onOpenChange={(open) => !open && handleLeaveOrgSuccessOk()}>
+          <AlertDialogContent className={modalPanel}>
+            <AlertDialogHeader className="space-y-4 !text-left">
+              <div className={modalEyebrow}>{t('leaveOrganisation.successEyebrow')}</div>
+              <AlertDialogTitle className={`${modalTitleCompact} text-left`}>
+                {t('leaveOrganisation.successTitle')}
+              </AlertDialogTitle>
+              <AlertDialogDescription asChild>{leaveOrgSuccessBody}</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className={`${modalFooterRowRight} mt-7`}>
+              <button type="button" onClick={handleLeaveOrgSuccessOk} className={modalPrimary}>
+                <span>{t('leaveOrganisation.successButton')}</span>
+              </button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
 
       {/* Active Appointments — info modal when leave is blocked */}
-      <AlertDialog open={activeAppointmentsCount !== null} onOpenChange={(open) => !open && setActiveAppointmentsCount(null)}>
-        <AlertDialogContent className={modalPanel}>
-          <AlertDialogHeader className="space-y-4 !text-left">
-            <div className={modalEyebrow}>{t('activeAppointments.eyebrow')}</div>
-            <AlertDialogTitle className={`${modalTitleCompact} text-left`}>
-              {t('activeAppointments.title')}
-            </AlertDialogTitle>
-            <AlertDialogDescription asChild>
-              <div className="space-y-3 text-left">
-                {activeAppointmentsCount !== null && (
-                  <p className={modalBody}>
-                    {t('activeAppointments.message', { count: activeAppointmentsCount })}
-                  </p>
-                )}
-                <p className={modalBodyMuted}>{t('activeAppointments.hint')}</p>
-              </div>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className={`${modalFooterRowRight} mt-7`}>
-            <button type="button" onClick={() => setActiveAppointmentsCount(null)} className={modalPrimary}>
-              <span>{t('activeAppointments.understood')}</span>
-            </button>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {isMobile ? (
+        <Drawer
+          open={activeAppointmentsCount !== null}
+          onOpenChange={(open) => !open && setActiveAppointmentsCount(null)}
+          autoFocus
+        >
+          <DrawerContent className={drawerContentClass} overlayClassName={drawerOverlayClass}>
+            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto pt-4">
+              <div className={modalEyebrow}>{t('activeAppointments.eyebrow')}</div>
+              <DrawerTitle className={modalTitleCompact}>{t('activeAppointments.title')}</DrawerTitle>
+              <DrawerDescription asChild>{activeAppointmentsBody}</DrawerDescription>
+            </div>
+            <div className="mt-6 flex flex-col gap-2">
+              <button type="button" onClick={() => setActiveAppointmentsCount(null)} className={`${modalPrimary} w-full`}>
+                <span>{t('activeAppointments.understood')}</span>
+              </button>
+            </div>
+          </DrawerContent>
+        </Drawer>
+      ) : (
+        <AlertDialog open={activeAppointmentsCount !== null} onOpenChange={(open) => !open && setActiveAppointmentsCount(null)}>
+          <AlertDialogContent className={modalPanel}>
+            <AlertDialogHeader className="space-y-4 !text-left">
+              <div className={modalEyebrow}>{t('activeAppointments.eyebrow')}</div>
+              <AlertDialogTitle className={`${modalTitleCompact} text-left`}>
+                {t('activeAppointments.title')}
+              </AlertDialogTitle>
+              <AlertDialogDescription asChild>{activeAppointmentsBody}</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className={`${modalFooterRowRight} mt-7`}>
+              <button type="button" onClick={() => setActiveAppointmentsCount(null)} className={modalPrimary}>
+                <span>{t('activeAppointments.understood')}</span>
+              </button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
 
-      {/* Delete Account confirmation — final, immediate */}
-      <AlertDialog open={showDeleteConfirm} onOpenChange={(open) => !open && setShowDeleteConfirm(false)}>
-        <AlertDialogContent className={modalPanel}>
-          <AlertDialogHeader className="space-y-4 !text-left">
-            <div className={modalEyebrow}>{t('deleteAccountDialog.eyebrow')}</div>
-            <AlertDialogTitle className={`${modalTitleCompact} text-left`}>
-              {t('deleteAccountDialog.title')}
-            </AlertDialogTitle>
-            <AlertDialogDescription asChild>
-              <div className="space-y-4 text-left">
-                <p className={modalBody}>{t('deleteAccountDialog.intro')}</p>
-                <ul className={`${modalBody} list-disc space-y-1.5 pl-5 marker:text-neutral-400 dark:marker:text-neutral-500`}>
-                  <li>{t('deleteAccountDialog.bullets.appointments')}</li>
-                  <li>{t('deleteAccountDialog.bullets.account')}</li>
-                </ul>
-                <div className="flex items-start gap-2.5 rounded-xl border border-red-200 dark:border-red-800/60 bg-red-50 dark:bg-red-950/30 p-3.5">
-                  <AlertTriangle className="h-4 w-4 shrink-0 text-destructive dark:text-red-300 mt-0.5" />
-                  <p className="text-[14px] font-medium leading-[1.5] text-red-800 dark:text-red-200">
-                    {t('deleteAccountDialog.irreversibleWarning')}
-                  </p>
-                </div>
-                <p className={modalHelperSmall}>{t('deleteAccountDialog.otherAccountsHint')}</p>
-              </div>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className={`${modalFooterRowRight} mt-7`}>
-            <button
-              type="button"
-              onClick={() => setShowDeleteConfirm(false)}
-              className={modalCancel}
-              disabled={isDeleting}
-            >
-              {t('deleteAccountDialog.cancel')}
-            </button>
-            <button
-              type="button"
-              onClick={handleDeleteConfirm}
-              className={modalDestructive}
-              disabled={isDeleting}
-            >
-              {isDeleting ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>{t('deleteAccountDialog.deleting')}</span>
-                </>
-              ) : (
-                <span>{t('deleteAccountDialog.confirmDelete')}</span>
-              )}
-            </button>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* Delete Account confirmation — final, immediate. Bottom sheet on mobile, centred panel otherwise. */}
+      {isMobile ? (
+        <Drawer
+          open={showDeleteConfirm}
+          onOpenChange={(open) => !open && setShowDeleteConfirm(false)}
+          dismissible={!isDeleting}
+          autoFocus
+        >
+          <DrawerContent
+            className={drawerContentClass}
+            overlayClassName={drawerOverlayClass}
+          >
+            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto pt-4">
+              <div className={modalEyebrow}>{t('deleteAccountDialog.eyebrow')}</div>
+              <DrawerTitle className={modalTitleCompact}>{t('deleteAccountDialog.title')}</DrawerTitle>
+              <DrawerDescription asChild>{deleteConfirmBody}</DrawerDescription>
+            </div>
+            {/* Stacked full-width actions: thumb-reachable, destructive on top. */}
+            <div className="mt-6 flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={handleDeleteConfirm}
+                className={`${modalDestructive} w-full`}
+                disabled={isDeleting}
+              >
+                {deleteConfirmLabel}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowDeleteConfirm(false)}
+                className={`${modalCancel} w-full`}
+                disabled={isDeleting}
+              >
+                {t('deleteAccountDialog.cancel')}
+              </button>
+            </div>
+          </DrawerContent>
+        </Drawer>
+      ) : (
+        <AlertDialog open={showDeleteConfirm} onOpenChange={(open) => !open && setShowDeleteConfirm(false)}>
+          <AlertDialogContent className={modalPanel}>
+            <AlertDialogHeader className="space-y-4 !text-left">
+              <div className={modalEyebrow}>{t('deleteAccountDialog.eyebrow')}</div>
+              <AlertDialogTitle className={`${modalTitleCompact} text-left`}>
+                {t('deleteAccountDialog.title')}
+              </AlertDialogTitle>
+              <AlertDialogDescription asChild>{deleteConfirmBody}</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className={`${modalFooterRowRight} mt-7`}>
+              <button
+                type="button"
+                onClick={() => setShowDeleteConfirm(false)}
+                className={modalCancel}
+                disabled={isDeleting}
+              >
+                {t('deleteAccountDialog.cancel')}
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteConfirm}
+                className={modalDestructive}
+                disabled={isDeleting}
+              >
+                {deleteConfirmLabel}
+              </button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
     </div>
   );
 };

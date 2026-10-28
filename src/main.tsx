@@ -13,6 +13,7 @@ import { pinStableSafeAreaTop } from './shared/lib/safeArea'
 import { wireAndroidBackButton } from './shared/lib/backButton'
 import { wireKeyboardScrollAssist } from './shared/lib/keyboardScrollAssist'
 import { wireKeyboardTransitionFreeze } from './shared/lib/keyboardTransitionFreeze'
+import { preventIosInputZoom } from './shared/lib/iosInputZoom'
 
 // @capacitor-community/safe-area v7 auto-enables when viewport-fit=cover is set in index.html.
 // It polyfills env(safe-area-inset-*) on Android WebViews where native values return 0.
@@ -39,6 +40,10 @@ wireKeyboardScrollAssist()
 // suspend CSS transitions so viewport-sized surfaces snap instead of chasing
 // the moving height. No-op on web.
 wireKeyboardTransitionFreeze()
+
+// iOS zooms the page when focusing inputs smaller than 16px; cap the viewport
+// scale on iOS so every field is covered. No-op elsewhere.
+preventIosInputZoom()
 
 
 

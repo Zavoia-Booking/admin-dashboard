@@ -1098,7 +1098,8 @@ function UnresolvedAppointmentsDialog({
         value={searchQuery}
         onChange={setSearchQuery}
         className="flex-1 min-w-0"
-        inputClassName="!h-10 !text-xs !rounded-full"
+        // 16px under md: iOS zooms the page when focusing an input with font-size < 16px.
+        inputClassName="!h-10 !text-base md:!text-xs !rounded-full"
       />
       {isMobile ? (
         // Mobile: filter button opens a Drawer (bottom sheet). Matches the
