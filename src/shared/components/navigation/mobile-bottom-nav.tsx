@@ -23,7 +23,7 @@ import {
   DrawerTrigger,
 } from '../ui/drawer';
 import { requestGuardedUnsavedAction } from '../../hooks/useUnsavedChangesBlocker';
-import { useKeyboardVisible } from '../../hooks/useKeyboardVisible';
+import { useKeyboardVisibleForNav } from '../../hooks/useKeyboardVisible';
 import { preloadRoute } from '../../utils/routePreload';
 import { languages } from '../common/languages';
 
@@ -34,7 +34,8 @@ export function MobileBottomNav() {
   const { mobileMainItems, mobileMoreItems } = useAppNavigation();
   const [isOpen, setIsOpen] = useState(false);
   // Native keyboard covers the tab bar (like native apps) instead of pushing it up.
-  const keyboardVisible = useKeyboardVisible();
+  // The nav variant returns it as the keyboard retracts, even mid drawer-close.
+  const keyboardVisible = useKeyboardVisibleForNav();
 
   // Close on route change (drawer links also close eagerly on tap; this covers
   // back/forward). Render-phase adjustment, not an effect, so the close lands

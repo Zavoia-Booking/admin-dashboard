@@ -13,6 +13,7 @@ import { pinStableSafeAreaTop } from './shared/lib/safeArea'
 import { wireAndroidBackButton } from './shared/lib/backButton'
 import { wireKeyboardScrollAssist } from './shared/lib/keyboardScrollAssist'
 import { wireKeyboardTransitionFreeze } from './shared/lib/keyboardTransitionFreeze'
+import { wireKeyboardChrome } from './shared/lib/keyboardChrome'
 import { preventIosInputZoom } from './shared/lib/iosInputZoom'
 
 // @capacitor-community/safe-area v7 auto-enables when viewport-fit=cover is set in index.html.
@@ -40,6 +41,11 @@ wireKeyboardScrollAssist()
 // suspend CSS transitions so viewport-sized surfaces snap instead of chasing
 // the moving height. No-op on web.
 wireKeyboardTransitionFreeze()
+
+// iOS: one keyboard state for the bottom chrome that hides while typing, and
+// bottom drawers that follow the keyboard instead of the plugin's late
+// web-view resize. No-op on web and Android.
+wireKeyboardChrome()
 
 // iOS zooms the page when focusing inputs smaller than 16px; cap the viewport
 // scale on iOS so every field is covered. No-op elsewhere.

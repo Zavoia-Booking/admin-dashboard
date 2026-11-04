@@ -6,6 +6,7 @@ import { Drawer as DrawerPrimitive } from "vaul"
 import { cn } from "../../lib/utils"
 import appConfig from "../../../app/config/env"
 import { useKeyboardVisible } from "../../hooks/useKeyboardVisible"
+import { followKeyboard } from "../../lib/keyboardDrawerFollow"
 import { ignoreToastPointerDown } from "../../lib/toastInteraction"
 
 /**
@@ -17,9 +18,11 @@ import { ignoreToastPointerDown } from "../../lib/toastInteraction"
  * the cached baseline can be captured mid-resize -- after which every "restore"
  * writes back a too-small height and the drawer is left stranded at part size.
  *
- * Native builds therefore let the web view resize do the work by itself, with
- * drawer height coming from CSS (dvh) so nothing is cached to go stale. Pass
- * `repositionInputs` explicitly to override this per drawer.
+ * Native builds therefore leave it off: on Android the web view resize does the
+ * work by itself, with drawer height coming from CSS (dvh) so nothing is cached
+ * to go stale; on iOS bottom drawers follow the keyboard themselves (see
+ * useKeyboardFollow). Pass `repositionInputs` explicitly to override this per
+ * drawer.
  */
 /**
  * On Safari and every iOS browser, vaul pins `body` with `position: fixed` and a
@@ -191,6 +194,18 @@ function useSheetScrollTouchAction(root: HTMLElement | null) {
   }, [root])
 }
 
+/**
+ * iOS: bottom drawers rise and fall with the soft keyboard instead of waiting
+ * for the Keyboard plugin's late web-view resize (shared/lib/keyboardDrawerFollow.ts).
+ * No-op elsewhere.
+ */
+function useKeyboardFollow(root: HTMLElement | null) {
+  React.useEffect(() => {
+    if (!root || root.getAttribute("data-vaul-drawer-direction") !== "bottom") return
+    return followKeyboard(root)
+  }, [root])
+}
+
 function DrawerContent({
   className,
   overlayClassName,
@@ -205,6 +220,7 @@ function DrawerContent({
   // than this component, so a ref is still null when a mount effect would run.
   const [contentEl, setContentEl] = React.useState<HTMLDivElement | null>(null)
   useSheetScrollTouchAction(contentEl)
+  useKeyboardFollow(contentEl)
   const setRef = React.useCallback(
     (node: HTMLDivElement | null) => {
       setContentEl(node)
