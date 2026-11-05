@@ -91,11 +91,8 @@ export const MobileCalendarHeader: FC<MobileCalendarHeaderProps> = ({
     setPlusMenuExpanded(true);
   }, []);
 
-  /* Outside-tap → close AND swallow the tap. We can't rely on a fixed
-   * backdrop here: the header wrapper uses `transform` for scroll-collapse,
-   * which turns its subtree into a new containing block — any `fixed`
-   * element inside positions relative to the header, not the viewport,
-   * leaving the rest of the page hit-testable. */
+  /* Outside-tap → close AND swallow the tap, so it never reaches the page
+   * underneath. */
   useEffect(() => {
     if (!isExpanded) return;
     const onDocClickCapture = (e: MouseEvent) => {
@@ -376,10 +373,7 @@ export const MobileCalendarHeader: FC<MobileCalendarHeaderProps> = ({
       </div>
 
       {/* Customer search — fullscreen overlay. Portaled to document.body so
-       *  `fixed inset-0` actually covers the viewport: the layout's header
-       *  wrapper uses `transform` for scroll-collapse, which makes it the
-       *  containing block for any `fixed` descendant and would otherwise
-       *  shrink this overlay to the header strip. */}
+       *  its z-index isn't capped by the layout's z-50 header wrapper. */}
       {customerSearchMounted && createPortal(
         <div className="fixed inset-0 z-[90] flex flex-col">
           {/* Backdrop */}

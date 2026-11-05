@@ -196,18 +196,16 @@ export const MobileCalendarLayout: FC<MobileCalendarLayoutProps> = ({
       style={{ overscrollBehaviorY: "contain" }}
     >
       {/* Compact mobile header — collapses on scroll-down, expands on scroll-up.
-       *  Uses translateY (not overflow-hidden) so location dropdown / popovers
-       *  that extend below the header aren't clipped. Negative margin reclaims
-       *  the space when collapsed. `will-change: transform` keeps the header on a
-       *  permanent compositing layer: iOS WebKit otherwise promotes/demotes it on
-       *  every collapse toggle and intermittently fails to repaint it, leaving a
-       *  blank 62px band until another toggle. */}
+       *  A negative top margin slides it up past the top of the app's content
+       *  pane, which clips it (not overflow-hidden here, so the location
+       *  dropdown / popovers that extend below the header aren't clipped).
+       *  Deliberately no transform: iOS WebKit puts a transformed header on its
+       *  own compositing layer, stops painting it once it has left the pane, and
+       *  intermittently doesn't paint it again when it slides back, leaving a
+       *  blank 62px band. */}
       <div
-        className="relative z-50 transition-[transform,margin] duration-150 ease-out [will-change:transform]"
-        style={{
-          transform: headerCollapsed ? "translateY(-62px)" : "translateY(0)",
-          marginBottom: headerCollapsed ? -62 : 0,
-        }}
+        className="relative z-50 transition-[margin] duration-150 ease-out"
+        style={{ marginTop: headerCollapsed ? -62 : 0 }}
       >
         <MobileCalendarHeader onOpenSettings={onOpenSettings} />
       </div>
