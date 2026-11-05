@@ -545,6 +545,8 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
       showBadge: !businessDetailsOk || !industryTagOk,
       content: (
         <>
+          {/* The limited-access banner leads every tab, right under the tab bar. */}
+          <LimitedAccessBanner className="!px-0 !pt-0" />
           {renderStatusStrip()}
           <BusinessListingTab
             business={business}
@@ -567,6 +569,7 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
           onBack={returnToLocations}
           handleRef={swipeBackRef}
         >
+          <LimitedAccessBanner className="!px-0 !pt-0" />
           {hasLocationSelected && (
             <div className="pb-3 xl:hidden">
               <Button
@@ -601,8 +604,8 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
       label: tReviews("tabLabel"),
       content: reviewsActivated ? (
         <>
-          {renderStatusStrip()}
           <LimitedAccessBanner className="!px-0 !pt-0" />
+          {renderStatusStrip()}
           <ReviewsTab
             locationId={reviewsLocationId}
             onLocationScopeChange={handleReviewsLocationScopeChange}

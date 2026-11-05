@@ -14,7 +14,6 @@ import {
 import { useTranslation } from "react-i18next";
 import { MapPin } from "lucide-react";
 import type { LocationWithAssignments } from "../../types";
-import { LimitedAccessBanner } from "../../../../shared/components/common/subscription/LimitedAccessBanner";
 import { LocationPanel } from "./LocationPanel";
 import { LocationWorkspaceTransition } from "./LocationWorkspaceTransition";
 import { MarketplaceLocationList } from "./MarketplaceLocationList";
@@ -254,7 +253,6 @@ export function LocationsTab({
     return (
       <div className="max-w-5xl mb-0 md:mb-8 space-y-6">
         {renderStatusStrip?.(null, selectLocation)}
-        <LimitedAccessBanner className="!px-0 !pt-0" />
         <div className="p-8 text-center border-2 border-dashed border-border rounded-2xl bg-muted/5">
           <p className="text-sm text-muted-foreground font-medium">
             {t("locationVisibility.noLocations")}
@@ -271,7 +269,6 @@ export function LocationsTab({
         className="max-w-5xl space-y-6 pb-[calc(1rem+env(safe-area-inset-bottom))] md:mb-8 md:pb-0"
       >
         {renderStatusStrip?.(locations[0], selectLocation)}
-        <LimitedAccessBanner className="!px-0 !pt-0" />
         <LocationPanel location={locations[0]} />
       </div>
     );
@@ -289,7 +286,6 @@ export function LocationsTab({
       className="max-w-5xl space-y-5 pb-[calc(1rem+env(safe-area-inset-bottom))] md:mb-8 md:pb-0"
     >
       {renderStatusStrip?.(activeLocation, selectLocation)}
-      <LimitedAccessBanner className="!px-0 !pt-0" />
 
       <div
         className={`space-y-1.5 px-1 ${

@@ -1,4 +1,3 @@
-import { LimitedAccessBanner } from "../../../../shared/components/common/subscription/LimitedAccessBanner";
 import type { Business, Industry, IndustryTag } from "../../types";
 import type { useMarketplaceForm } from "../../hooks/useMarketplaceForm";
 import { MarketplaceDetailsSection } from "../profile/MarketplaceDetailsSection";
@@ -24,7 +23,6 @@ export function BusinessListingTab({
 }: BusinessListingTabProps) {
   return (
     <div className="max-w-5xl mb-0 md:mb-8">
-      <LimitedAccessBanner className="!px-0 !pt-0" />
       <div
         className={!canWrite ? "pointer-events-none opacity-60" : ""}
         aria-disabled={!canWrite}
