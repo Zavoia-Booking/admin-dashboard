@@ -44,12 +44,6 @@ interface BaseSliderProps {
   panelClassName?: string;
   headerActions?: React.ReactNode;
   footer?: React.ReactNode;
-  /**
-   * iOS: the panel makes room for the keyboard on the keyboard's own curve
-   * (instead of the web view shrinking), so the footer is back the moment the
-   * keyboard starts closing and rides down with it.
-   */
-  followKeyboard?: boolean;
 }
 
 export const BaseSlider: React.FC<BaseSliderProps> = ({
@@ -69,7 +63,6 @@ export const BaseSlider: React.FC<BaseSliderProps> = ({
   panelClassName,
   headerActions,
   footer,
-  followKeyboard = false,
 }) => {
   const panelRef = useRef<HTMLDivElement>(null);
   // State as well as the ref: the panel mounts inside a Portal one commit later.
@@ -81,8 +74,10 @@ export const BaseSlider: React.FC<BaseSliderProps> = ({
   // Native keyboard covers the footer (like the bottom nav) instead of pushing it up.
   const keyboardVisible = useKeyboardVisible();
 
-  // See followKeyboard (shared/lib/keyboardDrawerFollow.ts).
-  useEffect(() => (followKeyboard && panelEl ? insetForKeyboard(panelEl) : undefined), [followKeyboard, panelEl]);
+  // iOS: the panel makes room for the keyboard on the keyboard's own curve
+  // (instead of the web view shrinking), so the footer is back the moment the
+  // keyboard starts closing and rides down with it (shared/lib/keyboardDrawerFollow.ts).
+  useEffect(() => (panelEl ? insetForKeyboard(panelEl) : undefined), [panelEl]);
 
   return (
     <VaulDrawer.Root

@@ -22,10 +22,10 @@ import { getNativePlatform } from "../../app/config/env"
  * transitions: html.kb-animating zeroes every transition while the keyboard
  * moves, and vaul rewrites inline transitions.
  *
- * Full-screen panels (BaseSlider with followKeyboard) take part in the same
- * sessions but don't rise: they animate a bottom padding to the keyboard's
- * height on the same curve, so their own background stays under the
- * translucent keyboard and the footer rides down with it when it closes.
+ * Full-screen panels (BaseSlider) take part in the same sessions but don't
+ * rise: they animate a bottom padding to the keyboard's height on the same
+ * curve, so their own background stays under the translucent keyboard and the
+ * footer rides down with it when it closes.
  */
 
 interface KeyboardMotion {

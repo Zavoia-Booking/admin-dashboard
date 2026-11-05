@@ -16,7 +16,7 @@ import {
  *
  * Capacitor's `resize: native` shrinks the web view only ~0.2s after the
  * keyboard has settled and grows it back 0.01s after keyboardWillHide. So:
- * - A field inside a bottom drawer or a slider with followKeyboard: the plugin is
+ * - A field inside a bottom drawer or a full-screen slider: the plugin is
  *   switched to `resize: none` (on focus, and again from keyboardWillShow —
  *   both long before its deferred resize reads the mode) and they follow the
  *   keyboard themselves (keyboardDrawerFollow.ts). Nothing native moves, so
