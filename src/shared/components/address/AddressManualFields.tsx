@@ -225,8 +225,10 @@ const AddressManualFields: React.FC<Props> = ({
           <div className="relative">
             <Input 
               value={postalCode} 
-              onChange={(e) => onPostalChange(e.target.value)} 
-              placeholder={t('address.postcodePlaceholder')} 
+              onChange={(e) => onPostalChange(e.target.value)}
+              // Digit keypad without type="number", which would drop leading zeros (Bucharest's 0xxxxx).
+              inputMode="numeric"
+              placeholder={t('address.postcodePlaceholder')}
               className={`!pr-11 transition-all focus-visible:ring-1 focus-visible:ring-offset-0 ${
                 postalError ? 'border-destructive bg-error-bg focus-visible:ring-error' : 'border-border hover:border-border-strong focus:border-focus focus-visible:ring-focus'
               }`} 
