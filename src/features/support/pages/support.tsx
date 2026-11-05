@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { AppLayout } from "../../../shared/components/layouts/app-layout";
 import { NotificationBell } from "../../../shared/components/common/NotificationBell";
 import { useIsMobile } from "../../../shared/hooks/use-mobile";
+import { useKeyboardVisible } from "../../../shared/hooks/useKeyboardVisible";
 import { PageHeader } from "../../../shared/components/layouts/PageHeader";
 import { Button } from "../../../shared/components/ui/button";
 import { Badge } from "../../../shared/components/ui/badge";
@@ -481,6 +482,7 @@ function NewTicketDialog({
 }) {
   const { t } = useTranslation("support");
   const isMobile = useIsMobile();
+  const keyboardVisible = useKeyboardVisible();
   const [category, setCategory] = useState<TicketCategory>("question");
   const [message, setMessage] = useState("");
 
@@ -577,7 +579,13 @@ function NewTicketDialog({
 
             <div className="h-px bg-border dark:bg-border-strong" />
 
-            <div className="flex flex-col gap-2 px-5 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+            {/* The keyboard covers the home indicator, so drop its inset while it's up. */}
+            <div
+              className={cn(
+                "flex flex-col gap-2 px-5 pt-4",
+                keyboardVisible ? "pb-4" : "pb-[calc(1rem+env(safe-area-inset-bottom))]",
+              )}
+            >
               <Button
                 type="submit"
                 rounded="full"

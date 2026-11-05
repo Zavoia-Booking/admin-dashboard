@@ -59,6 +59,7 @@ import {
 } from "../../../shared/components/ui/dialog";
 import { Drawer, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle } from "../../../shared/components/ui/drawer";
 import { useIsMobile } from "../../../shared/hooks/use-mobile";
+import { useKeyboardVisible } from "../../../shared/hooks/useKeyboardVisible";
 import { DashedDivider } from "../../../shared/components/common/DashedDivider";
 import { CollapsibleFormSection } from "../../../shared/components/forms/CollapsibleFormSection";
 import { useDispatch, useSelector } from "react-redux";
@@ -234,6 +235,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
 
   const servicesSectionRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
+  const keyboardVisible = useKeyboardVisible();
   const dispatch = useDispatch();
   const locationStaff = useSelector(getLocationStaff);
   const bookingSettings = useSelector(getBookingSettings);
@@ -1728,7 +1730,9 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
         <Drawer open={cancelDialogOpen} onOpenChange={setCancelDialogOpen} repositionInputs={false}>
           <DrawerContent
             className={cn(
-              "z-[90] bg-neutral-50 dark:bg-surface px-5 pb-[calc(1rem+env(safe-area-inset-bottom,0px))]",
+              "z-[90] bg-neutral-50 dark:bg-surface px-5",
+              // The keyboard covers the home indicator, so drop its inset while it's up.
+              keyboardVisible ? "pb-4" : "pb-[calc(1rem+env(safe-area-inset-bottom,0px))]",
               APPOINTMENT_DIALOG_CURSOR,
             )}
             overlayClassName="z-[90]"
