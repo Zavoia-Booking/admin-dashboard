@@ -2,6 +2,7 @@ import { type FC, useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { useDispatch, useSelector } from "react-redux";
+import { toast } from "sonner";
 import {
   getViewModeSelector,
   getViewTypeSelector,
@@ -36,6 +37,7 @@ import { CalendarHeaderFilters } from "../CalendarHeaderFilters";
 import { LocationSelector } from "../LocationSelector";
 import { CustomerSearchPopover, type CustomerSearchResult } from "../CustomerSearchPopover";
 import { PersonAvatar } from "../../../../shared/components/common/PersonAvatar";
+import { useCanWrite } from "../../../../shared/components/common/subscription/useCanWrite";
 import "./mobilePopoverSpring.css";
 
 interface MobileCalendarHeaderProps {
@@ -113,7 +115,18 @@ export const MobileCalendarHeader: FC<MobileCalendarHeaderProps> = ({
   const customerInputRef = useRef<HTMLInputElement>(null);
   const proxyInputRef = useRef<HTMLInputElement>(null);
 
+  const canWrite = useCanWrite();
   const openCustomerSearch = useCallback(() => {
+    // Without a plan the search API answers 402: show the toast the HTTP layer
+    // would (shared/lib/http.ts) instead of opening a search that can't work.
+    if (!canWrite) {
+      toast.error(t("limitedUsage.blockedMessage", { ns: "common" }), {
+        id: "subscription-required",
+        closeButton: true,
+        duration: 7000,
+      });
+      return;
+    }
     // Focus a hidden proxy input synchronously on tap — this claims the keyboard
     // from the OS while the overlay mounts (mobile browsers require sync focus in gesture)
     proxyInputRef.current?.focus({ preventScroll: true });
@@ -125,7 +138,7 @@ export const MobileCalendarHeader: FC<MobileCalendarHeaderProps> = ({
         customerInputRef.current?.focus({ preventScroll: true });
       }, 50);
     });
-  }, []);
+  }, [canWrite, t]);
 
   const closeCustomerSearch = useCallback(() => {
     setCustomerSearchVisible(false);
