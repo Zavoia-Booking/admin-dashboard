@@ -562,7 +562,8 @@ function NewTicketDialog({
   if (isMobile) {
     return (
       <Drawer open={open} onOpenChange={onOpenChange} repositionInputs={false} autoFocus>
-        <DrawerContent className="!bg-surface">
+        {/* Above the bottom nav (z-[60]), like the other bottom sheets. */}
+        <DrawerContent className="z-[70] !bg-surface" overlayClassName="z-[70]">
           <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
             <div className="px-5 pt-4 pb-4 space-y-1 text-left">
               <DrawerTitle className="text-lg font-semibold text-foreground-1">
@@ -760,12 +761,15 @@ export default function SupportPage() {
   );
 
   return (
-    <AppLayout headerRightContent={headerRight}>
+    <AppLayout headerRightContent={headerRight} mobileViewport={showConversation}>
       <div
         // Mobile leans on AppLayout's own px-2/py-4 and adds nothing: every
         // extra layer here is screen real estate the chat and the ticket cards
         // don't get. Desktop keeps its original rhythm.
-        className="space-y-0 px-0 py-0 md:space-y-6 md:px-0 md:py-0"
+        className={cn(
+          "space-y-0 px-0 py-0 md:space-y-6 md:px-0 md:py-0",
+          isMobile && showConversation && "flex min-h-0 flex-1 flex-col",
+        )}
       >
         {/* Page Header */}
         <PageHeader
@@ -784,19 +788,17 @@ export default function SupportPage() {
         />
 
         {showConversation ? (
-          <div className="md:px-0">
+          <div className={cn("md:px-0", isMobile && "flex min-h-0 flex-1 flex-col")}>
             <div
-              className="bg-surface border border-border rounded-xl overflow-hidden flex flex-col"
-              style={{
-                // Fill what's left of the viewport exactly, so the chat never
-                // scrolls the page under it. Mobile subtracts the breadcrumb
-                // header, AppLayout's padding and the bottom nav — plus the
-                // native status-bar and home-indicator insets, which are real
-                // height on Capacitor and zero on the web.
-                height: isMobile
-                  ? "calc(100dvh - 150px - var(--safe-area-top-stable, env(safe-area-inset-top, 0px)) - env(safe-area-inset-bottom, 0px))"
-                  : "calc(100dvh - 140px)",
-              }}
+              className={cn(
+                "bg-surface border border-border rounded-xl overflow-hidden flex flex-col",
+                isMobile && "min-h-0 flex-1",
+              )}
+              // Fill what's left of the viewport exactly, so the chat never
+              // scrolls the page under it. Mobile takes what AppLayout's
+              // mobileViewport column leaves above the bottom nav, or above the
+              // keyboard while the nav is hidden for it.
+              style={isMobile ? undefined : { height: "calc(100dvh - 140px)" }}
             >
               {isFetchingTicket ? (
                 <ConversationSkeleton />
