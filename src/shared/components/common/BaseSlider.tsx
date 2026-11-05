@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Drawer as VaulDrawer } from "vaul";
 import { ChevronLeft, X as XIcon } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -8,6 +8,7 @@ import { cn } from "../../lib/utils";
 import { ignoreToastPointerDown } from "../../lib/toastInteraction";
 import { PortalContainerContext } from "../../contexts/PortalContainerContext";
 import { useKeyboardVisible } from "../../hooks/useKeyboardVisible";
+import { insetForKeyboard } from "../../lib/keyboardDrawerFollow";
 
 /**
  * Slide-in panel built on Vaul (right-direction drawer).
@@ -43,6 +44,12 @@ interface BaseSliderProps {
   panelClassName?: string;
   headerActions?: React.ReactNode;
   footer?: React.ReactNode;
+  /**
+   * iOS: the panel makes room for the keyboard on the keyboard's own curve
+   * (instead of the web view shrinking), so the footer is back the moment the
+   * keyboard starts closing and rides down with it.
+   */
+  followKeyboard?: boolean;
 }
 
 export const BaseSlider: React.FC<BaseSliderProps> = ({
@@ -62,10 +69,20 @@ export const BaseSlider: React.FC<BaseSliderProps> = ({
   panelClassName,
   headerActions,
   footer,
+  followKeyboard = false,
 }) => {
   const panelRef = useRef<HTMLDivElement>(null);
+  // State as well as the ref: the panel mounts inside a Portal one commit later.
+  const [panelEl, setPanelEl] = useState<HTMLDivElement | null>(null);
+  const setPanelRef = useCallback((node: HTMLDivElement | null) => {
+    panelRef.current = node;
+    setPanelEl(node);
+  }, []);
   // Native keyboard covers the footer (like the bottom nav) instead of pushing it up.
   const keyboardVisible = useKeyboardVisible();
+
+  // See followKeyboard (shared/lib/keyboardDrawerFollow.ts).
+  useEffect(() => (followKeyboard && panelEl ? insetForKeyboard(panelEl) : undefined), [followKeyboard, panelEl]);
 
   return (
     <VaulDrawer.Root
@@ -100,7 +117,7 @@ export const BaseSlider: React.FC<BaseSliderProps> = ({
 
         {/* Sliding panel */}
         <VaulDrawer.Content
-          ref={panelRef}
+          ref={setPanelRef}
           onPointerDownOutside={ignoreToastPointerDown()}
           className={cn(
             "fixed z-[80] bg-surface outline-none",

@@ -21,6 +21,11 @@ import { getNativePlatform } from "../../app/config/env"
  * scrolling body stays reachable however its content grows. WAAPI rather than
  * transitions: html.kb-animating zeroes every transition while the keyboard
  * moves, and vaul rewrites inline transitions.
+ *
+ * Full-screen panels (BaseSlider with followKeyboard) take part in the same
+ * sessions but don't rise: they animate a bottom padding to the keyboard's
+ * height on the same curve, so their own background stays under the
+ * translucent keyboard and the footer rides down with it when it closes.
  */
 
 interface KeyboardMotion {
@@ -61,7 +66,15 @@ interface Snapshot {
   cappedHeight: number | null
 }
 
+interface InsetPanel {
+  el: HTMLElement
+  inset: Animation | null
+  /** Padding the running or finished inset heads for. */
+  target: number
+}
+
 const drawers = new Set<FollowedDrawer>()
+const panels = new Set<InsetPanel>()
 let keyboardHeight = 0
 
 /** Registers a bottom drawer's content element for its lifetime. No-op off iOS. */
@@ -87,11 +100,27 @@ export function followKeyboard(el: HTMLElement): () => void {
   }
 }
 
+/** Registers a full-screen panel that pads itself for the keyboard. No-op off iOS. */
+export function insetForKeyboard(el: HTMLElement): () => void {
+  if (getNativePlatform() !== "ios") return () => {}
+  const panel: InsetPanel = { el, inset: null, target: 0 }
+  panels.add(panel)
+  if (keyboardHeight > 0) inset(panel, INSTANT)
+  return () => {
+    panels.delete(panel)
+    panel.inset?.cancel()
+  }
+}
+
+/** Focus is inside a followed drawer or an inset panel. */
 export function isFocusInFollowedDrawer() {
   const focused = document.activeElement
   if (!focused) return false
   for (const drawer of drawers) {
     if (drawer.el.contains(focused)) return true
+  }
+  for (const panel of panels) {
+    if (panel.el.contains(focused)) return true
   }
   return false
 }
@@ -107,12 +136,51 @@ export function moveFollowedDrawers(height: number, motion: KeyboardMotion, chan
   const before = list.map(snapshot)
   flushSync(change)
   place(list, before, motion)
+  panels.forEach((panel) => inset(panel, motion))
 }
 
 /** Puts every followed drawer back at rest at once (the web view resized after all). */
 export function dropFollowedDrawers() {
   keyboardHeight = 0
   drawers.forEach(stop)
+  panels.forEach((panel) => {
+    panel.inset?.cancel()
+    panel.inset = null
+    panel.target = 0
+  })
+}
+
+/** Animates a panel's bottom padding to the part of it the keyboard covers. */
+function inset(panel: InsetPanel, motion: KeyboardMotion) {
+  const { el } = panel
+  if (!el.isConnected) return
+  const covered =
+    keyboardHeight > 0 ? Math.max(0, Math.round(el.getBoundingClientRect().bottom - (window.innerHeight - keyboardHeight))) : 0
+  // Repeated keyboardWillShow with the same height: let the glide finish.
+  if (panel.inset && Math.abs(covered - panel.target) < 1) return
+  const from = parseFloat(getComputedStyle(el).paddingBottom) || 0
+  panel.inset?.cancel()
+  panel.inset = null
+  panel.target = covered
+  const own = parseFloat(getComputedStyle(el).paddingBottom) || 0
+  const to = Math.max(own, covered)
+  if (Math.abs(from - to) < 1 && to === own) return
+  const animation = el.animate([{ paddingBottom: `${from}px` }, { paddingBottom: `${to}px` }], {
+    duration: motion.duration,
+    easing: motion.easing,
+    fill: "forwards",
+  })
+  panel.inset = animation
+  if (covered === 0) {
+    animation.finished.then(
+      () => {
+        if (panel.inset !== animation) return
+        animation.cancel()
+        panel.inset = null
+      },
+      () => {},
+    )
+  }
 }
 
 function snapshot(drawer: FollowedDrawer): Snapshot {

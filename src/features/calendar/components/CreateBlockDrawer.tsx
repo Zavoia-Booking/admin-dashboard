@@ -1002,6 +1002,7 @@ export const CreateBlockDrawer: React.FC = () => {
       icon={CalendarClock}
       iconColor="text-foreground-1"
       contentClassName="bg-surface scrollbar-hide"
+      followKeyboard
       footer={
         <FormFooter
           onCancel={handleClose}
