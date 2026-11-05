@@ -332,9 +332,11 @@ export function ManageServicesSheet({
 
   const toggleService = (serviceId: number) => {
     if (isSingleSelect && onSelect) {
-      // Single select mode: immediately select and close
-      onSelect(serviceId);
-      onClose();
+      // Single select mode: a tap moves the pick and the sheet stays open; the
+      // pick reaches the parent when the user closes it (handleClose). Applying
+      // it right away would re-sync initialSelectedIds and reset search/filters.
+      if (selectedServiceIds.includes(serviceId)) return;
+      setSelectedServiceIds([serviceId]);
       return;
     }
     
@@ -446,6 +448,13 @@ export function ManageServicesSheet({
     const initialSet = new Set(initialSelectedIds);
     return selectedServiceIds.some((id) => !initialSet.has(id)) || initialSelectedIds.some((id) => !selectedSet.has(id));
   }, [selectedServiceIds, initialSelectedIds]);
+
+  const handleClose = () => {
+    if (isSingleSelect && onSelect && hasChanges && selectedServiceIds.length > 0) {
+      onSelect(selectedServiceIds[0]);
+    }
+    onClose();
+  };
 
   const filterBadgeLabels = {
     minPrice: t("filters.minPriceLabel"),
@@ -938,7 +947,7 @@ export function ManageServicesSheet({
       // it, focus stays on the trigger button, which then sits inside Radix's
       // `aria-hidden`-on-siblings subtree (browser blocks this for a11y).
       // Same fix applied to [ReviewsFiltersSheet] and [SortSelect]'s Drawer.
-      <Drawer open={isOpen} onOpenChange={onClose} autoFocus nested>
+      <Drawer open={isOpen} onOpenChange={handleClose} autoFocus nested>
         <DrawerContent
           className="h-[85vh] flex flex-col bg-popover text-popover-foreground !z-[90]"
           overlayClassName="!z-[85]"
@@ -971,7 +980,7 @@ export function ManageServicesSheet({
     <DialogPrimitive.Root
       open={isOpen}
       onOpenChange={(open) => {
-        if (!open) onClose();
+        if (!open) handleClose();
       }}
     >
       <DialogPrimitive.Portal>
@@ -1018,7 +1027,7 @@ export function ManageServicesSheet({
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={onClose}
+                  onClick={handleClose}
                   className="hidden md:flex absolute right-4 top-4 h-8 w-8 rounded-md hover:bg-surface-hover active:bg-surface-active"
                 >
                   <X className="h-4 w-4" />
