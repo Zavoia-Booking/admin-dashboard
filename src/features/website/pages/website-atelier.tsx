@@ -1,10 +1,9 @@
-import { lazy, Suspense, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import BusinessSetupGate from "../../../shared/components/guards/BusinessSetupGate";
 import { ErrorState } from "../../../shared/components/common/ErrorState";
-import { Spinner } from "../../../shared/components/ui/spinner";
 import { selectBusinessId } from "../../auth/selectors";
 import { enterWebsiteBuilderAction, fetchWebsiteBuilderAction } from "../actions";
 import {
@@ -20,12 +19,6 @@ import { WebsiteBuilderSkeletonCanvas } from "../components/WebsiteBuilderSkelet
 import { WebsiteAtelierHeader } from "../components/atelier/WebsiteAtelierHeader";
 import { WebsiteAtelierShell } from "../components/atelier/WebsiteAtelierShell";
 import type { ReactNode } from "react";
-
-const WebsiteBuilderLockedView = lazy(
-  () => import("../components/WebsiteBuilderLockedView").then((module) => ({
-    default: module.WebsiteBuilderLockedView,
-  })),
-);
 
 function WebsiteStateShell({
   children,
@@ -74,10 +67,11 @@ function WebsiteStateShell({
 }
 
 /**
- * /website — the Website Builder as a first-class owner workspace. Editing is Plus-only:
- * plans without the websiteBuilder feature get the locked teaser view; owners on Plus get
- * the versioned draft editor. Saving here is a DRAFT save — it never publishes, renames,
- * retags, or remaps the Marketplace listing.
+ * /website — the Website Builder as a first-class owner workspace. Every business gets the
+ * versioned draft editor; the server's capabilities decide what it allows: Plus edits,
+ * purchases and publishes, Standard/Custom (incl. trials) edit drafts only, and accounts
+ * without a plan (expired, past due) open it read-only. Saving here is a DRAFT save — it
+ * never publishes, renames, retags, or remaps the Marketplace listing.
  */
 export default function WebsiteAtelierPage() {
   const dispatch = useDispatch();
@@ -160,33 +154,6 @@ export default function WebsiteAtelierPage() {
             retryLabel={t("page.retry")}
             className="max-w-xl py-0"
           />
-        </BusinessSetupGate>
-      </WebsiteStateShell>
-    );
-  }
-
-  // Only a fully locked capability set gets the upgrade teaser. Editing, purchasing, and
-  // publishing are independent server capabilities; a read-only user may still need the real
-  // workspace to preview, purchase, publish, or unpublish.
-  if (!access.canEdit && !access.canPurchase && !access.canPublish) {
-    return (
-      <WebsiteStateShell businessName={identity.name} brandColor={draft.brandColorHex} scroll>
-        <BusinessSetupGate>
-          <Suspense
-            fallback={(
-              <div className="grid min-h-64 place-items-center" role="status" aria-label={t("page.status.loading")}>
-                <Spinner size="lg" />
-              </div>
-            )}
-          >
-            <WebsiteBuilderLockedView
-              business={{ ...identity } as never}
-              locations={locations}
-              heroImageUrl={draft.heroImageUrl}
-              tagline={draft.tagline ?? undefined}
-              brandColorHex={draft.brandColorHex ?? undefined}
-            />
-          </Suspense>
         </BusinessSetupGate>
       </WebsiteStateShell>
     );
