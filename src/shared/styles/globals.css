@@ -1297,6 +1297,16 @@ html.kb-animating *::after {
   transition-delay: 0ms !important;
 }
 
+/* End space standing in for chrome hidden while the keyboard is up, so the
+   focused field's scroller doesn't clamp and drop its content (see
+   shared/lib/keyboardChrome.ts). */
+[data-keyboard-spacer]::after {
+  content: "";
+  display: block;
+  flex-shrink: 0;
+  height: var(--keyboard-spacer);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-tab-icon { animation: none; }
   .animate-dnd-lift { animation: none; }

@@ -1,4 +1,5 @@
 import { Keyboard, KeyboardResize, type KeyboardInfo } from "@capacitor/keyboard"
+import { flushSync } from "react-dom"
 import { getNativePlatform } from "../../app/config/env"
 import {
   KEYBOARD_HIDE,
@@ -30,6 +31,11 @@ import {
  * Footers inside a drawer that is still sliding out always wait for
  * keyboardDidHide, so they don't reappear mid-close. Android and the web keep
  * the event-based hook in useKeyboardVisible.ts.
+ *
+ * Hiding a footer grows the scroller above it; one scrolled to its end then
+ * clamps and drops its content by the footer's height. The focused field's
+ * scroller gets that much end space instead (globals.css), until the chrome
+ * comes back.
  */
 
 let chromeHidden = false
@@ -45,6 +51,8 @@ let hiding = false
 let drawerSession = false
 let resizeMode = KeyboardResize.Native
 let restingHeight = 0
+// Scrollers given end space while the chrome is hidden, and how much.
+const spacers = new Map<HTMLElement, number>()
 
 export function subscribeKeyboardChrome(onChange: () => void) {
   listeners.add(onChange)
@@ -56,6 +64,10 @@ export function subscribeKeyboardChrome(onChange: () => void) {
 export const getKeyboardShowSeq = () => showSeq
 export const getKeyboardChromeSnapshot = () => (chromeHidden ? showSeq : 0)
 export const getKeyboardNavSnapshot = () => (navHidden ? showSeq : 0)
+
+/** iOS: the keyboard is up and the plugin's deferred native shrink hasn't landed yet. */
+export const isKeyboardShrinkPending = () =>
+  keyboardUp && !hiding && resizeMode === KeyboardResize.Native && isFullHeight()
 
 export function wireKeyboardChrome() {
   if (getNativePlatform() !== "ios") return
@@ -94,8 +106,10 @@ function onWillShow({ keyboardHeight }: KeyboardInfo) {
     navHidden = true
     emit()
   }
-  if (drawerSession) moveFollowedDrawers(Math.round(keyboardHeight), KEYBOARD_SHOW, hideChrome)
-  else hideChrome()
+  keepScrollerInPlace(() => {
+    if (drawerSession) moveFollowedDrawers(Math.round(keyboardHeight), KEYBOARD_SHOW, hideChrome)
+    else flushSync(hideChrome)
+  })
 }
 
 function onWillHide() {
@@ -128,6 +142,7 @@ function onDidHide() {
   if (!hiding) return
   keyboardUp = false
   hiding = false
+  releaseSpacers()
   if (chromeHidden || navHidden) {
     chromeHidden = false
     navHidden = false
@@ -143,7 +158,10 @@ function releaseChrome() {
   const drawerClosing = document.querySelector('[data-vaul-drawer][data-state="closed"]') !== null
   if (!navHidden && (drawerClosing || !chromeHidden)) return
   navHidden = false
-  if (!drawerClosing) chromeHidden = false
+  if (!drawerClosing) {
+    chromeHidden = false
+    releaseSpacers()
+  }
   emit()
 }
 
@@ -151,6 +169,40 @@ function releaseNav() {
   if (!navHidden) return
   navHidden = false
   emit()
+}
+
+/**
+ * Runs `hide`, which hides chrome synchronously, and gives the focused
+ * field's scroller end space for whatever scroll it lost to clamping.
+ */
+function keepScrollerInPlace(hide: () => void) {
+  const scroller = overflowingScrollerOf(document.activeElement)
+  const top = scroller?.scrollTop ?? 0
+  hide()
+  if (!scroller) return
+  const lost = top - scroller.scrollTop
+  if (lost < 1) return
+  const space = (spacers.get(scroller) ?? 0) + lost
+  spacers.set(scroller, space)
+  scroller.style.setProperty("--keyboard-spacer", `${space}px`)
+  scroller.setAttribute("data-keyboard-spacer", "")
+  scroller.scrollTop = top
+}
+
+function releaseSpacers() {
+  spacers.forEach((_, scroller) => {
+    scroller.removeAttribute("data-keyboard-spacer")
+    scroller.style.removeProperty("--keyboard-spacer")
+  })
+  spacers.clear()
+}
+
+function overflowingScrollerOf(field: Element | null) {
+  for (let node = field?.parentElement; node && node !== document.body; node = node.parentElement) {
+    const { overflowY } = getComputedStyle(node)
+    if ((overflowY === "auto" || overflowY === "scroll") && node.scrollHeight > node.clientHeight + 1) return node
+  }
+  return null
 }
 
 function emit() {
