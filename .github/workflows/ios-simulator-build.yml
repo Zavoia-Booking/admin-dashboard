@@ -4,18 +4,9 @@ name: iOS simulator build
 # in staging-native mode, syncs it into ios/, and compiles for the iOS
 # simulator with code signing disabled. No Apple credentials are needed.
 
+# Manual only: Actions tab > "iOS simulator build" > Run workflow, pick the
+# branch, or `gh workflow run ios-simulator-build.yml -r <branch>`.
 on:
-  push:
-    branches: [ios-build, staging]
-    paths:
-      - 'ios/**'
-      - 'src/**'
-      - 'package.json'
-      - 'yarn.lock'
-      - 'capacitor.config.ts'
-      - 'vite.config.ts'
-      - 'tsconfig*.json'
-      - '.github/workflows/ios-simulator-build.yml'
   workflow_dispatch:
 
 concurrency:
