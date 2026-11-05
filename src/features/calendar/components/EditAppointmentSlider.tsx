@@ -884,7 +884,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                 dashPattern="1 1"
               />
             </div>
-            <div className="min-h-0 flex-1 overflow-y-auto bg-muted/20 scrollbar-hide px-4 py-3 dark:bg-background/50 md:px-6 md:py-4">
+            <div className="min-h-0 flex-1 overflow-y-auto bg-muted/20 scrollbar-hide px-4 pt-3 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] dark:bg-background/50 md:px-6 md:py-4">
               {detailLoading ? (
                 <div className="space-y-4">
                   {/* Skeleton: Update status card — matches rounded-2xl p-3 md:p-5 real card */}
