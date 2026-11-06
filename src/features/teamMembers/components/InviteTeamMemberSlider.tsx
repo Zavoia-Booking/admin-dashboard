@@ -261,10 +261,12 @@ const InviteTeamMemberSlider: React.FC<InviteTeamMemberSliderProps> = ({
               <div className="space-y-5">
                 <div className="space-y-1">
                   <h3 className="text-lg font-semibold text-foreground-1">
-                    {t('inviteSlider.subscriptionInfo.title')}
+                    {isNative ? t('inviteSlider.subscriptionInfo.titleMobile') : t('inviteSlider.subscriptionInfo.title')}
                   </h3>
                   <p className="text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed">
-                    {t('inviteSlider.subscriptionInfo.description')}
+                    {isNative
+                      ? t('inviteSlider.subscriptionInfo.descriptionMobile')
+                      : t('inviteSlider.subscriptionInfo.description')}
                   </p>
                 </div>
 

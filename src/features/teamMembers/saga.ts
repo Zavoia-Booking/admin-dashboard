@@ -7,6 +7,7 @@ import type { TeamMember, TeamMemberSummary } from "../../shared/types/team-memb
 import { cancelInvitationApi, deleteTeamMemberApi, fetchTeamMemberByIdApi, inviteTeamMemberApi, listTeamMembersApi, resendInvitationApi, offboardTeamMemberApi, bulkOffboardApi } from "./api";
 import type { InviteTeamMemberResponse } from "./types";
 import { toast } from "sonner";
+import { isNativeApp } from "../../app/config/env";
 import type { DeleteResponse } from "../../shared/types/delete-response";
 import { getErrorMessage } from "../../shared/utils/error";
 import i18n from "../../shared/lib/i18n";
@@ -21,7 +22,12 @@ function* handleInviteTeamMember(action: ReturnType<typeof inviteTeamMemberActio
     yield put(listTeamMembersAction.request());
  
   } catch (error: unknown) {
-    const message = getErrorMessage(error, i18n.t('teamMembers:toasts.inviteFailed'));
+    // AUTH.E05 (seat limit) reads "Upgrade to add more members", which the
+    // store builds can't show - native gets a neutral line instead.
+    const code = (error as any)?.response?.data?.message;
+    const message = isNativeApp() && code === 'AUTH.E05'
+      ? i18n.t('teamMembers:toasts.memberLimitReachedMobile')
+      : getErrorMessage(error, i18n.t('teamMembers:toasts.inviteFailed'));
     yield put(inviteTeamMemberAction.failure({ message }));
   }
 }

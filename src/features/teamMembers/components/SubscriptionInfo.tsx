@@ -135,14 +135,29 @@ export const SubscriptionInfo: React.FC<SubscriptionInfoProps> = ({
           <StatRow label={t('subscriptionInfo.teamMembers')} value={usedSeats} isLast />
         </div>
         <Banner tone="info" icon={<Sparkles className="h-4 w-4" />}>
-          {t('subscriptionInfo.trialMessage')}
+          {isNative ? t('subscriptionInfo.trialMessageMobile') : t('subscriptionInfo.trialMessage')}
         </Banner>
       </>
     );
   }
 
-  // Case 1.5: LTD user - show LTD-specific messaging
   const isLtd = entStatus === 'ltd';
+
+  // Native: cases 1.5-3 all come down to "buy on the web", which the store builds
+  // must not say (their CTAs are already WebOnly) - one neutral notice instead.
+  if (isNative && ((isLtd && paidSeats === 0) || isExpiredOrNoSubscription || isCancelled)) {
+    return (
+      <Banner
+        tone="warn"
+        icon={<AlertTriangle className="h-4 w-4" />}
+        title={t('subscriptionInfo.inviteUnavailableTitleMobile')}
+      >
+        {t('subscriptionInfo.inviteUnavailableDescriptionMobile')}
+      </Banner>
+    );
+  }
+
+  // Case 1.5: LTD user - show LTD-specific messaging
   if (isLtd && paidSeats === 0) {
     return (
       <Banner
@@ -188,9 +203,12 @@ export const SubscriptionInfo: React.FC<SubscriptionInfoProps> = ({
   return (
     <>
       <div className="rounded-xl border border-border bg-surface px-4">
-        <StatRow label={t('subscriptionInfo.paidSeats')} value={paidSeats} />
         <StatRow
-          label={t('subscriptionInfo.usedSeats')}
+          label={isNative ? t('subscriptionInfo.paidSeatsMobile') : t('subscriptionInfo.paidSeats')}
+          value={paidSeats}
+        />
+        <StatRow
+          label={isNative ? t('subscriptionInfo.usedSeatsMobile') : t('subscriptionInfo.usedSeats')}
           value={
             <span>
               {usedSeats} <span className="text-foreground-3 font-normal">/</span> {paidSeats}

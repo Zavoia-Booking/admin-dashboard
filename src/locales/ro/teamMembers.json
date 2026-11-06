@@ -47,7 +47,9 @@
     "title": "Invită membru în echipă",
     "subscriptionInfo": {
       "title": "Informații abonament",
-      "description": "Verifică detaliile abonamentului și locurile disponibile."
+      "description": "Verifică detaliile abonamentului și locurile disponibile.",
+      "titleMobile": "Acces echipă",
+      "descriptionMobile": "Vezi câți membri poți adăuga în echipă."
     },
     "contactInfo": {
       "title": "Detalii membru echipă",
@@ -85,6 +87,7 @@
   "subscriptionInfo": {
     "teamMembers": "Membri echipă",
     "trialMessage": "În perioada de probă, poți invita membri nelimitați pentru a explora funcționalitățile împreună!",
+    "trialMessageMobile": "Momentan poți invita oricâți membri în echipă.",
     "subscriptionRequired": "Abonament necesar",
     "subscriptionRequiredDescription": "Ai nevoie de un abonament activ pentru a invita membrii echipei.",
     "goToBilling": "Mergi la facturare",
@@ -93,6 +96,8 @@
     "renewSubscription": "Reînnoiește abonamentul",
     "paidSeats": "Locuri plătite",
     "usedSeats": "Locuri utilizate",
+    "paidSeatsMobile": "Locuri în echipă",
+    "usedSeatsMobile": "Locuri ocupate",
     "availableSeats": "Ai {{count}} loc disponibil.",
     "availableSeats_other": "Ai {{count}} locuri disponibile.",
     "allSeatsInUse": "Toate locurile sunt ocupate",
@@ -100,7 +105,9 @@
     "allSeatsInUseDescriptionMobile": "Momentan ai toate locurile ocupate.",
     "ltdActive": "Lifetime Deal Activ",
     "ltdNoSeats": "Lifetime Deal-ul tău include acces gratuit la platformă. Achiziționează locuri pentru membri echipei pentru a începe să-i inviți.",
-    "ltdPurchaseSeats": "Achiziționează Locuri"
+    "ltdPurchaseSeats": "Achiziționează Locuri",
+    "inviteUnavailableTitleMobile": "Invitarea nu este disponibilă",
+    "inviteUnavailableDescriptionMobile": "Invitarea membrilor nu este disponibilă momentan pentru contul tău."
   },
   "trialBanner": {
     "title": "Perioadă de probă activă",
@@ -139,6 +146,7 @@
   },
   "toasts": {
     "inviteFailed": "Nu s-a putut invita membrul echipei",
+    "memberLimitReachedMobile": "Ai atins limita de membri în echipă.",
     "listFailed": "Nu s-au putut încărca membrii echipei",
     "removeSuccess": "Membrul echipei a fost eliminat cu succes",
     "removeFailed": "Nu s-a putut elimina membrul echipei",

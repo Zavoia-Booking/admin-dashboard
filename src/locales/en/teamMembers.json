@@ -47,7 +47,9 @@
     "title": "Invite team member",
     "subscriptionInfo": {
       "title": "Subscription Info",
-      "description": "Review your subscription details and available seats."
+      "description": "Review your subscription details and available seats.",
+      "titleMobile": "Team access",
+      "descriptionMobile": "See how many team members you can add."
     },
     "contactInfo": {
       "title": "Team member details",
@@ -85,6 +87,7 @@
   "subscriptionInfo": {
     "teamMembers": "Team Members",
     "trialMessage": "During your trial period, you can invite unlimited team members to explore features together!",
+    "trialMessageMobile": "You can currently invite as many team members as you need.",
     "subscriptionRequired": "Subscription required",
     "subscriptionRequiredDescription": "You need an active subscription to invite team members.",
     "goToBilling": "Go to billing",
@@ -93,6 +96,8 @@
     "renewSubscription": "Renew Subscription",
     "paidSeats": "Paid Seats",
     "usedSeats": "Used Seats",
+    "paidSeatsMobile": "Team seats",
+    "usedSeatsMobile": "Seats in use",
     "availableSeats": "You have {{count}} available seat.",
     "availableSeats_other": "You have {{count}} available seats.",
     "allSeatsInUse": "All Seats In Use",
@@ -100,7 +105,9 @@
     "allSeatsInUseDescriptionMobile": "You currently have all seats in use.",
     "ltdActive": "Lifetime Deal Active",
     "ltdNoSeats": "Your Lifetime Deal includes free platform access. Purchase team member seats to start inviting your team.",
-    "ltdPurchaseSeats": "Purchase Seats"
+    "ltdPurchaseSeats": "Purchase Seats",
+    "inviteUnavailableTitleMobile": "Inviting isn't available",
+    "inviteUnavailableDescriptionMobile": "Inviting team members isn't available for your account right now."
   },
   "trialBanner": {
     "title": "Trial Period Active",
@@ -138,6 +145,7 @@
   },
   "toasts": {
     "inviteFailed": "Failed to invite team member",
+    "memberLimitReachedMobile": "Team member limit reached.",
     "listFailed": "Failed to list team members",
     "removeSuccess": "Team member removed successfully",
     "removeFailed": "Failed to remove team member",
