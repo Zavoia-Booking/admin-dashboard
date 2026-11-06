@@ -1,6 +1,8 @@
 import { createPortal } from "react-dom";
 import type { ReactNode } from "react";
 import { cn } from "../../lib/utils";
+import { useKeyboardVisibleForNav } from "../../hooks/useKeyboardVisible";
+import { DashedDivider } from "./DashedDivider";
 
 /** Clears the mobile bottom nav (64px — the offset its own drawer uses) plus a
  *  gap, so the action reads as floating above the nav rather than docked to it. */
@@ -36,19 +38,30 @@ interface StickyPrimaryActionProps {
  * Renders an inline spacer at its call site so it can never cover the end of
  * the page. The spacer is unconditional, so revealing the action never shifts
  * layout.
+ *
+ * Native keyboard up: docks on top of the keyboard in a slider-style footer bar
+ * (surface + dashed divider) instead of floating mid-screen over the page. It
+ * docks exactly while the tab bar is away for the keyboard, so the two never
+ * share the bottom edge (iOS: the web view shrinks to the keyboard's top;
+ * Android resizes it). Mobile web keeps the floating pill.
  */
 export function StickyPrimaryAction({
   visible,
   children,
   className,
 }: StickyPrimaryActionProps) {
+  const docked = useKeyboardVisibleForNav();
+
   return (
     <>
       <div className="h-16" aria-hidden />
       {createPortal(
         <div
           className={cn(
-            "pointer-events-none fixed inset-x-0 z-50 flex justify-center px-4",
+            "fixed inset-x-0 z-50",
+            docked
+              ? cn("bg-surface", visible ? "pointer-events-auto" : "pointer-events-none")
+              : "pointer-events-none flex justify-center px-4",
             // transition-transform, not transition-[transform,...]: Tailwind v4
             // compiles translate-y-* to the `translate` property, so a literal
             // `transform` list would not cover it. This utility lists all four.
@@ -56,14 +69,20 @@ export function StickyPrimaryAction({
             className,
           )}
           style={{
-            bottom: FLOAT_OFFSET,
+            bottom: docked ? 0 : FLOAT_OFFSET,
             transform: visible ? "translateY(0)" : HIDDEN_TRANSFORM,
           }}
           // Hidden from AT while off-screen: the in-content action it mirrors
           // is still in the tree, so exposing both would duplicate it.
           aria-hidden={!visible}
         >
-          <div className={visible ? "pointer-events-auto" : "pointer-events-none"}>
+          {docked && <DashedDivider marginTop="mt-0" className="mb-0" paddingTop="pt-0" dashPattern="1 1" />}
+          <div
+            className={cn(
+              docked && "flex justify-center px-3 py-2",
+              visible ? "pointer-events-auto" : "pointer-events-none",
+            )}
+          >
             {children}
           </div>
         </div>,
