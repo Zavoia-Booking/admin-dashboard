@@ -38,7 +38,6 @@ import {
   Bookmark,
 } from "lucide-react";
 import CategorySection, { type Category } from "./CategorySection";
-import ConfirmDialog from "../../../../shared/components/common/ConfirmDialog";
 import {
   Drawer,
   DrawerContent,
@@ -81,7 +80,6 @@ export const ServiceFilters: FC<ServiceFiltersProps> = ({
   const [manageCategoryId, setManageCategoryId] = useState<number | null>(null);
   const [manageCategoryName, setManageCategoryName] = useState("");
   const [manageCategoryColor, setManageCategoryColor] = useState("");
-  const [showManageConfirm, setShowManageConfirm] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
   // Detect mobile viewport
@@ -106,8 +104,9 @@ export const ServiceFilters: FC<ServiceFiltersProps> = ({
    * closes the panel through its own state setter, which never calls this. */
   const handleManageOpenChange = useCallback(
     (open: boolean) => {
-      // While the confirmation is up, keep the panel mounted behind it.
-      if (showManageConfirm) return;
+      // While Apply is saving, keep the panel: resetting the draft mid-request
+      // would fight the list the apply reloads.
+      if (isApplyingCategories) return;
       setShowManageCategories(open);
       if (!open) {
         onResetCategories?.();
@@ -116,8 +115,21 @@ export const ServiceFilters: FC<ServiceFiltersProps> = ({
         setManageCategoryColor("");
       }
     },
-    [showManageConfirm, onResetCategories],
+    [isApplyingCategories, onResetCategories],
   );
+
+  // Apply saves straight away (no confirmation step); the parent toasts the
+  // outcome.
+  const handleApplyCategories = async () => {
+    if (!hasCategoryChanges || !onApplyCategoryChanges) return;
+    await onApplyCategoryChanges();
+    setShowManageCategories(false);
+    // Closing this way skips handleManageOpenChange (and must: the draft
+    // is now the applied state), so clear the editor fields here.
+    setManageCategoryId(null);
+    setManageCategoryName("");
+    setManageCategoryColor("");
+  };
 
   const getDisplayColor = (cat: Category): string => {
     if (cat?.color && cat.color.startsWith("#")) {
@@ -955,9 +967,7 @@ export const ServiceFilters: FC<ServiceFiltersProps> = ({
                         rounded="full"
                         className="group inline-flex items-center gap-1.5 px-6 py-2 !min-w-40 justify-center font-semibold cursor-pointer transition-transform active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
                         disabled={!hasCategoryChanges || isApplyingCategories}
-                        onClick={() =>
-                          hasCategoryChanges && setShowManageConfirm(true)
-                        }
+                        onClick={() => void handleApplyCategories()}
                       >
                         {text("addService.form.category.manageFooterApply")}
                       </Button>
@@ -1055,9 +1065,7 @@ export const ServiceFilters: FC<ServiceFiltersProps> = ({
                     rounded="full"
                     className="group inline-flex items-center gap-1.5 px-6 py-2 !min-w-40 justify-center font-semibold cursor-pointer transition-transform active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
                     disabled={!hasCategoryChanges || isApplyingCategories}
-                    onClick={() =>
-                      hasCategoryChanges && setShowManageConfirm(true)
-                    }
+                    onClick={() => void handleApplyCategories()}
                   >
                     {text("addService.form.category.manageFooterApply")}
                   </Button>
@@ -1073,31 +1081,6 @@ export const ServiceFilters: FC<ServiceFiltersProps> = ({
         categories={categories}
       />
 
-      <ConfirmDialog
-        open={showManageConfirm}
-        onOpenChange={setShowManageConfirm}
-        onConfirm={async () => {
-          if (!onApplyCategoryChanges) {
-            setShowManageConfirm(false);
-            return;
-          }
-          await onApplyCategoryChanges();
-          setShowManageCategories(false);
-          setShowManageConfirm(false);
-          // Closing this way skips handleManageOpenChange (and must: the draft
-          // is now the applied state), so clear the editor fields here.
-          setManageCategoryId(null);
-          setManageCategoryName("");
-          setManageCategoryColor("");
-        }}
-        onCancel={() => setShowManageConfirm(false)}
-        title={text("addService.form.category.manageConfirmTitle")}
-        description={text("addService.form.category.manageConfirmDescription")}
-        confirmTitle={text("addService.form.category.manageConfirmConfirm")}
-        cancelTitle={text("addService.form.category.manageConfirmCancel")}
-        showCloseButton={true}
-        mobileDrawer
-      />
     </>
   );
 };
