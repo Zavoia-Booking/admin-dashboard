@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useLayoutEffect, useRef, useCallback } from "react";
 import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import { useCanWrite } from "../../../shared/components/common/subscription/useCanWrite";
 import { LimitedAccessBanner } from "../../../shared/components/common/subscription/LimitedAccessBanner";
@@ -432,10 +432,6 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
     actionReady &&
     (isListed ? isCombinedDirty : !publishActionInView);
   const [headerActionScrolledAway, setHeaderActionScrolledAway] = useState(false);
-  // Edits show/hide the row instantly and keep the content in place (below);
-  // scroll-driven changes animate instead, since adjusting the scroll position
-  // mid-scroll would stop iOS momentum.
-  const [headerActionAnimated, setHeaderActionAnimated] = useState(false);
   const editSignature = JSON.stringify([
     form.useBusinessName,
     form.useBusinessEmail,
@@ -452,29 +448,26 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
   if (seenEditSignature !== editSignature) {
     setSeenEditSignature(editSignature);
     setHeaderActionScrolledAway(false);
-    setHeaderActionAnimated(false);
   }
   const [seenTab, setSeenTab] = useState(activeTab);
   if (seenTab !== activeTab) {
     setSeenTab(activeTab);
     setHeaderActionScrolledAway(false);
-    setHeaderActionAnimated(false);
   }
   const headerActionShown = headerActionAvailable && !headerActionScrolledAway;
-  const handlePublishActionInViewChange = useCallback((inView: boolean) => {
-    setPublishActionInView(inView);
-    // Changes as the strip scrolls in or out: animate, don't touch the scroll.
-    setHeaderActionAnimated(true);
-  }, []);
 
   // Scroll direction, as in MobileCalendarLayout.
   const lastScrollYRef = useRef(0);
+  const cumDeltaRef = useRef(0);
   useEffect(() => {
     if (!isMobile) return;
     const scroller = document.querySelector<HTMLElement>(`[${APP_SCROLL_CONTAINER_ATTR}]`);
     if (!scroller) return;
     const THRESHOLD = 15;
-    let cumDelta = 0;
+    // Collapsing gives the column this much more room; a page that can't
+    // scroll by more than that (plus the bounce zones) could never scroll up
+    // again to bring the row back.
+    const ROW_HEIGHT = 56;
     let ticking = false;
     lastScrollYRef.current = scroller.scrollTop;
     const update = () => {
@@ -483,17 +476,24 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
       const delta = y - lastScrollYRef.current;
       lastScrollYRef.current = y;
       const maxScroll = scroller.scrollHeight - scroller.clientHeight;
-      cumDelta = (delta > 0 && cumDelta >= 0) || (delta < 0 && cumDelta <= 0) ? cumDelta + delta : delta;
+      const cum = cumDeltaRef.current;
+      cumDeltaRef.current = (delta > 0 && cum >= 0) || (delta < 0 && cum <= 0) ? cum + delta : delta;
       // Only act outside the elastic bounce zones.
       if (y <= 10 || y >= maxScroll - 10) return;
-      if (cumDelta > THRESHOLD) {
-        setHeaderActionAnimated(true);
+      if (cumDeltaRef.current > THRESHOLD) {
+        cumDeltaRef.current = 0;
+        // Not while typing: the keyboard's reveal scroll and caret-follow
+        // scrolls read as "down", and Save should stay at hand anyway.
+        const focused = document.activeElement;
+        const typing =
+          focused instanceof HTMLInputElement ||
+          focused instanceof HTMLTextAreaElement ||
+          (focused instanceof HTMLElement && focused.isContentEditable);
+        if (typing || maxScroll < ROW_HEIGHT + 40) return;
         setHeaderActionScrolledAway(true);
-        cumDelta = 0;
-      } else if (cumDelta < -THRESHOLD) {
-        setHeaderActionAnimated(true);
+      } else if (cumDeltaRef.current < -THRESHOLD) {
+        cumDeltaRef.current = 0;
         setHeaderActionScrolledAway(false);
-        cumDelta = 0;
       }
     };
     const onScroll = () => {
@@ -504,6 +504,14 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
     scroller.addEventListener("scroll", onScroll, { passive: true });
     return () => scroller.removeEventListener("scroll", onScroll);
   }, [isMobile]);
+  // An edit or a tab switch starts the direction count over. Runs after
+  // ResponsiveTabs restores the tab's scroll offset (child layout effects run
+  // first), so that restore isn't read as a scroll either.
+  useLayoutEffect(() => {
+    cumDeltaRef.current = 0;
+    const scroller = document.querySelector<HTMLElement>(`[${APP_SCROLL_CONTAINER_ATTR}]`);
+    if (scroller) lastScrollYRef.current = Math.max(0, scroller.scrollTop);
+  }, [editSignature, activeTab]);
 
 
   // Publish clicked while photos are missing: deep-link into the offending
@@ -621,7 +629,7 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
         compactOnMobile={isLocationDetail}
         mobileChecklistOpen={mobileChecklistOpen}
         onMobileChecklistOpenChange={handleChecklistOpenChange}
-        onMobileActionInViewChange={handlePublishActionInViewChange}
+        onMobileActionInViewChange={setPublishActionInView}
       />
     </div>
   );
@@ -715,6 +723,10 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
         />
       </div>
 
+      {/* End clearance the floating save pill used to provide; the Reviews
+          tab's floating "Clear filters" pill still needs it. */}
+      <div className="h-16 md:hidden" aria-hidden />
+
       {/* Mobile header: row 1 holds the one primary action (listed → Save while
           there are unsaved edits; not listed → Publish once the strip's own
           publish button has scrolled away, so the two are never on screen
@@ -725,11 +737,7 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
         <>
           <HeaderRightSlot>{false}</HeaderRightSlot>
           <HeaderTopSlot>
-            <MarketplaceHeaderActionRow
-              shown={headerActionShown}
-              animated={headerActionAnimated}
-              lastScrollYRef={lastScrollYRef}
-            >
+            <MarketplaceHeaderActionRow shown={headerActionShown}>
               <Button
                 onClick={() =>
                   photosBlocked ? handlePhotosNeeded() : handleCombinedSave()
@@ -753,7 +761,11 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
                   <ArrowRight className="size-4" strokeWidth={1.9} />
                 )}
               </Button>
-              <NotificationBell variant="header" />
+              {/* data-navigate: the unsaved-changes guard above intercepts the
+                  bell's navigation like any other way off the page. */}
+              <span data-navigate="/notifications">
+                <NotificationBell variant="header" />
+              </span>
             </MarketplaceHeaderActionRow>
           </HeaderTopSlot>
         </>

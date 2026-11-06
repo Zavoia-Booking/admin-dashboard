@@ -4,16 +4,18 @@ import {
   CardHeader,
 } from "../../../shared/components/ui/card";
 import { Skeleton } from "../../../shared/components/ui/skeleton";
-import { HeaderTitleSlot } from "../../../shared/components/layouts/HeaderRightSlot";
+import { HeaderRightSlot, HeaderTitleSlot } from "../../../shared/components/layouts/HeaderRightSlot";
 
 export function ListingConfigurationSkeleton() {
   return (
     <>
-      {/* Mobile: the real view hosts its pill switcher in the breadcrumb header,
-          so mirror it with a pill-shaped skeleton there. */}
+      {/* Mobile: the real view hosts its full-width pill switcher in the
+          breadcrumb header (its bell moves to the Save row above it), so mirror
+          it with a pill-shaped skeleton there and no bell. */}
       <HeaderTitleSlot>
-        <Skeleton className="h-9 w-full rounded-full" />
+        <Skeleton className="h-10 w-full rounded-full" />
       </HeaderTitleSlot>
+      <HeaderRightSlot>{false}</HeaderRightSlot>
       {/* ResponsiveTabs skeleton - uses CSS media queries to match exact positioning */}
       <div className="skeleton-delayed-reveal space-y-6 bg-transparent max-w-256 -mx-2 mt-0 md:mx-0 md:mt-0 md:absolute md:top-0 md:left-0 md:right-0">
         {/* Tabs Header skeleton (desktop only — mobile tabs live in the header) */}

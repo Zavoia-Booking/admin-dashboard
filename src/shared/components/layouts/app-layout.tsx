@@ -100,7 +100,9 @@ function AppLayoutInner({ children, contentClassName, headerRightContent, noPadd
 
         <SidebarInset className={fillMobileViewport ? 'min-h-0' : undefined}>
           <main
-            {...{ [APP_SCROLL_CONTAINER_ATTR]: '' }}
+            // The scroll marker goes on whichever element scrolls: <main>, or
+            // the content column below when it fills the mobile viewport.
+            {...(fillMobileViewport ? {} : { [APP_SCROLL_CONTAINER_ATTR]: '' })}
             className={`flex-1 bg-transparent overflow-y-auto overscroll-contain ${fillMobileViewport ? 'flex min-h-0 flex-col' : ''} ${isMobile && !fillMobileViewport && !bottomNavHeight ? 'pb-19' : 'pb-0'} [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]`}
             style={isMobile && (fillMobileViewport || bottomNavHeight) ? { paddingBottom: bottomNavHeight } : undefined}
           >
@@ -132,6 +134,7 @@ function AppLayoutInner({ children, contentClassName, headerRightContent, noPadd
               {!tabbedPage && <LimitedAccessBanner className={fillMobileViewport ? 'shrink-0' : undefined} />}
               <div
                 key={isMobile ? location.pathname : undefined}
+                {...(fillMobileViewport ? { [APP_SCROLL_CONTAINER_ATTR]: '' } : {})}
                 className={`${noPadding ? '' : 'px-2 py-4 md:px-4'} ${fillMobileViewport ? 'flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain' : ''} animate-route-enter`}
               >
                 {children}

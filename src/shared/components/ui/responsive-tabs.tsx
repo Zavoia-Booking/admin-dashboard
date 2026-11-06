@@ -260,7 +260,8 @@ export function ResponsiveTabs({
 
 /** The mobile pill switcher, self-contained so it can live in the breadcrumb
  *  header slot (it measures its own active-tab indicator where it mounts).
- *  h-9 keeps the header row at its usual 44px total height. */
+ *  h-10, full width: the marketplace header row gives it the whole width
+ *  (its bell moves to the Save row above). */
 function MobileHeaderTabs({
   items,
   value,

@@ -126,9 +126,9 @@ export default function MarketplacePage() {
       (entryLoadState === "pending" || isLoading || !error))
   ) {
     // ListingConfigurationSkeleton mirrors the real tabs and uses the same
-    // `-mt-8` breakout, so treat it as a tabbed page too.
+    // `-mt-8` breakout, so treat it as a tabbed page too (and the same layout).
     return (
-      <AppLayout tabbedPage>
+      <AppLayout tabbedPage mobileViewport>
         <BusinessSetupGate>
           <ListingConfigurationSkeleton />
         </BusinessSetupGate>
@@ -155,8 +155,11 @@ export default function MarketplacePage() {
 
   // Published listings, "Start Listing", and explicit setup links open configuration.
   if (listing && (listing.isListed || configurationOpen)) {
+    // mobileViewport: the header sits above the scrolling column, so its
+    // collapsing Save row resizes the column instead of shifting the content
+    // inside it (see MarketplaceHeaderActionRow).
     return (
-      <AppLayout tabbedPage>
+      <AppLayout tabbedPage mobileViewport>
         <BusinessSetupGate>
           <ListingConfigurationView
             business={business}
