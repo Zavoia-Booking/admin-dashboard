@@ -66,6 +66,20 @@ export interface MapViewProps {
    */
   onError?: (error: Error) => void;
   /**
+   * Fixed center pin ("move the map, not the pin"), read once at mount. The
+   * pin is drawn at the container's center and `marker` is ignored; the user
+   * pans the map under it, a tap eases that point to the center (and reports
+   * it through onMapClick when clickToPlace is on), rotation and pitch are off,
+   * and zoom stays around the center so it never moves the pin's spot.
+   */
+  centerPinMode?: boolean;
+  /** Center pin mode: whether the pin is shown (and pans are reported). */
+  showCenterPin?: boolean;
+  /** Center pin mode: the new center after the user moves the map. */
+  onCenterChange?: (coordinates: [number, number]) => void;
+  /** Center pin mode: pin color. */
+  pinColor?: string;
+  /**
    * Additional CSS classes for the container
    */
   className?: string;
@@ -101,6 +115,10 @@ export const MapView: React.FC<MapViewProps> = ({
   onMapClick,
   onError,
   className = '',
+  centerPinMode = false,
+  showCenterPin = false,
+  onCenterChange,
+  pinColor = '#C94A2A',
 }) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
@@ -110,13 +128,21 @@ export const MapView: React.FC<MapViewProps> = ({
   // Skeleton stays up until the first 'idle' event — style, tiles and any
   // pending renders (marker included) are all done by then.
   const [isReady, setIsReady] = useState(false);
+  // Center pin mode: lifts the pin while the map moves under it.
+  const [isMoving, setIsMoving] = useState(false);
 
-  // Keep the latest onError callback reachable from the init effect (which
-  // only runs once and captures its dependencies via a ref).
+  // Keep the latest callbacks reachable from the init effect (which only runs
+  // once and captures its dependencies via a ref).
   const onErrorRef = useRef(onError);
+  const onCenterChangeRef = useRef(onCenterChange);
+  const onMapClickRef = useRef(onMapClick);
+  const showCenterPinRef = useRef(showCenterPin);
   useEffect(() => {
     onErrorRef.current = onError;
-  }, [onError]);
+    onCenterChangeRef.current = onCenterChange;
+    onMapClickRef.current = onMapClick;
+    showCenterPinRef.current = showCenterPin;
+  }, [onError, onCenterChange, onMapClick, showCenterPin]);
   const reportError = (err: unknown) => {
     const error = err instanceof Error ? err : new Error('Failed to initialize map');
     setHasError(true);
@@ -132,14 +158,15 @@ export const MapView: React.FC<MapViewProps> = ({
     showControls,
     onMapLoad,
     clickToPlace,
-    onMapClick
+    onMapClick,
+    centerPinMode,
   });
 
   // Initialize map once
   useEffect(() => {
     if (!mapContainer.current || initializedRef.current) return;
 
-    const { accessToken: initToken, center: initCenter, zoom: initZoom, style: initStyle, showControls: initShowControls, onMapLoad: initOnMapLoad, clickToPlace: initClickToPlace, onMapClick: initOnMapClick } = initialValuesRef.current;
+    const { accessToken: initToken, center: initCenter, zoom: initZoom, style: initStyle, showControls: initShowControls, onMapLoad: initOnMapLoad, clickToPlace: initClickToPlace, onMapClick: initOnMapClick, centerPinMode: initCenterPinMode } = initialValuesRef.current;
 
     // Set Mapbox access token
     mapboxgl.accessToken = initToken;
@@ -184,14 +211,44 @@ export const MapView: React.FC<MapViewProps> = ({
       }
     });
 
-    // Add navigation controls
+    // Add navigation controls (zoom only in center pin mode: no rotate/pitch there)
     if (initShowControls) {
       map.current.addControl(
-        new mapboxgl.NavigationControl({
-          visualizePitch: true,
-        }),
+        new mapboxgl.NavigationControl(
+          initCenterPinMode ? { showCompass: false } : { visualizePitch: true },
+        ),
         'top-right'
       );
+    }
+
+    if (initCenterPinMode) {
+      const m = map.current;
+      // North-up and flat; zoom gestures keep the center (= the pin's spot) put.
+      m.dragRotate.disable();
+      m.touchZoomRotate.disableRotation();
+      m.touchPitch.disable();
+      m.touchZoomRotate.enable({ around: 'center' });
+      m.scrollZoom.enable({ around: 'center' });
+      // A tap moves the pin; a double-tap would zoom around the tap point instead.
+      m.doubleClickZoom.disable();
+      m.on('movestart', (e) => {
+        if (e.originalEvent) setIsMoving(true);
+      });
+      m.on('moveend', (e) => {
+        setIsMoving(false);
+        // Only user moves (pan, inertia, pinch) report; programmatic ones -
+        // the initial setCenter, a caller's flyTo, resize - don't.
+        if (!e.originalEvent || !showCenterPinRef.current) return;
+        const { lng, lat } = m.getCenter();
+        onCenterChangeRef.current?.([lng, lat]);
+      });
+      if (initClickToPlace) {
+        m.on('click', (e) => {
+          const { lng, lat } = e.lngLat;
+          m.easeTo({ center: [lng, lat] });
+          onMapClickRef.current?.([lng, lat]);
+        });
+      }
     }
 
     // Call onMapLoad callback and enforce our center/zoom (style JSON can override with its own center/zoom when it loads)
@@ -206,7 +263,7 @@ export const MapView: React.FC<MapViewProps> = ({
     });
 
     // Add click-to-place functionality
-    if (initClickToPlace && initOnMapClick) {
+    if (!initCenterPinMode && initClickToPlace && initOnMapClick) {
       map.current.on('click', (e) => {
         const { lng, lat } = e.lngLat;
         initOnMapClick([lng, lat]);
@@ -234,9 +291,27 @@ export const MapView: React.FC<MapViewProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Mapbox only follows window resizes. Keep the canvas matched to the
+  // container (e.g. a full-screen panel padding itself for the iOS keyboard),
+  // or the drawing is stretched and a center pin drifts off the real center.
+  useEffect(() => {
+    const el = mapContainer.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    let frame = 0;
+    const observer = new ResizeObserver(() => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => map.current?.resize());
+    });
+    observer.observe(el);
+    return () => {
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+    };
+  }, []);
+
   // Update marker separately – add when map is ready so marker shows when opening from geocode (async)
   useEffect(() => {
-    if (!map.current || !marker) return;
+    if (centerPinMode || !map.current || !marker) return;
 
     const addMarker = () => {
       if (!map.current) return;
@@ -275,7 +350,7 @@ export const MapView: React.FC<MapViewProps> = ({
         markerRef.current = null;
       }
     };
-  }, [marker, onMarkerDragEnd]);
+  }, [centerPinMode, marker, onMarkerDragEnd]);
 
   if (hasError) {
     return (
@@ -300,6 +375,24 @@ export const MapView: React.FC<MapViewProps> = ({
         className="h-full w-full focus:outline-none focus-visible:outline-none border-0 outline-none [&_canvas]:outline-none [&_canvas]:border-0"
         tabIndex={-1}
       />
+      {/* Center pin: its tip sits on the container's center (= the map's
+          center), lifted while the map moves; the dot marks the exact spot. */}
+      {centerPinMode && showCenterPin && (
+        <div aria-hidden className="pointer-events-none absolute inset-0 z-[3]">
+          <span className="absolute left-1/2 top-1/2 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-black/40" />
+          <svg
+            viewBox="0 0 32 44"
+            className="absolute left-1/2 top-1/2 h-11 w-8 drop-shadow-md transition-transform duration-150 ease-out"
+            style={{ transform: `translate(-50%, ${isMoving ? 'calc(-100% - 8px)' : '-100%'})` }}
+          >
+            <path
+              d="M16 0C7.16 0 0 7.16 0 16c0 11 16 28 16 28s16-17 16-28C32 7.16 24.84 0 16 0z"
+              fill={pinColor}
+            />
+            <circle cx="16" cy="16" r="6" fill="#fff" />
+          </svg>
+        </div>
+      )}
       {/* Ghost layout mirroring the loaded map: street strokes, center pin,
           nav controls top-right, Mapbox badge bottom-left, info bottom-right. */}
       <Skeleton

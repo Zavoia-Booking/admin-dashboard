@@ -10,17 +10,11 @@ import {
   DialogPortal,
   DialogOverlay,
 } from '../ui/dialog';
-import {
-  Drawer,
-  DrawerContent,
-  DrawerDescription,
-  DrawerHeader,
-  DrawerTitle,
-} from '../ui/drawer';
+import { BaseSlider } from '../common/BaseSlider';
 import { MapView } from './MapView';
 import AddressAutocomplete from '../address/AddressAutocomplete';
 import type { AddressAutocompleteChange } from '../../types/geo';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Info } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useIsMobile } from '../../hooks/use-mobile';
 import { useKeyboardVisible } from '../../hooks/useKeyboardVisible';
@@ -126,8 +120,17 @@ export interface MapDialogProps {
 }
 
 /**
- * Dialog component that displays a map using MapLibre GL JS
- * 
+ * Dialog component that displays a map using Mapbox GL JS.
+ *
+ * Desktop: a centered dialog with search, the address note, a map with a
+ * draggable marker, and the footer actions.
+ *
+ * Mobile: a full-screen panel. Search sits on top and its results fill the map
+ * area (so the keyboard can't cover them); the pin is fixed at the map's
+ * center and the user moves the map under it (a tap eases that spot to the
+ * center). Moves report through onMarkerDragEnd, taps through onMapClick, so
+ * callers handle both layouts the same way.
+ *
  * @example
  * ```tsx
  * <MapDialog
@@ -157,39 +160,52 @@ export const MapDialog: React.FC<MapDialogProps> = ({
   overlayClassName,
   countryCodes,
   onMapError,
+  mapHeight = '280px',
   ...mapProps
 }) => {
   const { t } = useTranslation(['locations', 'common']);
   const [searchValue, setSearchValue] = useState('');
   const isMobile = useIsMobile();
-  // Native keyboard covers the footer actions instead of pushing them up.
+  // Mobile: the hint under the map gives its room to the results while typing.
   const keyboardVisible = useKeyboardVisible();
+  // Mobile: the map area, which the search results fill while searching.
+  const [mapArea, setMapArea] = useState<HTMLDivElement | null>(null);
+  // Mobile: a pin placed by a search pick or a tap when the caller had no
+  // coordinates to start from (its `marker` is then undefined). Reset on close.
+  const [pinPlaced, setPinPlaced] = useState(false);
+  const [wasOpen, setWasOpen] = useState(isOpen);
+  if (isOpen !== wasOpen) {
+    setWasOpen(isOpen);
+    if (!isOpen) setPinPlaced(false);
+  }
 
   const handleAddressSelect = (change: AddressAutocompleteChange) => {
     if (change.suggestion && onSearchSelect) {
       const suggestion = change.suggestion as any;
       const lat = Number(suggestion.lat);
       const lng = Number(suggestion.lng || suggestion.lon);
-      
+
       if (!isNaN(lat) && !isNaN(lng)) {
         // Pass coordinates and the full suggestion data
+        setPinPlaced(true);
         onSearchSelect([lng, lat], suggestion);
       }
     }
     setSearchValue(change.address);
   };
 
-  // Map component (reusable). data-vaul-no-drag keeps panning the map and
-  // dragging the pin from being read as a drag on the drawer itself.
+  // Map component (desktop). data-vaul-no-drag keeps panning the map and
+  // dragging the pin from being read as a drag on a surrounding drawer. The
+  // requested height is capped so the dialog still fits short laptop screens.
   const mapElement = (
     <div
       data-vaul-no-drag=""
-      className={cn(isMobile ? "mt-0" : "mt-4", "focus:outline-none focus-visible:outline-none border-0 outline-none")}
+      className="mt-4 focus:outline-none focus-visible:outline-none border-0 outline-none"
     >
       <MapView
         {...mapProps}
+        height={`min(${mapHeight}, 55vh)`}
         width="100%"
-        zoom={17}
         onMarkerDragEnd={onMarkerDragEnd}
         onMapClick={onMapClick}
         onError={onMapError}
@@ -242,41 +258,68 @@ export const MapDialog: React.FC<MapDialogProps> = ({
     </>
   );
 
-  // Use Drawer on mobile, Dialog on desktop. Keyboard handling on native comes
-  // from the shared Drawer wrapper; the height below must stay in dvh for it.
+  // Mobile: full-screen panel (BaseSlider: back button, footer hidden while the
+  // keyboard is up, iOS keyboard inset). Search on top, the map fills the rest.
   if (isMobile) {
+    const pinVisible = !!mapProps.marker || pinPlaced;
+    const handleMapTap = (coordinates: [number, number]) => {
+      setPinPlaced(true);
+      onMapClick?.(coordinates);
+    };
+
     return (
-      <Drawer open={isOpen} onOpenChange={onClose}>
-        <DrawerContent
-          className={cn(
-            "flex max-h-[92dvh] flex-col bg-white dark:bg-surface border-border focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0",
-            className
-          )}
-          overlayClassName={overlayClassName}
-        >
-          <DrawerHeader className="shrink-0 text-left">
-            <DrawerTitle className="text-foreground-1">{title}</DrawerTitle>
-            {description && (
-              <DrawerDescription className="text-foreground-3 dark:text-foreground-2">{description}</DrawerDescription>
-            )}
-          </DrawerHeader>
-          {/* Only this middle band scrolls, so the actions below stay reachable
-              no matter how short the drawer gets when the keyboard is up. */}
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-4">
-            {mapElement}
-            {searchElement}
-            {infoCardElement}
+      <BaseSlider
+        isOpen={isOpen}
+        onClose={onClose}
+        title={title}
+        panelClassName={className}
+        backdropClassName={overlayClassName}
+        // Edge-to-edge map: no body padding or scroll; the body's inner wrapper
+        // becomes a column so the map can take the remaining height.
+        contentClassName="!p-0 !overflow-hidden [&>div]:flex [&>div]:min-h-0 [&>div]:flex-col"
+        footer={footerActions && (
+          <div className="flex gap-2 pt-3 [&>*]:h-11 [&>*]:flex-1">{footerActions}</div>
+        )}
+      >
+        {showSearch && onSearchSelect && (
+          <div className="shrink-0 px-3 pb-3">
+            <AddressAutocomplete
+              value={searchValue}
+              onChange={handleAddressSelect}
+              placeholder={t('locations:mapDialogShared.searchPlaceholder')}
+              limit={8}
+              countryCodes={countryCodes}
+              listContainer={mapArea}
+              blurOnSelect
+            />
           </div>
-          {footerActions && (
-            <div className={cn(
-              "shrink-0 border-t border-border bg-white px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] dark:bg-surface",
-              keyboardVisible && "hidden",
-            )}>
-              <div className="flex flex-col gap-2">{footerActions}</div>
-            </div>
-          )}
-        </DrawerContent>
-      </Drawer>
+        )}
+        {/* data-vaul-no-drag: a pan here moves the map, never the panel. */}
+        <div ref={setMapArea} data-vaul-no-drag="" className="relative min-h-0 flex-1">
+          <MapView
+            {...mapProps}
+            height="100%"
+            width="100%"
+            className="!rounded-none"
+            centerPinMode
+            showCenterPin={pinVisible}
+            pinColor={mapProps.marker?.color}
+            onCenterChange={onMarkerDragEnd}
+            onMapClick={handleMapTap}
+            onError={onMapError}
+          />
+        </div>
+        {showAddressWarning && !keyboardVisible && (
+          <div className="flex shrink-0 items-start gap-2 px-4 pt-3 text-xs leading-relaxed text-foreground-2">
+            <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-foreground-3" aria-hidden />
+            <span>
+              {pinVisible
+                ? t('locations:mapDialogShared.mobileHint')
+                : t('locations:mapDialogShared.mobileSearchFirst')}
+            </span>
+          </div>
+        )}
+      </BaseSlider>
     );
   }
 

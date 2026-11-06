@@ -34,6 +34,8 @@
   },
   "mapDialogShared": {
     "searchPlaceholder": "Search for the correct address...",
+    "mobileHint": "Move the map until the pin sits on your exact location. Customers find you by the pin.",
+    "mobileSearchFirst": "Search for your address, or tap the map, to place the pin.",
     "addressWarningTitle": "Confirm Pin Location",
     "addressWarningDescription": "We've attempted to place the pin based on your address. If it's correct, simply click \"Confirm Location\". If not, you can search for the correct address, click on the map, or drag the pin to adjust. Customers will find your business based on the pin location."
   },

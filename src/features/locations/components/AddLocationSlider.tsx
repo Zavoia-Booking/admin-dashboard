@@ -207,7 +207,8 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
     // CASE 1: User searched for a new address in the map
     if (searchedAddressData) {
       const displayName = searchedAddressData.displayName || currentAddress;
-      finalCoordinates = searchedAddressData.coordinates || adjustedCoordinates;
+      // The pick also set adjustedCoordinates; a pin moved after it wins.
+      finalCoordinates = adjustedCoordinates || searchedAddressData.coordinates;
       
       if (!finalCoordinates) {
         toast.error(t("addLocation.toasts.selectLocationOnMap"));

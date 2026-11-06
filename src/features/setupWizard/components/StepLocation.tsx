@@ -261,7 +261,8 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
       // CASE 1: User searched for a new address in the map → Override entire address
       if (searchedAddressData) {
         const displayName = searchedAddressData.displayName || currentAddress;
-        const finalCoordinates = searchedAddressData.coordinates || adjustedCoordinates;
+        // The pick also set adjustedCoordinates; a pin moved after it wins.
+        const finalCoordinates = adjustedCoordinates || searchedAddressData.coordinates;
         
         if (!finalCoordinates) {
           toast.error(tw('stepLocation.toasts.selectOnMap'));

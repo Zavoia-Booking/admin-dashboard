@@ -34,6 +34,8 @@
   },
   "mapDialogShared": {
     "searchPlaceholder": "Caută adresa corectă...",
+    "mobileHint": "Mută harta până când pinul este exact pe locația ta. Clienții te găsesc după pin.",
+    "mobileSearchFirst": "Caută adresa sau atinge harta ca să plasezi pinul.",
     "addressWarningTitle": "Confirmă poziția pinului",
     "addressWarningDescription": "Am plasat pinul pe baza adresei tale. Dacă este corect, dă click pe \"Confirmă locația\". Dacă nu, poți căuta adresa corectă, da click pe hartă sau trage pinul pentru a ajusta. Clienții îți vor găsi businessul pe baza poziției pinului."
   },

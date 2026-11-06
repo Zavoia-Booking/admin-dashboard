@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { maptilerAutocomplete } from '../../lib/maptiler';
 import type { AddressAutocompleteChange, AddressSuggestion } from '../../types/geo';
@@ -14,6 +15,15 @@ type Props = {
   disabled?: boolean;
   className?: string;
   autoFocus?: boolean;
+  /**
+   * Render the results into this element, filling it (it should be
+   * `relative`), instead of as a dropdown under the input - e.g. over a map
+   * that sits below the search on a phone, where a dropdown would run under
+   * the keyboard.
+   */
+  listContainer?: HTMLElement | null;
+  /** Blur the input after a pick, so the on-screen keyboard closes. */
+  blurOnSelect?: boolean;
 };
 
 export default function AddressAutocomplete({
@@ -26,6 +36,8 @@ export default function AddressAutocomplete({
   disabled,
   className,
   autoFocus = false,
+  listContainer,
+  blurOnSelect = false,
 }: Props) {
   const { t } = useTranslation('common');
   const displayPlaceholder = placeholder ?? t('address.placeholder');
@@ -34,6 +46,8 @@ export default function AddressAutocomplete({
   const [loading, setLoading] = useState(false);
   const [suggestions, setSuggestions] = useState<AddressSuggestion[]>([]);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const listRef = useRef<HTMLDivElement | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
   const shouldFetchRef = useRef<boolean>(false);
 
   useEffect(() => {
@@ -45,7 +59,10 @@ export default function AddressAutocomplete({
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (!containerRef.current) return;
-      if (!containerRef.current.contains(e.target as Node)) setOpen(false);
+      const target = e.target as Node;
+      // A portaled list lives outside the container.
+      if (listRef.current?.contains(target)) return;
+      if (!containerRef.current.contains(target)) setOpen(false);
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
@@ -131,8 +148,37 @@ export default function AddressAutocomplete({
     setLoading(false);
     setSuggestions([]);
     setOpen(false);
+    if (blurOnSelect) inputRef.current?.blur();
     onChange({ address: s.displayName, suggestion: s });
   };
+
+  const listContent = (
+    <>
+      {loading && (
+        <div className="p-3 text-sm text-foreground-3 dark:text-foreground-2 animate-pulse">{t('address.searching')}</div>
+      )}
+      {!loading && suggestions.length === 0 && query.trim().length >= 3 && (
+        <div className="p-3 text-sm text-foreground-3 dark:text-foreground-2">
+          {t('address.noAddressesFound')}
+        </div>
+      )}
+      {!loading && suggestions.length > 0 && suggestions.map((s, idx) => (
+        <button
+          key={`${s.id}-${idx}`}
+          type="button"
+          className={`w-full text-left hover:bg-surface-hover focus:bg-surface-hover focus:outline-none cursor-pointer ${
+            listContainer ? 'px-4 py-3 border-b border-border-subtle' : 'px-3 py-2'
+          }`}
+          onClick={() => handleSelect(s)}
+        >
+          <div className="text-sm text-foreground-1 leading-snug">{s.displayName}</div>
+          {s.city && (
+            <div className="text-xs text-foreground-3 dark:text-foreground-2">{s.city}{s.postalCode ? `, ${s.postalCode}` : ''}</div>
+          )}
+        </button>
+      ))}
+    </>
+  );
 
   return (
     <div ref={containerRef} className={`relative ${className ?? ''}`}>
@@ -146,6 +192,7 @@ export default function AddressAutocomplete({
           </svg>
         </div>
         <Input
+          ref={inputRef}
           value={query}
           onChange={(e) => {
             const next = e.target.value;
@@ -170,31 +217,19 @@ export default function AddressAutocomplete({
           className="flex-1 border-0 !pl-2 pr-2 focus-visible:ring-0 focus-visible:ring-offset-0"
         />
       </div>
-      {open && (
+      {open && !listContainer && (
         <div className="absolute z-15 mt-1 w-full rounded-md border bg-surface shadow-lg overflow-hidden">
-          {loading && (
-            <div className="p-3 text-sm text-foreground-3 dark:text-foreground-2 animate-pulse">{t('address.searching')}</div>
-          )}
-          {!loading && suggestions.length === 0 && query.trim().length >= 3 && (
-            <div className="p-3 text-sm text-foreground-3 dark:text-foreground-2">
-              {t('address.noAddressesFound')}
-            </div>
-          )}
-          {!loading && suggestions.length > 0 && suggestions.map((s, idx) => (
-            <button
-              key={`${s.id}-${idx}`}
-              type="button"
-              className="w-full text-left px-3 py-2 hover:bg-surface-hover focus:bg-surface-hover focus:outline-none cursor-pointer"
-              onClick={() => handleSelect(s)}
-            >
-              <div className="text-sm text-foreground-1 leading-snug">{s.displayName}</div>
-              {s.city && (
-                <div className="text-xs text-foreground-3 dark:text-foreground-2">{s.city}{s.postalCode ? `, ${s.postalCode}` : ''}</div>
-              )}
-            </button>
-          ))}
-
+          {listContent}
         </div>
+      )}
+      {open && listContainer && createPortal(
+        <div
+          ref={listRef}
+          className="absolute inset-0 z-20 overflow-y-auto overscroll-contain bg-surface"
+        >
+          {listContent}
+        </div>,
+        listContainer,
       )}
     </div>
   );
