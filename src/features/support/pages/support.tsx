@@ -578,13 +578,14 @@ function NewTicketDialog({
 
             <div className="min-h-0 flex-1 overflow-y-auto">{formBody}</div>
 
-            <div className="h-px bg-border dark:bg-border-strong" />
+            {/* Footer (and its divider) hidden while the keyboard is up, like
+             *  DrawerFooter in the other sheets. */}
+            <div className={cn("h-px bg-border dark:bg-border-strong", keyboardVisible && "hidden")} />
 
-            {/* The keyboard covers the home indicator, so drop its inset while it's up. */}
             <div
               className={cn(
-                "flex flex-col gap-2 px-5 pt-4",
-                keyboardVisible ? "pb-4" : "pb-[calc(1rem+env(safe-area-inset-bottom))]",
+                "flex flex-col gap-2 px-5 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))]",
+                keyboardVisible && "hidden",
               )}
             >
               <Button
