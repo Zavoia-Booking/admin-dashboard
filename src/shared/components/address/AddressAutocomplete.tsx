@@ -48,6 +48,8 @@ export default function AddressAutocomplete({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  // A press on a portaled result (Android focuses the button, blurring the input).
+  const pressingListRef = useRef(false);
   const shouldFetchRef = useRef<boolean>(false);
 
   useEffect(() => {
@@ -86,9 +88,12 @@ export default function AddressAutocomplete({
     setOpen(true);
     setLoading(true);
     const ctrl = new AbortController();
+    // A response for an older query must not reopen the list after a pick.
+    let cancelled = false;
     const t = setTimeout(async () => {
       try {
         const raw = await maptilerAutocomplete({ query, limit, countryCodes });
+        if (cancelled) return;
         const seen = new Set<string>();
         const mapped: AddressSuggestion[] = [];
         (raw || []).forEach((r: any) => {
@@ -133,10 +138,11 @@ export default function AddressAutocomplete({
       } catch {
         // ignore
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     }, debounceMs);
     return () => {
+      cancelled = true;
       ctrl.abort();
       clearTimeout(t);
     };
@@ -204,6 +210,11 @@ export default function AddressAutocomplete({
             e.currentTarget.setAttribute('autocomplete', 'new-password');
             if (suggestions.length) setOpen(true);
           }}
+          // Portaled results cover what they fill (a map): dismissing the
+          // keyboard hands it back. Focusing the input again reopens them.
+          onBlur={() => {
+            if (listContainer && !pressingListRef.current) setOpen(false);
+          }}
           placeholder={displayPlaceholder}
           disabled={disabled}
           autoComplete="new-password"
@@ -226,6 +237,9 @@ export default function AddressAutocomplete({
         <div
           ref={listRef}
           className="absolute inset-0 z-20 overflow-y-auto overscroll-contain bg-surface"
+          onPointerDown={() => { pressingListRef.current = true; }}
+          onPointerUp={() => { pressingListRef.current = false; }}
+          onPointerCancel={() => { pressingListRef.current = false; }}
         >
           {listContent}
         </div>,

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { X } from 'lucide-react';
@@ -171,13 +171,62 @@ export const MapDialog: React.FC<MapDialogProps> = ({
   // Mobile: the map area, which the search results fill while searching.
   const [mapArea, setMapArea] = useState<HTMLDivElement | null>(null);
   // Mobile: a pin placed by a search pick or a tap when the caller had no
-  // coordinates to start from (its `marker` is then undefined). Reset on close.
+  // coordinates to start from (its `marker` is then undefined), and the point
+  // the pin was last put on (search pick, tap or pan), which the map snaps back
+  // to after programmatic moves. Both reset when the panel opens, not when it
+  // closes, so nothing changes on screen during the exit slide.
   const [pinPlaced, setPinPlaced] = useState(false);
+  const [pinTarget, setPinTarget] = useState<[number, number] | null>(null);
   const [wasOpen, setWasOpen] = useState(isOpen);
   if (isOpen !== wasOpen) {
     setWasOpen(isOpen);
-    if (!isOpen) setPinPlaced(false);
+    if (isOpen) {
+      setPinPlaced(false);
+      setPinTarget(null);
+      // A fresh search each time, not last time's query to select and delete.
+      setSearchValue('');
+    }
   }
+
+  // Mobile: the map keeps the height it has with the keyboard down, centered
+  // in its area, so the keyboard only crops it top and bottom around the pin.
+  // Resizing the canvas instead blanks the map for the whole keyboard
+  // animation (a resize clears it and Mapbox only redraws a frame later).
+  const [restingMapHeight, setRestingMapHeight] = useState(0);
+  const keyboardVisibleRef = useRef(keyboardVisible);
+  useLayoutEffect(() => {
+    keyboardVisibleRef.current = keyboardVisible;
+  }, [keyboardVisible]);
+  useEffect(() => {
+    if (!mapArea || typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(([entry]) => {
+      if (keyboardVisibleRef.current) return;
+      const height = Math.round(entry.contentRect.height);
+      setRestingMapHeight((prev) => (height > prev ? height : prev));
+    });
+    observer.observe(mapArea);
+    return () => observer.disconnect();
+  }, [mapArea]);
+
+  // Mobile: a tap on the map while typing only closes the keyboard; it must
+  // not also move the pin to wherever the finger landed.
+  const tapWhileTypingRef = useRef(false);
+  const handleMapPointerDown = () => {
+    const focused = document.activeElement;
+    tapWhileTypingRef.current = focused instanceof HTMLInputElement || focused instanceof HTMLTextAreaElement;
+  };
+  const shouldIgnoreTap = () => {
+    if (!tapWhileTypingRef.current) return false;
+    tapWhileTypingRef.current = false;
+    (document.activeElement as HTMLElement | null)?.blur();
+    return true;
+  };
+  const mapRef = useRef<{ stop: () => void } | null>(null);
+  const callerOnMapLoad = mapProps.onMapLoad;
+  const handleMapLoad = (map: any) => {
+    mapRef.current = map;
+    callerOnMapLoad?.(map);
+  };
 
   const handleAddressSelect = (change: AddressAutocompleteChange) => {
     if (change.suggestion && onSearchSelect) {
@@ -186,8 +235,13 @@ export const MapDialog: React.FC<MapDialogProps> = ({
       const lng = Number(suggestion.lng || suggestion.lon);
 
       if (!isNaN(lat) && !isNaN(lng)) {
-        // Pass coordinates and the full suggestion data
+        // Stop a glide still running from a flick first: stopping reports where
+        // it stopped as a pan, which the pick below then overrides (in the same
+        // batch) instead of the other way round.
+        mapRef.current?.stop();
         setPinPlaced(true);
+        setPinTarget([lng, lat]);
+        // Pass coordinates and the full suggestion data
         onSearchSelect([lng, lat], suggestion);
       }
     }
@@ -196,7 +250,8 @@ export const MapDialog: React.FC<MapDialogProps> = ({
 
   // Map component (desktop). data-vaul-no-drag keeps panning the map and
   // dragging the pin from being read as a drag on a surrounding drawer. The
-  // requested height is capped so the dialog still fits short laptop screens.
+  // requested height gives way to the rest of the dialog (~32rem of search,
+  // note, footer and padding) so Confirm stays on short laptop screens.
   const mapElement = (
     <div
       data-vaul-no-drag=""
@@ -204,7 +259,8 @@ export const MapDialog: React.FC<MapDialogProps> = ({
     >
       <MapView
         {...mapProps}
-        height={`min(${mapHeight}, 55vh)`}
+        onMapLoad={handleMapLoad}
+        height={`min(${mapHeight}, max(200px, calc(100dvh - 32rem)))`}
         width="100%"
         onMarkerDragEnd={onMarkerDragEnd}
         onMapClick={onMapClick}
@@ -264,7 +320,12 @@ export const MapDialog: React.FC<MapDialogProps> = ({
     const pinVisible = !!mapProps.marker || pinPlaced;
     const handleMapTap = (coordinates: [number, number]) => {
       setPinPlaced(true);
+      setPinTarget(coordinates);
       onMapClick?.(coordinates);
+    };
+    const handleCenterChange = (coordinates: [number, number]) => {
+      setPinTarget(coordinates);
+      onMarkerDragEnd?.(coordinates);
     };
 
     return (
@@ -295,19 +356,36 @@ export const MapDialog: React.FC<MapDialogProps> = ({
           </div>
         )}
         {/* data-vaul-no-drag: a pan here moves the map, never the panel. */}
-        <div ref={setMapArea} data-vaul-no-drag="" className="relative min-h-0 flex-1">
-          <MapView
-            {...mapProps}
-            height="100%"
-            width="100%"
-            className="!rounded-none"
-            centerPinMode
-            showCenterPin={pinVisible}
-            pinColor={mapProps.marker?.color}
-            onCenterChange={onMarkerDragEnd}
-            onMapClick={handleMapTap}
-            onError={onMapError}
-          />
+        <div
+          ref={setMapArea}
+          data-vaul-no-drag=""
+          className="relative min-h-0 flex-1 overflow-hidden"
+          onPointerDownCapture={handleMapPointerDown}
+        >
+          <div
+            className="absolute inset-x-0"
+            style={
+              restingMapHeight
+                ? { top: `calc(50% - ${restingMapHeight / 2}px)`, height: restingMapHeight }
+                : { top: 0, bottom: 0 }
+            }
+          >
+            <MapView
+              {...mapProps}
+              height="100%"
+              width="100%"
+              className="!rounded-none"
+              onMapLoad={handleMapLoad}
+              centerPinMode
+              showCenterPin={pinVisible}
+              pinColor={mapProps.marker?.color}
+              pinTarget={pinTarget ?? mapProps.marker?.coordinates ?? null}
+              onCenterChange={handleCenterChange}
+              onMapClick={handleMapTap}
+              shouldIgnoreTap={shouldIgnoreTap}
+              onError={onMapError}
+            />
+          </div>
         </div>
         {showAddressWarning && !keyboardVisible && (
           <div className="flex shrink-0 items-start gap-2 px-4 pt-3 text-xs leading-relaxed text-foreground-2">
@@ -332,6 +410,9 @@ export const MapDialog: React.FC<MapDialogProps> = ({
           className={cn(
             "bg-white dark:bg-surface data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-2xl border border-border p-6 shadow-lg hover:border-border-strong duration-200 sm:max-w-lg",
             "max-w-4xl",
+            // Safety net on very short viewports: the dialog scrolls rather
+            // than pushing Confirm off-screen.
+            "max-h-[calc(100dvh-2rem)] overflow-y-auto",
             "focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0",
             className
           )}

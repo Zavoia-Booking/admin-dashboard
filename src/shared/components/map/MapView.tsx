@@ -80,10 +80,24 @@ export interface MapViewProps {
   /** Center pin mode: pin color. */
   pinColor?: string;
   /**
+   * Center pin mode: where the pin should be (the last search pick, tap or
+   * reported pan). After any programmatic move or resize the map snaps its
+   * center back here, so the pin never ends up off the point being saved.
+   */
+  pinTarget?: [number, number] | null;
+  /**
+   * Center pin mode: asked on every tap before it moves the pin; return true
+   * to ignore the tap (e.g. the tap that only closes the keyboard).
+   */
+  shouldIgnoreTap?: () => boolean;
+  /**
    * Additional CSS classes for the container
    */
   className?: string;
 }
+
+/** originalEvent types Mapbox attaches to moves that no finger made. */
+const NON_GESTURE_EVENTS = new Set(['resize', 'orientationchange', 'fullscreenchange', 'webkitfullscreenchange']);
 
 /**
  * Reusable Map component using Mapbox GL JS
@@ -119,6 +133,8 @@ export const MapView: React.FC<MapViewProps> = ({
   showCenterPin = false,
   onCenterChange,
   pinColor = '#C94A2A',
+  pinTarget = null,
+  shouldIgnoreTap,
 }) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
@@ -137,12 +153,16 @@ export const MapView: React.FC<MapViewProps> = ({
   const onCenterChangeRef = useRef(onCenterChange);
   const onMapClickRef = useRef(onMapClick);
   const showCenterPinRef = useRef(showCenterPin);
+  const pinTargetRef = useRef(pinTarget);
+  const shouldIgnoreTapRef = useRef(shouldIgnoreTap);
   useEffect(() => {
     onErrorRef.current = onError;
     onCenterChangeRef.current = onCenterChange;
     onMapClickRef.current = onMapClick;
     showCenterPinRef.current = showCenterPin;
-  }, [onError, onCenterChange, onMapClick, showCenterPin]);
+    pinTargetRef.current = pinTarget;
+    shouldIgnoreTapRef.current = shouldIgnoreTap;
+  }, [onError, onCenterChange, onMapClick, showCenterPin, pinTarget, shouldIgnoreTap]);
   const reportError = (err: unknown) => {
     const error = err instanceof Error ? err : new Error('Failed to initialize map');
     setHasError(true);
@@ -185,6 +205,9 @@ export const MapView: React.FC<MapViewProps> = ({
         style: styleUrl,
         center: initCenter,
         zoom: initZoom,
+        // Center pin mode resizes from the ResizeObserver below: Mapbox's own
+        // window-resize handler tags its move events like a user gesture.
+        trackResize: !initCenterPinMode,
       });
     } catch (err) {
       // Recording a one-time terminal init failure — not a cascading render.
@@ -223,7 +246,9 @@ export const MapView: React.FC<MapViewProps> = ({
 
     if (initCenterPinMode) {
       const m = map.current;
-      // North-up and flat; zoom gestures keep the center (= the pin's spot) put.
+      // North-up and flat; zoom gestures keep the center (= the pin's spot)
+      // put while the fingers are down (a flicked pinch's inertia can still
+      // drift it a little, which then reports like a pan).
       m.dragRotate.disable();
       m.touchZoomRotate.disableRotation();
       m.touchPitch.disable();
@@ -231,19 +256,40 @@ export const MapView: React.FC<MapViewProps> = ({
       m.scrollZoom.enable({ around: 'center' });
       // A tap moves the pin; a double-tap would zoom around the tap point instead.
       m.doubleClickZoom.disable();
+
+      // Keeps the map's center on the pin's point after programmatic moves: a
+      // flyTo started before the layout changed (keyboard closing) lands off
+      // it, and a pick made before 'load' is undone by the initial setCenter.
+      const snapToPinTarget = () => {
+        const target = pinTargetRef.current;
+        if (!target || !showCenterPinRef.current || m.isMoving()) return;
+        const at = m.project(target);
+        const center = m.project(m.getCenter());
+        if (Math.hypot(at.x - center.x, at.y - center.y) > 1) m.jumpTo({ center: target });
+      };
+
       m.on('movestart', (e) => {
         if (e.originalEvent) setIsMoving(true);
       });
       m.on('moveend', (e) => {
         setIsMoving(false);
-        // Only user moves (pan, inertia, pinch) report; programmatic ones -
-        // the initial setCenter, a caller's flyTo, resize - don't.
-        if (!e.originalEvent || !showCenterPinRef.current) return;
+        // Only gestures (pan, inertia, pinch) move the pin. Not programmatic
+        // moves (setCenter, a caller's flyTo, resize), not resize-type events,
+        // and not while an ease runs - a tap's own easeTo, which a slightly
+        // sloppy tap's micro-pan would otherwise override.
+        const type = (e.originalEvent as Event | undefined)?.type;
+        const byGesture = !!type && !NON_GESTURE_EVENTS.has(type) && !m.isEasing();
+        if (!byGesture) {
+          snapToPinTarget();
+          return;
+        }
+        if (!showCenterPinRef.current) return;
         const { lng, lat } = m.getCenter();
         onCenterChangeRef.current?.([lng, lat]);
       });
       if (initClickToPlace) {
         m.on('click', (e) => {
+          if (shouldIgnoreTapRef.current?.()) return;
           const { lng, lat } = e.lngLat;
           m.easeTo({ center: [lng, lat] });
           onMapClickRef.current?.([lng, lat]);
@@ -293,18 +339,21 @@ export const MapView: React.FC<MapViewProps> = ({
 
   // Mapbox only follows window resizes. Keep the canvas matched to the
   // container (e.g. a full-screen panel padding itself for the iOS keyboard),
-  // or the drawing is stretched and a center pin drifts off the real center.
+  // or a center pin drifts off the real center. Once the size settles: a
+  // resize clears the canvas until the next frame, so resizing on every frame
+  // of a keyboard animation would flicker. resize() keeps the center, and its
+  // moveend snaps a center pin back onto its point.
   useEffect(() => {
     const el = mapContainer.current;
     if (!el || typeof ResizeObserver === 'undefined') return;
-    let frame = 0;
+    let timer = 0;
     const observer = new ResizeObserver(() => {
-      cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(() => map.current?.resize());
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => map.current?.resize(), 120);
     });
     observer.observe(el);
     return () => {
-      cancelAnimationFrame(frame);
+      window.clearTimeout(timer);
       observer.disconnect();
     };
   }, []);
