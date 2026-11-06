@@ -188,10 +188,12 @@ export const MapDialog: React.FC<MapDialogProps> = ({
     }
   }
 
-  // Mobile: the map keeps the height it has with the keyboard down, centered
-  // in its area, so the keyboard only crops it top and bottom around the pin.
-  // Resizing the canvas instead blanks the map for the whole keyboard
-  // animation (a resize clears it and Mapbox only redraws a frame later).
+  // Mobile: the map keeps the height it has with the keyboard down, pinned to
+  // the top of its area, so the keyboard only covers its lower part and the
+  // map never moves. Resizing the canvas instead blanks the map for the whole
+  // keyboard animation (a resize clears it and Mapbox only redraws a frame
+  // later); centering it made it drop and then slide up as the footer hid and
+  // the keyboard rose.
   const [restingMapHeight, setRestingMapHeight] = useState(0);
   const keyboardVisibleRef = useRef(keyboardVisible);
   useLayoutEffect(() => {
@@ -363,12 +365,8 @@ export const MapDialog: React.FC<MapDialogProps> = ({
           onPointerDownCapture={handleMapPointerDown}
         >
           <div
-            className="absolute inset-x-0"
-            style={
-              restingMapHeight
-                ? { top: `calc(50% - ${restingMapHeight / 2}px)`, height: restingMapHeight }
-                : { top: 0, bottom: 0 }
-            }
+            className="absolute inset-x-0 top-0"
+            style={restingMapHeight ? { height: restingMapHeight } : { bottom: 0 }}
           >
             <MapView
               {...mapProps}

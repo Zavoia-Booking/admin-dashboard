@@ -48,8 +48,6 @@ export default function AddressAutocomplete({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
-  // A press on a portaled result (Android focuses the button, blurring the input).
-  const pressingListRef = useRef(false);
   const shouldFetchRef = useRef<boolean>(false);
 
   useEffect(() => {
@@ -212,8 +210,13 @@ export default function AddressAutocomplete({
           }}
           // Portaled results cover what they fill (a map): dismissing the
           // keyboard hands it back. Focusing the input again reopens them.
+          // Deferred so a pick in flight still lands; a pick closes the list
+          // itself.
           onBlur={() => {
-            if (listContainer && !pressingListRef.current) setOpen(false);
+            if (!listContainer) return;
+            window.setTimeout(() => {
+              if (document.activeElement !== inputRef.current) setOpen(false);
+            }, 250);
           }}
           placeholder={displayPlaceholder}
           disabled={disabled}
@@ -237,9 +240,9 @@ export default function AddressAutocomplete({
         <div
           ref={listRef}
           className="absolute inset-0 z-20 overflow-y-auto overscroll-contain bg-surface"
-          onPointerDown={() => { pressingListRef.current = true; }}
-          onPointerUp={() => { pressingListRef.current = false; }}
-          onPointerCancel={() => { pressingListRef.current = false; }}
+          // Keep focus in the input when a result is tapped: iOS and Android
+          // otherwise blur it on mousedown, before the click that picks it.
+          onMouseDown={(e) => e.preventDefault()}
         >
           {listContent}
         </div>,
