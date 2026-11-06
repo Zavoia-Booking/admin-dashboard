@@ -1,4 +1,4 @@
-import { takeLatest, call, put, all, race, delay } from "redux-saga/effects";
+import { takeLatest, call, put, all, race, delay, take } from "redux-saga/effects";
 import {
   registerOwnerRequestAction,
   setAuthLoadingAction,
@@ -193,13 +193,38 @@ export function* authSaga(): Generator<any, void, any> {
   ]);
 }
 
+// /me is the only response carrying entitlements; a dropped one would leave the
+// login-response user (no entitlements) in place for the rest of the session.
+const FETCH_CURRENT_USER_RETRY_DELAYS_MS = [1_000, 3_000, 10_000];
+
 function* handleFetchCurrentUser(): Generator<any, void, any> {
-  try {
-    const user: AuthUser = (yield call(getCurrentUserApi)) as any;
-    yield put(setAuthUserAction({ user }));
-  } catch (error: any) {
-    const message = getErrorMessage(error) || i18n.t('auth:page.errors.fetchCurrentUserFailed');
-    yield put(fetchCurrentUserAction.failure({ message }));
+  // Logging out abandons the fetch: a /me (or a pending retry) landing after the
+  // reset would put the previous user back into a logged-out app.
+  yield race([
+    call(fetchCurrentUserWithRetry),
+    take([logoutRequestAction.request, logoutRequestAction.success]),
+  ]);
+}
+
+function* fetchCurrentUserWithRetry(): Generator<any, void, any> {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      const user: AuthUser = (yield call(getCurrentUserApi)) as any;
+      yield put(setAuthUserAction({ user }));
+      return;
+    } catch (error: any) {
+      // Retry only transient failures (no response, timeout, 5xx). A 401 has
+      // already been through the refresh flow in the HTTP layer.
+      const status: number | undefined = error?.response?.status;
+      const transient = status === undefined || status >= 500;
+      if (transient && attempt < FETCH_CURRENT_USER_RETRY_DELAYS_MS.length) {
+        yield delay(FETCH_CURRENT_USER_RETRY_DELAYS_MS[attempt]);
+        continue;
+      }
+      const message = getErrorMessage(error) || i18n.t('auth:page.errors.fetchCurrentUserFailed');
+      yield put(fetchCurrentUserAction.failure({ message }));
+      return;
+    }
   }
 }
 
@@ -254,12 +279,14 @@ function* handleGoogleLogin(action: ReturnType<typeof googleLoginAction.request>
     // Fetch fresh user data (with full entitlements) before completing login
     // so write-affordance gating is correct on first render after redirect.
     let userForSuccess = response.user;
+    let freshUserMissing = false;
     try {
       const freshUser: AuthUser = (yield call(getCurrentUserApi)) as AuthUser;
       yield put(setAuthUserAction({ user: freshUser }));
       userForSuccess = freshUser;
     } catch {
       // Fall back to login response user data (already set above)
+      freshUserMissing = true;
     }
 
     // Use isNewUser from backend response to determine if this is a registration
@@ -269,6 +296,11 @@ function* handleGoogleLogin(action: ReturnType<typeof googleLoginAction.request>
       user: userForSuccess,
       isNewUser: response.isNewUser ?? false
     } as any));
+    // The fallback user has no entitlements; fetch them (with retries) AFTER the
+    // success above, which would otherwise overwrite them.
+    if (freshUserMissing) {
+      yield put(fetchCurrentUserAction.request());
+    }
   } catch (error: any) {
     const statusCode = error?.response?.status;
     const code = error?.response?.data?.code;
@@ -371,12 +403,14 @@ function* handleGoogleRegister(action: ReturnType<typeof googleRegisterAction.re
     // Fetch fresh user data (with full entitlements) before completing registration
     // so write-affordance gating is correct on first render after redirect.
     let userForSuccess = response.user;
+    let freshUserMissing = false;
     try {
       const freshUser: AuthUser = (yield call(getCurrentUserApi)) as AuthUser;
       yield put(setAuthUserAction({ user: freshUser }));
       userForSuccess = freshUser;
     } catch {
       // Fall back to register response user data (already set above)
+      freshUserMissing = true;
     }
 
     // Use isNewUser from backend response to determine if this is a registration
@@ -386,6 +420,10 @@ function* handleGoogleRegister(action: ReturnType<typeof googleRegisterAction.re
       user: userForSuccess,
       isNewUser: response.isNewUser ?? true
     } as any));
+    // See handleGoogleLogin: refetch the missing entitlements after the success.
+    if (freshUserMissing) {
+      yield put(fetchCurrentUserAction.request());
+    }
   } catch (error: any) {
     const statusCode = error?.response?.status;
     const code = error?.response?.data?.code;
@@ -622,11 +660,13 @@ function* handleSelectBusiness(action: ReturnType<typeof selectBusinessAction.re
     // During this async call, user remains null so AuthGate shows spinner
     // and write-affordance gating has the correct value on first render.
     let user = response.user;
+    let freshUserMissing = false;
     try {
       const freshUser: AuthUser = (yield call(getCurrentUserApi)) as AuthUser;
       user = freshUser;
     } catch {
       // Fall back to select-business response user data
+      freshUserMissing = true;
     }
 
     yield put(setAuthUserAction({ user }));
@@ -635,6 +675,10 @@ function* handleSelectBusiness(action: ReturnType<typeof selectBusinessAction.re
       csrfToken: response.csrfToken ?? null,
       user
     }));
+    // See handleGoogleLogin: refetch the missing entitlements after the success.
+    if (freshUserMissing) {
+      yield put(fetchCurrentUserAction.request());
+    }
   } catch (error: any) {
     const message = getErrorMessage(error);
     yield put(selectBusinessAction.failure({ message }));

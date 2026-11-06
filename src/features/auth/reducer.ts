@@ -154,8 +154,10 @@ export const AuthReducer: Reducer<AuthState, any> = (state: AuthState = initialS
         status: action.payload ? AuthStatusEnum.AUTHENTICATED : AuthStatusEnum.UNAUTHENTICATED,
         // Every fresh user object lands here (login, Google, /me). Stamping it
         // is what lets the native resume handler tell a stale snapshot from a
-        // current one - see nativeSessionResume.
-        lastUserFetchAt: action.payload.user ? Date.now() : null,
+        // current one - see nativeSessionResume. Only /me snapshots count: a
+        // login-response user has no entitlements, and stamping it would hold
+        // off the resume refetch for 30 minutes if its /me never landed.
+        lastUserFetchAt: action.payload.user?.entitlements !== undefined ? Date.now() : null,
       };
     }
 

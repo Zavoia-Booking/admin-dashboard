@@ -16,9 +16,10 @@ type LimitedAccessBannerProps = {
  * no CTA, no link. Pairs with the per-button WriteGate tooltip so touch
  * users still understand why controls are disabled.
  *
- * Renders nothing when the user is entitled, when the user is an owner who
- * hasn't completed the business setup wizard (BusinessSetupPrompt covers it),
- * or when the user has limited access (no business — billing copy is irrelevant).
+ * Renders nothing when the user is entitled, while entitlements are still
+ * unknown, when the user is an owner who hasn't completed the business setup
+ * wizard (BusinessSetupPrompt covers it), or when the user has limited access
+ * (no business — billing copy is irrelevant).
  */
 export const LimitedAccessBanner: React.FC<LimitedAccessBannerProps> = ({ className }) => {
   const { t } = useTranslation('common');
@@ -27,6 +28,10 @@ export const LimitedAccessBanner: React.FC<LimitedAccessBannerProps> = ({ classN
   const isLimitedAccess = useSelector(selectIsLimitedAccess);
 
   if (canWrite) return null;
+  // Only /me carries entitlements; the login responses don't. Until it lands the
+  // plan is unknown, not limited (same rule as SubscriptionBlocker) - otherwise
+  // the banner flashes after every login.
+  if (user?.entitlements === undefined) return null;
   if (isLimitedAccess) return null;
 
   const isOwner = user?.role === 'owner' || user?.role === 'OWNER' || user?.role === 'Owner';
