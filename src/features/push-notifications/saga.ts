@@ -1,7 +1,6 @@
-import { takeEvery, call, select, all } from "redux-saga/effects";
+import { takeEvery, call, all } from "redux-saga/effects";
 import { setAuthUserAction, logoutRequestAction } from "../auth/actions";
-import { registerIfGranted, unregisterFromPush } from "./service";
-import type { RootState } from "../../app/providers/store";
+import { registerIfGranted } from "./service";
 import type { AuthUser } from "../auth/types";
 
 let lastRegisteredUserId: number | null = null;
@@ -18,11 +17,10 @@ function* handleAuthUserSet(action: ReturnType<typeof setAuthUserAction>): Gener
   yield call(registerIfGranted);
 }
 
-function* handleLogoutRequest(): Generator<any, void, any> {
-  const user: AuthUser | null = yield select((s: RootState) => s.auth.user);
-  if (user) {
-    yield call(unregisterFromPush);
-  }
+// The device's token is unregistered by the logout saga itself (auth.saga
+// handleLogout), ahead of /auth/logout; here we only forget the user so the
+// next login registers again.
+function handleLogoutRequest(): void {
   lastRegisteredUserId = null;
 }
 

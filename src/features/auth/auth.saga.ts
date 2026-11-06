@@ -1,4 +1,4 @@
-import { takeLatest, call, put, all } from "redux-saga/effects";
+import { takeLatest, call, put, all, race, delay } from "redux-saga/effects";
 import {
   registerOwnerRequestAction,
   setAuthLoadingAction,
@@ -28,6 +28,7 @@ import { select } from "redux-saga/effects";
 import type { RootState } from "../../app/providers/store";
 import { refreshSession } from "../../shared/lib/http";
 import { tokenStorage } from "../../shared/lib/tokenStorage";
+import { unregisterFromPush } from "../push-notifications/service";
 import { getErrorMessage, isMessageCode } from "../../shared/utils/error";
 import i18n from "../../shared/lib/i18n";
 
@@ -85,6 +86,15 @@ function* handleRegisterOwnerRequest(action: { type: string; payload: RegisterOw
 
 function* handleLogout(): Generator<any, void, any> {
   try {
+    // Unregister this device's push token BEFORE /auth/logout revokes the access
+    // token: racing the logout, the unregister 401s, its refresh fails (the
+    // refresh token is already gone) and "session expired" toasts over the login
+    // screen. Capped so a hung request can't hold up the logout.
+    const user: AuthUser | null = yield select((s: RootState) => s.auth.user);
+    if (user) {
+      yield race([call(unregisterFromPush), delay(5_000)]);
+    }
+
     // Clear stored refresh token for native apps
     yield call([tokenStorage, 'clearRefreshToken']);
     
