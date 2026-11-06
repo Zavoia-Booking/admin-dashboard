@@ -295,7 +295,7 @@ function MobileHeaderTabs({
   return (
     <div
       ref={listRef}
-      className="relative flex h-9 w-full items-stretch gap-1 rounded-full bg-sidebar p-1"
+      className="relative flex h-10 w-full items-stretch gap-1 rounded-full bg-sidebar p-1"
     >
       {items.map((item) => {
         const isActive = value === item.id;
@@ -306,14 +306,14 @@ function MobileHeaderTabs({
             onClick={() => onSelect(item.id)}
             className={cn(
               // !min-* neutralize the global 44px touch-target rule, which would
-              // overflow the h-9 track and push the labels off-center
+              // overflow the h-10 track and push the labels off-center
               "relative z-10 flex flex-1 items-center justify-center gap-1.5 rounded-full px-1.5 !min-h-0 !min-w-0 py-0 text-xs font-medium transition-colors",
               isActive
                 ? "text-foreground cursor-default"
                 : "text-foreground-2 hover:text-foreground cursor-pointer"
             )}
           >
-            <span className="text-sm">{item.mobileLabel ?? item.label}</span>
+            <span className="text-[15px]">{item.mobileLabel ?? item.label}</span>
             {item.showBadge && <AttentionDot />}
           </button>
         );

@@ -6,7 +6,7 @@ import { useIsMobile } from '../../hooks/use-mobile';
 import { Breadcrumbs } from '../Breadcrumbs';
 import { useBreadcrumbs } from '../../hooks/useBreadcrumbs';
 import { LimitedAccessBanner } from '../common/subscription/LimitedAccessBanner';
-import { HeaderRightSlotProvider, useHeaderRightSlotValue, useHeaderTitleSlotValue } from './HeaderRightSlot';
+import { HeaderRightSlotProvider, useHeaderRightSlotValue, useHeaderTitleSlotValue, useHeaderTopSlotValue } from './HeaderRightSlot';
 import { APP_SCROLL_CONTAINER_ATTR } from '../../utils/scroll';
 import { holdIosRootScrollLock } from '../../lib/iosRootScrollLock';
 
@@ -62,6 +62,7 @@ function AppLayoutInner({ children, contentClassName, headerRightContent, noPadd
   const effectiveRightContent = headerRightContent ?? slotRightContent ?? undefined;
   const slotTitleContent = useHeaderTitleSlotValue();
   const effectiveTitleContent = headerTitleContent ?? slotTitleContent ?? undefined;
+  const slotTopContent = useHeaderTopSlotValue();
 
   useLayoutEffect(() => {
     if (!isMobile) return;
@@ -116,6 +117,7 @@ function AppLayoutInner({ children, contentClassName, headerRightContent, noPadd
                 {/* Even when hidden, the wrapper above stays mounted: it fills
                     the status-bar/notch inset on native, which content would
                     otherwise scroll under. */}
+                {!headerHidden && slotTopContent}
                 {!headerHidden && (
                   <Breadcrumbs
                     items={breadcrumbs}

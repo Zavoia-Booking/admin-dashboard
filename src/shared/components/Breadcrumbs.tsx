@@ -14,6 +14,8 @@ export type BreadcrumbItemType = {
 
 interface BreadcrumbsProps {
   items: BreadcrumbItemType[];
+  /** `false`: nothing on the right, not even the bell (the title area then
+   *  spans the full row). */
   rightContent?: React.ReactNode;
   /** When provided, replaces the breadcrumb's last-item label (used on mobile to
    *  show context-specific titles like the current month name in calendar). */
@@ -149,7 +151,7 @@ export const Breadcrumbs: FC<BreadcrumbsProps> = ({ items, rightContent, titleOv
           </span>
         )}
 
-        {rightContent ? (
+        {rightContent === false ? null : rightContent ? (
           <div className="shrink-0">
             {rightContent}
           </div>

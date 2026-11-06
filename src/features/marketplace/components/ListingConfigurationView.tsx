@@ -22,7 +22,10 @@ import { useTranslation } from "react-i18next";
 import { ArrowLeft, ArrowRight, Save } from "lucide-react";
 import { Button } from "../../../shared/components/ui/button";
 import { useIsMobile } from "../../../shared/hooks/use-mobile";
-import { StickyPrimaryAction } from "../../../shared/components/common/StickyPrimaryAction";
+import { HeaderRightSlot, HeaderTopSlot } from "../../../shared/components/layouts/HeaderRightSlot";
+import { NotificationBell } from "../../../shared/components/common/NotificationBell";
+import { APP_SCROLL_CONTAINER_ATTR } from "../../../shared/utils/scroll";
+import { MarketplaceHeaderActionRow } from "./MarketplaceHeaderActionRow";
 
 import { BusinessListingTab } from "./business/BusinessListingTab";
 import { LocationsTab } from "./locations/LocationsTab";
@@ -121,7 +124,7 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
     [activeTab],
   );
   // Whether the active panel's mobile publish button is on screen. Starts true
-  // so the floating stand-in cannot flash in before the observer reports.
+  // so the header stand-in cannot flash in before the observer reports.
   const [publishActionInView, setPublishActionInView] = useState(true);
   // Reviews mounts lazily (deferring its fetches) but then STAYS mounted, so
   // returning to the tab shows the loaded list instantly instead of a
@@ -412,11 +415,96 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
   // Mirrors the strip's own gate: a missing photo routes the action to the
   // uploader instead of saving, so both entry points behave identically.
   const photosBlocked = !hasLocationPhoto || !locationImagesOk;
-  // Gates the floating action's visibility rather than its disabled state: a
-  // permanently dead pill hovering over the page says nothing the checklist in
-  // the strip does not already say. isPublishing is excluded on purpose so the
-  // pill stays put and shows its spinner through an in-flight save.
+  // Gates the header action's visibility rather than its disabled state: a
+  // permanently dead button says nothing the checklist in the strip does not
+  // already say. isPublishing is excluded on purpose so the button stays put
+  // and shows its spinner through an in-flight save.
   const actionReady = !form.hasValidationErrors && industryTagOk;
+
+  /* Mobile header row 1 (Save / Publish + bell, above the tabs). It exists only
+   * while there is something to save - listed: unsaved edits; not listed: the
+   * strip's own publish button has scrolled away - and then collapses when
+   * scrolling down and comes back when scrolling up or on any edit, like the
+   * calendar's toolbar. */
+  const headerActionAvailable =
+    isMobile &&
+    canWrite &&
+    actionReady &&
+    (isListed ? isCombinedDirty : !publishActionInView);
+  const [headerActionScrolledAway, setHeaderActionScrolledAway] = useState(false);
+  // Edits show/hide the row instantly and keep the content in place (below);
+  // scroll-driven changes animate instead, since adjusting the scroll position
+  // mid-scroll would stop iOS momentum.
+  const [headerActionAnimated, setHeaderActionAnimated] = useState(false);
+  const editSignature = JSON.stringify([
+    form.useBusinessName,
+    form.useBusinessEmail,
+    form.useBusinessPhone,
+    form.useBusinessDescription,
+    form.name,
+    form.email,
+    form.phone,
+    form.description,
+    form.selectedIndustryTags,
+    isCombinedDirty,
+  ]);
+  const [seenEditSignature, setSeenEditSignature] = useState(editSignature);
+  if (seenEditSignature !== editSignature) {
+    setSeenEditSignature(editSignature);
+    setHeaderActionScrolledAway(false);
+    setHeaderActionAnimated(false);
+  }
+  const [seenTab, setSeenTab] = useState(activeTab);
+  if (seenTab !== activeTab) {
+    setSeenTab(activeTab);
+    setHeaderActionScrolledAway(false);
+    setHeaderActionAnimated(false);
+  }
+  const headerActionShown = headerActionAvailable && !headerActionScrolledAway;
+  const handlePublishActionInViewChange = useCallback((inView: boolean) => {
+    setPublishActionInView(inView);
+    // Changes as the strip scrolls in or out: animate, don't touch the scroll.
+    setHeaderActionAnimated(true);
+  }, []);
+
+  // Scroll direction, as in MobileCalendarLayout.
+  const lastScrollYRef = useRef(0);
+  useEffect(() => {
+    if (!isMobile) return;
+    const scroller = document.querySelector<HTMLElement>(`[${APP_SCROLL_CONTAINER_ATTR}]`);
+    if (!scroller) return;
+    const THRESHOLD = 15;
+    let cumDelta = 0;
+    let ticking = false;
+    lastScrollYRef.current = scroller.scrollTop;
+    const update = () => {
+      ticking = false;
+      const y = Math.max(0, scroller.scrollTop);
+      const delta = y - lastScrollYRef.current;
+      lastScrollYRef.current = y;
+      const maxScroll = scroller.scrollHeight - scroller.clientHeight;
+      cumDelta = (delta > 0 && cumDelta >= 0) || (delta < 0 && cumDelta <= 0) ? cumDelta + delta : delta;
+      // Only act outside the elastic bounce zones.
+      if (y <= 10 || y >= maxScroll - 10) return;
+      if (cumDelta > THRESHOLD) {
+        setHeaderActionAnimated(true);
+        setHeaderActionScrolledAway(true);
+        cumDelta = 0;
+      } else if (cumDelta < -THRESHOLD) {
+        setHeaderActionAnimated(true);
+        setHeaderActionScrolledAway(false);
+        cumDelta = 0;
+      }
+    };
+    const onScroll = () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(update);
+    };
+    scroller.addEventListener("scroll", onScroll, { passive: true });
+    return () => scroller.removeEventListener("scroll", onScroll);
+  }, [isMobile]);
+
 
   // Publish clicked while photos are missing: deep-link into the offending
   // location's panel and pulse its upload card (works from any tab, any viewport).
@@ -533,7 +621,7 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
         compactOnMobile={isLocationDetail}
         mobileChecklistOpen={mobileChecklistOpen}
         onMobileChecklistOpenChange={handleChecklistOpenChange}
-        onMobileActionInViewChange={setPublishActionInView}
+        onMobileActionInViewChange={handlePublishActionInViewChange}
       />
     </div>
   );
@@ -627,46 +715,49 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
         />
       </div>
 
-      {/* The one mobile floating action, rendered here rather than inside the
-          strip: the strip renders per tab panel, and this portals to body, which
-          display:none on an inactive panel would not hide. Listed → Save, shown
-          whenever there are unsaved edits (the strip drops its own inline save
-          below md). Not listed → Publish, shown once the strip's own publish
-          button has scrolled away, so the two are never on screen together.
-          Suppressed in a location detail, whose compact strip keeps its action. */}
-      <StickyPrimaryAction
-        visible={
-          isMobile &&
-          canWrite &&
-          !isLocationDetail &&
-          actionReady &&
-          (isListed ? isCombinedDirty : !publishActionInView)
-        }
-      >
-        <Button
-          onClick={() =>
-            photosBlocked ? handlePhotosNeeded() : handleCombinedSave()
-          }
-          disabled={isPublishing}
-          rounded="full"
-          className="btn-primary group !min-w-60 max-w-full px-6 text-sm font-semibold shadow-lg active:scale-[0.98] flex items-center justify-center gap-2"
-        >
-          <span>
-            {t(
-              isListed
-                ? "configuration.buttons.save"
-                : "configuration.buttons.publish",
-            )}
-          </span>
-          {isPublishing ? (
-            <div className="size-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
-          ) : isListed ? (
-            <Save className="size-4" strokeWidth={1.9} />
-          ) : (
-            <ArrowRight className="size-4" strokeWidth={1.9} />
-          )}
-        </Button>
-      </StickyPrimaryAction>
+      {/* Mobile header: row 1 holds the one primary action (listed → Save while
+          there are unsaved edits; not listed → Publish once the strip's own
+          publish button has scrolled away, so the two are never on screen
+          together) with the bell beside it; the tabs below span the full row,
+          so the breadcrumb row gives up its bell. Rendered here rather than in
+          the strip, which renders once per tab panel. */}
+      {isMobile && (
+        <>
+          <HeaderRightSlot>{false}</HeaderRightSlot>
+          <HeaderTopSlot>
+            <MarketplaceHeaderActionRow
+              shown={headerActionShown}
+              animated={headerActionAnimated}
+              lastScrollYRef={lastScrollYRef}
+            >
+              <Button
+                onClick={() =>
+                  photosBlocked ? handlePhotosNeeded() : handleCombinedSave()
+                }
+                disabled={isPublishing}
+                rounded="full"
+                className="btn-primary group h-10 px-5 text-sm font-semibold active:scale-[0.98] flex items-center justify-center gap-2"
+              >
+                <span>
+                  {t(
+                    isListed
+                      ? "configuration.buttons.save"
+                      : "configuration.buttons.publish",
+                  )}
+                </span>
+                {isPublishing ? (
+                  <div className="size-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                ) : isListed ? (
+                  <Save className="size-4" strokeWidth={1.9} />
+                ) : (
+                  <ArrowRight className="size-4" strokeWidth={1.9} />
+                )}
+              </Button>
+              <NotificationBell variant="header" />
+            </MarketplaceHeaderActionRow>
+          </HeaderTopSlot>
+        </>
+      )}
 
       {/* Unsaved Changes Confirmation Dialog */}
       <ConfirmDialog

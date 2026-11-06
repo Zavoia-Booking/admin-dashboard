@@ -12,13 +12,21 @@ const HeaderTitleSlotContext = createContext<{
   set: SlotSetter;
 } | null>(null);
 
+const HeaderTopSlotContext = createContext<{
+  value: ReactNode | null;
+  set: SlotSetter;
+} | null>(null);
+
 export function HeaderRightSlotProvider({ children }: { children: ReactNode }) {
   const [value, set] = useState<ReactNode | null>(null);
   const [titleValue, setTitle] = useState<ReactNode | null>(null);
+  const [topValue, setTop] = useState<ReactNode | null>(null);
   return (
     <HeaderRightSlotContext.Provider value={{ value, set }}>
       <HeaderTitleSlotContext.Provider value={{ value: titleValue, set: setTitle }}>
-        {children}
+        <HeaderTopSlotContext.Provider value={{ value: topValue, set: setTop }}>
+          {children}
+        </HeaderTopSlotContext.Provider>
       </HeaderTitleSlotContext.Provider>
     </HeaderRightSlotContext.Provider>
   );
@@ -31,6 +39,11 @@ export function useHeaderRightSlotValue(): ReactNode | null {
 
 export function useHeaderTitleSlotValue(): ReactNode | null {
   const ctx = useContext(HeaderTitleSlotContext);
+  return ctx?.value ?? null;
+}
+
+export function useHeaderTopSlotValue(): ReactNode | null {
+  const ctx = useContext(HeaderTopSlotContext);
   return ctx?.value ?? null;
 }
 
@@ -51,6 +64,18 @@ export function HeaderRightSlot({ children }: { children: ReactNode }) {
  *  Used by tabbed pages that host their tab switcher in the header row. */
 export function HeaderTitleSlot({ children }: { children: ReactNode }) {
   const ctx = useContext(HeaderTitleSlotContext);
+  useEffect(() => {
+    if (!ctx) return;
+    ctx.set(children);
+    return () => ctx.set(null);
+  }, [ctx, children]);
+  return null;
+}
+
+/** Same projection pattern, for an extra row above the breadcrumb header row
+ *  (mobile), e.g. a page's primary action that collapses on scroll. */
+export function HeaderTopSlot({ children }: { children: ReactNode }) {
+  const ctx = useContext(HeaderTopSlotContext);
   useEffect(() => {
     if (!ctx) return;
     ctx.set(children);
