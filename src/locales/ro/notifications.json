@@ -47,5 +47,69 @@
     "hoursAgo_other": "acum {{count}}h",
     "daysAgo_one": "acum {{count}}z",
     "daysAgo_other": "acum {{count}}z"
+  },
+  "items": {
+    "fallbackCustomer": "Un client",
+    "fallbackService": "un serviciu",
+    "walkIn": "Fără programare",
+    "appointment_cancelled_by_customer": {
+      "title": "Programare anulată de client",
+      "body": "{{customer}} și-a anulat programarea pentru {{service}} din {{date}}."
+    },
+    "appointment_rescheduled_by_customer": {
+      "title": "Programare mutată de client",
+      "body": "{{customer}} și-a mutat programarea pentru {{service}} de pe {{from}} pe {{to}}."
+    },
+    "appointment_rescheduled_by_team_member": {
+      "title": "Programare mutată de un membru al echipei",
+      "body": "Programarea pentru {{service}} ({{customer}}) a fost mutată de pe {{from}} pe {{to}}."
+    },
+    "appointment_assigned": {
+      "title": "Programare nouă atribuită",
+      "body": "Programarea pentru {{service}} ({{customer}}) din {{date}} ți-a fost atribuită."
+    },
+    "appointment_unassigned": {
+      "title": "Programare scoasă din programul tău",
+      "body": "Programarea pentru {{service}} ({{customer}}) din {{date}} a fost atribuită altcuiva."
+    },
+    "appointment_rescheduled": {
+      "title": "Programarea ta a fost mutată",
+      "body": "Programarea pentru {{service}} ({{customer}}) a fost mutată de pe {{from}} pe {{to}}."
+    },
+    "appointment_cancelled": {
+      "title": "Programarea ta a fost anulată",
+      "body": "Programarea pentru {{service}} ({{customer}}) din {{date}} a fost anulată."
+    },
+    "appointment_status_review": {
+      "title_one": "{{count}} programare necesită actualizarea statusului",
+      "title_few": "{{count}} programări necesită actualizarea statusului",
+      "title_other": "{{count}} de programări necesită actualizarea statusului",
+      "body_one": "Ai o programare de azi încă marcată ca Confirmată. Te rugăm să o actualizezi la Finalizată sau Neprezentare.",
+      "body_few": "Ai {{count}} programări de azi încă marcate ca Confirmate. Te rugăm să le actualizezi la Finalizate sau Neprezentare.",
+      "body_other": "Ai {{count}} de programări de azi încă marcate ca Confirmate. Te rugăm să le actualizezi la Finalizate sau Neprezentare.",
+      "line": "{{time}} - {{customer}} ({{service}})"
+    },
+    "sms_credits_low": {
+      "title": "Creditele SMS sunt pe terminate",
+      "body_one": "Mai ai {{count}} credit SMS. Cumpără mai multe ca să poți trimite în continuare notificări.",
+      "body_few": "Mai ai {{count}} credite SMS. Cumpără mai multe ca să poți trimite în continuare notificări.",
+      "body_other": "Mai ai {{count}} de credite SMS. Cumpără mai multe ca să poți trimite în continuare notificări."
+    },
+    "sms_credits_depleted": {
+      "title": "Credite SMS epuizate",
+      "body": "Nu mai ai credite SMS. Mementourile prin SMS sunt oprite — reîncarcă pentru a le relua."
+    },
+    "team_member_accepted_invitation": {
+      "title": "Membru nou în echipă",
+      "body": "{{member}} a acceptat invitația și s-a alăturat echipei tale."
+    },
+    "team_member_left_organisation": {
+      "title": "Un membru a părăsit echipa",
+      "body": "{{member}} a părăsit organizația ta."
+    },
+    "support_reply": {
+      "title": "Răspuns de la suport",
+      "body": "Ai un răspuns nou la tichetul tău de suport."
+    }
   }
 }

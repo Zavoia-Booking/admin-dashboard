@@ -47,5 +47,66 @@
     "hoursAgo_other": "{{count}}h ago",
     "daysAgo_one": "{{count}}d ago",
     "daysAgo_other": "{{count}}d ago"
+  },
+  "items": {
+    "fallbackCustomer": "A customer",
+    "fallbackService": "a service",
+    "walkIn": "Walk-in",
+    "appointment_cancelled_by_customer": {
+      "title": "Appointment cancelled by customer",
+      "body": "{{customer}} cancelled their appointment for {{service}} on {{date}}."
+    },
+    "appointment_rescheduled_by_customer": {
+      "title": "Appointment rescheduled by customer",
+      "body": "{{customer}} rescheduled their appointment for {{service}} from {{from}} to {{to}}."
+    },
+    "appointment_rescheduled_by_team_member": {
+      "title": "Appointment rescheduled by team member",
+      "body": "{{customer}}'s appointment for {{service}} was rescheduled from {{from}} to {{to}}."
+    },
+    "appointment_assigned": {
+      "title": "New appointment assigned",
+      "body": "{{customer}}'s appointment for {{service}} on {{date}} has been assigned to you."
+    },
+    "appointment_unassigned": {
+      "title": "Appointment removed from your schedule",
+      "body": "{{customer}}'s appointment for {{service}} on {{date}} has been reassigned."
+    },
+    "appointment_rescheduled": {
+      "title": "Your appointment was rescheduled",
+      "body": "{{customer}}'s appointment for {{service}} was moved from {{from}} to {{to}}."
+    },
+    "appointment_cancelled": {
+      "title": "Your appointment was cancelled",
+      "body": "{{customer}}'s appointment for {{service}} on {{date}} has been cancelled."
+    },
+    "appointment_status_review": {
+      "title_one": "{{count}} appointment needs a status update",
+      "title_other": "{{count}} appointments need a status update",
+      "body_one": "You have 1 appointment from today still marked as Confirmed. Please update it to Completed or No Show.",
+      "body_other": "You have {{count}} appointments from today still marked as Confirmed. Please update them to Completed or No Show.",
+      "line": "{{time}} - {{customer}} ({{service}})"
+    },
+    "sms_credits_low": {
+      "title": "SMS credits running low",
+      "body_one": "You have {{count}} SMS credit remaining. Purchase more to keep sending notifications.",
+      "body_other": "You have {{count}} SMS credits remaining. Purchase more to keep sending notifications."
+    },
+    "sms_credits_depleted": {
+      "title": "SMS credits depleted",
+      "body": "You have no SMS credits left. SMS reminders are paused — top up to resume."
+    },
+    "team_member_accepted_invitation": {
+      "title": "Team member accepted invitation",
+      "body": "{{member}} has accepted the invitation and joined your team."
+    },
+    "team_member_left_organisation": {
+      "title": "Team member left",
+      "body": "{{member}} has left your organisation."
+    },
+    "support_reply": {
+      "title": "Support reply",
+      "body": "You have a new reply on your support ticket."
+    }
   }
 }

@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { markNotificationReadAction } from "../actions";
 import type { BusinessNotification } from "../types";
+import { localizeNotification } from "../localize";
 
 const NOTIFICATION_ICONS: Record<string, typeof Info> = {
   sms_credits_low: MessageSquareWarning,
@@ -128,7 +129,8 @@ interface NotificationItemProps {
 export function NotificationItem({ notification, onDelete }: NotificationItemProps) {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { t } = useTranslation("notifications");
+  const { t, i18n } = useTranslation("notifications");
+  const { title, body } = localizeNotification(notification, t, i18n.resolvedLanguage ?? i18n.language);
 
   const Icon = NOTIFICATION_ICONS[notification.type] ?? Info;
   const semanticColorClass =
@@ -176,7 +178,7 @@ export function NotificationItem({ notification, onDelete }: NotificationItemPro
                   : "text-foreground-2"
               }`}
             >
-              {notification.title}
+              {title}
             </p>
 
             <button
@@ -192,9 +194,9 @@ export function NotificationItem({ notification, onDelete }: NotificationItemPro
             </button>
           </div>
 
-          {notification.body && (
+          {body && (
             <p className="mt-3 text-xs text-foreground-3 leading-relaxed">
-              {notification.body}
+              {body}
             </p>
           )}
 
