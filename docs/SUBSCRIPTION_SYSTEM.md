@@ -751,7 +751,7 @@ Result: SubscriptionGate shows "Subscription Required" overlay
 ### **Backend .env.local**:
 ```env
 # Cloud Tasks for trial expiry checking
-TRIAL_EXPIRY_WEBHOOK_URL=https://api-staging.zavoia.com/webhooks/trial-expiry
+TRIAL_EXPIRY_WEBHOOK_URL=https://staging-api.zavoia.com/webhooks/trial-expiry
 CLOUD_TASKS_SERVICE_ACCOUNT=cr-zavoia-api@project-id.iam.gserviceaccount.com
 ```
 
