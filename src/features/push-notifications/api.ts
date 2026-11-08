@@ -16,3 +16,9 @@ export async function unregisterPushTokenApi(token: string): Promise<{ ok: boole
   const { data } = await apiClient().delete("/business-push/token", { data: { token } });
   return data;
 }
+
+/** Saves the user's dashboard language (User.locale): business push and emails go out in it. */
+export async function updateUserLocaleApi(locale: "en" | "ro"): Promise<{ locale: "en" | "ro" }> {
+  const { data } = await apiClient().put("/business-push/locale", { locale });
+  return data;
+}

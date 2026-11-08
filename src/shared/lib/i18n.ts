@@ -213,4 +213,20 @@ export const languageReady: Promise<void> =
         )
     : Promise.resolve();
 
+// The language the app settled on at startup (the stored pick, the phone's or
+// the browser's). Kept apart from i18n.language, which the website builder
+// switches temporarily to show a field in the site's other language.
+let startupLanguage: string | null = null;
+void languageReady.then(() => {
+  startupLanguage = i18n.resolvedLanguage ?? i18n.language;
+});
+
+/** The user's own language: their explicit pick, else the one the app started in. */
+export function preferredLanguage(): 'en' | 'ro' | null {
+  const code = (storedLanguageChoice() ?? startupLanguage ?? i18n.resolvedLanguage ?? i18n.language)
+    ?.slice(0, 2)
+    .toLowerCase();
+  return code === 'en' || code === 'ro' ? code : null;
+}
+
 export default i18n;
