@@ -20,6 +20,7 @@ import { format, parseISO } from 'date-fns';
 import { enUS, ro } from 'date-fns/locale';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { toast } from 'sonner';
+import { isNativeApp } from '../../../app/config/env';
 import { listNotificationsRequest } from '../../notifications/api';
 import { updateAppointmentRequest, bulkUpdateAppointmentStatusRequest } from '../../calendar/api';
 import {
@@ -64,7 +65,7 @@ interface AttentionItem {
   type: 'pending' | 'sms' | 'unresolved';
   title: string;
   description: string;
-  actionLabel: string;
+  actionLabel?: string;
   actionPath?: string;
   color: 'warning' | 'error';
   unresolvedAppointments?: UnresolvedAppointment[];
@@ -168,8 +169,9 @@ export function NeedsAttentionWidget({
       type: 'sms',
       title: t('needsAttention.smsLow'),
       description: t('needsAttention.smsDescription'),
-      actionLabel: t('needsAttention.buyCredits'),
-      actionPath: '/account',
+      // SMS credits are bought on the web only; the native app shows the status without a
+      // purchase action (App Store guideline 3.1.1).
+      ...(isNativeApp() ? {} : { actionLabel: t('needsAttention.buyCredits'), actionPath: '/account' }),
       color: 'error',
     });
   }
@@ -272,6 +274,7 @@ export function NeedsAttentionWidget({
                       <p className="text-sm font-medium text-foreground-1">{item.title}</p>
                       <p className="text-xs text-foreground-3 mt-0.5">{item.description}</p>
                     </div>
+                    {item.actionPath && item.actionLabel && (
                     <button
                       onClick={() => item.actionPath && navigate(item.actionPath)}
                       className={`flex items-center gap-1 px-2 py-1 rounded-md text-primary hover:bg-primary/10 active:bg-primary/15 active:scale-[0.97] transition-[background-color,transform] cursor-pointer shrink-0 ml-auto ${IOS_EASE}`}
@@ -279,6 +282,7 @@ export function NeedsAttentionWidget({
                       <span className="text-xs font-medium">{item.actionLabel}</span>
                       <ArrowUpRight className="h-3 w-3" />
                     </button>
+                    )}
                   </div>
                 ))}
             </div>

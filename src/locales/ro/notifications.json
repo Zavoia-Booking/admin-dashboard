@@ -91,13 +91,13 @@
     },
     "sms_credits_low": {
       "title": "Creditele SMS sunt pe terminate",
-      "body_one": "Mai ai {{count}} credit SMS. Cumpără mai multe ca să poți trimite în continuare notificări.",
-      "body_few": "Mai ai {{count}} credite SMS. Cumpără mai multe ca să poți trimite în continuare notificări.",
-      "body_other": "Mai ai {{count}} de credite SMS. Cumpără mai multe ca să poți trimite în continuare notificări."
+      "body_one": "Mai ai {{count}} credit SMS. Mementourile prin SMS se opresc când creditele se termină.",
+      "body_few": "Mai ai {{count}} credite SMS. Mementourile prin SMS se opresc când creditele se termină.",
+      "body_other": "Mai ai {{count}} de credite SMS. Mementourile prin SMS se opresc când creditele se termină."
     },
     "sms_credits_depleted": {
       "title": "Credite SMS epuizate",
-      "body": "Nu mai ai credite SMS. Mementourile prin SMS sunt oprite — reîncarcă pentru a le relua."
+      "body": "Nu mai ai credite SMS. Mementourile prin SMS sunt oprite."
     },
     "team_member_accepted_invitation": {
       "title": "Membru nou în echipă",

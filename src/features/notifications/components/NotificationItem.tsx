@@ -20,6 +20,7 @@ import {
 import { markNotificationReadAction } from "../actions";
 import type { BusinessNotification } from "../types";
 import { localizeNotification } from "../localize";
+import { isNativeApp } from "../../../app/config/env";
 
 const NOTIFICATION_ICONS: Record<string, typeof Info> = {
   sms_credits_low: MessageSquareWarning,
@@ -81,7 +82,8 @@ function getNavigationPath(notification: BusinessNotification): string | null {
       return "/calendar";
 
     case "sms_credits_low":
-      return "/account?tab=billing";
+      // Billing is web-only; on native the notification is informational (no purchase route).
+      return isNativeApp() ? null : "/account?tab=billing";
 
     case "team_member_accepted_invitation":
       return data?.userId

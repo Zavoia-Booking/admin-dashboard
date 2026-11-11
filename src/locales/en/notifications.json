@@ -89,12 +89,12 @@
     },
     "sms_credits_low": {
       "title": "SMS credits running low",
-      "body_one": "You have {{count}} SMS credit remaining. Purchase more to keep sending notifications.",
-      "body_other": "You have {{count}} SMS credits remaining. Purchase more to keep sending notifications."
+      "body_one": "You have {{count}} SMS credit remaining. SMS reminders pause when credits run out.",
+      "body_other": "You have {{count}} SMS credits remaining. SMS reminders pause when credits run out."
     },
     "sms_credits_depleted": {
       "title": "SMS credits depleted",
-      "body": "You have no SMS credits left. SMS reminders are paused — top up to resume."
+      "body": "You have no SMS credits left. SMS reminders are paused."
     },
     "team_member_accepted_invitation": {
       "title": "Team member accepted invitation",
