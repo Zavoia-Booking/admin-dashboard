@@ -796,7 +796,10 @@ const BillingAndSubscriptionV2Inner = () => {
     viewState === 'canceled'
       ? Number(totalSeats) || 0
       : viewState === 'ltd'
-        ? 0 // LTD: seats free
+        ? // LTD: seats cost money only when bought through the monthly seat subscription
+          subscriptionSummary?.ltdSeatsBilled
+          ? subscriptionSummary?.paidSeats || 0
+          : 0
         : subscriptionSummary?.paidSeats || 0;
   const seatLineCost = seatsForBreakdown * seatPrice;
   const totalCost = basePlanCost + seatLineCost;
@@ -1253,7 +1256,13 @@ const BillingAndSubscriptionV2Inner = () => {
       case 'canceled':
         return <span>{t('billing.v2.hero.endedOn', { date: formatDate(periodEnd) })}</span>;
       case 'ltd':
-        return <span>{t('billing.v2.hero.lifetimeNote')}</span>;
+        return (
+          <span>
+            {subscriptionSummary?.ltdSeatsBilled
+              ? t('billing.v2.hero.lifetimeNoteSeatsBilled')
+              : t('billing.v2.hero.lifetimeNote')}
+          </span>
+        );
       case 'inactive':
         return null;
       default:
@@ -1411,7 +1420,9 @@ const BillingAndSubscriptionV2Inner = () => {
                 title={t('billing.v2.subscription.title')}
                 subtitle={
                   viewState === 'ltd'
-                    ? t('billing.v2.subscription.lifetimeSubtitle')
+                    ? subscriptionSummary?.ltdSeatsBilled
+                      ? t('billing.v2.subscription.lifetimeSubtitleSeatsBilled')
+                      : t('billing.v2.subscription.lifetimeSubtitle')
                     : undefined
                 }
               />
@@ -1604,7 +1615,7 @@ const BillingAndSubscriptionV2Inner = () => {
                     </div>
                   </div>
 
-                  {viewState !== 'ltd' && (
+                  {(viewState !== 'ltd' || subscriptionSummary?.ltdSeatsBilled) && (
                     <div className="bv2-line-row">
                       <div className="bv2-lbl">
                         {t('billing.teamSeats')}
@@ -1625,15 +1636,17 @@ const BillingAndSubscriptionV2Inner = () => {
                     </div>
                   )}
 
-                  {viewState === 'ltd' && (
+                  {viewState === 'ltd' && !subscriptionSummary?.ltdSeatsBilled && (
                     <div className="bv2-line-row">
                       <div className="bv2-lbl">
                         {t('billing.teamSeats')}
                         <span className="bv2-sub">
-                          {t('billing.v2.subscription.seatsLineSubLtd')}
+                          {t('billing.v2.subscription.seatsLineSubLtd', {
+                            count: subscriptionSummary?.paidSeats || 0,
+                          })}
                         </span>
                       </div>
-                      <div className="bv2-val bv2-good">{t('billing.v2.subscription.free')}</div>
+                      <div className="bv2-val bv2-good">{t('billing.v2.subscription.included')}</div>
                     </div>
                   )}
 

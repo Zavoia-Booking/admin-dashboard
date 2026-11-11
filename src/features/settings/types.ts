@@ -124,6 +124,7 @@ export type SubscriptionSummary = {
     nextChargeDate: string | null;
   } | null;
   isLtd?: boolean;        // True if this is a Life Time Deal account
+  ltdSeatsBilled?: boolean; // LTD only: seats are paid monthly through a seat subscription (else included free)
   ltdSince?: string;      // When LTD was granted
   pendingPayment?: {
     status: string;           // 'requires_action' | 'requires_payment_method'
