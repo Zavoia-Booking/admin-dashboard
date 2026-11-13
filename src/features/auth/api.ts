@@ -1,4 +1,5 @@
 import type { RegisterOwnerPayload, AuthResponse, AuthUser, CheckTeamInvitationResponse, CompleteTeamInvitationPayload, CompleteTeamInvitationResponse, AccountActionResponse, MobileRegisterRequestResponse, MobileRegisterTokenValidation, BusinessLinkTokenValidation, GoogleNativeRegisterResponse } from "./types";
+import type { AppleAccountResponse, AppleAuthRequestPayload, AppleAuthResponse, AppleCredential } from "./types";
 import { apiClient } from "../../shared/lib/http";
 import i18n from "../../shared/lib/i18n";
 
@@ -153,5 +154,50 @@ export const resendVerificationEmailApi = async (): Promise<{ message: string; s
 // Account management APIs
 export const deleteAccountApi = async (): Promise<AccountActionResponse> => {
     const { data } = await apiClient().post<AccountActionResponse>(`/auth/account/delete`);
+    return data;
+};
+
+// ---- Sign in with Apple ----
+// Every Apple endpoint takes the credential fields exactly (the API rejects
+// unknown fields), so each call spreads the credential and adds only what its
+// DTO accepts. Native requests carry `x-native-app: capacitor` (http client),
+// which makes the API return the refresh token in the body.
+
+export const appleAuthApi = async (payload: AppleAuthRequestPayload): Promise<AppleAuthResponse> => {
+    const { data } = await apiClient().post<AppleAuthResponse>('/auth/apple', {
+        ...payload.credential,
+        intent: payload.intent,
+        ...(payload.welcomeToken ? { welcomeToken: payload.welcomeToken } : {}),
+    });
+    return data;
+};
+
+export const appleProfileApi = async (payload: { tx_id: string; firstName: string; lastName: string }): Promise<AuthResponse> => {
+    const { data } = await apiClient().post<AuthResponse>('/auth/apple/profile', payload);
+    return data;
+};
+
+export const appleLinkSendCodeApi = async (payload: { tx_id: string }): Promise<{ message: string; email: string }> => {
+    const { data } = await apiClient().post<{ message: string; email: string }>('/auth/apple/link/send-code', payload);
+    return data;
+};
+
+export const appleLinkVerifyApi = async (payload: { tx_id: string; password?: string; code?: string }): Promise<AuthResponse> => {
+    const { data } = await apiClient().post<AuthResponse>('/auth/apple/link/verify', payload);
+    return data;
+};
+
+export const appleBusinessLinkApi = async (payload: { credential: AppleCredential; token: string }): Promise<AuthResponse> => {
+    const { data } = await apiClient().post<AuthResponse>('/auth/apple/business-link', { ...payload.credential, token: payload.token });
+    return data;
+};
+
+export const linkAppleApi = async (credential: AppleCredential): Promise<AppleAccountResponse> => {
+    const { data } = await apiClient().post<AppleAccountResponse>('/auth/link/apple', credential);
+    return data;
+};
+
+export const unlinkAppleApi = async (payload: { password?: string }): Promise<AppleAccountResponse> => {
+    const { data } = await apiClient().post<AppleAccountResponse>('/auth/unlink/apple', payload);
     return data;
 };

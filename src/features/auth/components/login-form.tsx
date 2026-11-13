@@ -6,6 +6,7 @@ import { useDispatch, useSelector } from "react-redux"
 import { toast } from "sonner"
 import type { RootState } from "../../../app/providers/store"
 import GoogleSignInButton from "../../../shared/components/auth/GoogleSignInButton"
+import AppleSignInButton from "../../../shared/components/auth/AppleSignInButton"
 import CredentialsForm, { type CredentialsFormHandle } from "../../../shared/components/auth/CredentialsForm"
 import ForgotPasswordInline from "../../../shared/components/auth/ForgotPasswordInline"
 import { Banner } from "../../../shared/components/ui/banner"
@@ -117,6 +118,7 @@ export function LoginForm() {
       </div>
       <div className="grid grid-cols-1 gap-4">
         <GoogleSignInButton context="login" disabled={isLoading} />
+        <AppleSignInButton context="login" disabled={isLoading} />
       </div>
     </>
   )

@@ -13,7 +13,7 @@ import { Spinner } from "../../../shared/components/ui/spinner"
 type TokenState =
   | { status: 'idle' }
   | { status: 'checking' }
-  | { status: 'valid'; email: string; token: string; provider?: 'google' }
+  | { status: 'valid'; email: string; token: string; provider?: 'google' | 'apple' }
   | { status: 'invalid' }
 
 /**
@@ -91,6 +91,7 @@ export default function RegisterPage() {
         welcomeToken={tokenState.token}
         lockEmail
         preferGoogle={tokenState.provider === 'google'}
+        preferApple={tokenState.provider === 'apple'}
       />
     )
   }

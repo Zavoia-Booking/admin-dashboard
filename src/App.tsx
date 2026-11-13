@@ -11,6 +11,8 @@ import PublicRoute from './features/auth/components/PublicRoute'
 import AccountLinkingModal from './features/auth/components/AccountLinkingModal'
 import AccountLinkingRequiredModal from './features/auth/components/AccountLinkingRequiredModal'
 import BusinessSelectorModal from './features/auth/components/BusinessSelectorModal'
+import AppleProfileModal from './features/auth/components/AppleProfileModal'
+import AppleLinkModal from './features/auth/components/AppleLinkModal'
 import SeatOverflowGate from './features/teamMembers/components/SeatOverflowGate'
 import SeatOverflowDetector from './features/teamMembers/components/SeatOverflowDetector'
 import { SubscriptionBlocker } from './shared/components/common/subscription/SubscriptionBlocker'
@@ -36,6 +38,7 @@ const LoginForm = lazy(() => import('./features/auth/components/login-form').the
 const RegisterPage = lazy(() => import('./features/auth/pages/register'))
 const ResetPasswordPage = lazy(() => import('./features/auth/pages/reset-password'))
 const GoogleOAuthCallback = lazy(() => import('./features/auth/components/GoogleOAuthCallback'))
+const AppleCallbackPage = lazy(() => import('./features/auth/pages/apple-callback'))
 const InfoPageComponent = lazy(() => import('./features/settings/pages/info-page'))
 const AccountWebInfoPage = lazy(() => import('./features/settings/pages/AccountWebInfoPage'))
 const AssignmentsPage = lazy(() => import('./features/assignments/pages/assignments'))
@@ -133,6 +136,8 @@ function RootLayout() {
       <AccountLinkingModal />
       <BusinessSelectorModal />
       <AccountLinkingRequiredModal />
+      <AppleProfileModal />
+      <AppleLinkModal />
       <SeatOverflowDetector />
       <SeatOverflowGate />
       <SubscriptionBlocker />
@@ -223,6 +228,7 @@ const router = createBrowserRouter(
       <Route path="/verify-email" element={<VerifyEmailPage />} />
       <Route path="/link-business-account" element={<LinkBusinessAccountPage />} />
       <Route path="/auth/callback" element={<GoogleOAuthCallback />} />
+      <Route path="/auth/apple/callback" element={<AppleCallbackPage />} />
 
       {/* Main — shared AppNavLayout keeps the mobile bottom nav mounted across navigations */}
       <Route element={<AppNavLayout />}>

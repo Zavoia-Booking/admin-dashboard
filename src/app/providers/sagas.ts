@@ -2,6 +2,7 @@ import { all, call, spawn } from "redux-saga/effects";
 import { watchTokenHandler } from "../../features/auth/hydrateSession.saga";
 
 import { authSaga } from "../../features/auth/auth.saga";
+import { appleAuthSaga } from "../../features/auth/apple.saga";
 import { setupWizardSaga } from "../../features/setupWizard/saga";
 import { teamMembersSaga } from "../../features/teamMembers/saga";
 import { locationsSaga } from "../../features/locations/saga";
@@ -25,6 +26,7 @@ import { reconciliationSaga } from "../../features/reconciliation/saga";
 const featureSagas = [
     watchTokenHandler,
     authSaga,
+    appleAuthSaga,
     setupWizardSaga,
     teamMembersSaga,
     locationsSaga,

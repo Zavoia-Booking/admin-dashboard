@@ -12,6 +12,7 @@ import './Profile.css';
 import OptionSelect from '../../../shared/components/common/OptionSelect';
 import { uploadBusinessLogo } from '../api';
 import GoogleAccountManager from './GoogleAccountManager';
+import AppleAccountManager from './AppleAccountManager';
 import AdvancedSettings from './AdvancedSettings';
 import MobilePushNotifications from './MobilePushNotifications';
 import { fetchCurrentBusinessAction, updateBusinessAction } from '../../business/actions';
@@ -806,6 +807,7 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange, onSavi
 
             <div className="profile-field-stack">
               <GoogleAccountManager onSetPasswordClick={handleSetPasswordClick} />
+              <AppleAccountManager onSetPasswordClick={handleSetPasswordClick} />
 
               <div className="profile-divider" />
 

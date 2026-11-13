@@ -111,6 +111,12 @@ deep links) and a dedicated backend endpoint:
   can be stale WSL-built artifacts signed with the WSL keystore (sync script now strips
   them). Windows Android Studio deploys are signed by `C:\Users\<user>\.android\debug.keystore`.
   Mobile env files must define `VITE_GOOGLE_CLIENT_ID` (the *web* client id).
+- Sign in with Apple (web) needs `VITE_APPLE_SERVICES_ID` and `VITE_APPLE_REDIRECT_URI` next to
+  `VITE_GOOGLE_CLIENT_ID` in the web env (Vercel): staging `com.zavoia.signin.web.staging` +
+  `https://staging-app.zavoia.com/auth/apple/callback`, prod `com.zavoia.signin.web` +
+  `https://app.zavoia.com/auth/apple/callback`. Without both, the web Apple button is hidden. The
+  iOS app needs neither (native Apple sheet, `App.entitlements` → `com.apple.developer.applesignin`);
+  the Android app never shows Apple.
 
 ## Implementation checklist (when resuming)
 

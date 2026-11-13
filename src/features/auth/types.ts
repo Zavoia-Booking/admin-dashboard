@@ -14,8 +14,9 @@ export type MobileRegisterRequestResponse = {
 
 export type MobileRegisterTokenValidation = {
   email: string;
-  /** 'google' when the invite came from native Google sign-in — the web form leads with Google. */
-  provider?: 'google';
+  /** 'google' when the invite came from native Google sign-in — the web form leads with Google.
+   *  'apple' when it came from Sign in with Apple in the iOS app — the web form leads with Apple. */
+  provider?: 'google' | 'apple';
 };
 
 /** Payload for the unified Google actions: web sends an OAuth code, native an ID token. */
@@ -37,6 +38,8 @@ export type BusinessLinkTokenValidation = {
   email: string;
   hasPassword: boolean;
   googleLinked: boolean;
+  /** Apple is connected to the account: the page offers "Continue with Apple". */
+  appleLinked?: boolean;
 };
 
 export type AuthUser = {
@@ -55,6 +58,10 @@ export type AuthUser = {
   registeredVia?: string;
   providerData?: string | null;
   lastGoogleLoginAt?: Date | null;
+  /** Sign in with Apple state, from /auth/me. */
+  apple?: AppleAccountInfo;
+  /** Every way this account can sign in, from /auth/me. */
+  signInMethods?: SignInMethod[];
   business?: {
     id: number;
     name: string;
@@ -173,6 +180,12 @@ export interface AuthState {
     email: string;
   } | null;
   teamInvitationError?: string | null;
+  /** Sign in with Apple: the name step (Apple shared no usable name). */
+  appleProfileStep?: AppleProfileStep | null;
+  /** Sign in with Apple: proving an existing account is yours before Apple is connected to it. */
+  appleLinkStep?: AppleLinkStep | null;
+  appleStepLoading?: boolean;
+  appleStepError?: AppleStepError | null;
 }
 
 export type CheckTeamInvitationResponse = {
@@ -213,4 +226,76 @@ export type AccountActionError = {
   message: string;
   code?: 'has_active_subscription' | 'deletion_instructions_sent';
   details?: Record<string, unknown>;
+};
+
+// ---- Sign in with Apple ----
+
+export type SignInMethod = 'password' | 'google' | 'apple';
+
+export type AppleAccountInfo = {
+  linked: boolean;
+  email: string | null;
+  /** The Apple ID shares a Private Relay address (Hide My Email). */
+  isPrivateEmail: boolean;
+  emailForwardingDisabled: boolean;
+};
+
+/** What the Apple sheet (iOS) or Apple JS (web) produced, in the shape every Apple endpoint takes. */
+export type AppleCredential = {
+  platform: 'ios' | 'web';
+  authorizationCode: string;
+  identityToken: string;
+  /** The raw nonce; Apple was given its SHA-256. */
+  nonce: string;
+  /** Web only: the redirect URI given to Apple JS. */
+  redirectUri?: string;
+  /** Only on the first authorization of this Apple ID, and only if Apple shared it. */
+  firstName?: string;
+  lastName?: string;
+};
+
+export type AppleAuthRequestPayload = {
+  credential: AppleCredential;
+  intent: 'login' | 'register';
+  /** Web register opened from the iOS app's "finish on the web" email. */
+  welcomeToken?: string;
+};
+
+/** POST /auth/apple: a session, or (iOS register, new person) the "finish on the web" email. */
+export type AppleAuthResponse = AuthResponse | GoogleNativeEmailSent;
+
+/** POST /auth/link/apple and /auth/unlink/apple. */
+export type AppleAccountResponse = {
+  message: string;
+  apple: AppleAccountInfo;
+  signInMethods: SignInMethod[];
+};
+
+export type AppleLinkProof = 'password' | 'email_code';
+
+export type AppleProfileStep = {
+  txId: string;
+  email: string | null;
+};
+
+export type AppleLinkStep = {
+  txId: string;
+  /** The existing account's email. */
+  email: string;
+  proofs: AppleLinkProof[];
+  /** Set once the 6-digit code has been emailed. */
+  codeSentTo: string | null;
+};
+
+export type AppleStepError = {
+  /** Machine-readable API code (e.g. apple_link_proof_invalid), when there is one. */
+  code: string | null;
+  message: string;
+};
+
+export type AppleAuthFailurePayload = {
+  message: string;
+  selectionToken?: string;
+  businesses?: BusinessOption[];
+  accountLinkingDetails?: AccountLinkingDetails;
 };

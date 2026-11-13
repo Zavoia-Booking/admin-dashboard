@@ -8,9 +8,12 @@ import { Button } from "../../../shared/components/ui/button";
 import { Input } from "../../../shared/components/ui/input";
 import { Label } from "../../../shared/components/ui/label";
 import { GoogleSignInButton } from "../../../shared/components/auth/GoogleSignInButton";
-import { validateBusinessLinkTokenApi, completeBusinessLinkApi } from "../api";
-import { setTokensAction, setAuthUserAction } from "../actions";
-import type { BusinessLinkTokenValidation } from "../types";
+import { AppleSignInButton } from "../../../shared/components/auth/AppleSignInButton";
+import { validateBusinessLinkTokenApi, completeBusinessLinkApi, appleBusinessLinkApi } from "../api";
+import { setTokensAction, setAuthUserAction, fetchCurrentUserAction } from "../actions";
+import type { AppleCredential, BusinessLinkTokenValidation } from "../types";
+import { tokenStorage } from "../../../shared/lib/tokenStorage";
+import { getErrorMessage } from "../../../shared/utils/error";
 import { useTranslation, Trans } from "react-i18next";
 import { cn } from "../../../shared/lib/utils";
 import {
@@ -96,11 +99,13 @@ function LinkBusinessConfirmCard({
   submitting,
   submitError,
   onSubmit,
+  onAppleCredential,
 }: {
   info: BusinessLinkTokenValidation;
   submitting: boolean;
   submitError: string | null;
   onSubmit: (values: FormValues) => void | Promise<void>;
+  onAppleCredential: (credential: AppleCredential) => Promise<void>;
 }) {
   const { t } = useTranslation('auth');
   const { register, handleSubmit, formState: { errors } } = useForm<FormValues>({
@@ -118,7 +123,13 @@ function LinkBusinessConfirmCard({
         </h1>
         <div className={cn(modalBody, "mt-3")}>
           <Trans
-            i18nKey={info.hasPassword ? 'linkBusiness.confirmDescription' : 'linkBusiness.googleOnlyDescription'}
+            i18nKey={
+              info.hasPassword
+                ? 'linkBusiness.confirmDescription'
+                : info.appleLinked && !info.googleLinked
+                  ? 'linkBusiness.appleOnlyDescription'
+                  : 'linkBusiness.googleOnlyDescription'
+            }
             t={t}
             values={{ email: info.email }}
             components={{ strong: <strong /> }}
@@ -187,11 +198,50 @@ function LinkBusinessConfirmCard({
                 <GoogleSignInButton context="register" disabled={submitting} className="h-11 rounded-full text-sm" />
               </div>
             )}
+            {info.appleLinked && (
+              <div className="mt-4 space-y-4">
+                {!info.googleLinked && (
+                  <div className="flex items-center gap-3">
+                    <div className="h-px flex-1 bg-neutral-200 dark:bg-border-subtle" />
+                    <span className="text-[12px] text-neutral-500 dark:text-foreground-3">{t('linkBusiness.or')}</span>
+                    <div className="h-px flex-1 bg-neutral-200 dark:bg-border-subtle" />
+                  </div>
+                )}
+                <AppleSignInButton
+                  context="register"
+                  label="continue"
+                  disabled={submitting}
+                  className="h-11 rounded-full text-sm"
+                  onCredential={onAppleCredential}
+                />
+              </div>
+            )}
           </footer>
         </form>
       ) : (
         <div className="mt-7 border-t border-neutral-200 pt-5 dark:border-border-subtle">
-          <GoogleSignInButton context="register" className="h-11 rounded-full text-sm" />
+          {(info.googleLinked || !info.appleLinked) && (
+            <GoogleSignInButton context="register" className="h-11 rounded-full text-sm" />
+          )}
+          {info.appleLinked && (
+            <AppleSignInButton
+              context="register"
+              label="continue"
+              disabled={submitting}
+              className={cn("h-11 rounded-full text-sm", info.googleLinked && "mt-4")}
+              onCredential={onAppleCredential}
+            />
+          )}
+          {info.appleLinked && submitError && (
+            <p
+              className="mt-4 flex items-center gap-2 rounded-lg border border-destructive/20 bg-error-bg px-3 py-2.5 text-[13px] text-destructive"
+              role="alert"
+              aria-live="polite"
+            >
+              <AlertCircle className="h-4 w-4 shrink-0" />
+              <span>{submitError}</span>
+            </p>
+          )}
         </div>
       )}
     </Panel>
@@ -242,7 +292,44 @@ export default function LinkBusinessAccountPage() {
       } else if (code === 'google_login_required' && status.kind === 'confirm') {
         // Passwordless (Google-only) account - only the Google path can confirm it.
         setStatus({ kind: 'confirm', info: { ...status.info, hasPassword: false, googleLinked: true } });
+      } else if (code === 'apple_login_required' && status.kind === 'confirm') {
+        // Passwordless Apple-only account - only Sign in with Apple can confirm it.
+        setStatus({ kind: 'confirm', info: { ...status.info, hasPassword: false, googleLinked: false, appleLinked: true } });
       } else {
+        setStatus({ kind: 'error' });
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // "Continue with Apple": the emailed token proves the inbox, Apple proves the
+  // Apple ID; the API adds owner access and starts the owner session.
+  const onAppleCredential = async (credential: AppleCredential) => {
+    if (!token) return;
+    setSubmitError(null);
+    setSubmitting(true);
+    try {
+      const data = await appleBusinessLinkApi({ credential, token });
+      dispatch(setTokensAction({
+        accessToken: data.accessToken,
+        csrfToken: data.csrfToken ?? null,
+        refreshToken: data.refreshToken ?? null,
+      }));
+      if (data.refreshToken) {
+        await tokenStorage.saveRefreshToken(data.refreshToken);
+      }
+      dispatch(setAuthUserAction({ user: data.user }));
+      dispatch(fetchCurrentUserAction.request());
+      navigate('/welcome', { replace: true });
+    } catch (err: any) {
+      const code: string | undefined = err?.response?.data?.code;
+      if (code === 'apple_email_mismatch' && status.kind === 'confirm') {
+        setSubmitError(t('linkBusiness.appleEmailMismatch', { email: status.info.email }));
+      } else if (typeof code === 'string' && (code.startsWith('apple_') || code === 'invalid_apple_token')) {
+        setSubmitError(getErrorMessage(err));
+      } else {
+        // Expired/used link or account state changed: same as the password path.
         setStatus({ kind: 'error' });
       }
     } finally {
@@ -310,6 +397,7 @@ export default function LinkBusinessAccountPage() {
         submitting={submitting}
         submitError={submitError}
         onSubmit={onSubmit}
+        onAppleCredential={onAppleCredential}
       />
     </Shell>
   );

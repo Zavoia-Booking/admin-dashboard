@@ -46,6 +46,7 @@ import {
 } from '../../../auth/api';
 import { fetchCurrentUserAction, logoutRequestAction } from '../../../auth/actions';
 import GoogleAccountManager from '../../../settings/components/GoogleAccountManager';
+import AppleAccountManager from '../../../settings/components/AppleAccountManager';
 import { getErrorMessage } from '../../../../shared/utils/error';
 import { PasswordStrength } from '../../../auth/components/PasswordStrength';
 import {
@@ -724,6 +725,7 @@ const MyAccountContent = ({ onDirtyChange, onSavingChange }: MyAccountContentPro
                 onSetPasswordClick={handleSetPasswordClick}
                 returnUrl="/my-account"
               />
+              <AppleAccountManager onSetPasswordClick={handleSetPasswordClick} />
 
               <div className="profile-divider" />
 

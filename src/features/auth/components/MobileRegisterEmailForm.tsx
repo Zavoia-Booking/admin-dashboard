@@ -5,6 +5,7 @@ import { AlertCircle, CheckCircle2 } from "lucide-react"
 import { Button } from "../../../shared/components/ui/button"
 import CredentialsForm from "../../../shared/components/auth/CredentialsForm"
 import GoogleSignInButton from "../../../shared/components/auth/GoogleSignInButton"
+import AppleSignInButton from "../../../shared/components/auth/AppleSignInButton"
 import { mobileRegisterRequestApi } from "../api"
 import { clearGoogleNativeEmailSentAction } from "../actions"
 import { selectAuthIsLoading, selectMobileGoogleEmailSentTo } from "../selectors"
@@ -107,6 +108,7 @@ export function MobileRegisterEmailForm({ onSentChange }: MobileRegisterEmailFor
       </div>
       <div className="grid grid-cols-1 gap-4">
         <GoogleSignInButton context="register" disabled={submitting || googleLoading} />
+        <AppleSignInButton context="register" disabled={submitting || googleLoading} />
       </div>
     </>
   )

@@ -6,6 +6,11 @@ import type {
   CompleteTeamInvitationPayload,
   CompleteTeamInvitationResponse,
   GoogleAuthRequestPayload,
+  AppleAuthRequestPayload,
+  AppleAuthFailurePayload,
+  AppleProfileStep,
+  AppleLinkStep,
+  AppleStepError,
 } from "./types";
 
 export const setTokensAction = createAction(
@@ -177,3 +182,48 @@ export const completeTeamInvitationAction = createAsyncAction(
   'auth/COMPLETE_TEAM_INVITATION_FAILURE',
 )<CompleteTeamInvitationPayload, CompleteTeamInvitationResponse, { message: string }>();
 
+// ---- Sign in with Apple ----
+// The outcomes Apple shares with email/Google (business selection, needs-owner
+// modal, "register first" banner, native register email) land in the same
+// state fields those flows use; only the name step and the "prove this account
+// is yours" step are Apple-specific.
+
+export const appleAuthAction = createAsyncAction(
+  'auth/APPLE_AUTH_REQUEST',
+  'auth/APPLE_AUTH_SUCCESS',
+  'auth/APPLE_AUTH_FAILURE',
+)<
+  AppleAuthRequestPayload,
+  { accessToken: string; csrfToken: string | null; user: AuthUser | null; isRegistration: boolean },
+  AppleAuthFailurePayload
+>();
+
+export const openAppleProfileStep = createAction(
+  'auth/APPLE_PROFILE_STEP_OPEN',
+)<AppleProfileStep>();
+
+export const openAppleLinkStep = createAction(
+  'auth/APPLE_LINK_STEP_OPEN',
+)<AppleLinkStep>();
+
+export const closeAppleStep = createAction(
+  'auth/APPLE_STEP_CLOSE',
+)<void>();
+
+export const appleProfileAction = createAsyncAction(
+  'auth/APPLE_PROFILE_REQUEST',
+  'auth/APPLE_PROFILE_SUCCESS',
+  'auth/APPLE_PROFILE_FAILURE',
+)<{ firstName: string; lastName: string }, void, AppleStepError>();
+
+export const appleLinkSendCodeAction = createAsyncAction(
+  'auth/APPLE_LINK_SEND_CODE_REQUEST',
+  'auth/APPLE_LINK_SEND_CODE_SUCCESS',
+  'auth/APPLE_LINK_SEND_CODE_FAILURE',
+)<void, { email: string }, AppleStepError>();
+
+export const appleLinkVerifyAction = createAsyncAction(
+  'auth/APPLE_LINK_VERIFY_REQUEST',
+  'auth/APPLE_LINK_VERIFY_SUCCESS',
+  'auth/APPLE_LINK_VERIFY_FAILURE',
+)<{ password: string } | { code: string }, void, AppleStepError>();

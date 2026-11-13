@@ -224,6 +224,38 @@
       "googleFailed": "Fereastra Google a fost închisă sau a eșuat"
     }
   },
+  "appleAccount": {
+    "label": "Conectare cu Apple",
+    "linkedDescription": "Conectat. Te poți autentifica cu Apple ID-ul tău.",
+    "unlinkedDescription": "Folosește Apple ID-ul tău pentru autentificare.",
+    "relayNote": "Apple îți ascunde adresa de email. Emailurile ajung la tine prin adresa de redirecționare Apple {{email}}.",
+    "linked": "Conectat",
+    "unlink": "Deconectează",
+    "notLinked": "Neconectat",
+    "link": "Conectează",
+    "linking": "Se conectează",
+    "passwordRequiredEyebrow": "Securitatea contului",
+    "passwordRequired": "Setează mai întâi o parolă",
+    "passwordRequiredDescription": "Momentan te autentifici doar cu Apple. Setează mai întâi o parolă, ca să te poți autentifica și după ce deconectezi Apple.",
+    "passwordRequiredHint": "După ce ai setat o parolă, poți reveni aici pentru a deconecta Apple.",
+    "cancel": "Renunță",
+    "setUpPassword": "Setează parola",
+    "unlinkEyebrow": "Conturi conectate",
+    "unlinkTitle": "Deconectează Apple",
+    "unlinkDescriptionPassword": "Pentru a deconecta Apple, te rugăm confirmă parola contului. Vei putea în continuare să te autentifici cu emailul și parola.",
+    "unlinkDescriptionGoogle": "Vei putea în continuare să te autentifici cu Google.",
+    "currentPassword": "Parola actuală",
+    "currentPasswordPlaceholder": "Introdu parola actuală",
+    "wrongPassword": "Parolă incorectă. Te rugăm să încerci din nou.",
+    "unlinkAccount": "Deconectează Apple",
+    "unlinkingLong": "Se deconectează…",
+    "toast": {
+      "connected": "Apple a fost conectat la contul tău.",
+      "disconnected": "Apple a fost deconectat de la contul tău.",
+      "passwordRequired": "Introdu parola pentru a deconecta Apple.",
+      "appleFailed": "Conectarea cu Apple nu a funcționat. Te rugăm să încerci din nou."
+    }
+  },
   "billing": {
     "loading": "Se încarcă informațiile de facturare...",
     "currentSubscription": "Abonament Curent",

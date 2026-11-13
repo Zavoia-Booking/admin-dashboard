@@ -224,6 +224,38 @@
       "googleFailed": "Google popup was closed or failed"
     }
   },
+  "appleAccount": {
+    "label": "Sign in with Apple",
+    "linkedDescription": "Connected. You can sign in with your Apple ID.",
+    "unlinkedDescription": "Use your Apple ID to sign in.",
+    "relayNote": "Apple hides your email. Emails reach you through Apple's relay address {{email}}.",
+    "linked": "Connected",
+    "unlink": "Disconnect",
+    "notLinked": "Not connected",
+    "link": "Connect",
+    "linking": "Connecting",
+    "passwordRequiredEyebrow": "Account security",
+    "passwordRequired": "Set a password first",
+    "passwordRequiredDescription": "Apple is the only way you sign in right now. Set a password first, so you can still sign in after disconnecting Apple.",
+    "passwordRequiredHint": "Once you've set a password, you can come back here to disconnect Apple.",
+    "cancel": "Cancel",
+    "setUpPassword": "Set up password",
+    "unlinkEyebrow": "Connected accounts",
+    "unlinkTitle": "Disconnect Apple",
+    "unlinkDescriptionPassword": "To disconnect Apple, please confirm your account password. You'll still be able to sign in with your email and password.",
+    "unlinkDescriptionGoogle": "You'll still be able to sign in with Google.",
+    "currentPassword": "Current password",
+    "currentPasswordPlaceholder": "Enter current password",
+    "wrongPassword": "Incorrect password. Please try again.",
+    "unlinkAccount": "Disconnect Apple",
+    "unlinkingLong": "Disconnecting…",
+    "toast": {
+      "connected": "Apple connected to your account.",
+      "disconnected": "Apple disconnected from your account.",
+      "passwordRequired": "Enter your password to disconnect Apple.",
+      "appleFailed": "Sign in with Apple didn't work. Please try again."
+    }
+  },
   "billing": {
     "loading": "Loading billing information...",
     "currentSubscription": "Current Subscription",

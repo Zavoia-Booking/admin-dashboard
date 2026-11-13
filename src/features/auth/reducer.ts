@@ -33,6 +33,10 @@ const initialState: AuthState = {
   teamInvitationStatus: null,
   teamInvitationData: null,
   teamInvitationError: null,
+  appleProfileStep: null,
+  appleLinkStep: null,
+  appleStepLoading: false,
+  appleStepError: null,
 };
 
 export const AuthReducer: Reducer<AuthState, any> = (state: AuthState = initialState, action: Actions) => {
@@ -506,6 +510,103 @@ export const AuthReducer: Reducer<AuthState, any> = (state: AuthState = initialS
         ...state,
         user: { ...state.user, unreadNotificationsCount: 0 },
       };
+    }
+
+    // ---- Sign in with Apple ----
+    case getType(actions.appleAuthAction.request): {
+      return { ...state, isLoading: true, error: null };
+    }
+
+    case getType(actions.appleAuthAction.success): {
+      // Tokens, user and the landing decision in one update, so PublicRoute
+      // sends a new owner (wizard not done) to /welcome on its first render.
+      const { accessToken, csrfToken, user, isRegistration } = action.payload;
+      return {
+        ...state,
+        accessToken,
+        csrfToken,
+        user,
+        isAuthenticated: true,
+        isLoading: false,
+        status: AuthStatusEnum.AUTHENTICATED,
+        error: null,
+        businessId: user?.businessId?.toString() || null,
+        isRegistration,
+        appleProfileStep: null,
+        appleLinkStep: null,
+        appleStepLoading: false,
+        appleStepError: null,
+      };
+    }
+
+    case getType(actions.appleAuthAction.failure): {
+      const payload = action.payload;
+      // Same state the email/Google flows produce, so the same modals open.
+      if (payload.message === 'business_selection_required' && payload.selectionToken) {
+        return {
+          ...state,
+          isAuthenticated: false,
+          isLoading: false,
+          status: AuthStatusEnum.UNAUTHENTICATED,
+          error: null,
+          businessSelectionRequired: {
+            selectionToken: payload.selectionToken,
+            businesses: payload.businesses ?? [],
+          },
+        };
+      }
+      if (payload.message === 'account_exists_needs_business_owner_account' && payload.accountLinkingDetails) {
+        return {
+          ...state,
+          isLoading: false,
+          accountLinkingRequired: payload.accountLinkingDetails,
+          error: null,
+        };
+      }
+      if (payload.message === 'account_not_found') {
+        // The login form shows its "register first" banner for this exact value.
+        return { ...state, isLoading: false, error: payload.message };
+      }
+      // Anything else was already shown by the Apple saga (toast or step modal).
+      return { ...state, isLoading: false };
+    }
+
+    case getType(actions.openAppleProfileStep): {
+      return { ...state, isLoading: false, appleProfileStep: action.payload, appleLinkStep: null, appleStepLoading: false, appleStepError: null };
+    }
+
+    case getType(actions.openAppleLinkStep): {
+      return { ...state, isLoading: false, appleLinkStep: action.payload, appleProfileStep: null, appleStepLoading: false, appleStepError: null };
+    }
+
+    case getType(actions.closeAppleStep): {
+      return { ...state, appleProfileStep: null, appleLinkStep: null, appleStepLoading: false, appleStepError: null };
+    }
+
+    case getType(actions.appleProfileAction.request):
+    case getType(actions.appleLinkSendCodeAction.request):
+    case getType(actions.appleLinkVerifyAction.request): {
+      return { ...state, appleStepLoading: true, appleStepError: null };
+    }
+
+    case getType(actions.appleProfileAction.success):
+    case getType(actions.appleLinkVerifyAction.success): {
+      return { ...state, appleStepLoading: false, appleStepError: null };
+    }
+
+    case getType(actions.appleLinkSendCodeAction.success): {
+      return {
+        ...state,
+        appleStepLoading: false,
+        appleStepError: null,
+        appleLinkStep: state.appleLinkStep ? { ...state.appleLinkStep, codeSentTo: action.payload.email } : state.appleLinkStep,
+      };
+    }
+
+    case getType(actions.appleProfileAction.failure):
+    case getType(actions.appleLinkSendCodeAction.failure):
+    case getType(actions.appleLinkVerifyAction.failure): {
+      return { ...state, appleStepLoading: false, appleStepError: action.payload };
     }
 
     default:

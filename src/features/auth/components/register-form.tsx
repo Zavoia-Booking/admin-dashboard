@@ -12,6 +12,7 @@ import { PasswordStrength } from "./PasswordStrength"
 import { sanitizeName, validatePasswordPolicy, personNameRules } from "../../../shared/utils/validation"
 import { Popover, PopoverTrigger, PopoverContent } from "../../../shared/components/ui/popover"
 import GoogleSignInButton from "../../../shared/components/auth/GoogleSignInButton"
+import AppleSignInButton, { AppleLogo } from "../../../shared/components/auth/AppleSignInButton"
 import { Checkbox } from "../../../shared/components/ui/checkbox"
 import { openLegalPage } from "../../legal/legal-links"
 import { useTranslation } from "react-i18next"
@@ -33,9 +34,11 @@ type RegisterFormProps = {
   welcomeToken?: string
   /** The welcome link came from native Google sign-in — nudge the user to finish with Google. */
   preferGoogle?: boolean
+  /** The welcome link came from Sign in with Apple in the iOS app — nudge the user to finish with Apple. */
+  preferApple?: boolean
 }
 
-export function RegisterForm({ initialEmail, lockEmail, welcomeToken, preferGoogle }: RegisterFormProps = {}) {
+export function RegisterForm({ initialEmail, lockEmail, welcomeToken, preferGoogle, preferApple }: RegisterFormProps = {}) {
   const { t, i18n } = useTranslation('auth')
   const [pwFocused, setPwFocused] = useState<boolean>(false)
   const [pwInteracted, setPwInteracted] = useState<boolean>(false)
@@ -114,6 +117,12 @@ export function RegisterForm({ initialEmail, lockEmail, welcomeToken, preferGoog
             <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
           </svg>
           <span>{t('register.googleContinueHint')}</span>
+        </div>
+      )}
+      {preferApple && (
+        <div className="mb-3 flex items-start gap-2.5 rounded-lg border border-border bg-surface px-4 py-3 text-sm text-foreground-2">
+          <AppleLogo className="mt-0.5 h-4 w-4 shrink-0 text-foreground-1" />
+          <span>{t('register.appleContinueHint')}</span>
         </div>
       )}
       <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-3">
@@ -334,6 +343,19 @@ export function RegisterForm({ initialEmail, lockEmail, welcomeToken, preferGoog
             context="register"
             disabled={isLoading}
             className="w-full h-10 md:h-12"
+            onBeforeStart={() => {
+              if (!getValues('acceptTerms')) {
+                trigger('acceptTerms')
+                return false
+              }
+              return true
+            }}
+          />
+          <AppleSignInButton
+            context="register"
+            disabled={isLoading}
+            className="w-full h-10 md:h-12"
+            welcomeToken={preferApple ? welcomeToken : undefined}
             onBeforeStart={() => {
               if (!getValues('acceptTerms')) {
                 trigger('acceptTerms')
