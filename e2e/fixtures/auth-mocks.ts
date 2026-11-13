@@ -104,6 +104,19 @@ export async function mockGoogleAuth(
       }),
     ),
   )
+
+  // After any sign-in the app saves the user's language for push messages.
+  // With the mocked (fake) access token the real API would answer 401, which
+  // ends the session and lands on /login, so answer it here as well.
+  await page.route('**/api/business-push/locale', async (route) => json(route, 200, {}))
+  // A new owner lands on /welcome, which loads the wizard draft; an owner
+  // with no draft yet gets an empty one from the real API.
+  await page.route('**/api/wizard/draft', async (route) => json(route, 200, { wizardData: {} }))
+  // The login saga also lists locations. A new owner has none; left to the real
+  // API, the fake token's 401 sometimes wins the race and logs the test out.
+  if (options.behavior === 'login_success_new_owner' || options.behavior === 'register_success_new_owner') {
+    await page.route('**/api/locations/list', async (route) => json(route, 200, { locations: [] }))
+  }
 }
 
 /**

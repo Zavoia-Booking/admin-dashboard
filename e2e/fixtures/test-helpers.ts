@@ -14,11 +14,14 @@ export interface TestUser {
 
 export function makeTestUser(overrides: Partial<TestUser> = {}): TestUser {
   const id = randomUUID().slice(0, 8)
+  // The API's name rule (TrimmedName) allows letters, spaces, hyphens and
+  // apostrophes only, so the unique suffix is spelled with letters.
+  const letters = id.replace(/[0-9]/g, (d) => 'ghijklmnop'[Number(d)])
   return {
     email: `e2e-${id}@test.com`,
     password: VALID_PASSWORD,
-    firstName: 'E2E',
-    lastName: `User${id}`,
+    firstName: 'Test',
+    lastName: `User${letters}`,
     ...overrides,
   }
 }
