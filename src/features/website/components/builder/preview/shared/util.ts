@@ -39,6 +39,11 @@ export function heroMode(hasImage: boolean): HeroMode {
 export const prefersReducedMotion = () =>
   typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
+/** Shared header surface timing in the preview's logical pixels; Capsule's width uses the same fraction. */
+export function navScrollProgress(scrollTop: number, viewportHeight: number): number {
+  return Math.max(0, Math.min(1, scrollTop / Math.max(1, viewportHeight * 0.55)));
+}
+
 /** First scrollable ancestor of `el` (walking up from its parent), or null if none. The preview rides the
  *  dialog's scroller: the nav-frost, the marquee scroll-glide, and the footer reveal all find it this way. */
 export function findScrollParent(el: HTMLElement): HTMLElement | null {

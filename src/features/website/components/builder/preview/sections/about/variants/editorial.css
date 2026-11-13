@@ -12,7 +12,7 @@
   border-bottom: 1px solid var(--mc-line);
   color: var(--mc-muted);
   font-family: var(--mc-mono);
-  font-size: 11px;
+  font-size: 13px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
 }
@@ -49,7 +49,7 @@
 .mc-abe-body {
   margin: 0;
   color: var(--mc-muted);
-  font-size: 17px;
+  font-size: clamp(18px, 1.4cqw, 20px);
   line-height: 1.74;
   white-space: pre-line;
   text-wrap: pretty;
@@ -141,7 +141,7 @@
   margin-top: 10px;
   color: var(--mc-muted);
   font-family: var(--mc-mono);
-  font-size: 11px;
+  font-size: 13px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
@@ -205,7 +205,7 @@
 
 @container (max-width: 600px) {
   .mc-abe-lede {
-    font-size: clamp(24px, 6.4cqw, 30px);
+    font-size: clamp(28px, 7.5cqw, 34px);
   }
 
   .mc-abe-spread {
@@ -235,6 +235,6 @@
   }
 
   .mc-abe-body {
-    font-size: 15px;
+    font-size: 17px;
   }
 }

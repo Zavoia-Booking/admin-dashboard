@@ -2,7 +2,7 @@
    grid and the Carousel rail; each of those owns its own container CSS in its adjacent variant file. Themed to
    the preview's --mc-* vars; vw→cqw so the card scales with the contained surface. */
 
-.mc-portrait { cursor: pointer; }
+.mc-portrait { cursor: pointer; text-align: left; }
 .mc-portrait-inner { position: relative; }
 
 .mc-pfig {
@@ -33,7 +33,7 @@
   padding: 5px 10px;
   border-radius: 999px;
   font-family: var(--mc-mono);
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   color: #fff;

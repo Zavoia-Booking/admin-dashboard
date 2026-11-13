@@ -1,5 +1,6 @@
 import { useEffect, type RefObject } from "react";
 import { findScrollParent } from "../../../shared/util";
+import { useReducedMotion } from "../../../shared/hooks";
 import { HERO_PARALLAX } from "../constants";
 
 /**
@@ -16,10 +17,11 @@ export function useCoverParallax(
   parallaxRef: RefObject<HTMLDivElement | null>,
   { enabled, skipWhenNarrow }: { enabled: boolean; skipWhenNarrow: boolean },
 ): void {
+  const reducedMotion = useReducedMotion();
   useEffect(() => {
     const host = parallaxRef.current;
     const header = headerRef.current;
-    if (!enabled || !host || !header || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    if (!enabled || !host || !header || reducedMotion) return;
     const scroller = findScrollParent(header);
     if (!scroller) return;
     let raf = 0;
@@ -28,15 +30,19 @@ export function useCoverParallax(
       // Stacked cover-plate (narrow container, ≤720px) drops the image overscan — its photo fills an exact
       // box — so any parallax shift would bare an edge. Keep it static there; the cinematic cover keeps its
       // overscan at every width.
-      if (skipWhenNarrow && header.getBoundingClientRect().width <= 720) {
+      if (skipWhenNarrow && header.clientWidth <= 720) {
         host.style.transform = "";
         return;
       }
-      const r = host.getBoundingClientRect();
+      // Measure the stable header, not the translated image itself. Convert the
+      // visual distance back to logical pixels before writing a CSS transform.
+      const r = header.getBoundingClientRect();
       const cr = scroller.getBoundingClientRect();
-      const d = r.top + r.height / 2 - (cr.top + cr.height / 2);
+      const scale = scroller.clientHeight > 0 ? cr.height / scroller.clientHeight : 1;
+      const safeScale = Number.isFinite(scale) && scale > 0 ? scale : 1;
+      const d = (r.top + r.height / 2 - (cr.top + cr.height / 2)) / safeScale;
       // Clamp inside the image overscan (top:-14% / height:128%) so an edge can never enter the frame.
-      const buffer = header.getBoundingClientRect().height * 0.13;
+      const buffer = header.clientHeight * 0.13;
       const ty = Math.max(-buffer, Math.min(buffer, -d * HERO_PARALLAX));
       host.style.transform = `translate3d(0, ${ty.toFixed(1)}px, 0)`;
     };
@@ -55,6 +61,7 @@ export function useCoverParallax(
       scroller.removeEventListener("scroll", onScroll);
       ro.disconnect();
       if (raf) cancelAnimationFrame(raf);
+      host.style.transform = "";
     };
-  }, [headerRef, parallaxRef, enabled, skipWhenNarrow]);
+  }, [headerRef, parallaxRef, enabled, skipWhenNarrow, reducedMotion]);
 }

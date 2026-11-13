@@ -25,6 +25,7 @@ export type NavVariantViewProps = {
   overHeroTone?: "light" | "dark";
   ctaFrost?: boolean;
   progress: number;
+  compactHeader: boolean;
   sticky: boolean;
   menuOpen: boolean;
   setMenuOpen: (open: boolean) => void;
@@ -41,27 +42,29 @@ type ChromeStyle = CSSProperties & {
   "--mc-nav-ring": string;
 };
 
-const FROST_TINT_AT = 0.32;
-
-/** Shared editorial frost model. Variant files own their composition; this helper only resolves the
- * hero-to-paper palette so every navbar remains legible at the same scroll point. */
+/** Shared hero-to-paper palette. Surface and blur use the full scroll interval;
+ * variants retain their own composition and final surface opacity. */
 export function navChromeStyle({
   overHero,
   overHeroTone = "dark",
   ctaFrost = false,
   progress,
-}: Pick<NavVariantViewProps, "overHero" | "overHeroTone" | "ctaFrost" | "progress">): {
+  opaqueOnScroll = false,
+}: Pick<NavVariantViewProps, "overHero" | "overHeroTone" | "ctaFrost" | "progress"> & {
+  /** Underlay ends in solid paper; Editorial/Split retain their frosted endpoint. */
+  opaqueOnScroll?: boolean;
+}): {
   style: ChromeStyle;
   ctaStyle?: CSSProperties;
 } {
   const percent = (value: number) => `${(value * 100).toFixed(1)}%`;
-  const tint = overHero
-    ? 1 - Math.pow(1 - Math.min(1, progress / FROST_TINT_AT), 3)
-    : 1;
+  const tint = overHero ? Math.max(0, Math.min(1, progress)) : 1;
+  const surface = tint * (opaqueOnScroll ? 1 : 0.82);
   // A warm-paper (light) hero — Tumble — takes dark ink from the very top: the bar still frosts to paper
   // via `tint`, but the ink/mark palette resolves to its paper endpoint (inkTint = 1) the whole way.
-  const inkTint = overHero && overHeroTone === "light" ? 1 : tint;
-  const blurProgress = overHero ? 1 - (1 - progress) * (1 - progress) : 1;
+  // Keep solid ink during the fade; interpolated grey gets lost on a half-tinted surface.
+  const inkTint = overHero && overHeroTone === "light" ? 1 : surface < 0.5 ? 0 : 1;
+  const blurProgress = tint;
   const blur = blurProgress > 0.001
     ? `blur(${(18 * blurProgress).toFixed(2)}px) saturate(${(100 + 50 * blurProgress).toFixed(0)}%)`
     : undefined;
@@ -88,7 +91,7 @@ export function navChromeStyle({
     "--mc-nav-mark-border": markBorder,
     "--mc-nav-ring": ring,
     backgroundColor: overHero
-      ? `color-mix(in oklch, var(--mc-bg) ${(82 * tint).toFixed(1)}%, transparent)`
+      ? `color-mix(in oklch, var(--mc-bg) ${percent(surface)}, transparent)`
       : "var(--mc-bg)",
     backdropFilter: blur,
     WebkitBackdropFilter: blur,

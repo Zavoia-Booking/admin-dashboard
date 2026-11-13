@@ -173,7 +173,7 @@ export function Fan({ images, onOpen, t, lightboxOpen, lightboxIndex, frozen = f
 
           const selected = index === fan.active;
           const centered = distance < 0.5;
-          const cardX = offset * step * spread;
+          const cardX = Number((offset * step * spread).toFixed(1));
           return (
             <figure
               key={index}
@@ -191,7 +191,12 @@ export function Fan({ images, onOpen, t, lightboxOpen, lightboxIndex, frozen = f
               }}
             >
               <div className="mc-galfan-bend" aria-hidden>
-                <span className="mc-galfan-glow" />
+                <span
+                  className="mc-galfan-glow"
+                  style={{
+                    transform: `translateX(${-cardX}px) perspective(var(--mc-galfan-perspective)) translateX(${cardX}px) translateZ(-16px)`,
+                  }}
+                />
                 {Array.from({ length: slices }, (_, slice) => {
                   const waveUnit = cardWidth / step;
                   const edgeA = offset + (slice / slices - 0.5) * waveUnit;
@@ -206,6 +211,11 @@ export function Fan({ images, onOpen, t, lightboxOpen, lightboxIndex, frozen = f
                     `linear-gradient(90deg, rgba(4, 3, 3, ${shadeAt(edgeA).toFixed(3)}), ` +
                     `rgba(4, 3, 3, ${shadeAt(edgeB).toFixed(3)}))`;
                   const left = Math.round(slice * sliceWidth) - 1;
+                  const width = Math.round(sliceWidth) + 2;
+                  // Keep the stage's vanishing point, but project each strip independently.
+                  // Shared preserve-3d sorting cuts holes through overlapping strips at
+                  // fractional browser zoom. Flat composition keeps the same curved surface.
+                  const perspectiveOrigin = cardWidth / 2 - cardX - left - width / 2;
 
                   return (
                     <span
@@ -213,8 +223,9 @@ export function Fan({ images, onOpen, t, lightboxOpen, lightboxIndex, frozen = f
                       className={`mc-galfan-slice${slice === 0 ? " is-first" : slice === slices - 1 ? " is-last" : ""}`}
                       style={{
                         left: `${left}px`,
-                        width: `${Math.round(sliceWidth) + 2}px`,
+                        width: `${width}px`,
                         transform:
+                          `translateX(${perspectiveOrigin}px) perspective(var(--mc-galfan-perspective)) translateX(${-perspectiveOrigin}px) ` +
                           `translateZ(${((depthA + depthB) / 2).toFixed(1)}px) ` +
                           `rotateY(${rotationY.toFixed(2)}deg) scaleX(${stretch.toFixed(4)})`,
                       }}

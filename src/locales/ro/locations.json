@@ -67,7 +67,7 @@
     "validation": {
       "nameRequired": "Introdu numele locației",
       "nameMinLength": "Introdu cel puțin 2 caractere",
-      "nameMaxLength": "Sunt permise maximum 70 de caractere",
+      "nameMaxLength": "Sunt permise maximum 50 de caractere",
       "nameInvalidChars": "Elimină caracterele speciale (sunt permise doar - ' & . ( ))",
       "addressRequired": "Adresa este obligatorie",
       "emailRequired": "Introdu o adresă de email validă",

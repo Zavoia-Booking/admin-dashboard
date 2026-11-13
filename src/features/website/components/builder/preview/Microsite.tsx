@@ -8,8 +8,8 @@ import { cn } from "../../../../../shared/lib/utils";
 
 import "./shared/animations.css";
 import { UNNUMBERED } from "./shared/constants";
-import { findScrollParent } from "./shared/util";
-import { PreviewAtRestContext, StaticPreviewContext, useFooterReveal, useReducedMotionPreference } from "./shared/hooks";
+import { findScrollParent, navScrollProgress } from "./shared/util";
+import { PreviewAtRestContext, StaticPreviewContext, useFooterReveal } from "./shared/hooks";
 import {
   AnnouncementBar,
   normalizeAnnouncementLayout,
@@ -23,7 +23,7 @@ import { Gallery } from "./sections/gallery/Gallery";
 import { Reviews } from "./sections/reviews/Reviews";
 import { Hero } from "./sections/hero/Hero";
 import { Locations } from "./sections/locations/Locations";
-import { Nav, FROST_DIST } from "./sections/nav/Nav";
+import { Nav } from "./sections/nav/Nav";
 import { Footer, normalizeFooterStyle } from "./sections/footer/Footer";
 import type { PreviewData, LivePreviewProps, T } from "./shared/types";
 
@@ -126,13 +126,13 @@ function LivePreviewImpl({
     onSelectedLocationChange(internalSelectedLocationId);
   }, [internalSelectedLocationId, isLocationSelectionControlled, onSelectedLocationChange]);
 
-  // Every hero variant is an immersive, full-bleed header the nav floats over and frosts on scroll. Only an
-  // announcement bar above the nav forces the solid paper bar from the top. Tumble is a warm-paper (light)
-  // hero — the nav renders dark ink over it until it frosts (mirrors the design's useMCLightHero, which only
-  // Tumble calls); every other hero is dark at the top and takes light chrome. Over the drenched field (the
-  // free text-panel base) the CTA also frosts white→accent, so a static accent pill doesn't blend in.
+  // Every navigation style floats over the hero, including below Ribbon/Ticker.
+  // Tumble starts with dark ink over its light hero;
+  // the remaining heroes use light chrome, with the default hero's CTA frosting white→accent.
   const first = stacked[0];
-  const firstHeroVariant = (!activeBar || announcementLayout === "pill") && first?.type === "hero"
+  const navBelowAnnouncement = chrome && navOn && !!activeBar && !floatingAnnouncement
+    && first?.type === "hero";
+  const firstHeroVariant = (!activeBar || announcementLayout === "pill" || navBelowAnnouncement) && first?.type === "hero"
     ? first.variant
     : null;
   const overHero = firstHeroVariant !== null;
@@ -140,27 +140,27 @@ function LivePreviewImpl({
   const ctaFrost = firstHeroVariant === "default";
 
   // Scroll chrome: the nav sticks to the dialog's scroll container and frosts gradually as the hero scrolls
-  // up behind it. The over-hero composition is a CSS grid overlap, so the hero starts under the transparent
-  // navbar on the first frame without measuring or mutating layout in JavaScript.
+  // up behind it. Grid overlap (or an absolute nav below Ribbon/Ticker) places the nav over the
+  // hero from the first frame without measuring or mutating layout in JavaScript.
   const navRef = useRef<HTMLElement>(null);
   const heroRef = useRef<HTMLDivElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const footerRef = useRef<HTMLElement>(null);
   const [scrollProgress, setScrollProgress] = useState(0);
-  const reducedMotion = useReducedMotionPreference();
   // Static snapshot (ScaledPreview): page at rest — nav un-frosted over the hero, no scroll-jack/parallax.
   const staticPreview = useContext(StaticPreviewContext);
   // Settled-but-scrollable (the phone's scaled-down desktop mock): heavy self-running motion parks; the
   // leaf hooks read the same context through useReducedMotion, this flag only drives the hero props below.
   const atRest = useContext(PreviewAtRestContext);
-  const progress = !chrome || !overHero || staticPreview ? 0 : reducedMotion ? 1 : scrollProgress;
+  // Surface changes follow scroll even with reduced motion; each variant handles its geometry separately.
+  const progress = !chrome || !overHero || staticPreview ? 0 : scrollProgress;
   const editorialFooterReveal = chrome && footerOn && stacked.length > 0 && footerVariant === "editorial";
 
   // The footer is pinned behind the page and uncovered on scroll — drive its reveal off the scroll container.
   useFooterReveal(rootRef, footerRef, editorialFooterReveal);
 
   useEffect(() => {
-    if (!chrome || !overHero || reducedMotion || staticPreview) return;
+    if (!chrome || !overHero || staticPreview) return;
     const nav = navRef.current;
     if (!nav || !heroRef.current) return;
     const sc = findScrollParent(nav);
@@ -168,19 +168,21 @@ function LivePreviewImpl({
     let raf = 0;
     const update = () => {
       raf = 0;
-      // Drive off absolute scroll distance so the frost arrives quickly and consistently regardless of hero height.
-      setScrollProgress(Math.round(Math.min(1, sc.scrollTop / FROST_DIST) * 100) / 100);
+      setScrollProgress(navScrollProgress(sc.scrollTop, sc.clientHeight));
     };
     const onScroll = () => {
       if (!raf) raf = requestAnimationFrame(update);
     };
     sc.addEventListener("scroll", onScroll, { passive: true });
+    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(onScroll);
+    observer?.observe(sc);
     update();
     return () => {
       sc.removeEventListener("scroll", onScroll);
+      observer?.disconnect();
       if (raf) cancelAnimationFrame(raf);
     };
-  }, [chrome, overHero, reducedMotion, staticPreview, stacked.length]);
+  }, [chrome, overHero, staticPreview, stacked.length]);
 
   // Section numbers (mono kicker) follow the visible non-bar order, mirroring the microsite's "0N —".
   // `startNumber` lets the scoped one-section preview carry its real page ordinal instead of restarting at 1.
@@ -206,18 +208,20 @@ function LivePreviewImpl({
       ref={rootRef}
       style={{ ...previewVars(data.brandColor, data.fontKey), backgroundColor: "var(--mc-bg)", containerType: "inline-size" } as CSSProperties}
     >
-      <div className={chrome ? cn("mc-content", overHero && "mc-content--nav-overlay") : undefined}>
+      <div className={chrome ? cn("mc-content", overHero && !navBelowAnnouncement && "mc-content--nav-overlay") : undefined}>
       {activeBar && !floatingAnnouncement ? (
         // Ribbon/Ticker + nav travel together, pinned to the top of the full preview.
-        <div className={chrome ? "sticky top-0 z-30" : undefined}>
+        <div className={chrome ? cn("sticky top-0 z-30", navBelowAnnouncement && "mc-announcement-nav-overlay") : undefined}>
           {announcementNode}
           {chrome && navOn && stacked.length > 0 && (
             <Nav
               data={data}
               layout={layout}
               t={t}
-              overHero={false}
-              progress={0}
+              overHero={overHero}
+              overHeroTone={overHeroTone}
+              ctaFrost={ctaFrost}
+              progress={progress}
               navRef={navRef}
               sticky={false}
             />

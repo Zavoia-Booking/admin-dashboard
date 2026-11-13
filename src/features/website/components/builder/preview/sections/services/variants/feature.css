@@ -35,7 +35,7 @@
   color: var(--mc-muted);
 }
 .mc-services-feature-visual-inner > .mc-location-image-fallback > span {
-  max-width: 70%; overflow: hidden; font-family: var(--mc-mono); font-size: 10px; letter-spacing: 0.08em;
+  max-width: 70%; overflow: hidden; font-family: var(--mc-mono); font-size: 12px; letter-spacing: 0.08em;
   text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap;
 }
 .mc-services-feature-scrim {
@@ -57,7 +57,7 @@
 .mc-services-feature-from-caption {
   color: rgba(255, 255, 255, 0.8);
   font-family: var(--mc-mono);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -78,11 +78,12 @@
   display: inline-flex;
   align-items: center;
   gap: 9px;
-  padding: 11px 19px;
+  padding: 13px 23px;
+  line-height: 22px;
   border-radius: 999px;
   background: #fff;
   color: var(--mc-accent);
-  font-size: 13.5px;
+  font-size: 16px;
   font-weight: 600;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
 }
@@ -103,17 +104,18 @@
 .mc-services-feature-category-head {
   display: flex;
   align-items: baseline;
-  gap: 14px;
+  flex-wrap: wrap;
+  gap: 10px 14px;
   padding-bottom: 12px;
   border-bottom: 1px solid color-mix(in oklch, var(--mc-fg) 26%, transparent);
   transition: border-color 400ms var(--ease-out-strong);
 }
 .mc-services-feature-category[data-on="1"] .mc-services-feature-category-head { border-bottom-color: var(--mc-accent); }
-.mc-services-feature-category-number { color: var(--mc-accent); font-family: var(--mc-mono); font-size: 11px; font-weight: 600; }
+.mc-services-feature-category-number { color: var(--mc-accent); font-family: var(--mc-mono); font-size: 13px; font-weight: 600; }
 .mc-services-feature-category-title {
   margin: 0;
   font-family: var(--mc-display);
-  font-size: clamp(24px, 2.6cqw, 34px);
+  font-size: clamp(28px, 2.6cqw, 36px);
   font-weight: var(--mc-display-weight);
   letter-spacing: var(--mc-display-tracking);
   line-height: 1.04;
@@ -122,7 +124,7 @@
   margin-left: auto;
   color: var(--mc-muted);
   font-family: var(--mc-mono);
-  font-size: 11px;
+  font-size: 13px;
   letter-spacing: 0.04em;
   white-space: nowrap;
 }

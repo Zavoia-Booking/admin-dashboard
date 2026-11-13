@@ -1,6 +1,9 @@
 /* Shared footer primitives. Variant composition, surfaces, spacing, responsive layout and motion live in
    the corresponding variant CSS file. */
 .mc-footer {
+  --mc-foot-body-size: 16px;
+  --mc-foot-label-size: 13px;
+  --mc-foot-meta-size: 13px;
   width: 100%;
   flex: none;
   color: var(--mc-fg);
@@ -32,16 +35,17 @@
   margin-bottom: 12px;
   color: var(--mc-muted);
   font-family: var(--mc-mono);
-  font-size: 11px;
-  letter-spacing: 0.16em;
-  line-height: 1.2;
+  font-size: var(--mc-foot-label-size);
+  letter-spacing: 0.12em;
+  line-height: 1.4;
   text-transform: uppercase;
 }
 
 .mc-foot-row {
   color: var(--mc-fg);
-  font-size: 14px;
-  line-height: 1.45;
+  font-size: var(--mc-foot-body-size);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
   text-decoration: none;
 }
 
@@ -87,7 +91,7 @@
   align-items: center;
   gap: 7px;
   font-family: var(--mc-mono);
-  font-size: 11px;
+  font-size: var(--mc-foot-meta-size);
   letter-spacing: 0.04em;
 }
 
@@ -124,12 +128,16 @@
   line-height: 1.05;
 }
 
+@container (max-width: 620px) {
+  .mc-footer { --mc-foot-body-size: 15px; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .mc-footer *,
   .mc-footer *::before,
   .mc-footer *::after {
     scroll-behavior: auto !important;
-    transition-duration: 0.01ms !important;
+    transition: none !important;
   }
 }
 

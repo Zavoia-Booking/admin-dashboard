@@ -77,6 +77,21 @@ function storedLanguageChoice(): string | null {
 }
 import roIndustries from '../../locales/ro/industries.json';
 
+/** Carry a deliberate marketing-site language into web registration and its next steps. */
+function registrationLanguageChoice(): 'en' | 'ro' | undefined {
+  if (config.IS_NATIVE || typeof window === 'undefined' || !/^\/register\/?$/.test(window.location.pathname)) {
+    return undefined;
+  }
+  const language = new URLSearchParams(window.location.search).get('lang');
+  if (language !== 'en' && language !== 'ro') return undefined;
+  try {
+    localStorage.setItem(LANGUAGE_CHOICE_KEY, language);
+  } catch {
+    // A validated language still applies to this visit when storage is unavailable.
+  }
+  return language;
+}
+
 const resources = {
   en: {
     services: enServices,
@@ -139,6 +154,7 @@ i18n
   .use(initReactI18next)
   .init({
     resources,
+    lng: registrationLanguageChoice(),
     fallbackLng: 'en',
     supportedLngs: ['en', 'ro'],
     // "ro-RO" (browser/device) resolves to the bare "ro" resource.
@@ -152,8 +168,9 @@ i18n
       escapeValue: false, // React already does escaping
     },
 
-    // Language precedence: the user's explicit pick (chooseLanguage) for good,
-    // otherwise the device. Nothing is cached on detection, so an untouched app
+    // Registration's validated marketing language is an explicit pick. Otherwise,
+    // use the stored language (chooseLanguage), then the device. Nothing is cached
+    // on detection, so an untouched app
     // keeps following the device; on native the device language is read from
     // the OS below (languageReady), on the web from the browser.
     detection: {

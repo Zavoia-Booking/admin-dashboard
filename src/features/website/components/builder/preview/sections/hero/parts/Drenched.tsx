@@ -11,7 +11,7 @@ export function Drenched({ data, t, parallax, name, eyebrow, eyebrowDot, monogra
   return (
     <header
       ref={headerRef}
-      className="mc-hero-drench relative isolate flex flex-col justify-end overflow-hidden px-[clamp(20px,5cqw,48px)] pb-[clamp(36px,6cqw,68px)] pt-[clamp(56px,10cqw,104px)]"
+      className="mc-hero-drench relative isolate flex flex-col justify-end overflow-hidden px-[var(--mc-content-gutter)] pb-[clamp(36px,6cqw,68px)] pt-[clamp(56px,10cqw,104px)]"
       style={{ background: "var(--mc-accent-field)", color: "var(--mc-on-accent)" }}
     >
       {/* Oversized brand monogram as a ~6% letterpress ghost — texture, not decoration. Size + offset live
@@ -36,9 +36,9 @@ export function Drenched({ data, t, parallax, name, eyebrow, eyebrowDot, monogra
           style={{ background: "color-mix(in oklch, var(--mc-on-accent) 16%, transparent)" }}
         />
       )}
-      <div className="relative z-[2] mx-auto w-full max-w-[1320px]">
+      <div className="relative z-[2] mx-auto w-full max-w-[var(--mc-content-max)]">
         {eyebrow && (
-          <p className="mc-rev-fade inline-flex items-center gap-[9px] text-[11px] font-semibold uppercase" style={{ ...MONO, letterSpacing: "0.16em", color: "var(--mc-on-accent)", animationDelay: `${HERO_DELAY.eyebrow}ms` }}>
+          <p className="mc-rev-fade inline-flex items-center gap-[9px] text-[12px] font-semibold uppercase" style={{ ...MONO, letterSpacing: "0.16em", color: "var(--mc-on-accent)", animationDelay: `${HERO_DELAY.eyebrow}ms` }}>
             {eyebrowDot}
             {eyebrow}
           </p>
@@ -51,7 +51,7 @@ export function Drenched({ data, t, parallax, name, eyebrow, eyebrowDot, monogra
           style={{ ...DISPLAY, fontSize: "clamp(40px,11cqw,84px)", lineHeight: 0.96 }}
         />
         {data.tagline && (
-          <p className="mc-rev-up mt-5 max-w-[540px] text-[clamp(14px,2.4cqw,21px)]" style={{ lineHeight: 1.45, color: "var(--mc-on-accent)", animationDelay: `${HERO_DELAY.tagline}ms` }}>
+          <p className="mc-rev-up mt-5 max-w-[540px] text-[clamp(16px,2.4cqw,21px)]" style={{ lineHeight: 1.45, color: "var(--mc-on-accent)", animationDelay: `${HERO_DELAY.tagline}ms` }}>
             {data.tagline}
           </p>
         )}
@@ -60,10 +60,10 @@ export function Drenched({ data, t, parallax, name, eyebrow, eyebrowDot, monogra
         <div className="mt-6 flex flex-wrap items-center gap-x-[22px] gap-y-3.5">
           {showRating && (
             <div className="mc-rev-up flex items-center gap-2.5" style={{ animationDelay: `${HERO_DELAY.rating}ms` }}>
-              <span style={{ ...DISPLAY, fontSize: "clamp(28px,6cqw,42px)", lineHeight: 0.85, letterSpacing: "-0.03em", fontVariantNumeric: "tabular-nums" }}>{rating.toFixed(1)}</span>
+              <span style={{ ...DISPLAY, fontSize: "clamp(28px,6cqw,42px)", lineHeight: 1, alignSelf: "flex-start", letterSpacing: "-0.03em", fontVariantNumeric: "lining-nums tabular-nums" }}>{rating.toFixed(1)}</span>
               <span className="flex flex-col gap-1">
                 <Stars value={rating} size={13} color="var(--mc-on-accent)" empty="color-mix(in oklch, var(--mc-on-accent) 32%, transparent)" />
-                <span className="text-[11px] font-semibold uppercase" style={{ ...MONO, letterSpacing: "0.12em", color: "var(--mc-on-accent)" }}>
+                <span className="text-[12px] font-semibold uppercase" style={{ ...MONO, letterSpacing: "0.12em", color: "var(--mc-on-accent)" }}>
                   {t("businessPage.builder.preview.reviewsCount", { count })}
                 </span>
               </span>

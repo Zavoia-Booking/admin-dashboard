@@ -75,21 +75,20 @@
   margin-bottom: 3px;
   color: var(--fd-fg);
   font-family: var(--mc-mono);
-  font-size: 11px;
-  letter-spacing: 0.14em;
+  font-size: var(--mc-foot-label-size);
+  letter-spacing: 0.1em;
+  line-height: 1.4;
   text-transform: uppercase;
 }
 
 .mc-fdir-link {
   width: max-content;
   max-width: 100%;
-  overflow: hidden;
   color: var(--fd-mut);
-  font-size: 14.5px;
-  line-height: 1.28;
+  font-size: var(--mc-foot-body-size);
+  line-height: 1.5;
   text-decoration: none;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
   transition: color 180ms var(--ease-out-strong);
 }
 
@@ -120,14 +119,15 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 15px;
+  min-height: 44px;
+  padding: 12px 20px;
   border: 1px solid var(--fd-line);
   border-radius: 999px;
   background: none;
   color: var(--fd-fg);
   cursor: default;
   font-family: var(--mc-mono);
-  font-size: 11.5px;
+  font-size: 14px;
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -178,7 +178,8 @@
   padding-top: clamp(20px, calc(var(--mc-vph, 100svh) * 0.03), 30px);
   border-top: 1px solid var(--fd-line);
   color: var(--fd-mut);
-  font-size: 12px;
+  font-size: var(--mc-foot-meta-size);
+  line-height: 1.5;
 }
 
 .mc-footer--directory .mc-wordmark {

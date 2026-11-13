@@ -100,6 +100,7 @@ export function Mosaic({ images, t }: GalleryVariantProps) {
   };
 
   const handlePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!event.isPrimary || event.button !== 0 || pager.dragging) return;
     const tile = (event.target as Element).closest<HTMLButtonElement>("button[data-gimg]");
     downTileRef.current = tile ? Number(tile.dataset.gimg) : -1;
     if (pages > 1 && !full) pager.stageProps.onPointerDown(event);

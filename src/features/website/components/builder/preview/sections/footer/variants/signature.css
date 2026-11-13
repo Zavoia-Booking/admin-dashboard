@@ -67,7 +67,9 @@
 .mc-fsig-col-h {
   color: var(--mc-fg);
   font-family: var(--mc-mono);
-  font-size: 12px;
+  font-size: var(--mc-foot-label-size);
+  font-weight: 500;
+  line-height: 1.4;
   letter-spacing: 0.03em;
 }
 
@@ -116,13 +118,11 @@
 .mc-fsig-link {
   width: max-content;
   max-width: 100%;
-  overflow: hidden;
   color: var(--mc-muted);
-  font-size: 14px;
-  line-height: 1.3;
+  font-size: var(--mc-foot-body-size);
+  line-height: 1.5;
   text-decoration: none;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
   transition: color 180ms var(--ease-out-strong);
 }
 
@@ -145,8 +145,9 @@
   border-top: 1px solid var(--mc-line);
   color: var(--mc-muted);
   font-family: var(--mc-mono);
-  font-size: 10.5px;
-  letter-spacing: 0.06em;
+  font-size: var(--mc-foot-meta-size);
+  letter-spacing: 0.03em;
+  line-height: 1.5;
   text-transform: uppercase;
 }
 
@@ -169,6 +170,7 @@
     display: flex;
     order: 3;
     flex-direction: column;
+    align-items: stretch;
     gap: 0;
     padding: 0 var(--fsig-gutter);
   }
@@ -183,7 +185,7 @@
     padding: 18px 0;
     color: var(--mc-fg);
     cursor: pointer;
-    font-size: 14px;
+    font-size: 15px;
   }
 
   .mc-fsig-col-plus {

@@ -25,6 +25,13 @@
   overflow: visible;
   pointer-events: none;
 }
+/* Reserve only the banner's natural height; The header floats over the hero below it.
+   The sticky banner and its nav move together without a measured height or spacer. */
+.mc-announcement-nav-overlay > .mc-site-nav {
+  position: absolute;
+  top: 100%;
+  inset-inline: 0;
+}
 .mc-page-flow {
   position: relative;
   z-index: 20;
@@ -36,12 +43,8 @@
   color: var(--mc-nav-fg, var(--mc-fg));
   transition:
     padding 400ms cubic-bezier(.2, .7, .3, 1),
-    min-height 400ms cubic-bezier(.2, .7, .3, 1),
-    background-color 400ms cubic-bezier(.2, .7, .3, 1),
-    color 400ms cubic-bezier(.2, .7, .3, 1),
-    box-shadow 400ms cubic-bezier(.2, .7, .3, 1),
-    backdrop-filter 400ms cubic-bezier(.2, .7, .3, 1),
-    -webkit-backdrop-filter 400ms cubic-bezier(.2, .7, .3, 1);
+    min-height 400ms cubic-bezier(.2, .7, .3, 1);
+  /* Surface, blur and ink follow scroll directly; only the compact layout eases in time. */
 }
 .mc-site-nav--sticky { position: sticky; top: 0; }
 .mc-site-nav--inline { position: relative; }
@@ -53,8 +56,6 @@
   gap: 12px;
   color: var(--mc-nav-fg, var(--mc-fg));
   text-shadow: var(--mc-nav-shadow, none);
-  /* Track the bar's own 400ms frost so the wordmark doesn't turn to ink before the paper arrives behind it. */
-  transition: color 400ms cubic-bezier(.2, .7, .3, 1), text-shadow 400ms cubic-bezier(.2, .7, .3, 1);
 }
 .mc-nav-brand-mark,
 .mc-nav-brand-logo {
@@ -72,6 +73,7 @@
   line-height: 1;
   transition: background-color 300ms cubic-bezier(.2, .7, .3, 1), color 300ms cubic-bezier(.2, .7, .3, 1), border-color 300ms cubic-bezier(.2, .7, .3, 1);
 }
+.mc-site-nav .mc-nav-brand-mark { transition: none; }
 .mc-nav-brand:hover .mc-nav-brand-mark { background: var(--mc-accent); border-color: var(--mc-accent); color: var(--mc-on-accent); }
 .mc-nav-brand-logo {
   object-fit: cover;

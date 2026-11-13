@@ -1,7 +1,7 @@
-import { useCallback, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useContext, useLayoutEffect, useRef, useState } from "react";
 import { cn } from "../../../../../../../../shared/lib/utils";
-import { findScrollParent } from "../../../shared/util";
-import { useReducedMotion } from "../../../shared/hooks";
+import { findScrollParent, navScrollProgress } from "../../../shared/util";
+import { StaticPreviewContext, useReducedMotion } from "../../../shared/hooks";
 import {
   DialogPrimitive,
   MenuButton,
@@ -14,8 +14,9 @@ import {
 
 import "./capsule.css";
 
-/** Capsule — a wide transparent lockup that pulls inward into one dark-glass pill as the page scrolls. */
+/** Capsule — transparent over the hero, becoming a solid dark pill as the page scrolls. */
 export function Capsule(props: NavVariantViewProps) {
+  const staticPreview = useContext(StaticPreviewContext);
   const shellRef = useRef<HTMLDivElement>(null);
   // At rest / reduced motion the capsule holds its measured state instead of morphing per scroll frame.
   const reduced = useReducedMotion();
@@ -29,12 +30,13 @@ export function Capsule(props: NavVariantViewProps) {
   useLayoutEffect(() => {
     const shell = shellRef.current;
     if (!shell || !navNode) return;
-    const scrollParent = findScrollParent(navNode);
-    if (!scrollParent) return;
+    const scrollParent = staticPreview ? null : findScrollParent(navNode);
+    if (!staticPreview && !scrollParent) return;
     scrollParentRef.current = scrollParent;
     let contentWidth = 0;
     let fullWidth = 0;
     let frame = 0;
+    let disposed = false;
 
     const measure = () => {
       const previousWidth = shell.style.width;
@@ -58,17 +60,23 @@ export function Capsule(props: NavVariantViewProps) {
     const apply = () => {
       frame = 0;
       const compact = navNode.clientWidth <= 980;
-      const distance = Math.max(1, scrollParent.clientHeight * 0.55);
-      const progress = !props.overHero || compact
-        ? 1
-        : Math.max(0, Math.min(1, scrollParent.scrollTop / distance));
+      // Background, border and shadow follow the same scroll progress as the width morph.
+      // Compact and reduced-motion views retain their fixed geometry.
+      const surface = props.overHero
+        ? navScrollProgress(scrollParent?.scrollTop ?? 0, scrollParent?.clientHeight ?? 0)
+        : 1;
+      const progress = reduced || compact ? 1 : surface;
       shell.style.setProperty("--mc-cap-progress", progress.toFixed(4));
+      shell.style.setProperty("--mc-cap-surface", surface.toFixed(4));
+      shell.style.setProperty("--mc-cap-ink",
+        props.overHero && props.overHeroTone === "light" && surface < 0.58 ? "#181513" : "#fff");
 
       if (compact) {
         shell.style.removeProperty("width");
         return;
       }
-      const targetWidth = Math.min(contentWidth + 24, fullWidth);
+      // 24px accounts for the padding morph; another 40px keeps the name from feeling squeezed.
+      const targetWidth = Math.min(contentWidth + 64, fullWidth);
       shell.style.width = `${fullWidth + (targetWidth - fullWidth) * progress}px`;
     };
 
@@ -76,6 +84,7 @@ export function Capsule(props: NavVariantViewProps) {
       if (!frame) frame = window.requestAnimationFrame(apply);
     };
     const refresh = () => {
+      if (disposed) return;
       if (frame) {
         window.cancelAnimationFrame(frame);
         frame = 0;
@@ -85,19 +94,27 @@ export function Capsule(props: NavVariantViewProps) {
     };
 
     refresh();
-    if (!reduced) scrollParent.addEventListener("scroll", schedule, { passive: true });
+    // Display fonts load asynchronously, including when the preview's font changes.
+    const fonts = document.fonts;
+    void fonts?.ready.then(refresh);
+    fonts?.addEventListener("loadingdone", refresh);
+    scrollParent?.addEventListener("scroll", schedule, { passive: true });
     const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(refresh);
     observer?.observe(navNode);
-    observer?.observe(scrollParent);
+    if (scrollParent) observer?.observe(scrollParent);
     return () => {
-      scrollParent.removeEventListener("scroll", schedule);
+      disposed = true;
+      fonts?.removeEventListener("loadingdone", refresh);
+      scrollParent?.removeEventListener("scroll", schedule);
       observer?.disconnect();
       if (frame) window.cancelAnimationFrame(frame);
       shell.style.removeProperty("width");
       shell.style.removeProperty("--mc-cap-progress");
+      shell.style.removeProperty("--mc-cap-surface");
+      shell.style.removeProperty("--mc-cap-ink");
       if (scrollParentRef.current === scrollParent) scrollParentRef.current = null;
     };
-  }, [navNode, props.data.logo, props.links, props.name, props.overHero, reduced]);
+  }, [navNode, props.data.fontKey, props.data.logo, props.links, props.name, props.overHero, props.overHeroTone, staticPreview, reduced]);
 
   const syncMenuOrigin = useCallback(() => {
     const shell = shellRef.current;
@@ -180,7 +197,7 @@ export function Capsule(props: NavVariantViewProps) {
           props.menuOpen && "mc-nav-capsule--open",
         )}
       >
-        <div ref={shellRef} className="mc-nav-capsule-shell">
+        <div ref={shellRef} className="mc-nav-capsule-shell" data-top-tone={props.overHero ? props.overHeroTone : "dark"}>
           <NavBrand data={props.data} name={props.name} mark={props.mark} />
           <span className="mc-nav-capsule-spacer" aria-hidden />
           <NavLinks

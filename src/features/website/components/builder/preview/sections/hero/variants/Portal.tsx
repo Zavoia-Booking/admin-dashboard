@@ -21,15 +21,19 @@ type PortalState = {
   veil: { opacity: string };
   scrim: { opacity: string };
 };
+type PortraitBounds = { top: number; bottom: number };
 
 /** Reveal state at progress `p` (0 = arched portrait, 1 = full-bleed). Pure so it can feed both the
  *  ViewTimeline keyframe sampler and the main-thread fallback from the same geometry. */
-function stateAt(p: number, W: number, H: number): PortalState {
+function stateAt(p: number, W: number, H: number, bounds: PortraitBounds): PortalState {
   const mob = W <= 520;
   const z = easeOut(clamp(p / 0.74, 0, 1));
   const inv = 1 - z;
-  const figH = Math.min(H * (mob ? 0.6 : 0.68), mob ? 460 : 620);
+  const figH = Math.min(H * (mob ? 0.6 : 0.68), mob ? 460 : 620, mob ? Math.max(1, bounds.bottom - bounds.top) : Infinity);
   const figW = figH * 0.75;
+  // Short phones need room for the real description and action. Move the resting portrait and
+  // wordmark together, and shrink only when that available space cannot hold the original arch.
+  const restShift = mob ? clamp(H / 2, bounds.top + figH / 2, bounds.bottom - figH / 2) - H / 2 : 0;
   // Frame scale: the arched portrait (figW×figH) growing to the full pin (W×H).
   const sx = figW / W + (1 - figW / W) * z;
   const sy = figH / H + (1 - figH / H) * z;
@@ -45,7 +49,7 @@ function stateAt(p: number, W: number, H: number): PortalState {
 
   return {
     media: {
-      transform: `scale(${sx.toFixed(4)}, ${sy.toFixed(4)})`,
+      transform: `translateY(${(restShift * inv).toFixed(1)}px) scale(${sx.toFixed(4)}, ${sy.toFixed(4)})`,
       // Radii in media's local (pre-scale) space so they render as rt/rb on screen once scaled.
       borderRadius: `${rtx}px ${rtx}px ${rbx}px ${rbx}px / ${rty}px ${rty}px ${rby}px ${rby}px`,
       filter:
@@ -58,7 +62,7 @@ function stateAt(p: number, W: number, H: number): PortalState {
     ring: { borderWidth: `${(1 / sy).toFixed(3)}px ${(1 / sx).toFixed(3)}px` },
     ringTop: { borderTopWidth: `${(2 / sy).toFixed(3)}px` },
     img: { transform: `translateY(${(-0.08 * H * z).toFixed(1)}px) scale(${(1.1 - 0.1 * z).toFixed(3)})` },
-    title: { transform: `translateY(${(0.19 * H * zt).toFixed(1)}px) scale(${(1 - shrink * zt).toFixed(3)})` },
+    title: { transform: `translateY(${(restShift * (1 - zt) + 0.19 * H * zt).toFixed(1)}px) scale(${(1 - shrink * zt).toFixed(3)})` },
     atmos: { opacity: inv.toFixed(3) },
     veil: { opacity: (1 - 0.45 * z).toFixed(3) },
     scrim: { opacity: z.toFixed(3) },
@@ -88,6 +92,7 @@ export function Portal(props: HeroVariantProps) {
   const veilRef = useRef<HTMLDivElement>(null);
   const scrimRef = useRef<HTMLDivElement>(null);
   const titleRef = useRef<HTMLDivElement>(null);
+  const footRef = useRef<HTMLDivElement>(null);
 
   // Layout effect: the resting geometry is applied before first paint, so a (re)mount never flashes full-bleed.
   useLayoutEffect(() => {
@@ -102,6 +107,7 @@ export function Portal(props: HeroVariantProps) {
     const atmos = atmosRef.current;
     const veil = veilRef.current;
     const scrim = scrimRef.current;
+    const foot = footRef.current;
     if (!track || !pin || !media || !fit) return;
 
     // Write a computed reveal state as inline styles on the real elements.
@@ -134,9 +140,38 @@ export function Portal(props: HeroVariantProps) {
 
     let W = pin.clientWidth || 1;
     let H = pin.clientHeight || 1;
+    let bounds: PortraitBounds = { top: 0, bottom: H };
+    const nav = track.closest(".mc-root")?.querySelector<HTMLElement>("[data-nav-variant]") ?? null;
+    const measureBounds = () => {
+      const gap = clamp(W * 0.04, 16, 24);
+      const navBottom = Number.parseFloat(getComputedStyle(pin).getPropertyValue("--mc-nav-bottom")) || nav?.offsetHeight || 0;
+      const top = Math.min(H - 1, navBottom + gap);
+      bounds = { top, bottom: Math.max(top + 1, (foot?.offsetTop ?? H) - gap) };
+    };
     const setFrame = () => {
       fit.style.width = `${W}px`;
       fit.style.height = `${H}px`;
+    };
+    const observeGeometry = (update: () => void, elements: (Element | null)[]) => {
+      let frame = 0;
+      let disposed = false;
+      const schedule = () => {
+        if (disposed || frame) return;
+        frame = requestAnimationFrame(() => {
+          frame = 0;
+          if (!disposed) update();
+        });
+      };
+      const ro = new ResizeObserver(schedule);
+      elements.forEach((element) => { if (element) ro.observe(element); });
+      window.addEventListener("resize", schedule);
+      void document.fonts?.ready.then(schedule);
+      return () => {
+        disposed = true;
+        cancelAnimationFrame(frame);
+        ro.disconnect();
+        window.removeEventListener("resize", schedule);
+      };
     };
 
     const scroller = findScrollParent(track);
@@ -147,16 +182,15 @@ export function Portal(props: HeroVariantProps) {
       track.classList.remove("is-live");
       pin.style.height = "";
       track.style.height = "";
-      setFrame();
-      applyState(stateAt(0, W, H));
-      const ro = new ResizeObserver(() => {
+      const update = () => {
         W = pin.clientWidth || 1;
         H = pin.clientHeight || 1;
+        measureBounds();
         setFrame();
-        applyState(stateAt(0, W, H));
-      });
-      ro.observe(pin);
-      return () => ro.disconnect();
+        applyState(stateAt(0, W, H, bounds));
+      };
+      update();
+      return observeGeometry(update, [pin, foot, nav]);
     }
 
     const sc = scroller;
@@ -170,6 +204,7 @@ export function Portal(props: HeroVariantProps) {
       const mob = W <= 520;
       const travel = (mob ? 1 : 1.6) * H;
       track.style.height = `${(H + 0.85 * travel).toFixed(1)}px`;
+      measureBounds();
       setFrame();
     };
 
@@ -200,7 +235,7 @@ export function Portal(props: HeroVariantProps) {
         const scrimKf: Keyframe[] = [];
         for (let i = 0; i <= TIMELINE_SAMPLES; i++) {
           const offset = i / TIMELINE_SAMPLES;
-          const st = stateAt(0.85 * offset, W, H);
+          const st = stateAt(0.85 * offset, W, H, bounds);
           mediaKf.push({ transform: st.media.transform, offset, easing: "linear" });
           mediaRadiusKf.push({ borderRadius: st.media.borderRadius, offset, easing: "linear" });
           mediaFilterKf.push({ filter: st.media.filter, offset, easing: "linear" });
@@ -226,14 +261,10 @@ export function Portal(props: HeroVariantProps) {
         if (scrim) animations.push(scrim.animate(scrimKf, opts));
       };
       build();
-      const onResize = () => build();
-      window.addEventListener("resize", onResize);
-      const ro = new ResizeObserver(onResize);
-      ro.observe(sc);
+      const stopGeometry = observeGeometry(build, [sc, pin, foot, nav]);
       return () => {
         animations.forEach((a) => a.cancel());
-        window.removeEventListener("resize", onResize);
-        ro.disconnect();
+        stopGeometry();
         clearStyles();
         track.classList.remove("is-live");
       };
@@ -251,7 +282,7 @@ export function Portal(props: HeroVariantProps) {
       const logicalTop = (track.getBoundingClientRect().top - scRect.top) / safeScale;
       const s = clamp(-logicalTop, 0, 0.85 * travel);
       const p = travel > 0 ? s / travel : 0;
-      applyState(stateAt(p, W, H));
+      applyState(stateAt(p, W, H, bounds));
     };
     const onScroll = () => {
       if (!raf) raf = requestAnimationFrame(apply);
@@ -263,13 +294,10 @@ export function Portal(props: HeroVariantProps) {
     setSizes();
     apply();
     sc.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onResize);
-    const ro = new ResizeObserver(onResize);
-    ro.observe(sc);
+    const stopGeometry = observeGeometry(onResize, [sc, pin, foot, nav]);
     return () => {
       sc.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onResize);
-      ro.disconnect();
+      stopGeometry();
       if (raf) cancelAnimationFrame(raf);
     };
   }, [parallax, data.heroImageUrl]);
@@ -305,7 +333,7 @@ export function Portal(props: HeroVariantProps) {
             <WordRise text={name} base={150} step={70} className="mc-heropt-title" />
           </div>
         </div>
-        <div className="mc-heropt-foot">
+        <div ref={footRef} className="mc-heropt-foot">
           {tagline && (
             <p className="mc-heropt-tag mc-rev-up" style={{ animationDelay: `${HERO_DELAY.tagline}ms` }}>
               {tagline}

@@ -152,7 +152,7 @@ export function ThemePanel({
     const stylesheetUrls = [
       ...new Set(
         pickerFonts.flatMap((font) =>
-          font.loading.source === "google-fonts" ? [font.loading.stylesheetUrl] : [],
+          font.loading.source === "local" ? [font.loading.stylesheetUrl] : [],
         ),
       ),
     ];

@@ -67,3 +67,9 @@ export default tseslint.config([
   },
 ])
 ```
+
+## Web Studio fonts
+
+All 14 display-font choices are included. Geist and Geist Mono remain bundled through Fontsource; the other 13 display families are served from `public/fonts/web-studio`. The preview loads the selected family, while Atelier warms its available picker fonts so opening the picker does not trigger font swaps during its animation. Italiana and Marcellus explicitly load matching serif fallbacks for missing Romanian characters.
+
+Vite copies these assets into `dist`, so dashboard web requests stay on the dashboard origin and Capacitor packages the same fonts with the app. Font files are not downloaded from Google Fonts at runtime. Keep each family’s original licence notice with its files. See the [font asset guide](public/fonts/web-studio/README.md), [version and checksum manifest](public/fonts/web-studio/manifest.json), and [public licence index](public/fonts/web-studio/index.html) when updating them.

@@ -6,6 +6,9 @@
   gap: 20px;
   padding: 16px clamp(18px, 4cqw, 56px);
 }
+/* Scroll drives surface and ink together; a time-based transition would lag behind it. */
+.mc-site-nav.mc-nav-underlay,
+.mc-nav-underlay .mc-nav-brand-mark { transition: none; }
 .mc-nav-underlay-toggle {
   display: inline-flex;
   min-width: 44px;
@@ -21,7 +24,6 @@
   font-weight: 600;
   letter-spacing: .16em;
   text-transform: uppercase;
-  transition: color 220ms ease-out;
 }
 .mc-nav-underlay-toggle-label {
   width: calc(52px * (1 - var(--mc-underlay-progress, 0)));
@@ -141,6 +143,10 @@
   transform: translate3d(calc(-1 * var(--mc-underlay-travel) * var(--mc-underlay-progress, 0)), 0, 0);
   will-change: transform, border-radius, box-shadow;
 }
+/* The floating announcement belongs to the sliding page, not the revealed menu. */
+.mc-root.mc-nav-underlay-engaged .mc-anno-pill-layer {
+  transform: translate3d(calc(-1 * var(--mc-underlay-travel) * var(--mc-underlay-progress, 0)), 0, 0);
+}
 
 @container (max-width: 980px) {
   .mc-nav-underlay {
@@ -172,13 +178,15 @@
 }
 
 @container (max-width: 600px) {
-  .mc-root.mc-nav-underlay-active {
-    --mc-underlay-width: 100cqw;
+  /* Query the preview root from its descendants; a container cannot query itself. */
+  .mc-root.mc-nav-underlay-active .mc-content {
     --mc-underlay-travel: 76cqw;
   }
   .mc-nav-underlay-panel {
+    width: 100cqw;
     padding-right: clamp(16px, 5cqw, 22px);
-    padding-left: clamp(18px, 6cqw, 26px);
+    /* Leave room for the 24% of the page that remains visible over the panel. */
+    padding-left: calc(24cqw + clamp(18px, 6cqw, 26px));
   }
   .mc-nav-underlay-panel .mc-nav-underlay-list {
     gap: clamp(6px, 1.6cqw, 8px);

@@ -45,7 +45,7 @@ export function CoverPlate({ data, t, parallax, name, eyebrow, eyebrowDot, monog
       </div>
       <div className="mc-plate-card">
         {eyebrow && (
-          <p className="mc-rev-fade inline-flex items-center gap-[9px] text-[11px] font-semibold uppercase" style={{ ...MONO, letterSpacing: "0.16em", color: "var(--mc-muted)", animationDelay: `${HERO_DELAY.eyebrow}ms` }}>
+          <p className="mc-rev-fade inline-flex items-center gap-[9px] text-[12px] font-semibold uppercase" style={{ ...MONO, letterSpacing: "0.16em", color: "var(--mc-muted)", animationDelay: `${HERO_DELAY.eyebrow}ms` }}>
             {eyebrowDot}
             {eyebrow}
           </p>
@@ -58,7 +58,7 @@ export function CoverPlate({ data, t, parallax, name, eyebrow, eyebrowDot, monog
           style={{ ...DISPLAY, fontSize: "clamp(30px,4.4cqw,52px)", lineHeight: 1 }}
         />
         {data.tagline && (
-          <p className="mc-rev-up mt-4 max-w-[38ch] text-[clamp(14px,1.7cqw,17px)]" style={{ lineHeight: 1.5, color: "var(--mc-muted)", animationDelay: `${HERO_DELAY.tagline}ms` }}>
+          <p className="mc-rev-up mt-4 max-w-[38ch] text-[clamp(16px,1.7cqw,20px)]" style={{ lineHeight: 1.5, color: "var(--mc-muted)", animationDelay: `${HERO_DELAY.tagline}ms` }}>
             {data.tagline}
           </p>
         )}
@@ -67,10 +67,10 @@ export function CoverPlate({ data, t, parallax, name, eyebrow, eyebrowDot, monog
         <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-3.5">
           {showRating && (
             <div className="mc-rev-up flex items-center gap-2.5" style={{ animationDelay: `${HERO_DELAY.rating}ms` }}>
-              <span style={{ ...DISPLAY, fontSize: "clamp(26px,3.8cqw,38px)", lineHeight: 0.85, letterSpacing: "-0.03em", fontVariantNumeric: "tabular-nums" }}>{rating.toFixed(1)}</span>
+              <span style={{ ...DISPLAY, fontSize: "clamp(26px,3.8cqw,38px)", lineHeight: 1, alignSelf: "flex-start", letterSpacing: "-0.03em", fontVariantNumeric: "lining-nums tabular-nums" }}>{rating.toFixed(1)}</span>
               <span className="flex flex-col gap-1">
                 <Stars value={rating} size={13} />
-                <span className="text-[11px] font-semibold uppercase" style={{ ...MONO, letterSpacing: "0.12em", color: "var(--mc-muted)" }}>
+                <span className="text-[12px] font-semibold uppercase" style={{ ...MONO, letterSpacing: "0.12em", color: "var(--mc-muted)" }}>
                   {t("businessPage.builder.preview.reviewsCount", { count })}
                 </span>
               </span>

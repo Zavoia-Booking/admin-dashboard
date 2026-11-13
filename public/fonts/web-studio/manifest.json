@@ -1,0 +1,1295 @@
+{
+  "schemaVersion": 1,
+  "description": "Original upstream font binaries hosted by Zavoia. Selection remains lazy; this manifest is not a load-all list. All listed fonts are available under their accompanying SIL Open Font License 1.1.",
+  "families": [
+    {
+      "key": "classic",
+      "family": "Libre Caslon Display",
+      "slug": "libre-caslon-display",
+      "package": "@fontsource/libre-caslon-display",
+      "packageVersion": "5.3.0",
+      "upstreamVersion": "v18",
+      "source": "https://github.com/google/fonts",
+      "packageUrl": "https://www.npmjs.com/package/@fontsource/libre-caslon-display/v/5.3.0",
+      "tarballUrl": "https://registry.npmjs.org/@fontsource/libre-caslon-display/-/libre-caslon-display-5.3.0.tgz",
+      "tarballIntegrity": "sha512-WZEyiWTKBoXHWHNfdFQcexxmUOQ22XpSK4ivzczY2AnSt/u8DfmzRpYX6eKwUaFjva5BhSbUUArmouHTDwSEFQ==",
+      "tarballSha256": "bf506f215a19db9d9b6dfb9f0dcc82e88e3f85a4a1024fa7c13d1b9e395c8207",
+      "stylesheet": "/fonts/web-studio/libre-caslon-display/family.css",
+      "license": {
+        "spdx": "OFL-1.1",
+        "path": "/fonts/web-studio/libre-caslon-display/OFL.txt",
+        "sha256": "78c9f56e0d8a7ad7b9d26842a8eae728337a8671d8ddc6e889fa10645935dc7b",
+        "attribution": "Copyright 2012 The Libre Caslon Display Authors (https://github.com/impallari/Libre-Caslon-Display)",
+        "source": "https://github.com/google/fonts/blob/main/ofl/librecaslondisplay/OFL.txt"
+      },
+      "axes": {},
+      "files": [
+        {
+          "path": "/fonts/web-studio/libre-caslon-display/libre-caslon-display-latin-ext-400-normal.7a17a86fb7c3.woff2",
+          "upstreamPath": "files/libre-caslon-display-latin-ext-400-normal.woff2",
+          "subset": "latin-ext",
+          "style": "normal",
+          "weight": "400",
+          "unicodeRange": "U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF",
+          "sha256": "7a17a86fb7c3cd003bf073f0455f49c746424b37f3e1a931663eae80288a1e89",
+          "bytes": 16308,
+          "actualAxes": {},
+          "fontFamilyName": "Libre Caslon Display"
+        },
+        {
+          "path": "/fonts/web-studio/libre-caslon-display/libre-caslon-display-latin-400-normal.84267e937417.woff2",
+          "upstreamPath": "files/libre-caslon-display-latin-400-normal.woff2",
+          "subset": "latin",
+          "style": "normal",
+          "weight": "400",
+          "unicodeRange": "U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD",
+          "sha256": "84267e937417f10dff37df818c5ef7f1e9f2e6a703e03c2dd286d3320af53269",
+          "bytes": 24236,
+          "actualAxes": {},
+          "fontFamilyName": "Libre Caslon Display"
+        }
+      ],
+      "romanianCoverage": {
+        "requiredCharacters": "ĂăÂâÎîȘșȚț",
+        "missingCharacters": ""
+      },
+      "upstreamAxes": false
+    },
+    {
+      "key": "elegant",
+      "family": "Bodoni Moda",
+      "slug": "bodoni-moda",
+      "package": "@fontsource-variable/bodoni-moda",
+      "packageVersion": "5.3.0",
+      "upstreamVersion": "v28",
+      "source": "https://github.com/google/fonts",
+      "packageUrl": "https://www.npmjs.com/package/@fontsource-variable/bodoni-moda/v/5.3.0",
+      "tarballUrl": "https://registry.npmjs.org/@fontsource-variable/bodoni-moda/-/bodoni-moda-5.3.0.tgz",
+      "tarballIntegrity": "sha512-yTDXk4+/J8I20KjtkHBbXDQNeE5PR3BZa0gv/YRza+kyxsz+mmg0la/n/hsr6+WvSfVP7Lc8lRTjHGIYwBW43A==",
+      "tarballSha256": "d9bc1a3aae0effaf66bbf4420cb760d5bb992e0282f8b44cf4e2ffc8a6e51bfc",
+      "stylesheet": "/fonts/web-studio/bodoni-moda/family.css",
+      "license": {
+        "spdx": "OFL-1.1",
+        "path": "/fonts/web-studio/bodoni-moda/OFL.txt",
+        "sha256": "6c64f717433eadd29b058d6254fe25c1ee2d249ce3772f843bb21f73285779c2",
+        "attribution": "Copyright 2020 The Bodoni Moda Project Authors (https://github.com/indestructible-type/Bodoni) BodoniModa-Italic[opsz,wght].ttf: Copyright 2020 The Bodoni Moda Project Authors (https://github.com/indestructible-type/Bodoni)",
+        "source": "https://github.com/google/fonts/blob/main/ofl/bodonimoda/OFL.txt"
+      },
+      "axes": {
+        "wght": {
+          "name": "Weight",
+          "min": 400,
+          "default": 400,
+          "max": 900
+        },
+        "opsz": {
+          "name": "Optical size",
+          "min": 6,
+          "default": 11,
+          "max": 96
+        }
+      },
+      "files": [
+        {
+          "path": "/fonts/web-studio/bodoni-moda/bodoni-moda-latin-ext-opsz-normal.f156e4a7cef0.woff2",
+          "upstreamPath": "files/bodoni-moda-latin-ext-opsz-normal.woff2",
+          "subset": "latin-ext",
+          "style": "normal",
+          "weight": "400 900",
+          "unicodeRange": "U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF",
+          "sha256": "f156e4a7cef0928383fe259021b1f1d715a88d593565d0fc824704e54d07f6fd",
+          "bytes": 25020,
+          "actualAxes": {
+            "wght": {
+              "name": "Weight",
+              "min": 400,
+              "default": 400,
+              "max": 900
+            },
+            "opsz": {
+              "name": "Optical size",
+              "min": 6,
+              "default": 11,
+              "max": 96
+            }
+          },
+          "fontFamilyName": "Bodoni Moda"
+        },
+        {
+          "path": "/fonts/web-studio/bodoni-moda/bodoni-moda-latin-opsz-normal.c032219ef636.woff2",
+          "upstreamPath": "files/bodoni-moda-latin-opsz-normal.woff2",
+          "subset": "latin",
+          "style": "normal",
+          "weight": "400 900",
+          "unicodeRange": "U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD",
+          "sha256": "c032219ef636f7b4932f7d1dc91bdab602c970f090770b546bea4effaab3463c",
+          "bytes": 46260,
+          "actualAxes": {
+            "wght": {
+              "name": "Weight",
+              "min": 400,
+              "default": 400,
+              "max": 900
+            },
+            "opsz": {
+              "name": "Optical size",
+              "min": 6,
+              "default": 11,
+              "max": 96
+            }
+          },
+          "fontFamilyName": "Bodoni Moda"
+        },
+        {
+          "path": "/fonts/web-studio/bodoni-moda/bodoni-moda-latin-ext-opsz-italic.4800c2afa7e5.woff2",
+          "upstreamPath": "files/bodoni-moda-latin-ext-opsz-italic.woff2",
+          "subset": "latin-ext",
+          "style": "italic",
+          "weight": "400 900",
+          "unicodeRange": "U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF",
+          "sha256": "4800c2afa7e500da381b6a23fcc843060284f092575b58410068b3598c1bdc7e",
+          "bytes": 28196,
+          "actualAxes": {
+            "wght": {
+              "name": "Weight",
+              "min": 400,
+              "default": 400,
+              "max": 900
+            },
+            "opsz": {
+              "name": "Optical size",
+              "min": 6,
+              "default": 11,
+              "max": 96
+            }
+          },
+          "fontFamilyName": "Bodoni Moda"
+        },
+        {
+          "path": "/fonts/web-studio/bodoni-moda/bodoni-moda-latin-opsz-italic.b737328c13b9.woff2",
+          "upstreamPath": "files/bodoni-moda-latin-opsz-italic.woff2",
+          "subset": "latin",
+          "style": "italic",
+          "weight": "400 900",
+          "unicodeRange": "U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD",
+          "sha256": "b737328c13b92784ee78d99e62e3bcc38eeef0f2dba41d107637b3acea46781f",
+          "bytes": 53756,
+          "actualAxes": {
+            "wght": {
+              "name": "Weight",
+              "min": 400,
+              "default": 400,
+              "max": 900
+            },
+            "opsz": {
+              "name": "Optical size",
+              "min": 6,
+              "default": 11,
+              "max": 96
+            }
+          },
+          "fontFamilyName": "Bodoni Moda"
+        }
+      ],
+      "romanianCoverage": {
+        "requiredCharacters": "ĂăÂâÎîȘșȚț",
+        "missingCharacters": ""
+      },
+      "upstreamAxes": {
+        "ital": {
+          "default": "0",
+          "min": "0",
+          "max": "1",
+          "step": "1"
+        },
+        "opsz": {
+          "default": "11",
+          "min": "6",
+          "max": "96",
+          "step": "0.1"
+        },
+        "wght": {
+          "default": "400",
+          "min": "400",
+          "max": "900",
+          "step": "1"
+        }
+      }
+    },
+    {
+      "key": "friendly",
+      "family": "Bricolage Grotesque",
+      "slug": "bricolage-grotesque",
+      "package": "@fontsource-variable/bricolage-grotesque",
+      "packageVersion": "5.3.0",
+      "upstreamVersion": "v9",
+      "source": "https://github.com/google/fonts",
+      "packageUrl": "https://www.npmjs.com/package/@fontsource-variable/bricolage-grotesque/v/5.3.0",
+      "tarballUrl": "https://registry.npmjs.org/@fontsource-variable/bricolage-grotesque/-/bricolage-grotesque-5.3.0.tgz",
+      "tarballIntegrity": "sha512-TLi9Q4hJjS2UvoTMRSS2nHu6c4R56lAw60NR9QYtVRCHn0XtsFpiEhNffZ8Glsoxu6wEEwLKBP8lb94J52PNBA==",
+      "tarballSha256": "6e99e0d844f7bc152bb3b007f9b1493c53e60cc0744cc681bb744e0b5f14665e",
+      "stylesheet": "/fonts/web-studio/bricolage-grotesque/family.css",
+      "license": {
+        "spdx": "OFL-1.1",
+        "path": "/fonts/web-studio/bricolage-grotesque/OFL.txt",
+        "sha256": "923f4ddf0fd39f9b7794ab0df7332f3d95dc43e8ad7ec2289d6d9e8491177f51",
+        "attribution": "Copyright 2022 The Bricolage Grotesque Project Authors (https://github.com/ateliertriay/bricolage)",
+        "source": "https://github.com/google/fonts/blob/main/ofl/bricolagegrotesque/OFL.txt"
+      },
+      "axes": {
+        "opsz": {
+          "name": "Optical size",
+          "min": 12,
+          "default": 96,
+          "max": 96
+        },
+        "wght": {
+          "name": "Weight",
+          "min": 200,
+          "default": 800,
+          "max": 800
+        }
+      },
+      "files": [
+        {
+          "path": "/fonts/web-studio/bricolage-grotesque/bricolage-grotesque-latin-ext-opsz-normal.776f6dcaf036.woff2",
+          "upstreamPath": "files/bricolage-grotesque-latin-ext-opsz-normal.woff2",
+          "subset": "latin-ext",
+          "style": "normal",
+          "weight": "200 800",
+          "unicodeRange": "U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF",
+          "sha256": "776f6dcaf03636cd69a5802c94808cc8896c0a66c8e9ce0fe147231b6ee01957",
+          "bytes": 30736,
+          "actualAxes": {
+            "opsz": {
+              "name": "Optical size",
+              "min": 12,
+              "default": 96,
+              "max": 96
+            },
+            "wght": {
+              "name": "Weight",
+              "min": 200,
+              "default": 800,
+              "max": 800
+            }
+          },
+          "fontFamilyName": "Bricolage Grotesque 96pt ExtraBold"
+        },
+        {
+          "path": "/fonts/web-studio/bricolage-grotesque/bricolage-grotesque-latin-opsz-normal.a79fdb52d4a5.woff2",
+          "upstreamPath": "files/bricolage-grotesque-latin-opsz-normal.woff2",
+          "subset": "latin",
+          "style": "normal",
+          "weight": "200 800",
+          "unicodeRange": "U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD",
+          "sha256": "a79fdb52d4a5c76552452f69202add96e287401fff03d3e8c0e38b4dcb5a99cd",
+          "bytes": 76888,
+          "actualAxes": {
+            "opsz": {
+              "name": "Optical size",
+              "min": 12,
+              "default": 96,
+              "max": 96
+            },
+            "wght": {
+              "name": "Weight",
+              "min": 200,
+              "default": 800,
+              "max": 800
+            }
+          },
+          "fontFamilyName": "Bricolage Grotesque 96pt ExtraBold"
+        }
+      ],
+      "romanianCoverage": {
+        "requiredCharacters": "ĂăÂâÎîȘșȚț",
+        "missingCharacters": ""
+      },
+      "upstreamAxes": {
+        "opsz": {
+          "default": "14",
+          "min": "12",
+          "max": "96",
+          "step": "0.1"
+        },
+        "wdth": {
+          "default": "100",
+          "min": "75",
+          "max": "100",
+          "step": "0.1"
+        },
+        "wght": {
+          "default": "400",
+          "min": "200",
+          "max": "800",
+          "step": "1"
+        }
+      }
+    },
+    {
+      "key": "playfair",
+      "family": "Playfair Display",
+      "slug": "playfair-display",
+      "package": "@fontsource-variable/playfair-display",
+      "packageVersion": "5.3.0",
+      "upstreamVersion": "v40",
+      "source": "https://github.com/google/fonts",
+      "packageUrl": "https://www.npmjs.com/package/@fontsource-variable/playfair-display/v/5.3.0",
+      "tarballUrl": "https://registry.npmjs.org/@fontsource-variable/playfair-display/-/playfair-display-5.3.0.tgz",
+      "tarballIntegrity": "sha512-IHdzTvE8eGIXHteZql7KXoqdc3Gfm+Zs1u4XlSC3MeplkwviT3sx/P6gI0tLwg/xIYLF4ZJYveZ5V+bl9cnDwA==",
+      "tarballSha256": "5d9a6609ccc3c3bcba68c5b66981cce7d731bf5bb6e64a2ca6045ab05e527788",
+      "stylesheet": "/fonts/web-studio/playfair-display/family.css",
+      "license": {
+        "spdx": "OFL-1.1",
+        "path": "/fonts/web-studio/playfair-display/OFL.txt",
+        "sha256": "c052aafd2a71e90bcee6e69f475029d430a10d548c08ffcae350171f0e9668b1",
+        "attribution": "Copyright 2017 The Playfair Display Project Authors (https://github.com/clauseggers/Playfair-Display), with Reserved Font Name \"Playfair Display\". PlayfairDisplay-Italic[wght].ttf: Copyright 2017 The Playfair Display Project Authors (https://github.com/clauseggers/Playfair-Display), with Reserved Font Name \"Playfair Display\".",
+        "source": "https://github.com/google/fonts/blob/main/ofl/playfairdisplay/OFL.txt"
+      },
+      "axes": {
+        "wght": {
+          "name": "Weight",
+          "min": 400,
+          "default": 400,
+          "max": 900
+        }
+      },
+      "files": [
+        {
+          "path": "/fonts/web-studio/playfair-display/playfair-display-latin-ext-wght-normal.42898ad49a6b.woff2",
+          "upstreamPath": "files/playfair-display-latin-ext-wght-normal.woff2",
+          "subset": "latin-ext",
+          "style": "normal",
+          "weight": "400 900",
+          "unicodeRange": "U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF",
+          "sha256": "42898ad49a6b23f32b109243e1df596edf831015ed685f429e4dafbb181d599d",
+          "bytes": 21140,
+          "actualAxes": {
+            "wght": {
+              "name": "Weight",
+              "min": 400,
+              "default": 400,
+              "max": 900
+            }
+          },
+          "fontFamilyName": "Playfair Display"
+        },
+        {
+          "path": "/fonts/web-studio/playfair-display/playfair-display-latin-wght-normal.e0c764a8e9e1.woff2",
+          "upstreamPath": "files/playfair-display-latin-wght-normal.woff2",
+          "subset": "latin",
+          "style": "normal",
+          "weight": "400 900",
+          "unicodeRange": "U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD",
+          "sha256": "e0c764a8e9e1cce92163c55bac4b2ad6cd4cf8c696ce2289ab5c41565e65b7e2",
+          "bytes": 38404,
+          "actualAxes": {
+            "wght": {
+              "name": "Weight",
+              "min": 400,
+              "default": 400,
+              "max": 900
+            }
+          },
+          "fontFamilyName": "Playfair Display"
+        },
+        {
+          "path": "/fonts/web-studio/playfair-display/playfair-display-latin-ext-wght-italic.b9dff4aec6d8.woff2",
+          "upstreamPath": "files/playfair-display-latin-ext-wght-italic.woff2",
+          "subset": "latin-ext",
+          "style": "italic",
+          "weight": "400 900",
+          "unicodeRange": "U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF",
+          "sha256": "b9dff4aec6d8ef27af595330c808c455fcc3ff46881642aa6028ed4e27a96f89",
+          "bytes": 23380,
+          "actualAxes": {
+            "wght": {
+              "name": "Weight",
+              "min": 400,
+              "default": 400,
+              "max": 900
+            }
+          },
+          "fontFamilyName": "Playfair Display"
+        },
+        {
+          "path": "/fonts/web-studio/playfair-display/playfair-display-latin-wght-italic.54af24bd0f91.woff2",
+          "upstreamPath": "files/playfair-display-latin-wght-italic.woff2",
+          "subset": "latin",
+          "style": "italic",
+          "weight": "400 900",
+          "unicodeRange": "U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD",
+          "sha256": "54af24bd0f911f0fd7399d5445ea2023ff501d6a69f2d728f1213072f977ab14",
+          "bytes": 38804,
+          "actualAxes": {
+            "wght": {
+              "name": "Weight",
+              "min": 400,
+              "default": 400,
+              "max": 900
+            }
+          },
+          "fontFamilyName": "Playfair Display"
+        }
+      ],
+      "romanianCoverage": {
+        "requiredCharacters": "ĂăÂâÎîȘșȚț",
+        "missingCharacters": ""
+      },
+      "upstreamAxes": {
+        "ital": {
+          "default": "0",
+          "min": "0",
+          "max": "1",
+          "step": "1"
+        },
+        "wght": {
+          "default": "400",
+          "min": "400",
+          "max": "900",
+          "step": "1"
+        }
+      }
+    },
+    {
+      "key": "cormorant",
+      "family": "Cormorant Garamond",
+      "slug": "cormorant-garamond",
+      "package": "@fontsource-variable/cormorant-garamond",
+      "packageVersion": "5.3.0",
+      "upstreamVersion": "v21",
+      "source": "https://github.com/google/fonts",
+      "packageUrl": "https://www.npmjs.com/package/@fontsource-variable/cormorant-garamond/v/5.3.0",
+      "tarballUrl": "https://registry.npmjs.org/@fontsource-variable/cormorant-garamond/-/cormorant-garamond-5.3.0.tgz",
+      "tarballIntegrity": "sha512-rgZJ/5w3hi60swAPnrOXpZf5wEH6NTrvm4H8D9Y4b1QIFUqlX14eM3QTMU/eAznjfh0eXpO1QUqsFhiy58aoMg==",
+      "tarballSha256": "81d1d307be5bf24c09112189efa402e29ad3c7772db8d308c0c6f36f327199cf",
+      "stylesheet": "/fonts/web-studio/cormorant-garamond/family.css",
+      "license": {
+        "spdx": "OFL-1.1",
+        "path": "/fonts/web-studio/cormorant-garamond/OFL.txt",
+        "sha256": "732f37009943e7f4378cf37113c9bcc4716af002a8583511aa91ed5d37683e73",
+        "attribution": "Copyright 2015 The Cormorant Project Authors (github.com/CatharsisFonts/Cormorant) CormorantGaramond-Italic[wght].ttf: Copyright 2015 The Cormorant Project Authors (github.com/CatharsisFonts/Cormorant)",
+        "source": "https://github.com/google/fonts/blob/main/ofl/cormorantgaramond/OFL.txt"
+      },
+      "axes": {
+        "wght": {
+          "name": "Weight",
+          "min": 300,
+          "default": 300,
+          "max": 700
+        }
+      },
+      "files": [
+        {
+          "path": "/fonts/web-studio/cormorant-garamond/cormorant-garamond-latin-ext-wght-normal.cfa9a397d86f.woff2",
+          "upstreamPath": "files/cormorant-garamond-latin-ext-wght-normal.woff2",
+          "subset": "latin-ext",
+          "style": "normal",
+          "weight": "300 700",
+          "unicodeRange": "U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF",
+          "sha256": "cfa9a397d86f66c5c51775a2500a712d5f632a04f0c5eca6930dfaf612d4566d",
+          "bytes": 33736,
+          "actualAxes": {
+            "wght": {
+              "name": "Weight",
+              "min": 300,
+              "default": 300,
+              "max": 700
+            }
+          },
+          "fontFamilyName": "Cormorant Garamond Light"
+        },
+        {
+          "path": "/fonts/web-studio/cormorant-garamond/cormorant-garamond-latin-wght-normal.d80df8ff5aec.woff2",
+          "upstreamPath": "files/cormorant-garamond-latin-wght-normal.woff2",
+          "subset": "latin",
+          "style": "normal",
+          "weight": "300 700",
+          "unicodeRange": "U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD",
+          "sha256": "d80df8ff5aecd299a61549f9e29ab1ed0b9b05f4ea71d50fe978e07d5240b235",
+          "bytes": 37640,
+          "actualAxes": {
+            "wght": {
+              "name": "Weight",
+              "min": 300,
+              "default": 300,
+              "max": 700
+            }
+          },
+          "fontFamilyName": "Cormorant Garamond Light"
+        },
+        {
+          "path": "/fonts/web-studio/cormorant-garamond/cormorant-garamond-latin-ext-wght-italic.cd5bf126b2c8.woff2",
+          "upstreamPath": "files/cormorant-garamond-latin-ext-wght-italic.woff2",
+          "subset": "latin-ext",
+          "style": "italic",
+          "weight": "300 700",
+          "unicodeRange": "U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF",
+          "sha256": "cd5bf126b2c84ab41b254a6a9a1ffb5c326a0f9f82c22fb4704daa31c9aaa415",
+          "bytes": 34392,
+          "actualAxes": {
+            "wght": {
+              "name": "Weight",
+              "min": 300,
+              "default": 300,
+              "max": 700
+            }
+          },
+          "fontFamilyName": "Cormorant Garamond Light"
+        },
+        {
+          "path": "/fonts/web-studio/cormorant-garamond/cormorant-garamond-latin-wght-italic.6f2f5c3b1abc.woff2",
+          "upstreamPath": "files/cormorant-garamond-latin-wght-italic.woff2",
+          "subset": "latin",
+          "style": "italic",
+          "weight": "300 700",
+          "unicodeRange": "U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD",
+          "sha256": "6f2f5c3b1abc3d0bb035a927f66a90ca873f94fc31c4966c8d024142c2036e55",
+          "bytes": 39260,
+          "actualAxes": {
+            "wght": {
+              "name": "Weight",
+              "min": 300,
+              "default": 300,
+              "max": 700
+            }
+          },
+          "fontFamilyName": "Cormorant Garamond Light"
+        }
+      ],
+      "romanianCoverage": {
+        "requiredCharacters": "ĂăÂâÎîȘșȚț",
+        "missingCharacters": ""
+      },
+      "upstreamAxes": {
+        "ital": {
+          "default": "0",
+          "min": "0",
+          "max": "1",
+          "step": "1"
+        },
+        "wght": {
+          "default": "400",
+          "min": "300",
+          "max": "700",
+          "step": "1"
+        }
+      }
+    },
+    {
+      "key": "italiana",
+      "family": "Italiana",
+      "slug": "italiana",
+      "package": "@fontsource/italiana",
+      "packageVersion": "5.3.0",
+      "upstreamVersion": "v21",
+      "source": "https://github.com/google/fonts",
+      "packageUrl": "https://www.npmjs.com/package/@fontsource/italiana/v/5.3.0",
+      "tarballUrl": "https://registry.npmjs.org/@fontsource/italiana/-/italiana-5.3.0.tgz",
+      "tarballIntegrity": "sha512-B8+XUGaaNXlfll5aqFlCVd/4kboQJWIy/laWO73CN00F8E08vPu07Cqn4NTQcmQvzJU3+FIBdThvpqto0+M9mQ==",
+      "tarballSha256": "c4907779a4f9c1f42df25034851fb417d28059f6a5dfbd36dba153b406db93c0",
+      "stylesheet": "/fonts/web-studio/italiana/family.css",
+      "license": {
+        "spdx": "OFL-1.1",
+        "path": "/fonts/web-studio/italiana/OFL.txt",
+        "sha256": "660ba7b883357ad0e8d8293e8eb1b418949a3c94520b9e746a9f444050b4b8d2",
+        "attribution": "Copyright (c) 2011 by Santiago Orozco (hi@typemade.mx) with reserved name Italiana",
+        "source": "https://github.com/google/fonts/blob/main/ofl/italiana/OFL.txt"
+      },
+      "axes": {},
+      "files": [
+        {
+          "path": "/fonts/web-studio/italiana/italiana-latin-400-normal.5079c87a4e86.woff2",
+          "upstreamPath": "files/italiana-latin-400-normal.woff2",
+          "subset": "latin",
+          "style": "normal",
+          "weight": "400",
+          "unicodeRange": "U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD",
+          "sha256": "5079c87a4e86c58e8cd4f18ec2d3255918b7d565708ed934b15c4710301f838c",
+          "bytes": 10100,
+          "actualAxes": {},
+          "fontFamilyName": "Italiana"
+        }
+      ],
+      "fallback": {
+        "family": "Bodoni Moda",
+        "reason": "The original Italiana font lacks Romanian diacritics; load Bodoni Moda alongside it and put Bodoni Moda next in the font stack.",
+        "key": "elegant"
+      },
+      "romanianCoverage": {
+        "requiredCharacters": "ĂăÂâÎîȘșȚț",
+        "missingCharacters": "ĂăȘșȚț"
+      },
+      "upstreamAxes": false
+    },
+    {
+      "key": "marcellus",
+      "family": "Marcellus",
+      "slug": "marcellus",
+      "package": "@fontsource/marcellus",
+      "packageVersion": "5.3.0",
+      "upstreamVersion": "v14",
+      "source": "https://github.com/google/fonts",
+      "packageUrl": "https://www.npmjs.com/package/@fontsource/marcellus/v/5.3.0",
+      "tarballUrl": "https://registry.npmjs.org/@fontsource/marcellus/-/marcellus-5.3.0.tgz",
+      "tarballIntegrity": "sha512-cMnanjpiPIC7Rq4GXIA/Zal5WLSoDV5Mc681tMkWsWfKHXnRnLGlhuGeBnLF6HrqtFkiSdiuy4NCSPfOrz266w==",
+      "tarballSha256": "414f6e9a43d642ae1251ee79d74af1e3eeaf1d1b6bb6113e2b02504ce207f121",
+      "stylesheet": "/fonts/web-studio/marcellus/family.css",
+      "license": {
+        "spdx": "OFL-1.1",
+        "path": "/fonts/web-studio/marcellus/OFL.txt",
+        "sha256": "a015677ab0010a8c14729226613516401d56e7c0f929ae54f1549eada2bab12c",
+        "attribution": "Copyright (c) 2012 by Brian J. Bonislawsky DBA Astigmatic (AOETI) (astigma@astigmatic.com), with Reserved Font Name \"Marcellus\"",
+        "source": "https://github.com/google/fonts/blob/main/ofl/marcellus/OFL.txt"
+      },
+      "axes": {},
+      "files": [
+        {
+          "path": "/fonts/web-studio/marcellus/marcellus-latin-ext-400-normal.1d5a9870851a.woff2",
+          "upstreamPath": "files/marcellus-latin-ext-400-normal.woff2",
+          "subset": "latin-ext",
+          "style": "normal",
+          "weight": "400",
+          "unicodeRange": "U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF",
+          "sha256": "1d5a9870851a0dac4c92c1237b792886704b46050162afc2a0b1990f4f0095a3",
+          "bytes": 8912,
+          "actualAxes": {},
+          "fontFamilyName": "Marcellus"
+        },
+        {
+          "path": "/fonts/web-studio/marcellus/marcellus-latin-400-normal.8a539799d12e.woff2",
+          "upstreamPath": "files/marcellus-latin-400-normal.woff2",
+          "subset": "latin",
+          "style": "normal",
+          "weight": "400",
+          "unicodeRange": "U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD",
+          "sha256": "8a539799d12e3a144273288055490f57e1eee84da7a9145f085bc522e80719c3",
+          "bytes": 14552,
+          "actualAxes": {},
+          "fontFamilyName": "Marcellus"
+        }
+      ],
+      "romanianCoverage": {
+        "requiredCharacters": "ĂăÂâÎîȘșȚț",
+        "missingCharacters": "ȘșȚț"
+      },
+      "fallback": {
+        "key": "classic",
+        "family": "Libre Caslon Display",
+        "reason": "The original Marcellus font lacks Romanian comma-below letters; load Libre Caslon Display alongside it and put it next in the font stack."
+      },
+      "upstreamAxes": false
+    },
+    {
+      "key": "dmserif",
+      "family": "DM Serif Display",
+      "slug": "dm-serif-display",
+      "package": "@fontsource/dm-serif-display",
+      "packageVersion": "5.3.0",
+      "upstreamVersion": "v17",
+      "source": "https://github.com/google/fonts",
+      "packageUrl": "https://www.npmjs.com/package/@fontsource/dm-serif-display/v/5.3.0",
+      "tarballUrl": "https://registry.npmjs.org/@fontsource/dm-serif-display/-/dm-serif-display-5.3.0.tgz",
+      "tarballIntegrity": "sha512-ecRclUcYeto9fB7ghkB36H4MtUoaUYFjjornWYYeLCMHzaWEDPk2kIWgZOq0mKBNRxclRSieKcFeLonlMYDTKg==",
+      "tarballSha256": "ddfb21109ee8a7c82703527f1f2df378511d0d5161410eb345bb4a893c9fca4c",
+      "stylesheet": "/fonts/web-studio/dm-serif-display/family.css",
+      "license": {
+        "spdx": "OFL-1.1",
+        "path": "/fonts/web-studio/dm-serif-display/OFL.txt",
+        "sha256": "e9d4ced9825bf03a6b634c37fe8ae974f6d1b80fbb0bd3ae9b089987e4dc541b",
+        "attribution": "Copyright 2014 - 2017 Adobe Systems Incorporated (http://www.adobe.com/), with Reserved Font Name 'Source'. Copyright 2019 Google LLC. DMSerifDisplay-Italic.ttf: Copyright 2014 - 2017 Adobe Systems Incorporated (http://www.adobe.com/), with Reserved Font Name 'Source'. Copyright 2019 Google LLC.",
+        "source": "https://github.com/google/fonts/blob/main/ofl/dmserifdisplay/OFL.txt"
+      },
+      "axes": {},
+      "files": [
+        {
+          "path": "/fonts/web-studio/dm-serif-display/dm-serif-display-latin-ext-400-normal.3af47815d618.woff2",
+          "upstreamPath": "files/dm-serif-display-latin-ext-400-normal.woff2",
+          "subset": "latin-ext",
+          "style": "normal",
+          "weight": "400",
+          "unicodeRange": "U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF",
+          "sha256": "3af47815d6183efcee27a5717970acfe31153365e9b842e62d30c04e86c0613a",
+          "bytes": 10804,
+          "actualAxes": {},
+          "fontFamilyName": "DM Serif Display"
+        },
+        {
+          "path": "/fonts/web-studio/dm-serif-display/dm-serif-display-latin-400-normal.fdf61e20fd2c.woff2",
+          "upstreamPath": "files/dm-serif-display-latin-400-normal.woff2",
+          "subset": "latin",
+          "style": "normal",
+          "weight": "400",
+          "unicodeRange": "U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD",
+          "sha256": "fdf61e20fd2c0108e0ea28da4daca0035205b4b7fc031a3974b865b704de160a",
+          "bytes": 24744,
+          "actualAxes": {},
+          "fontFamilyName": "DM Serif Display"
+        },
+        {
+          "path": "/fonts/web-studio/dm-serif-display/dm-serif-display-latin-ext-400-italic.e026521e59b7.woff2",
+          "upstreamPath": "files/dm-serif-display-latin-ext-400-italic.woff2",
+          "subset": "latin-ext",
+          "style": "italic",
+          "weight": "400",
+          "unicodeRange": "U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF",
+          "sha256": "e026521e59b7b3e5d3257cc76069916111683b97c24e75f0c7a9f07621aa9460",
+          "bytes": 11124,
+          "actualAxes": {},
+          "fontFamilyName": "DM Serif Display"
+        },
+        {
+          "path": "/fonts/web-studio/dm-serif-display/dm-serif-display-latin-400-italic.ed8b291611e3.woff2",
+          "upstreamPath": "files/dm-serif-display-latin-400-italic.woff2",
+          "subset": "latin",
+          "style": "italic",
+          "weight": "400",
+          "unicodeRange": "U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD",
+          "sha256": "ed8b291611e32fa2d2900488dd48fc95faf0957b2ef7ddf1527e8d21dd9cf2df",
+          "bytes": 24572,
+          "actualAxes": {},
+          "fontFamilyName": "DM Serif Display"
+        }
+      ],
+      "romanianCoverage": {
+        "requiredCharacters": "ĂăÂâÎîȘșȚț",
+        "missingCharacters": ""
+      },
+      "upstreamAxes": false
+    },
+    {
+      "key": "crimson",
+      "family": "Crimson Pro",
+      "slug": "crimson-pro",
+      "package": "@fontsource-variable/crimson-pro",
+      "packageVersion": "5.3.0",
+      "upstreamVersion": "v28",
+      "source": "https://github.com/google/fonts",
+      "packageUrl": "https://www.npmjs.com/package/@fontsource-variable/crimson-pro/v/5.3.0",
+      "tarballUrl": "https://registry.npmjs.org/@fontsource-variable/crimson-pro/-/crimson-pro-5.3.0.tgz",
+      "tarballIntegrity": "sha512-CmtGOKsw1H/JcXOcncu8SWOnhWlyLaAMbCVlG9yR5kz95hrxYU3A1+0DxdRbz/MFhCJGxchgqwPxLAlL0cWvdQ==",
+      "tarballSha256": "bef5eb38bbdfa8942e0929e6f431b20f1ea6596917ec85dce1dad8f86830a7f6",
+      "stylesheet": "/fonts/web-studio/crimson-pro/family.css",
+      "license": {
+        "spdx": "OFL-1.1",
+        "path": "/fonts/web-studio/crimson-pro/OFL.txt",
+        "sha256": "a36998c273ee904e6303921fce9da2fe49c96b42cfb0bc1b70de9c3b58546a41",
+        "attribution": "Copyright 2018 The Crimson Pro Project Authors (https://github.com/Fonthausen/CrimsonPro) CrimsonPro-Italic[wght].ttf: Copyright 2018 The Crimson Pro Project Authors (https://github.com/Fonthausen/CrimsonPro)",
+        "source": "https://github.com/google/fonts/blob/main/ofl/crimsonpro/OFL.txt"
+      },
+      "axes": {
+        "wght": {
+          "name": "Weight",
+          "min": 200,
+          "default": 400,
+          "max": 900
+        }
+      },
+      "files": [
+        {
+          "path": "/fonts/web-studio/crimson-pro/crimson-pro-latin-ext-wght-normal.ac89a08a6e02.woff2",
+          "upstreamPath": "files/crimson-pro-latin-ext-wght-normal.woff2",
+          "subset": "latin-ext",
+          "style": "normal",
+          "weight": "200 900",
+          "unicodeRange": "U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF",
+          "sha256": "ac89a08a6e022ad4f3af961eb95474b7d8531c67ff88b40194bb3569d2d64e1d",
+          "bytes": 37988,
+          "actualAxes": {
+            "wght": {
+              "name": "Weight",
+              "min": 200,
+              "default": 400,
+              "max": 900
+            }
+          },
+          "fontFamilyName": "Crimson Pro"
+        },
+        {
+          "path": "/fonts/web-studio/crimson-pro/crimson-pro-latin-wght-normal.20ce4189b9e4.woff2",
+          "upstreamPath": "files/crimson-pro-latin-wght-normal.woff2",
+          "subset": "latin",
+          "style": "normal",
+          "weight": "200 900",
+          "unicodeRange": "U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD",
+          "sha256": "20ce4189b9e41b3439a2a36dd63deff44b6d91182532202cb96b65521b4a3c23",
+          "bytes": 48200,
+          "actualAxes": {
+            "wght": {
+              "name": "Weight",
+              "min": 200,
+              "default": 400,
+              "max": 900
+            }
+          },
+          "fontFamilyName": "Crimson Pro"
+        },
+        {
+          "path": "/fonts/web-studio/crimson-pro/crimson-pro-latin-ext-wght-italic.01df7b443a6f.woff2",
+          "upstreamPath": "files/crimson-pro-latin-ext-wght-italic.woff2",
+          "subset": "latin-ext",
+          "style": "italic",
+          "weight": "200 900",
+          "unicodeRange": "U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF",
+          "sha256": "01df7b443a6f81915a65df47439121da8307f8a574fadd7cde57c77d0b68c77b",
+          "bytes": 39808,
+          "actualAxes": {
+            "wght": {
+              "name": "Weight",
+              "min": 200,
+              "default": 400,
+              "max": 900
+            }
+          },
+          "fontFamilyName": "Crimson Pro"
+        },
+        {
+          "path": "/fonts/web-studio/crimson-pro/crimson-pro-latin-wght-italic.b3faa8f9ce36.woff2",
+          "upstreamPath": "files/crimson-pro-latin-wght-italic.woff2",
+          "subset": "latin",
+          "style": "italic",
+          "weight": "200 900",
+          "unicodeRange": "U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD",
+          "sha256": "b3faa8f9ce36db53253e11fb107d77b983150c5c21dc8fcf3906234530ab69f2",
+          "bytes": 51432,
+          "actualAxes": {
+            "wght": {
+              "name": "Weight",
+              "min": 200,
+              "default": 400,
+              "max": 900
+            }
+          },
+          "fontFamilyName": "Crimson Pro"
+        }
+      ],
+      "romanianCoverage": {
+        "requiredCharacters": "ĂăÂâÎîȘșȚț",
+        "missingCharacters": ""
+      },
+      "upstreamAxes": {
+        "ital": {
+          "default": "0",
+          "min": "0",
+          "max": "1",
+          "step": "1"
+        },
+        "wght": {
+          "default": "400",
+          "min": "200",
+          "max": "900",
+          "step": "1"
+        }
+      }
+    },
+    {
+      "key": "grotesk",
+      "family": "Space Grotesk",
+      "slug": "space-grotesk",
+      "package": "@fontsource-variable/space-grotesk",
+      "packageVersion": "5.3.0",
+      "upstreamVersion": "v22",
+      "source": "https://github.com/google/fonts",
+      "packageUrl": "https://www.npmjs.com/package/@fontsource-variable/space-grotesk/v/5.3.0",
+      "tarballUrl": "https://registry.npmjs.org/@fontsource-variable/space-grotesk/-/space-grotesk-5.3.0.tgz",
+      "tarballIntegrity": "sha512-2IxmvfB08i9vnGB3Ym/AXvhRE+8XOjWMXIyDum03c+tPwH0FUoMNQfGpU8NXPxjbws0Vvss3AH0Zqt4oJBBAdw==",
+      "tarballSha256": "47d1b51d64ed541b7e74f38e9e682a8ff1bbfd1b68bfd7fff74ac9175058e73c",
+      "stylesheet": "/fonts/web-studio/space-grotesk/family.css",
+      "license": {
+        "spdx": "OFL-1.1",
+        "path": "/fonts/web-studio/space-grotesk/OFL.txt",
+        "sha256": "18a4de52385f6b988782639d5d0cc1326e5a8c2de9a7f01d7b20d9aedcc60943",
+        "attribution": "Copyright 2020 The Space Grotesk Project Authors (https://github.com/floriankarsten/space-grotesk)",
+        "source": "https://github.com/google/fonts/blob/main/ofl/spacegrotesk/OFL.txt"
+      },
+      "axes": {
+        "wght": {
+          "name": "Weight",
+          "min": 300,
+          "default": 300,
+          "max": 700
+        }
+      },
+      "files": [
+        {
+          "path": "/fonts/web-studio/space-grotesk/space-grotesk-latin-ext-wght-normal.952dddb45d2f.woff2",
+          "upstreamPath": "files/space-grotesk-latin-ext-wght-normal.woff2",
+          "subset": "latin-ext",
+          "style": "normal",
+          "weight": "300 700",
+          "unicodeRange": "U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF",
+          "sha256": "952dddb45d2f96f71cbf3b7f510b24379afc3c89ea02fcf89d377b45d62c0166",
+          "bytes": 18940,
+          "actualAxes": {
+            "wght": {
+              "name": "Weight",
+              "min": 300,
+              "default": 300,
+              "max": 700
+            }
+          },
+          "fontFamilyName": "Space Grotesk Light"
+        },
+        {
+          "path": "/fonts/web-studio/space-grotesk/space-grotesk-latin-wght-normal.0640890476fc.woff2",
+          "upstreamPath": "files/space-grotesk-latin-wght-normal.woff2",
+          "subset": "latin",
+          "style": "normal",
+          "weight": "300 700",
+          "unicodeRange": "U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD",
+          "sha256": "0640890476fc1198ab4de571fb658de443c4d85b66466ec09534a8737ab1ce9d",
+          "bytes": 22288,
+          "actualAxes": {
+            "wght": {
+              "name": "Weight",
+              "min": 300,
+              "default": 300,
+              "max": 700
+            }
+          },
+          "fontFamilyName": "Space Grotesk Light"
+        }
+      ],
+      "romanianCoverage": {
+        "requiredCharacters": "ĂăÂâÎîȘșȚț",
+        "missingCharacters": ""
+      },
+      "upstreamAxes": {
+        "wght": {
+          "default": "400",
+          "min": "300",
+          "max": "700",
+          "step": "1"
+        }
+      }
+    },
+    {
+      "key": "sora",
+      "family": "Sora",
+      "slug": "sora",
+      "package": "@fontsource-variable/sora",
+      "packageVersion": "5.3.0",
+      "upstreamVersion": "v17",
+      "source": "https://github.com/google/fonts",
+      "packageUrl": "https://www.npmjs.com/package/@fontsource-variable/sora/v/5.3.0",
+      "tarballUrl": "https://registry.npmjs.org/@fontsource-variable/sora/-/sora-5.3.0.tgz",
+      "tarballIntegrity": "sha512-h8kHta4Z8SkfUGeI82TUy1n3rbrKpBRGwuk4t4qCwto5oEHxlbOFD2yGP+Df5fbmTXwKGn+o667vYp0E4K8Whw==",
+      "tarballSha256": "e0cff41b28e72b9441c7c599c310a9e4f13d44ac87d8d534746d50d6fbe9d726",
+      "stylesheet": "/fonts/web-studio/sora/family.css",
+      "license": {
+        "spdx": "OFL-1.1",
+        "path": "/fonts/web-studio/sora/OFL.txt",
+        "sha256": "1ec9623d38c445eb4dfe5fcc783e0f0ee728cc97ca157ce1f8cb2b3bf9d9b0d9",
+        "attribution": "Copyright 2019 The Sora Project Authors (https://github.com/sora-xor/sora-font)",
+        "source": "https://github.com/google/fonts/blob/main/ofl/sora/OFL.txt"
+      },
+      "axes": {
+        "wght": {
+          "name": "Weight",
+          "min": 100,
+          "default": 400,
+          "max": 800
+        }
+      },
+      "files": [
+        {
+          "path": "/fonts/web-studio/sora/sora-latin-ext-wght-normal.c163c536f68b.woff2",
+          "upstreamPath": "files/sora-latin-ext-wght-normal.woff2",
+          "subset": "latin-ext",
+          "style": "normal",
+          "weight": "100 800",
+          "unicodeRange": "U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF",
+          "sha256": "c163c536f68befd99a83d4f17e8b88030e7f54229688a45c44f70c7149db7385",
+          "bytes": 15548,
+          "actualAxes": {
+            "wght": {
+              "name": "Weight",
+              "min": 100,
+              "default": 400,
+              "max": 800
+            }
+          },
+          "fontFamilyName": "Sora"
+        },
+        {
+          "path": "/fonts/web-studio/sora/sora-latin-wght-normal.fa26406eeda9.woff2",
+          "upstreamPath": "files/sora-latin-wght-normal.woff2",
+          "subset": "latin",
+          "style": "normal",
+          "weight": "100 800",
+          "unicodeRange": "U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD",
+          "sha256": "fa26406eeda9a3c6ec3d9ea8813c3045d6dc755e30c716d5c094e8ef43be5a7f",
+          "bytes": 33652,
+          "actualAxes": {
+            "wght": {
+              "name": "Weight",
+              "min": 100,
+              "default": 400,
+              "max": 800
+            }
+          },
+          "fontFamilyName": "Sora"
+        }
+      ],
+      "romanianCoverage": {
+        "requiredCharacters": "ĂăÂâÎîȘșȚț",
+        "missingCharacters": ""
+      },
+      "upstreamAxes": {
+        "wght": {
+          "default": "400",
+          "min": "100",
+          "max": "800",
+          "step": "1"
+        }
+      }
+    },
+    {
+      "key": "manrope",
+      "family": "Manrope",
+      "slug": "manrope",
+      "package": "@fontsource-variable/manrope",
+      "packageVersion": "5.3.0",
+      "upstreamVersion": "v20",
+      "source": "https://github.com/google/fonts",
+      "packageUrl": "https://www.npmjs.com/package/@fontsource-variable/manrope/v/5.3.0",
+      "tarballUrl": "https://registry.npmjs.org/@fontsource-variable/manrope/-/manrope-5.3.0.tgz",
+      "tarballIntegrity": "sha512-6D5dgokHsWDDMtmXHznKa0hK229NN+1a4BLPmUCLqcO1Pw5EEhWY5RFt0AcXnVRAljFFPfRtLkJePQj6LSsV6g==",
+      "tarballSha256": "9629a2474e2bd73944d83392c856e268193d42c3954455bd6adb3d1ea74aa27a",
+      "stylesheet": "/fonts/web-studio/manrope/family.css",
+      "license": {
+        "spdx": "OFL-1.1",
+        "path": "/fonts/web-studio/manrope/OFL.txt",
+        "sha256": "d826ab6583b12c26807d8716a545bdbbb672df04f48608a364ba9efdbe501c30",
+        "attribution": "Copyright 2019 The Manrope Project Authors (https://github.com/sharanda/manrope)",
+        "source": "https://github.com/google/fonts/blob/main/ofl/manrope/OFL.txt"
+      },
+      "axes": {
+        "wght": {
+          "name": "Weight",
+          "min": 200,
+          "default": 200,
+          "max": 800
+        }
+      },
+      "files": [
+        {
+          "path": "/fonts/web-studio/manrope/manrope-latin-ext-wght-normal.3911b66d9f2e.woff2",
+          "upstreamPath": "files/manrope-latin-ext-wght-normal.woff2",
+          "subset": "latin-ext",
+          "style": "normal",
+          "weight": "200 800",
+          "unicodeRange": "U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF",
+          "sha256": "3911b66d9f2e005a4b989223405d0e5032619c668597ba467cc76a23c8fffcfb",
+          "bytes": 15120,
+          "actualAxes": {
+            "wght": {
+              "name": "Weight",
+              "min": 200,
+              "default": 200,
+              "max": 800
+            }
+          },
+          "fontFamilyName": "Manrope ExtraLight"
+        },
+        {
+          "path": "/fonts/web-studio/manrope/manrope-latin-wght-normal.a30ddcd34970.woff2",
+          "upstreamPath": "files/manrope-latin-wght-normal.woff2",
+          "subset": "latin",
+          "style": "normal",
+          "weight": "200 800",
+          "unicodeRange": "U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD",
+          "sha256": "a30ddcd349703aff7464c34bef3fffdff405ee50c113440d7c8693c02d210972",
+          "bytes": 24836,
+          "actualAxes": {
+            "wght": {
+              "name": "Weight",
+              "min": 200,
+              "default": 200,
+              "max": 800
+            }
+          },
+          "fontFamilyName": "Manrope ExtraLight"
+        }
+      ],
+      "romanianCoverage": {
+        "requiredCharacters": "ĂăÂâÎîȘșȚț",
+        "missingCharacters": ""
+      },
+      "upstreamAxes": {
+        "wght": {
+          "default": "400",
+          "min": "200",
+          "max": "800",
+          "step": "1"
+        }
+      }
+    },
+    {
+      "key": "unbounded",
+      "family": "Unbounded",
+      "slug": "unbounded",
+      "package": "@fontsource-variable/unbounded",
+      "packageVersion": "5.3.0",
+      "upstreamVersion": "v12",
+      "source": "https://github.com/google/fonts",
+      "packageUrl": "https://www.npmjs.com/package/@fontsource-variable/unbounded/v/5.3.0",
+      "tarballUrl": "https://registry.npmjs.org/@fontsource-variable/unbounded/-/unbounded-5.3.0.tgz",
+      "tarballIntegrity": "sha512-ea565Ncn4r7gPdBEHcmaF31V11hDfkL7b/JCklLobQbMfbu2ZZQrVWNgdeEFWFLqNh36yhieZWOgxdAnMTzrLg==",
+      "tarballSha256": "8f713c4450e71cfae1e722cf792c4b093ba8291c8a4c18f030090e3d37fa653d",
+      "stylesheet": "/fonts/web-studio/unbounded/family.css",
+      "license": {
+        "spdx": "OFL-1.1",
+        "path": "/fonts/web-studio/unbounded/OFL.txt",
+        "sha256": "48a780bc857729859e54d1e691b05792894a26634edc1c4b5dbeabffe6941758",
+        "attribution": "Copyright 2022 The Unbounded Project Authors (https://github.com/googlefonts/unbounded)",
+        "source": "https://github.com/google/fonts/blob/main/ofl/unbounded/OFL.txt"
+      },
+      "axes": {
+        "wght": {
+          "name": "Weight",
+          "min": 200,
+          "default": 400,
+          "max": 900
+        }
+      },
+      "files": [
+        {
+          "path": "/fonts/web-studio/unbounded/unbounded-latin-ext-wght-normal.845e1c9fe2e9.woff2",
+          "upstreamPath": "files/unbounded-latin-ext-wght-normal.woff2",
+          "subset": "latin-ext",
+          "style": "normal",
+          "weight": "200 900",
+          "unicodeRange": "U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF",
+          "sha256": "845e1c9fe2e9a7bfbedfeb447fbeba4bc1b5ecd6246277910ccdaad35a7a532c",
+          "bytes": 118348,
+          "actualAxes": {
+            "wght": {
+              "name": "Weight",
+              "min": 200,
+              "default": 400,
+              "max": 900
+            }
+          },
+          "fontFamilyName": "Unbounded"
+        },
+        {
+          "path": "/fonts/web-studio/unbounded/unbounded-latin-wght-normal.22f9b928aa39.woff2",
+          "upstreamPath": "files/unbounded-latin-wght-normal.woff2",
+          "subset": "latin",
+          "style": "normal",
+          "weight": "200 900",
+          "unicodeRange": "U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD",
+          "sha256": "22f9b928aa3928a896340422b54d690fbb5875c30eae4c106f029c61f2289fd6",
+          "bytes": 50904,
+          "actualAxes": {
+            "wght": {
+              "name": "Weight",
+              "min": 200,
+              "default": 400,
+              "max": 900
+            }
+          },
+          "fontFamilyName": "Unbounded"
+        }
+      ],
+      "romanianCoverage": {
+        "requiredCharacters": "ĂăÂâÎîȘșȚț",
+        "missingCharacters": ""
+      },
+      "upstreamAxes": {
+        "wght": {
+          "default": "400",
+          "min": "200",
+          "max": "900",
+          "step": "1"
+        }
+      }
+    }
+  ],
+  "bundledFamilies": [
+    {
+      "key": "modern",
+      "family": "Geist",
+      "package": "@fontsource-variable/geist",
+      "packageVersion": "5.2.8",
+      "upstreamVersion": "v4",
+      "source": "https://github.com/google/fonts",
+      "delivery": "Already bundled by the app; no duplicate public font binaries.",
+      "license": {
+        "spdx": "OFL-1.1",
+        "path": "/fonts/web-studio/geist/OFL.txt",
+        "sha256": "cc27b0f563500a9e0658866241d06d05ef20a9efbf8bac47fe0499a65ede5952",
+        "attribution": "Copyright 2024 The Geist Project Authors (https://github.com/vercel/geist-font.git)"
+      },
+      "files": [
+        {
+          "repositoryPath": "node_modules/@fontsource-variable/geist/files/geist-cyrillic-wght-normal.woff2",
+          "subset": "cyrillic",
+          "style": "normal",
+          "weight": "100 900",
+          "sha256": "33d7ab460dff4e1fc586738d5d50e3e04bcb48e9bef7b94154cc7e07aeed6b66",
+          "bytes": 14692
+        },
+        {
+          "repositoryPath": "node_modules/@fontsource-variable/geist/files/geist-latin-ext-wght-normal.woff2",
+          "subset": "latin-ext",
+          "style": "normal",
+          "weight": "100 900",
+          "sha256": "3640f9351b2a4631515dffea38092c24e70db9df2ef1e97c10cbdeb4163e6186",
+          "bytes": 15308
+        },
+        {
+          "repositoryPath": "node_modules/@fontsource-variable/geist/files/geist-latin-wght-normal.woff2",
+          "subset": "latin",
+          "style": "normal",
+          "weight": "100 900",
+          "sha256": "0cbbe6286a00f356e98980783cc950a9b693751e04aedfb97d9526ff6dc2b316",
+          "bytes": 28400
+        }
+      ]
+    },
+    {
+      "key": "labels",
+      "family": "Geist Mono",
+      "package": "@fontsource-variable/geist-mono",
+      "packageVersion": "5.2.7",
+      "upstreamVersion": "v4",
+      "source": "https://github.com/google/fonts",
+      "delivery": "Already bundled by the app; no duplicate public font binaries.",
+      "license": {
+        "spdx": "OFL-1.1",
+        "path": "/fonts/web-studio/geist-mono/OFL.txt",
+        "sha256": "cc27b0f563500a9e0658866241d06d05ef20a9efbf8bac47fe0499a65ede5952",
+        "attribution": "Copyright 2024 The Geist Project Authors (https://github.com/vercel/geist-font.git)"
+      },
+      "files": [
+        {
+          "repositoryPath": "node_modules/@fontsource-variable/geist-mono/files/geist-mono-cyrillic-wght-normal.woff2",
+          "subset": "cyrillic",
+          "style": "normal",
+          "weight": "100 900",
+          "sha256": "a5e8e11f202b076d7640113f3dd28853f90a45991ff4e61a2262f1527c6e17ea",
+          "bytes": 12616
+        },
+        {
+          "repositoryPath": "node_modules/@fontsource-variable/geist-mono/files/geist-mono-latin-ext-wght-normal.woff2",
+          "subset": "latin-ext",
+          "style": "normal",
+          "weight": "100 900",
+          "sha256": "6aadc1c180fd799413a0f225ffc68356d6ed33d2d867d2899322b1c9530ed5e7",
+          "bytes": 13044
+        },
+        {
+          "repositoryPath": "node_modules/@fontsource-variable/geist-mono/files/geist-mono-latin-wght-normal.woff2",
+          "subset": "latin",
+          "style": "normal",
+          "weight": "100 900",
+          "sha256": "e9fb088eeacced307860d82ceedb0ae9ad2ebfa07a7c0a7279c8c961dd9d5fd3",
+          "bytes": 31368
+        }
+      ]
+    }
+  ]
+}

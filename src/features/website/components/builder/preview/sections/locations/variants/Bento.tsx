@@ -18,6 +18,7 @@ import {
   type DayKey,
 } from "../../../shared/contact";
 import { useReducedMotion } from "../../../shared/hooks";
+import { findScrollParent } from "../../../shared/util";
 import { LocationBookAction } from "../parts/LocationBookAction";
 import { LocationImage } from "../parts/LocationImage";
 import type { LocationsVariantProps } from "../types";
@@ -230,6 +231,39 @@ export function Bento({
   const featured = shown[idx] ?? shown[0];
   const count = shown.length;
   const gridRef = useRef<HTMLDivElement>(null);
+  const [shortDesktop, setShortDesktop] = useState(false);
+
+  useLayoutEffect(() => {
+    const grid = gridRef.current;
+    const root = grid?.closest<HTMLElement>(".mc-root");
+    if (!grid || !root) return;
+    const viewport = findScrollParent(root);
+    const measure = () => {
+      const rootScale = root.offsetWidth > 0
+        ? root.getBoundingClientRect().width / root.offsetWidth
+        : 1;
+      const safeScale = Number.isFinite(rootScale) && rootScale > 0 ? rootScale : 1;
+      const viewportScale = viewport && viewport.offsetWidth > 0
+        ? viewport.getBoundingClientRect().width / viewport.offsetWidth
+        : 1;
+      // Measure the same logical viewport that supplies --mc-vph, including scaled previews.
+      // Outer browser dimensions must not turn a phone preview into a short desktop layout.
+      const logicalHeight = viewport
+        ? viewport.clientHeight * viewportScale / safeScale
+        : window.innerHeight / safeScale;
+      const next = root.clientWidth > 900 && logicalHeight <= 840;
+      setShortDesktop((current) => current === next ? current : next);
+    };
+    measure();
+    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(measure);
+    observer?.observe(root);
+    if (viewport) observer?.observe(viewport);
+    window.addEventListener("resize", measure);
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, []);
   const firstRenderRef = useRef(true);
   const transitionRef = useRef<TransitionState | null>(null);
   const activeIndexRef = useRef(idx);
@@ -388,9 +422,9 @@ export function Bento({
         if (!live) return;
         const ghost = tile.querySelector<HTMLElement>(":scope > .mc-locb-slide.is-ghost");
         const vector = PUSH_VECTOR[tile.dataset.area ?? ""] ?? [1, 0];
-        const bounds = tile.getBoundingClientRect();
-        const dx = vector[0] * transition.dir * bounds.width * (1 + PUSH_GAP);
-        const dy = vector[1] * transition.dir * bounds.height * (1 + PUSH_GAP);
+        // Transforms use logical CSS pixels, even when the whole preview is scaled down.
+        const dx = vector[0] * transition.dir * tile.offsetWidth * (1 + PUSH_GAP);
+        const dy = vector[1] * transition.dir * tile.offsetHeight * (1 + PUSH_GAP);
         const delay = (PUSH_ORDER[tile.dataset.area ?? ""] ?? 0) * PUSH_STAGGER_MS;
         latestEnd = Math.max(latestEnd, delay + PUSH_MS);
 
@@ -493,7 +527,7 @@ export function Bento({
   const nextLabel = t("businessPage.builder.preview.locNext");
 
   return (
-    <div className="mc-locb-shell mc-mask-in" onKeyDown={handleKeyDown}>
+    <div className="mc-locb-shell mc-mask-in" data-short-desktop={shortDesktop ? "true" : undefined} onKeyDown={handleKeyDown}>
       <span className="sr-only" aria-live="polite" aria-atomic="true">
         {featured.name}
       </span>

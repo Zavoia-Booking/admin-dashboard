@@ -20,7 +20,7 @@ export function Underlay(props: NavVariantViewProps) {
   // The shared hook, not the bare OS preference: the at-rest desktop mock must also jump-cut this slide —
   // easing the whole page sideways there re-rasterises past the phone's tile budget and checkerboards.
   const reducedMotion = useReducedMotion();
-  const chrome = navChromeStyle(props);
+  const chrome = navChromeStyle({ ...props, opaqueOnScroll: true });
   const menuLabel = props.t(
     props.menuOpen
       ? "businessPage.builder.preview.closeMenu"
@@ -42,6 +42,18 @@ export function Underlay(props: NavVariantViewProps) {
       root.style.removeProperty("--mc-underlay-progress");
     };
   }, [props.portalRoot]);
+
+  useLayoutEffect(() => {
+    if (!props.menuOpen || !props.portalRoot) return;
+    const background = Array.from(props.portalRoot.querySelectorAll<HTMLElement>(
+      ".mc-page-flow, .mc-anno-pill-layer, :scope > .mc-footer",
+    ));
+    const previous = background.map((element) => element.inert);
+    background.forEach((element) => { element.inert = true; });
+    return () => {
+      background.forEach((element, index) => { element.inert = previous[index]; });
+    };
+  }, [props.menuOpen, props.portalRoot]);
 
   useLayoutEffect(() => {
     const root = props.portalRoot;

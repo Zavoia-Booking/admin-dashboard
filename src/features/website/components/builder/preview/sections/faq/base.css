@@ -14,9 +14,10 @@
 
 .mc-faq-wrap {
   width: 100%;
-  max-width: 1320px;
+  box-sizing: border-box;
+  max-width: calc(var(--mc-content-max) + 2 * var(--mc-content-gutter));
   margin-inline: auto;
-  padding-inline: clamp(18px, 4cqw, 56px);
+  padding-inline: var(--mc-content-gutter);
 }
 
 .mc-faq-head {

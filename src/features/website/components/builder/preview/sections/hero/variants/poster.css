@@ -35,7 +35,7 @@
 .mc-heropo-title { margin: clamp(16px, 3cqw, 30px) 0 0; display: flex; flex-direction: column; align-items: center; font-family: var(--mc-display); font-weight: var(--mc-display-weight); letter-spacing: var(--mc-display-tracking); font-size: clamp(52px, 13cqw, 150px); line-height: 0.9; color: #FBFAF7; min-width: 0; }
 .mc-heropo-line { display: block; overflow-wrap: break-word; }
 .mc-heropo-line.is-ghost { color: transparent; -webkit-text-stroke: 1.5px color-mix(in oklch, var(--mc-accent) 50%, #fff); }
-.mc-heropo-tag { margin: clamp(20px, 3cqw, 30px) 0 0; font-size: clamp(15px, 1.8cqw, 19px); line-height: 1.6; color: rgba(255,255,255,0.72); max-width: 46ch; text-wrap: pretty; }
+.mc-heropo-tag { margin: clamp(20px, 3cqw, 30px) 0 0; font-size: clamp(16px, 1.8cqw, 20px); line-height: 1.6; color: rgba(255,255,255,0.72); max-width: 46ch; text-wrap: pretty; }
 .mc-heropo-cta { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 18px clamp(22px, 3cqw, 34px); margin-top: clamp(28px, 5cqw, 46px); }
 
 @container (max-width: 520px) {

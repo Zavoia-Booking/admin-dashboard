@@ -19,7 +19,7 @@ export type FontPreset = "modern" | "classic" | "elegant" | "friendly";
 
 export type FontLoadingMetadata =
   | { source: "bundled" }
-  | { source: "google-fonts"; stylesheetUrl: string };
+  | { source: "local"; stylesheetUrl: string };
 
 export interface FontOption {
   key: string;
@@ -38,7 +38,7 @@ export interface FontOption {
   tracking: string;
   /** Whether italic pull-quotes/marquee read well in this face (serifs: yes; grotesques: no). */
   italicOk: boolean;
-  /** How the selected display face is loaded. Remote faces stay lazy and selection-driven. */
+  /** How the selected display face is loaded. Font files are served by this app. */
   loading: FontLoadingMetadata;
 }
 
@@ -47,8 +47,8 @@ export const SANS_STACK =
   '"Geist Variable", -apple-system, BlinkMacSystemFont, system-ui, "Segoe UI", Roboto, sans-serif';
 export const MONO_STACK = '"Geist Mono Variable", ui-monospace, SFMono-Regular, Menlo, monospace';
 
-/** Canonical display-font registry. The first four entries preserve the current production
- * mappings exactly; premium entries layer their real face over the closest production preset. */
+/** Canonical display-font registry. All fonts are included; each face uses a local,
+ * licensed stylesheet over its production layout preset. Keep keys stable for saved sites. */
 export const FONT_CATALOG: FontOption[] = [
   {
     key: "modern",
@@ -75,9 +75,8 @@ export const FONT_CATALOG: FontOption[] = [
     tracking: "-0.005em",
     italicOk: true,
     loading: {
-      source: "google-fonts",
-      stylesheetUrl:
-        "https://fonts.googleapis.com/css2?family=Libre+Caslon+Display&display=swap",
+      source: "local",
+      stylesheetUrl: "/fonts/web-studio/libre-caslon-display/family.css",
     },
   },
   {
@@ -92,9 +91,8 @@ export const FONT_CATALOG: FontOption[] = [
     tracking: "-0.02em",
     italicOk: true,
     loading: {
-      source: "google-fonts",
-      stylesheetUrl:
-        "https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,500;0,6..96,600;0,6..96,700;1,6..96,500;1,6..96,600&display=swap",
+      source: "local",
+      stylesheetUrl: "/fonts/web-studio/bodoni-moda/family.css",
     },
   },
   {
@@ -109,16 +107,15 @@ export const FONT_CATALOG: FontOption[] = [
     tracking: "-0.02em",
     italicOk: false,
     loading: {
-      source: "google-fonts",
-      stylesheetUrl:
-        "https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&display=swap",
+      source: "local",
+      stylesheetUrl: "/fonts/web-studio/bricolage-grotesque/family.css",
     },
   },
   {
     key: "playfair",
     name: "Playfair",
     labelKey: "businessPage.theme.fonts.playfair",
-    tier: "premium",
+    tier: "included",
     category: "serif",
     preset: "elegant",
     stack: '"Playfair Display", Georgia, "Times New Roman", serif',
@@ -126,16 +123,15 @@ export const FONT_CATALOG: FontOption[] = [
     tracking: "-0.02em",
     italicOk: true,
     loading: {
-      source: "google-fonts",
-      stylesheetUrl:
-        "https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400&display=swap",
+      source: "local",
+      stylesheetUrl: "/fonts/web-studio/playfair-display/family.css",
     },
   },
   {
     key: "cormorant",
     name: "Cormorant",
     labelKey: "businessPage.theme.fonts.cormorant",
-    tier: "premium",
+    tier: "included",
     category: "serif",
     preset: "elegant",
     stack: '"Cormorant Garamond", Georgia, "Times New Roman", serif',
@@ -143,50 +139,50 @@ export const FONT_CATALOG: FontOption[] = [
     tracking: "-0.02em",
     italicOk: true,
     loading: {
-      source: "google-fonts",
-      stylesheetUrl:
-        "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap",
+      source: "local",
+      stylesheetUrl: "/fonts/web-studio/cormorant-garamond/family.css",
     },
   },
   {
     key: "italiana",
     name: "Italiana",
     labelKey: "businessPage.theme.fonts.italiana",
-    tier: "premium",
+    tier: "included",
     category: "serif",
     preset: "elegant",
-    // Italiana intentionally stays faithful to Atelier. Its sparse glyph coverage falls through
-    // to Bodoni/Georgia per character, so Romanian and other unsupported text remains readable.
+    // Italiana has limited glyph coverage. Its local stylesheet also loads Bodoni Moda,
+    // so Romanian characters use a predictable serif fallback on every device.
     stack: '"Italiana", "Bodoni Moda", Georgia, "Times New Roman", serif',
     weight: 400,
     tracking: "-0.02em",
     italicOk: false,
     loading: {
-      source: "google-fonts",
-      stylesheetUrl: "https://fonts.googleapis.com/css2?family=Italiana&display=swap",
+      source: "local",
+      stylesheetUrl: "/fonts/web-studio/italiana/family.css",
     },
   },
   {
     key: "marcellus",
     name: "Marcellus",
     labelKey: "businessPage.theme.fonts.marcellus",
-    tier: "premium",
+    tier: "included",
     category: "serif",
     preset: "classic",
-    stack: '"Marcellus", Georgia, "Times New Roman", serif',
+    // Marcellus omits Romanian comma-below letters; its stylesheet also loads Libre Caslon.
+    stack: '"Marcellus", "Libre Caslon Display", Georgia, "Times New Roman", serif',
     weight: 400,
     tracking: "-0.005em",
     italicOk: false,
     loading: {
-      source: "google-fonts",
-      stylesheetUrl: "https://fonts.googleapis.com/css2?family=Marcellus&display=swap",
+      source: "local",
+      stylesheetUrl: "/fonts/web-studio/marcellus/family.css",
     },
   },
   {
     key: "dmserif",
     name: "DM Serif",
     labelKey: "businessPage.theme.fonts.dmserif",
-    tier: "premium",
+    tier: "included",
     category: "serif",
     preset: "classic",
     stack: '"DM Serif Display", Georgia, "Times New Roman", serif',
@@ -194,16 +190,15 @@ export const FONT_CATALOG: FontOption[] = [
     tracking: "-0.005em",
     italicOk: true,
     loading: {
-      source: "google-fonts",
-      stylesheetUrl:
-        "https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&display=swap",
+      source: "local",
+      stylesheetUrl: "/fonts/web-studio/dm-serif-display/family.css",
     },
   },
   {
     key: "crimson",
     name: "Crimson",
     labelKey: "businessPage.theme.fonts.crimson",
-    tier: "premium",
+    tier: "included",
     category: "serif",
     preset: "classic",
     stack: '"Crimson Pro", Georgia, "Times New Roman", serif',
@@ -211,16 +206,15 @@ export const FONT_CATALOG: FontOption[] = [
     tracking: "-0.005em",
     italicOk: true,
     loading: {
-      source: "google-fonts",
-      stylesheetUrl:
-        "https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,500;0,600;1,400&display=swap",
+      source: "local",
+      stylesheetUrl: "/fonts/web-studio/crimson-pro/family.css",
     },
   },
   {
     key: "grotesk",
     name: "Grotesk",
     labelKey: "businessPage.theme.fonts.grotesk",
-    tier: "premium",
+    tier: "included",
     category: "sans",
     preset: "modern",
     stack: '"Space Grotesk", "Geist Variable", system-ui, -apple-system, sans-serif',
@@ -228,16 +222,15 @@ export const FONT_CATALOG: FontOption[] = [
     tracking: "-0.035em",
     italicOk: false,
     loading: {
-      source: "google-fonts",
-      stylesheetUrl:
-        "https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap",
+      source: "local",
+      stylesheetUrl: "/fonts/web-studio/space-grotesk/family.css",
     },
   },
   {
     key: "sora",
     name: "Sora",
     labelKey: "businessPage.theme.fonts.sora",
-    tier: "premium",
+    tier: "included",
     category: "sans",
     preset: "modern",
     stack: '"Sora", "Geist Variable", system-ui, -apple-system, sans-serif',
@@ -245,16 +238,15 @@ export const FONT_CATALOG: FontOption[] = [
     tracking: "-0.035em",
     italicOk: false,
     loading: {
-      source: "google-fonts",
-      stylesheetUrl:
-        "https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&display=swap",
+      source: "local",
+      stylesheetUrl: "/fonts/web-studio/sora/family.css",
     },
   },
   {
     key: "manrope",
     name: "Manrope",
     labelKey: "businessPage.theme.fonts.manrope",
-    tier: "premium",
+    tier: "included",
     category: "sans",
     preset: "friendly",
     stack: '"Manrope", "Bricolage Grotesque", system-ui, -apple-system, sans-serif',
@@ -262,16 +254,15 @@ export const FONT_CATALOG: FontOption[] = [
     tracking: "-0.02em",
     italicOk: false,
     loading: {
-      source: "google-fonts",
-      stylesheetUrl:
-        "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap",
+      source: "local",
+      stylesheetUrl: "/fonts/web-studio/manrope/family.css",
     },
   },
   {
     key: "unbounded",
     name: "Unbounded",
     labelKey: "businessPage.theme.fonts.unbounded",
-    tier: "premium",
+    tier: "included",
     category: "sans",
     preset: "friendly",
     stack: '"Unbounded", "Bricolage Grotesque", system-ui, -apple-system, sans-serif',
@@ -279,9 +270,8 @@ export const FONT_CATALOG: FontOption[] = [
     tracking: "-0.02em",
     italicOk: false,
     loading: {
-      source: "google-fonts",
-      stylesheetUrl:
-        "https://fonts.googleapis.com/css2?family=Unbounded:wght@400;500;600&display=swap",
+      source: "local",
+      stylesheetUrl: "/fonts/web-studio/unbounded/family.css",
     },
   },
 ];
@@ -289,7 +279,7 @@ export const FONT_CATALOG: FontOption[] = [
 export const INCLUDED_FONT_OPTIONS = FONT_CATALOG.filter((font) => font.tier === "included");
 export const PREMIUM_FONT_OPTIONS = FONT_CATALOG.filter((font) => font.tier === "premium");
 
-/** Compatibility export for the current editor, which only understands included choices. */
+/** Compatibility export for the legacy editor; every current font is included. */
 export const FONT_OPTIONS = INCLUDED_FONT_OPTIONS;
 
 const DEFAULT_FONT = INCLUDED_FONT_OPTIONS[0];
@@ -304,7 +294,7 @@ export function displayFontFor(key: string | null | undefined): FontOption {
 
 export function fontStylesheetFor(key: string | null | undefined): string | undefined {
   const font = fontOptionFor(key);
-  return font?.loading.source === "google-fonts" ? font.loading.stylesheetUrl : undefined;
+  return font?.loading.source === "local" ? font.loading.stylesheetUrl : undefined;
 }
 
 // ---------------------------------------------------------------------------
@@ -483,6 +473,9 @@ export function previewVars(
     "--mc-line": PAPER.line,
     "--mc-soft": PAPER.soft,
     "--mc-card": PAPER.card,
+    // Usable content width; responsive gutters sit outside this cap.
+    "--mc-content-max": "1400px",
+    "--mc-content-gutter": "clamp(16px, 2.4cqw, 28px)",
     "--mc-display": font.stack,
     "--mc-display-weight": String(font.weight),
     "--mc-display-tracking": font.tracking,

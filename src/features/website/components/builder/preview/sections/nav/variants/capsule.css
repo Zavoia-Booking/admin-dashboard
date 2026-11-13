@@ -8,6 +8,9 @@
 }
 .mc-nav-capsule-shell {
   --mc-cap-progress: 0;
+  --mc-cap-surface: 0;
+  --mc-cap-ink: #fff;
+  --mc-nav-fg: var(--mc-cap-ink);
   display: flex;
   box-sizing: border-box;
   width: 100%;
@@ -15,31 +18,30 @@
   align-items: center;
   gap: clamp(15px, 1.7cqw, 24px);
   margin-inline: auto;
-  border: .5px solid rgba(255,255,255,calc(.16 * var(--mc-cap-progress)));
+  border: .5px solid rgba(255,255,255,calc(.16 * var(--mc-cap-surface)));
   border-radius: 999px;
   padding: 8px calc(6px + 12px * var(--mc-cap-progress));
-  background: rgba(21,17,13,calc(.6 * var(--mc-cap-progress)));
-  backdrop-filter: blur(calc(22px * var(--mc-cap-progress))) saturate(150%);
-  -webkit-backdrop-filter: blur(calc(22px * var(--mc-cap-progress))) saturate(150%);
+  background: rgba(24,21,19,var(--mc-cap-surface));
   box-shadow:
-    0 22px 60px -22px rgba(0,0,0,calc(.5 * var(--mc-cap-progress))),
-    0 4px 14px rgba(0,0,0,calc(.12 * var(--mc-cap-progress)));
-  color: #fff;
+    0 22px 60px -22px rgba(0,0,0,calc(.5 * var(--mc-cap-surface))),
+    0 4px 14px rgba(0,0,0,calc(.12 * var(--mc-cap-surface)));
+  color: var(--mc-cap-ink);
 }
-.mc-nav-capsule .mc-nav-brand { color: #fff; --mc-nav-fg: #fff; --mc-nav-mark: #fff; --mc-nav-mark-border: rgba(255,255,255,.55); --mc-nav-ring: rgba(255,255,255,.35); }
-.mc-nav-capsule .mc-nav-brand-mark { color: #fff; }
-.mc-nav-capsule .mc-nav-link { color: #fff; opacity: .92; }
-.mc-nav-capsule .mc-nav-wordmark { text-shadow: 0 1px 14px rgba(0,0,0,calc(.4 * (1 - var(--mc-cap-progress)))); }
-.mc-nav-capsule .mc-nav-link { text-shadow: 0 1px 12px rgba(0,0,0,calc(.42 * (1 - var(--mc-cap-progress)))); }
+.mc-nav-capsule-shell[data-top-tone="light"] { --mc-cap-ink: #181513; }
+.mc-nav-capsule .mc-nav-brand { color: var(--mc-cap-ink); --mc-nav-mark: var(--mc-cap-ink); --mc-nav-mark-border: color-mix(in srgb, currentColor 55%, transparent); --mc-nav-ring: color-mix(in srgb, currentColor 35%, transparent); transition: none; }
+.mc-nav-capsule .mc-nav-brand-mark { color: var(--mc-cap-ink); transition: none; }
+.mc-nav-capsule .mc-nav-link { color: var(--mc-cap-ink); opacity: .92; transition: none; }
+.mc-nav-capsule .mc-nav-wordmark { text-shadow: 0 1px 14px rgba(0,0,0,calc(.4 * (1 - var(--mc-cap-surface)))); }
+.mc-nav-capsule .mc-nav-link { text-shadow: 0 1px 12px rgba(0,0,0,calc(.42 * (1 - var(--mc-cap-surface)))); }
 .mc-nav-capsule-spacer { min-width: 0; flex: 1 1 auto; }
 .mc-nav-capsule-links { gap: clamp(15px, 1.7cqw, 24px); }
-.mc-nav-capsule-booking > span { padding: 10px 18px; }
-.mc-nav-capsule-toggle { display: none; width: 40px; min-width: 40px; height: 40px; min-height: 40px; border-radius: 999px; background: rgba(255,255,255,.12); }
+.mc-nav-capsule-booking > .mc-book-button { padding: 10px 18px; }
+.mc-nav-capsule-toggle { display: none; width: 40px; min-width: 40px; height: 40px; min-height: 40px; border-radius: 999px; background: color-mix(in srgb, currentColor 12%, transparent); }
 .mc-nav-capsule-toggle .mc-nav-burger { width: 16px; height: 12px; }
 .mc-nav-capsule-toggle .mc-nav-burger i:first-child { top: 3px; }
 .mc-nav-capsule-toggle .mc-nav-burger i:last-child { top: 8px; }
 
-.mc-nav-menu-overlay--capsule { z-index: 70; background: rgba(19,17,16,.52); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); }
+.mc-nav-menu-overlay--capsule { z-index: 70; background: rgba(19,17,16,.52); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
 .mc-nav-menu-surface--capsule {
   top: calc(var(--mc-nav-overlay-top, 0px) + 12px);
   right: 12px;
@@ -48,7 +50,7 @@
   max-height: calc(var(--mc-nav-overlay-height, 100dvh) - 24px);
   border: 1px solid rgba(255,255,255,.14);
   border-radius: 30px;
-  background: rgba(26,22,20,.96);
+  background: #181513;
   box-shadow: 0 34px 80px -26px rgba(0,0,0,.62);
   color: #fff;
 }
@@ -71,11 +73,7 @@
     gap: 11px;
     padding: 10px 12px 10px 14px !important;
     border-width: 1px;
-    border-color: rgba(255,255,255,.16) !important;
-    background: rgba(24,21,19,.55) !important;
-    backdrop-filter: blur(14px) saturate(150%) !important;
-    -webkit-backdrop-filter: blur(14px) saturate(150%) !important;
-    box-shadow: 0 12px 30px -12px rgba(0,0,0,.55) !important;
+    box-shadow: 0 12px 30px -12px rgba(0,0,0,calc(.55 * var(--mc-cap-surface)));
   }
   .mc-nav-capsule-links,
   .mc-nav-capsule-booking { display: none; }
@@ -112,9 +110,7 @@
     scrollbar-width: none;
     border-radius: 28px;
     padding: 10px 20px;
-    background: rgba(26,22,20,.82);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    background: #181513;
     box-shadow: 0 28px 60px -20px rgba(0,0,0,.6);
     transform-origin: top center;
     will-change: top, left, width, height, border-radius;
@@ -240,9 +236,7 @@
     max-height: var(--mc-cap-menu-origin-height);
     border-radius: 999px;
     padding: 10px 12px 10px 14px;
-    background: rgba(24,21,19,.55);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
+    background: #181513;
     box-shadow: 0 12px 30px -12px rgba(0,0,0,.55);
   }
   38% {
@@ -253,9 +247,7 @@
     max-height: var(--mc-cap-menu-origin-height);
     border-radius: 999px;
     padding: 10px 14px;
-    background: rgba(24,21,19,.68);
-    backdrop-filter: blur(17px);
-    -webkit-backdrop-filter: blur(17px);
+    background: #181513;
     box-shadow: 0 18px 42px -16px rgba(0,0,0,.58);
   }
   46% {
@@ -275,9 +267,7 @@
     max-height: var(--mc-cap-menu-target-height);
     border-radius: 28px;
     padding: 10px 20px;
-    background: rgba(26,22,20,.82);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    background: #181513;
     box-shadow: 0 28px 60px -20px rgba(0,0,0,.6);
   }
 }
@@ -290,9 +280,7 @@
     max-height: var(--mc-cap-menu-target-height);
     border-radius: 28px;
     padding: 10px 20px;
-    background: rgba(26,22,20,.82);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    background: #181513;
     box-shadow: 0 28px 60px -20px rgba(0,0,0,.6);
   }
   58% {
@@ -321,9 +309,7 @@
     max-height: var(--mc-cap-menu-origin-height);
     border-radius: 999px;
     padding: 10px 12px 10px 14px;
-    background: rgba(24,21,19,.55);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
+    background: #181513;
     box-shadow: 0 12px 30px -12px rgba(0,0,0,.55);
   }
 }
@@ -336,9 +322,7 @@
     max-height: var(--mc-cap-menu-origin-height);
     border-radius: 28px;
     padding: 10px 12px 10px 14px;
-    background: rgba(24,21,19,.55);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
+    background: #181513;
     box-shadow: 0 12px 30px -12px rgba(0,0,0,.55);
   }
   38% {
@@ -349,9 +333,7 @@
     max-height: var(--mc-cap-menu-origin-height);
     border-radius: 28px;
     padding: 10px 20px;
-    background: rgba(24,21,19,.68);
-    backdrop-filter: blur(17px);
-    -webkit-backdrop-filter: blur(17px);
+    background: #181513;
     box-shadow: 0 18px 42px -16px rgba(0,0,0,.58);
   }
   100% {
@@ -362,9 +344,7 @@
     max-height: var(--mc-cap-menu-target-height);
     border-radius: 28px;
     padding: 10px 14px;
-    background: rgba(26,22,20,.82);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    background: #181513;
     box-shadow: 0 28px 60px -20px rgba(0,0,0,.6);
   }
 }
@@ -377,9 +357,7 @@
     max-height: var(--mc-cap-menu-target-height);
     border-radius: 28px;
     padding: 10px 14px;
-    background: rgba(26,22,20,.82);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    background: #181513;
     box-shadow: 0 28px 60px -20px rgba(0,0,0,.6);
   }
   62% {
@@ -390,9 +368,7 @@
     max-height: var(--mc-cap-menu-origin-height);
     border-radius: 28px;
     padding: 10px 14px;
-    background: rgba(24,21,19,.68);
-    backdrop-filter: blur(17px);
-    -webkit-backdrop-filter: blur(17px);
+    background: #181513;
     box-shadow: 0 18px 42px -16px rgba(0,0,0,.58);
   }
   100% {
@@ -403,9 +379,7 @@
     max-height: var(--mc-cap-menu-origin-height);
     border-radius: 28px;
     padding: 10px 12px 10px 14px;
-    background: rgba(24,21,19,.55);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
+    background: #181513;
     box-shadow: 0 12px 30px -12px rgba(0,0,0,.55);
   }
 }

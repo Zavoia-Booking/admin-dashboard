@@ -57,6 +57,6 @@
 .mc-heropt-titlewrap { position: absolute; inset: 0; z-index: 4; display: flex; align-items: center; justify-content: center; pointer-events: none; }
 .mc-heropt-titlemove { transform-origin: center center; }
 .mc-heropt-title { margin: 0; width: 96cqw; max-width: 1180px; color: #FBFAF7; font-family: var(--mc-display); font-weight: var(--mc-display-weight); letter-spacing: var(--mc-display-tracking); font-size: clamp(44px, 11cqw, 134px); line-height: 0.9; text-wrap: balance; }
-.mc-heropt-foot { position: absolute; left: 50%; bottom: clamp(28px, 7cqw, 72px); transform: translateX(-50%); z-index: 5; width: 100%; display: flex; flex-direction: column; align-items: center; }
-.mc-heropt-tag { margin: 0; font-size: clamp(15px, 1.8cqw, 19px); line-height: 1.6; color: rgba(255, 255, 255, 0.78); max-width: 50ch; text-wrap: pretty; text-shadow: 0 1px 12px rgba(6, 7, 11, 0.55); }
+.mc-heropt-foot { position: absolute; left: 50%; bottom: clamp(28px, 7cqw, 72px); transform: translateX(-50%); z-index: 5; width: 100%; padding-inline: var(--mc-content-gutter, clamp(16px, 2.4cqw, 28px)); display: flex; flex-direction: column; align-items: center; }
+.mc-heropt-tag { margin: 0; font-size: clamp(16px, 1.8cqw, 20px); line-height: 1.6; color: rgba(255, 255, 255, 0.78); max-width: 50ch; text-wrap: pretty; text-shadow: 0 1px 12px rgba(6, 7, 11, 0.55); }
 .mc-heropt-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 16px 30px; margin-top: clamp(16px, 2.6cqw, 28px); }

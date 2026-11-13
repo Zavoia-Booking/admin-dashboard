@@ -26,8 +26,8 @@
   filter: drop-shadow(0 10px 13px rgba(48, 36, 22, 0.17)); }
 .mc-herotb-ch:active { cursor: grabbing; }
 .mc-herotb-side { position: absolute; top: clamp(80px, 20cqw, 220px); right: clamp(18px, 4cqw, 56px); z-index: 2; width: min(250px, 38cqw); text-align: right; }
-.mc-herotb-tag { margin: 0; font-size: 14.5px; line-height: 1.6; color: var(--mc-fg); text-wrap: pretty; }
-.mc-herotb-foottag { display: none; margin: 0; font-size: 14.5px; line-height: 1.55; color: var(--mc-fg); text-wrap: pretty; max-width: 42ch; }
+.mc-herotb-tag { margin: 0; font-size: clamp(16px, 1.6cqw, 18px); line-height: 1.6; color: var(--mc-fg); text-wrap: pretty; }
+.mc-herotb-foottag { display: none; margin: 0; font-size: clamp(16px, 1.6cqw, 18px); line-height: 1.55; color: var(--mc-fg); text-wrap: pretty; max-width: 42ch; }
 .mc-herotb-reg { display: inline-block; margin-top: 16px; font-size: 17px; color: var(--mc-muted); }
 .mc-herotb-foot { position: absolute; left: clamp(18px, 4cqw, 56px); right: clamp(18px, 4cqw, 56px); bottom: clamp(20px, 4cqw, 40px); z-index: 4; display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 16px 28px; }
 .mc-herotb-cta { display: flex; align-items: center; gap: clamp(18px, 3.5cqw, 34px); flex-wrap: wrap; }

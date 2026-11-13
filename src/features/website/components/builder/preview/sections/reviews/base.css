@@ -30,9 +30,9 @@
 .mc-rv-meta-mono { flex: none; width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; font-family: var(--mc-display); font-weight: var(--mc-display-weight); font-size: 18px; color: var(--mc-fg); border: 1px solid var(--mc-line); }
 .mc-rv-meta-tx { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .mc-rv-meta-nm { font-family: var(--mc-display); font-weight: var(--mc-display-weight); letter-spacing: var(--mc-display-tracking); font-size: 17px; color: var(--mc-fg); line-height: 1.1; }
-.mc-rv-meta-sub { font-family: var(--mc-mono); font-size: 11px; letter-spacing: 0.03em; color: var(--mc-muted); }
+.mc-rv-meta-sub { font-family: var(--mc-mono); font-size: 13px; line-height: 1.45; letter-spacing: 0.03em; color: var(--mc-muted); }
 .mc-rv-meta-end { margin-left: auto; display: inline-flex; align-items: center; gap: 14px; }
-.mc-rv-vrow { display: inline-flex; align-items: center; gap: 6px; font-family: var(--mc-mono); font-size: 10px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--mc-muted); }
+.mc-rv-vrow { display: inline-flex; align-items: center; gap: 6px; font-family: var(--mc-mono); font-size: 13px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--mc-muted); }
 .mc-rv-vrow svg { color: var(--mc-muted); opacity: 0.8; }
 @container (max-width: 460px) { .mc-rv-meta-end { display: none; } }
 

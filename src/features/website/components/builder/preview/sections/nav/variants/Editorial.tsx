@@ -27,7 +27,7 @@ export function Editorial(props: NavVariantViewProps) {
         ref={props.navElementRef}
         data-preview-section="nav"
         data-nav-variant="editorial"
-        data-nav-scrolled={props.overHero && props.progress >= 1 ? "true" : undefined}
+        data-nav-scrolled={props.overHero && props.compactHeader ? "true" : undefined}
         className={cn(
           "mc-site-nav mc-nav-editorial",
           props.sticky ? "mc-site-nav--sticky" : "mc-site-nav--inline",

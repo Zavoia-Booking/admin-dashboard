@@ -59,15 +59,18 @@ export function useFaqMotion(
         end: viewport.top + viewport.height * 0.64,
       };
     };
-    const revealStates = revealNodes.map((element) => {
-      const { start } = thresholds();
-      const done = element.getBoundingClientRect().top < start;
-      if (!done) {
-        element.style.opacity = "0";
-        element.style.transform = "translateY(38px)";
-        element.style.willChange = "opacity, transform";
-      }
-      return { element, done };
+    // Read the initial geometry together before applying any reveal transforms.
+    const { start: initialStart } = thresholds();
+    const initialTitleTop = title?.getBoundingClientRect().top;
+    const revealStates = revealNodes.map((element) => ({
+      element,
+      done: element.getBoundingClientRect().top < initialStart,
+    }));
+    revealStates.forEach(({ element, done }) => {
+      if (done) return;
+      element.style.opacity = "0";
+      element.style.transform = "translateY(38px)";
+      element.style.willChange = "opacity, transform";
     });
 
     const count = words.length || 1;
@@ -80,52 +83,66 @@ export function useFaqMotion(
         word.style.willChange = "transform";
       });
     };
-    let titleDone = !title;
-    if (title) {
-      const { start } = thresholds();
-      if (title.getBoundingClientRect().top >= start) applyWords(0);
-      else titleDone = true;
-    }
+    let titleDone = initialTitleTop === undefined || initialTitleTop < initialStart;
+    if (!titleDone) applyWords(0);
 
+    let frame = 0;
+    let resizeObserver: ResizeObserver | null = null;
+    const queueUpdate = () => {
+      if (!frame) frame = requestAnimationFrame(update);
+    };
+    const detach = () => {
+      if (scroller) scroller.removeEventListener("scroll", queueUpdate);
+      else window.removeEventListener("scroll", queueUpdate);
+      window.removeEventListener("resize", queueUpdate);
+      resizeObserver?.disconnect();
+      if (frame) cancelAnimationFrame(frame);
+      frame = 0;
+    };
     const update = () => {
+      frame = 0;
       const { start, end } = thresholds();
       const distance = Math.max(1, start - end);
+      // Keep layout reads before all style writes, once per frame even when scroll/resize coalesce.
+      const titleProgress = title && !titleDone
+        ? clamp((start - title.getBoundingClientRect().top) / distance)
+        : null;
+      const pending = revealStates.filter((state) => !state.done).map((state) => ({
+        state,
+        progress: clamp((start - state.element.getBoundingClientRect().top) / distance),
+      }));
 
-      if (title && !titleDone) {
-        const progress = clamp((start - title.getBoundingClientRect().top) / distance);
-        applyWords(progress);
-        if (progress >= 1) {
+      if (titleProgress !== null) {
+        applyWords(titleProgress);
+        if (titleProgress >= 1) {
           clearWords();
           titleDone = true;
         }
       }
-
-      revealStates.forEach((state) => {
-        if (state.done) return;
-        const progress = clamp((start - state.element.getBoundingClientRect().top) / distance);
-        const eased = easeOut(progress);
-        state.element.style.opacity = eased.toFixed(3);
-        state.element.style.transform = `translateY(${(38 * (1 - eased)).toFixed(2)}px)`;
+      pending.forEach(({ state, progress }) => {
         if (progress >= 1) {
           clearReveal(state.element);
           state.done = true;
+        } else {
+          const eased = easeOut(progress);
+          state.element.style.opacity = eased.toFixed(3);
+          state.element.style.transform = `translateY(${(38 * (1 - eased)).toFixed(2)}px)`;
         }
       });
+      // These entrances play once. Completed sections need no continuing scroll measurements.
+      if (titleDone && revealStates.every((state) => state.done)) detach();
     };
 
-    update();
-    if (scroller) scroller.addEventListener("scroll", update, { passive: true });
-    else window.addEventListener("scroll", update, { passive: true });
-    window.addEventListener("resize", update, { passive: true });
-    const resizeObserver = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(update);
+    if (scroller) scroller.addEventListener("scroll", queueUpdate, { passive: true });
+    else window.addEventListener("scroll", queueUpdate, { passive: true });
+    window.addEventListener("resize", queueUpdate, { passive: true });
+    resizeObserver = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(queueUpdate);
     resizeObserver?.observe(root);
     if (scroller) resizeObserver?.observe(scroller);
+    update();
 
     return () => {
-      if (scroller) scroller.removeEventListener("scroll", update);
-      else window.removeEventListener("scroll", update);
-      window.removeEventListener("resize", update);
-      resizeObserver?.disconnect();
+      detach();
       revealNodes.forEach(clearReveal);
       clearWords();
     };

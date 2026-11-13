@@ -67,7 +67,7 @@
     "validation": {
       "nameRequired": "Please enter a location name",
       "nameMinLength": "Enter at least 2 characters",
-      "nameMaxLength": "Maximum 70 characters allowed",
+      "nameMaxLength": "Maximum 50 characters allowed",
       "nameInvalidChars": "Please remove special characters (only - ' & . ( ) allowed)",
       "addressRequired": "Address is required",
       "emailRequired": "Please enter a valid email address",

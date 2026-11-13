@@ -11,9 +11,6 @@ import { Capsule } from "./variants/Capsule";
 import { Split } from "./variants/Split";
 import { Underlay } from "./variants/Underlay";
 
-/** Nav frost over the hero: scroll distance to full blur. LivePreview drives the frost `progress` off this. */
-export const FROST_DIST = 240;
-
 /** `default` is the persisted catalog id for Editorial. Retired source ids remain safe renderer aliases. */
 export function normalizeNavStyle(value: string | undefined): NavStyleKey {
   if (!value || value === "default" || value === "editorial" || value === "index" || value === "sidebar" || value === "dock") {
@@ -64,6 +61,28 @@ export function Nav(props: NavVariantProps) {
     else if (props.navRef) props.navRef.current = node;
   }, [props.navRef]);
 
+  // Floating announcements follow the actual header, including Capsule's outer inset.
+  // Logical sizes keep the gap correct inside scaled desktop and phone previews.
+  useLayoutEffect(() => {
+    const content = navNode?.parentElement;
+    if (!navNode || !content?.classList.contains("mc-content")) return;
+    const capsule = navNode.querySelector<HTMLElement>(".mc-nav-capsule-shell");
+    const sync = () => {
+      const bottom = capsule
+        ? (Number.parseFloat(getComputedStyle(navNode).paddingTop) || 0) + capsule.offsetHeight
+        : navNode.offsetHeight;
+      content.style.setProperty("--mc-nav-bottom", `${bottom}px`);
+    };
+    sync();
+    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(sync);
+    observer?.observe(navNode, { box: "border-box" });
+    if (capsule) observer?.observe(capsule, { box: "border-box" });
+    return () => {
+      observer?.disconnect();
+      content.style.removeProperty("--mc-nav-bottom");
+    };
+  }, [navNode]);
+
   useEffect(() => {
     if (!links.some((link) => link.type === activeType)) setActiveType(links[0]?.type ?? "");
   }, [activeType, links]);
@@ -113,8 +132,8 @@ export function Nav(props: NavVariantProps) {
     };
   }, [navNode]);
 
-  // Match the design source's `past-hero` state: after 60% of one preview viewport the
-  // transparent hero chrome resolves into the compact frosted paper bar.
+  // Editorial's compact layout is independent of the continuous surface fade.
+  // Keep its existing desktop/phone density thresholds.
   useEffect(() => {
     if (!navNode || !props.overHero) {
       setPastHero(false);
@@ -135,8 +154,12 @@ export function Nav(props: NavVariantProps) {
     };
     update();
     scrollParent.addEventListener("scroll", onScroll, { passive: true });
+    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(onScroll);
+    observer?.observe(scrollParent);
+    if (portalRoot) observer?.observe(portalRoot);
     return () => {
       scrollParent.removeEventListener("scroll", onScroll);
+      observer?.disconnect();
       if (frame) window.cancelAnimationFrame(frame);
     };
   }, [navNode, portalRoot, props.overHero]);
@@ -148,7 +171,10 @@ export function Nav(props: NavVariantProps) {
     let frame = 0;
     const update = () => {
       frame = 0;
-      const threshold = scrollParent.getBoundingClientRect().top + navNode.offsetHeight + 48;
+      const scrollRect = scrollParent.getBoundingClientRect();
+      const scale = scrollParent.clientHeight > 0 ? scrollRect.height / scrollParent.clientHeight : 1;
+      const safeScale = Number.isFinite(scale) && scale > 0 ? scale : 1;
+      const threshold = navNode.offsetHeight + 48;
       let next = links[0]?.type ?? "";
       const sections = Array.from(
         portalRoot.querySelectorAll<HTMLElement>(".mc-page-flow > [data-preview-section]"),
@@ -156,7 +182,8 @@ export function Nav(props: NavVariantProps) {
       for (const section of sections) {
         const type = section.dataset.previewSection;
         if (!type || !links.some((link) => link.type === type)) continue;
-        if (section.getBoundingClientRect().top <= threshold) next = type;
+        const top = (section.getBoundingClientRect().top - scrollRect.top) / safeScale;
+        if (top <= threshold) next = type;
       }
       setActiveType((current) => (current === next ? current : next));
     };
@@ -281,13 +308,10 @@ export function Nav(props: NavVariantProps) {
   }, [portalRoot, variant]);
 
   const Variant = VARIANTS[variant];
-  const effectiveProgress = props.overHero && variant === "editorial"
-    ? (pastHero ? 1 : 0)
-    : props.progress;
   return (
     <Variant
       {...props}
-      progress={effectiveProgress}
+      compactHeader={pastHero}
       name={name}
       mark={mark}
       links={links}

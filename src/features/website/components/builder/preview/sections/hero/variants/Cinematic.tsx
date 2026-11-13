@@ -39,9 +39,9 @@ export function Cinematic(props: HeroVariantProps) {
         className="absolute inset-0 -z-10"
         style={{ background: "linear-gradient(180deg, rgba(20,16,14,0.62) 0%, rgba(20,16,14,0.42) 18%, rgba(20,16,14,0.34) 42%, rgba(20,16,14,0.38) 62%, rgba(20,16,14,0.84) 100%)" }}
       />
-      <div className="mx-auto w-full max-w-[1320px] px-[clamp(20px,5cqw,48px)] pb-[clamp(40px,6cqw,72px)] pt-12 text-white">
+      <div className="mx-auto w-full max-w-[calc(var(--mc-content-max)+2*var(--mc-content-gutter))] px-[var(--mc-content-gutter)] pb-[clamp(40px,6cqw,72px)] pt-12 text-white">
         {eyebrow && (
-          <p className="mc-rev-fade inline-flex items-center gap-[9px] text-[11px] font-semibold uppercase" style={{ ...MONO, letterSpacing: "0.16em", color: "rgba(255,255,255,0.92)", animationDelay: `${HERO_DELAY.eyebrow}ms` }}>
+          <p className="mc-rev-fade inline-flex items-center gap-[9px] text-[12px] font-semibold uppercase" style={{ ...MONO, letterSpacing: "0.16em", color: "rgba(255,255,255,0.92)", animationDelay: `${HERO_DELAY.eyebrow}ms` }}>
             {eyebrowDot}
             {eyebrow}
           </p>
@@ -54,19 +54,19 @@ export function Cinematic(props: HeroVariantProps) {
           style={{ ...DISPLAY, fontSize: "clamp(38px,12cqw,96px)", lineHeight: 0.96 }}
         />
         {tagline && (
-          <p className="mc-rev-up mt-5 max-w-[540px] text-[clamp(14px,2.4cqw,21px)]" style={{ lineHeight: 1.45, color: "rgba(255,255,255,0.9)", animationDelay: `${HERO_DELAY.tagline}ms` }}>
+          <p className="mc-rev-up mt-5 max-w-[540px] text-[clamp(16px,2.4cqw,21px)]" style={{ lineHeight: 1.45, color: "rgba(255,255,255,0.9)", animationDelay: `${HERO_DELAY.tagline}ms` }}>
             {tagline}
           </p>
         )}
         <div className="mt-7 flex flex-wrap items-center gap-x-[22px] gap-y-3.5">
           {showRating && (
             <div className="mc-rev-up flex items-center gap-2.5" style={{ color: "#fff", animationDelay: `${HERO_DELAY.rating}ms` }}>
-              <span style={{ ...DISPLAY, fontSize: "clamp(30px,6cqw,44px)", lineHeight: 0.85, letterSpacing: "-0.03em", fontVariantNumeric: "tabular-nums", textShadow: "0 2px 14px rgba(0,0,0,0.4)" }}>
+              <span style={{ ...DISPLAY, fontSize: "clamp(30px,6cqw,44px)", lineHeight: 1, alignSelf: "flex-start", letterSpacing: "-0.03em", fontVariantNumeric: "lining-nums tabular-nums", textShadow: "0 2px 14px rgba(0,0,0,0.4)" }}>
                 {rating.toFixed(1)}
               </span>
               <span className="flex flex-col gap-1">
                 <Stars value={rating} size={13} color="#fff" empty="rgba(255,255,255,0.34)" />
-                <span className="text-[11px] font-semibold uppercase" style={{ ...MONO, letterSpacing: "0.12em", color: "rgba(255,255,255,0.8)", textShadow: "0 1px 6px rgba(0,0,0,0.35)" }}>
+                <span className="text-[12px] font-semibold uppercase" style={{ ...MONO, letterSpacing: "0.12em", color: "rgba(255,255,255,0.8)", textShadow: "0 1px 6px rgba(0,0,0,0.35)" }}>
                   {t("businessPage.builder.preview.reviewsCount", { count })}
                 </span>
               </span>

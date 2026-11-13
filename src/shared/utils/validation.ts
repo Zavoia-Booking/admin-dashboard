@@ -225,8 +225,8 @@ export const validateLocationName = (
   const v = (value ?? "").trim();
   if (!v) return t("common:validation.locationName");
   if (v.length < 2) return t("common:validation.minLength2Generic");
-  if (v.length > 70)
-    return t("common:validation.maxLengthGeneric", { max: 70 });
+  if (v.length > 50)
+    return t("common:validation.maxLengthGeneric", { max: 50 });
   if (!NAME_PATTERN.test(v)) return t("common:validation.nameSpecialChars");
   return null;
 };

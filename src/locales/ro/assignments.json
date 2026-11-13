@@ -233,6 +233,7 @@
         "customized": "Personalizați"
       },
       "servicesCount_one": "Oferă {{count}} serviciu",
+      "servicesCount_few": "Oferă {{count}} servicii",
       "servicesCount_other": "Oferă {{count}} servicii",
       "noServicesAssigned": "Niciun serviciu alocat încă",
       "buttons": {

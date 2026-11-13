@@ -12,6 +12,8 @@ import type { GalleryVariantProps } from "../types";
 import "./carousel.css";
 
 type DragState = {
+  pointerId: number;
+  scale: number;
   x0: number;
   last: number;
   t: number;
@@ -90,10 +92,13 @@ export function Carousel({ images, onOpen, t, lightboxOpen, lightboxIndex }: Gal
   };
 
   const handlePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (event.button !== 0) return;
+    if (!event.isPrimary || event.button !== 0 || dragRef.current) return;
     event.currentTarget.setPointerCapture(event.pointerId);
     const slide = (event.target as Element).closest<HTMLElement>(".mc-galcar-slide");
+    const scale = event.currentTarget.getBoundingClientRect().width / event.currentTarget.clientWidth;
     dragRef.current = {
+      pointerId: event.pointerId,
+      scale: Number.isFinite(scale) && scale > 0 ? scale : 1,
       x0: event.clientX,
       last: event.clientX,
       t: performance.now(),
@@ -107,23 +112,25 @@ export function Carousel({ images, onOpen, t, lightboxOpen, lightboxIndex }: Gal
 
   const handlePointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
     const drag = dragRef.current;
-    if (!drag) return;
-    let dx = event.clientX - drag.x0;
+    if (!drag || event.pointerId !== drag.pointerId) return;
+    const screenDelta = event.clientX - drag.x0;
+    let dx = screenDelta / drag.scale;
     if ((active === 0 && dx > 0) || (active === count - 1 && dx < 0)) dx *= 0.35;
-    if (Math.abs(dx) > 5) movedRef.current = true;
+    if (Math.abs(screenDelta) > 5) movedRef.current = true;
     const now = performance.now();
     const dt = Math.max(1, now - drag.t);
-    drag.v = 0.6 * drag.v + 0.4 * ((event.clientX - drag.last) / dt);
+    drag.v = 0.6 * drag.v + 0.4 * ((event.clientX - drag.last) / (dt * drag.scale));
     drag.last = event.clientX;
     drag.t = now;
     drag.dx = dx;
     setDragDX(dx);
   };
 
-  const handlePointerUp = () => {
+  const handlePointerUp = (event: ReactPointerEvent<HTMLDivElement>) => {
     const drag = dragRef.current;
-    if (!drag) return;
+    if (!drag || event.pointerId !== drag.pointerId) return;
     dragRef.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
     setDragging(false);
 
     if (!movedRef.current) {
@@ -141,6 +148,15 @@ export function Carousel({ images, onOpen, t, lightboxOpen, lightboxIndex }: Gal
     window.setTimeout(() => {
       movedRef.current = false;
     }, 0);
+  };
+
+  const handlePointerCancel = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!dragRef.current || event.pointerId !== dragRef.current.pointerId) return;
+    dragRef.current = null;
+    movedRef.current = true;
+    setDragging(false);
+    setDragDX(0);
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
   };
 
   const num = (value: number) => String(value).padStart(2, "0");
@@ -165,8 +181,8 @@ export function Carousel({ images, onOpen, t, lightboxOpen, lightboxIndex }: Gal
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
-        onPointerCancel={handlePointerUp}
-        onLostPointerCapture={handlePointerUp}
+        onPointerCancel={handlePointerCancel}
+        onLostPointerCapture={handlePointerCancel}
       >
         <div
           className="mc-galcar-track"

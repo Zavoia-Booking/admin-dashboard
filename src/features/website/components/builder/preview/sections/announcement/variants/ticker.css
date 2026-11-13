@@ -3,7 +3,7 @@
   align-items: stretch;
   justify-content: flex-start;
   gap: 0;
-  padding: 0;
+  padding: 0 48px 0 0;
   flex-wrap: nowrap;
 }
 .mc-anno-tick {
@@ -43,17 +43,21 @@
   display: inline-flex;
   min-width: 0;
   max-width: 75%;
-  flex: 0 1 auto;
+  flex: 0 0 auto;
   align-items: center;
   justify-content: center;
   flex-wrap: wrap;
   gap: 14px;
-  padding: 9px 48px 9px 20px;
+  padding: 9px 0 9px 20px;
   background: inherit;
   box-shadow: -22px 0 22px -14px rgba(0, 0, 0, .35);
 }
 
+/* Keep the dismiss control above the moving lane and its action fade. */
+.mc-anno--lay-ticker > .mc-anno-x { z-index: 3; }
+
 @container (max-width: 560px) {
+  .mc-anno--lay-ticker .mc-anno-in { padding-right: 44px; }
   .mc-anno--lay-ticker .mc-anno-tick-track {
     display: block;
     width: 100%;
@@ -80,6 +84,6 @@
     flex: 0 0 auto;
     flex-wrap: nowrap;
     gap: 8px;
-    padding: 8px 44px 8px 8px;
+    padding: 8px 0 8px 8px;
   }
 }

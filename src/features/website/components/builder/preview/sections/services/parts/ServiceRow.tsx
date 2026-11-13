@@ -19,7 +19,7 @@ export function ServiceRow({
   t: T;
 }) {
   const price = money(item.priceMinor, currency, locale);
-  const description = item.isBundle && item.includes.length ? item.includes.join(" + ") : item.description;
+  const description = item.description || (item.isBundle ? item.includes.join(" + ") : "");
   return (
     <button
       type="button"

@@ -54,7 +54,7 @@
 /* long business names step the title down so it doesn't dominate the frame */
 .mc-herodr-title.is-long { font-size: clamp(40px, 9.5cqw, 116px); letter-spacing: -0.004em; }
 .mc-herodr-title.is-xlong { font-size: clamp(30px, 6.8cqw, 80px); letter-spacing: 0; line-height: 1; }
-.mc-herodr-tag { margin: clamp(18px, 3cqw, 30px) 0 0; font-size: clamp(15px, 1.9cqw, 20px); line-height: 1.55; color: rgba(255, 255, 255, 0.72); max-width: 46ch; text-wrap: pretty; text-shadow: 0 1px 14px rgba(6, 7, 11, 0.5); }
+.mc-herodr-tag { margin: clamp(18px, 3cqw, 30px) 0 0; font-size: clamp(16px, 1.9cqw, 20px); line-height: 1.55; color: rgba(255, 255, 255, 0.72); max-width: 46ch; text-wrap: pretty; text-shadow: 0 1px 14px rgba(6, 7, 11, 0.5); }
 .mc-herodr-cta { display: flex; align-items: center; justify-content: center; gap: clamp(18px, 3.5cqw, 34px); flex-wrap: wrap; margin-top: clamp(28px, 4.5cqw, 46px); }
 
 /* Drift is the heaviest screen — drop the rotating conic sheen and cap the blob blur on narrow previews;

@@ -8,7 +8,7 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import { ArrowRight } from "lucide-react";
-import { useReducedMotion } from "../../../shared/hooks";
+import { useInView, useReducedMotion } from "../../../shared/hooks";
 import { useGalleryFanSpread } from "../../gallery/parts/useGalleryFan";
 import { RvHead } from "../parts/RvHead";
 import { RvStackFace } from "../parts/RvStackFace";
@@ -16,8 +16,12 @@ import type { ReviewsViewProps } from "../types";
 import "./deck.css";
 
 type DeckDrag = {
+  pointerId: number;
   x0: number;
   base: number;
+  active: number;
+  scale: number;
+  step: number;
 };
 
 type DeckMotionState = {
@@ -27,7 +31,7 @@ type DeckMotionState = {
   to: number;
   startedAt: number;
   duration: number;
-  timer: number;
+  frame: number;
   drag: DeckDrag | null;
   moved: boolean;
   movedTimer: number;
@@ -46,16 +50,16 @@ export function Deck({ quotes, showHeading, heading, kicker, no, italic, busines
   const n = quotes.length;
   const reduced = useReducedMotion();
   const [hover, setHover] = useState(false);
-  const [vw, setVw] = useState(1200);
   const deckRef = useRef<HTMLDivElement>(null);
+  const inView = useInView(deckRef, { threshold: 0.01 });
+  const [documentVisible, setDocumentVisible] = useState(true);
   useEffect(() => {
-    const on = () => setVw(window.innerWidth);
-    on();
-    window.addEventListener("resize", on);
-    return () => window.removeEventListener("resize", on);
+    const update = () => setDocumentVisible(document.visibilityState !== "hidden");
+    update();
+    document.addEventListener("visibilitychange", update);
+    return () => document.removeEventListener("visibilitychange", update);
   }, []);
-
-  const step = Math.max(240, vw * 0.46);
+  const canAnimate = inView && documentVisible;
   const spread = useGalleryFanSpread(deckRef, reduced); // 0→1 fan-out on first view
 
   const [motionView, setMotionView] = useState({ pos: 0, active: 0, dragging: false });
@@ -66,7 +70,7 @@ export function Deck({ quotes, showHeading, heading, kicker, no, italic, busines
     to: 0,
     startedAt: 0,
     duration: 0,
-    timer: 0,
+    frame: 0,
     drag: null,
     moved: false,
     movedTimer: 0,
@@ -86,8 +90,8 @@ export function Deck({ quotes, showHeading, heading, kicker, no, italic, busines
 
   const stopTween = useCallback(() => {
     const motion = motionRef.current;
-    if (motion.timer) window.clearInterval(motion.timer);
-    motion.timer = 0;
+    if (motion.frame) window.cancelAnimationFrame(motion.frame);
+    motion.frame = 0;
   }, []);
 
   const tweenTo = useCallback(
@@ -97,7 +101,7 @@ export function Deck({ quotes, showHeading, heading, kicker, no, italic, busines
       motion.to = target;
       motion.startedAt = performance.now();
 
-      if (reduced) {
+      if (reduced || !canAnimate) {
         stopTween();
         motion.pos = target;
         requestRender();
@@ -106,21 +110,20 @@ export function Deck({ quotes, showHeading, heading, kicker, no, italic, busines
 
       const distance = Math.abs(target - motion.pos);
       motion.duration = Math.max(560, Math.min(1100, 660 + distance * 240));
-      if (motion.timer) return;
+      if (motion.frame) return;
 
-      motion.timer = window.setInterval(() => {
+      const tick = () => {
+        motion.frame = 0;
         const progress = motion.duration
           ? Math.min(1, (performance.now() - motion.startedAt) / motion.duration)
           : 1;
         motion.pos = motion.from + (motion.to - motion.from) * easeOutQuart(progress);
         requestRender();
-        if (progress >= 1) {
-          motion.pos = motion.to;
-          stopTween();
-        }
-      }, 1000 / 60);
+        if (progress < 1) motion.frame = window.requestAnimationFrame(tick);
+      };
+      motion.frame = window.requestAnimationFrame(tick);
     },
-    [reduced, requestRender, stopTween],
+    [canAnimate, reduced, requestRender, stopTween],
   );
 
   const goTo = useCallback(
@@ -145,13 +148,25 @@ export function Deck({ quotes, showHeading, heading, kicker, no, italic, busines
     [stopTween],
   );
 
+  // Finish a hidden transition once instead of maintaining a render timer for an unseen deck.
+  // The selected review stays stable and is ready when the visitor returns.
+  useEffect(() => {
+    if (canAnimate && !reduced) return;
+    stopTween();
+    const motion = motionRef.current;
+    if (motion.pos === motion.active && !motion.drag) return;
+    motion.pos = motion.active;
+    motion.drag = null;
+    requestRender();
+  }, [canAnimate, reduced, requestRender, stopTween]);
+
   const active = Math.min(motionView.active, Math.max(0, n - 1));
   const pos = Math.min(motionView.pos, Math.max(0, n - 1) + 1);
 
   // Auto-advance — ping-pongs between the ends; pauses on hover / drag / off-screen / before fan-in, and for
   // a few seconds after any manual nav so a click never compounds with the timer into a double-step.
   useEffect(() => {
-    if (reduced || hover || n < 2 || spread < 0.9) return;
+    if (reduced || !canAnimate || hover || n < 2 || spread < 0.9) return;
     const id = window.setInterval(() => {
       const motion = motionRef.current;
       if (motion.drag || performance.now() < motion.holdUntil) return;
@@ -168,7 +183,7 @@ export function Deck({ quotes, showHeading, heading, kicker, no, italic, busines
       goTo(next, false);
     }, 6000);
     return () => window.clearInterval(id);
-  }, [goTo, hover, n, reduced, spread]);
+  }, [canAnimate, goTo, hover, n, reduced, spread]);
 
   const brand = (businessName || "Studio").trim().charAt(0).toUpperCase() || "S";
   const num = (i: number) => String(i + 1).padStart(2, "0");
@@ -217,17 +232,30 @@ export function Deck({ quotes, showHeading, heading, kicker, no, italic, busines
   // chooses previous / next only after crossing 20% of a card; release speed never amplifies the gesture.
   const onDown = useCallback(
     (event: ReactPointerEvent<HTMLDivElement>) => {
-      if (n < 1 || event.button !== 0) return;
+      const motion = motionRef.current;
+      if (n < 1 || event.button !== 0 || !event.isPrimary || motion.drag) return;
       try {
         event.currentTarget.setPointerCapture(event.pointerId);
       } catch {
         // Pointer capture can be unavailable in embedded preview contexts; in-bounds dragging still works.
       }
       stopTween();
-      const motion = motionRef.current;
       const card = (event.target as HTMLElement)?.closest?.(".mc-rvx-live") as HTMLElement | null;
       motion.downIndex = card ? parseInt(card.dataset.i ?? "-1", 10) : -1;
-      motion.drag = { x0: event.clientX, base: motion.active };
+      const deck = event.currentTarget;
+      const root = deck.closest<HTMLElement>(".mc-root");
+      const renderedWidth = deck.getBoundingClientRect().width;
+      const scale = deck.offsetWidth > 0 ? renderedWidth / deck.offsetWidth : 1;
+      // Pointer coordinates are visual pixels; the dashboard can scale the whole preview.
+      // Freeze the logical page width and scale for this gesture so both hosts feel identical.
+      motion.drag = {
+        pointerId: event.pointerId,
+        x0: event.clientX,
+        base: motion.pos,
+        active: motion.active,
+        scale: Number.isFinite(scale) && scale > 0 ? scale : 1,
+        step: Math.max(240, (root?.clientWidth ?? deck.clientWidth) * 0.46),
+      };
       motion.moved = false;
       motion.holdUntil = performance.now() + 5000;
       requestRender();
@@ -239,30 +267,34 @@ export function Deck({ quotes, showHeading, heading, kicker, no, italic, busines
     (event: ReactPointerEvent<HTMLDivElement>) => {
       const motion = motionRef.current;
       const drag = motion.drag;
-      if (!drag) return;
+      if (!drag || event.pointerId !== drag.pointerId) return;
 
-      const deltaX = event.clientX - drag.x0;
+      const deltaX = (event.clientX - drag.x0) / drag.scale;
       if (Math.abs(deltaX) > 4) motion.moved = true;
-      let fraction = -deltaX / step;
+      let fraction = -deltaX / drag.step;
       if (fraction > 1) fraction = 1 + (fraction - 1) * 0.3;
       else if (fraction < -1) fraction = -1 + (fraction + 1) * 0.3;
 
-      let nextPos = drag.base + fraction;
+      // A returning edge card can still be rubber-banded when grabbed. Undo that resistance for
+      // the drag origin before applying it again, so the first move cannot snap it toward the edge.
+      const base = drag.base < 0 ? drag.base / 0.32
+        : drag.base > n - 1 ? n - 1 + (drag.base - (n - 1)) / 0.32 : drag.base;
+      let nextPos = base + fraction;
       if (nextPos < 0) nextPos *= 0.32;
       else if (nextPos > n - 1) nextPos = n - 1 + (nextPos - (n - 1)) * 0.32;
       motion.pos = nextPos;
       requestRender();
     },
-    [n, requestRender, step],
+    [n, requestRender],
   );
 
-  const onUp = useCallback(() => {
+  const onUp = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
     const motion = motionRef.current;
     const drag = motion.drag;
-    if (!drag) return;
+    if (!drag || event.pointerId !== drag.pointerId) return;
     motion.drag = null;
     const fraction = motion.pos - drag.base;
-    const target = fraction > 0.2 ? drag.base + 1 : fraction < -0.2 ? drag.base - 1 : drag.base;
+    const target = fraction > 0.2 ? drag.active + 1 : fraction < -0.2 ? drag.active - 1 : drag.active;
     goTo(target);
     if (motion.movedTimer) window.clearTimeout(motion.movedTimer);
     motion.movedTimer = window.setTimeout(() => {
@@ -270,6 +302,17 @@ export function Deck({ quotes, showHeading, heading, kicker, no, italic, busines
       motion.movedTimer = 0;
     }, 0);
   }, [goTo]);
+
+  const onCancel = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
+    const motion = motionRef.current;
+    const drag = motion.drag;
+    if (!drag || event.pointerId !== drag.pointerId) return;
+    motion.drag = null;
+    motion.downIndex = -1;
+    motion.moved = true;
+    tweenTo(drag.active);
+    requestRender();
+  }, [requestRender, tweenTo]);
 
   const onKeyDown = useCallback(
     (event: ReactKeyboardEvent<HTMLDivElement>) => {
@@ -304,8 +347,8 @@ export function Deck({ quotes, showHeading, heading, kicker, no, italic, busines
           onPointerDown={onDown}
           onPointerMove={onMove}
           onPointerUp={onUp}
-          onPointerCancel={onUp}
-          onLostPointerCapture={onUp}
+          onPointerCancel={onCancel}
+          onLostPointerCapture={onCancel}
           onKeyDown={onKeyDown}
           onClick={onClick}
         >

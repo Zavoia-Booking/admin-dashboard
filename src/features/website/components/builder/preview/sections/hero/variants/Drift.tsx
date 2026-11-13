@@ -33,10 +33,24 @@ export function Drift(props: HeroVariantProps) {
     // read would report the shrunk width and wrongly force autonomous on every device.
     const finePtr = window.matchMedia?.("(hover: hover) and (pointer: fine)").matches ?? false;
 
+    type MotionController = { pause: () => void; resume: () => void; destroy: () => void };
+    let inView = typeof IntersectionObserver === "undefined";
+    let controller: MotionController | null = null;
+    const ambient = Array.from(el.querySelectorAll<HTMLElement>(
+      ".mc-herodr-aurora, .mc-herodr-sheen, .mc-herodr-rays, .mc-herodr-grain",
+    ));
+    const previousPlayStates = ambient.map((node) => node.style.animationPlayState);
+    const syncVisibility = () => {
+      const running = inView && document.visibilityState !== "hidden";
+      ambient.forEach((node) => { node.style.animationPlayState = running ? "running" : "paused"; });
+      if (running) controller?.resume();
+      else controller?.pause();
+    };
+
     // Tablet/phone (or no hover): each blob wanders a quasi-periodic path — every axis sums two
     // incommensurate sinusoids so the loop never visibly repeats — and its own speed drives a gentle
     // squash-&-stretch, so the field breathes and deforms like liquid rather than sliding as rigid discs.
-    const startAutonomous = () => {
+    const startAutonomous = (): MotionController => {
       const AMP = [[168, 126], [138, 158], [118, 108]];  // primary sway (x, y) px
       const AMP2 = [[56, 45], [48, 60], [42, 39]];       // secondary sway px
       const PER = [[19, 15], [27, 21], [23, 29]];        // primary periods (s)
@@ -54,14 +68,18 @@ export function Drift(props: HeroVariantProps) {
       const sqz = pars.map(() => ({ s: 0, a: 0 }));
       let rafW = 0;
       let last = 0;
-      const tStart = performance.now();
+      let elapsed = 0;
+      let running = false;
       const wander = (now: number) => {
-        let dt = last ? (now - last) / 1000 : 1 / 60;
+        if (!running) return;
+        const delta = last ? (now - last) / 1000 : 0;
+        elapsed += delta;
+        let dt = delta || 1 / 60;
         const firstFrame = !last;
         last = now;
         if (dt > 0.05) dt = 0.05;
         const ease = Math.min(1, dt * 12);
-        const time = (now - tStart) / 1000;
+        const time = elapsed;
         for (let i = 0; i < pars.length; i++) {
           const a = AMP[i] ?? AMP[AMP.length - 1];
           const a2 = AMP2[i] ?? AMP2[AMP2.length - 1];
@@ -94,13 +112,26 @@ export function Drift(props: HeroVariantProps) {
         }
         rafW = requestAnimationFrame(wander);
       };
-      rafW = requestAnimationFrame(wander);
-      return () => {
+      const pause = () => {
+        running = false;
         if (rafW) cancelAnimationFrame(rafW);
-        for (const p of pars) {
-          p.style.transform = "";
-          p.style.transformOrigin = "";
-        }
+        rafW = 0;
+        last = 0;
+      };
+      return {
+        pause,
+        resume: () => {
+          if (running) return;
+          running = true;
+          rafW = requestAnimationFrame(wander);
+        },
+        destroy: () => {
+          pause();
+          for (const p of pars) {
+            p.style.transform = "";
+            p.style.transformOrigin = "";
+          }
+        },
       };
     };
 
@@ -108,7 +139,7 @@ export function Drift(props: HeroVariantProps) {
     // whole gradient mesh across the field and re-composes light against dark (not a local nudge on one blob).
     // A critically-damped smooth-follow gives the flow weight without overshoot; speed drives a squash-&-
     // stretch so the blobs deform like liquid; a light press keeps a crowded pair from fully overlapping.
-    const startPointerPush = () => {
+    const startPointerPush = (): MotionController => {
       const FOLLOW = [0.48, 0.22, 0.34]; // per-blob parallax factor toward the pointer — bigger = flows further
       const SMOOTH = [0.34, 0.5, 0.42]; // follow time (s), varied so the mesh re-composes instead of sliding rigidly
       const BLOB_PUSH = 110; // light blob↔blob press so a crowded pair doesn't fully overlap
@@ -144,7 +175,9 @@ export function Drift(props: HeroVariantProps) {
       let my = 0;
       let raf = 0;
       let last = 0;
+      let running = false;
       const tick = (now: number) => {
+        if (!running) return;
         let dt = last ? (now - last) / 1000 : 1 / 60;
         last = now;
         if (dt > 0.05) dt = 0.05; // clamp after a tab stall so the integrator can't explode
@@ -214,12 +247,12 @@ export function Drift(props: HeroVariantProps) {
         const scale = r.width / el.offsetWidth || 1;
         mx = (e.clientX - r.left) / scale;
         my = (e.clientY - r.top) / scale;
-        if (!raf) raf = requestAnimationFrame(tick);
+        if (running && !raf) raf = requestAnimationFrame(tick);
       };
       const onLeave = () => {
         mx = cx; // recentre → the field flows back home
         my = cy;
-        if (!raf) raf = requestAnimationFrame(tick);
+        if (running && !raf) raf = requestAnimationFrame(tick);
       };
       measure();
       mx = cx;
@@ -227,36 +260,62 @@ export function Drift(props: HeroVariantProps) {
       el.addEventListener("pointermove", onMove);
       el.addEventListener("pointerleave", onLeave);
       window.addEventListener("resize", measure);
-      return () => {
-        el.removeEventListener("pointermove", onMove);
-        el.removeEventListener("pointerleave", onLeave);
-        window.removeEventListener("resize", measure);
+      const pause = () => {
+        running = false;
         if (raf) cancelAnimationFrame(raf);
-        for (const p of pars) {
-          p.style.transform = "";
-          p.style.transformOrigin = "";
-        }
+        raf = 0;
+        last = 0;
+      };
+      return {
+        pause,
+        resume: () => {
+          if (running) return;
+          running = true;
+          raf = requestAnimationFrame(tick);
+        },
+        destroy: () => {
+          pause();
+          el.removeEventListener("pointermove", onMove);
+          el.removeEventListener("pointerleave", onLeave);
+          window.removeEventListener("resize", measure);
+          for (const p of pars) {
+            p.style.transform = "";
+            p.style.transformOrigin = "";
+          }
+        },
       };
     };
 
     // Pick the mode from the current logical width, and re-pick when the device toggle resizes the hero
     // across the 1024px line (the effect mounts once; switching desktop⇄tablet/phone does not remount it).
     let mode: "auto" | "push" | "" = "";
-    let stop: (() => void) | null = null;
     const decide = () => {
       const next = !finePtr || el.offsetWidth <= 1024 ? "auto" : "push";
       if (next === mode) return;
-      stop?.();
+      controller?.destroy();
       for (const p of pars) p.style.transform = "";
       mode = next;
-      stop = next === "auto" ? startAutonomous() : startPointerPush();
+      controller = next === "auto" ? startAutonomous() : startPointerPush();
+      syncVisibility();
     };
     decide();
     const ro = new ResizeObserver(() => decide());
     ro.observe(el);
+    const visibilityObserver = typeof IntersectionObserver === "undefined" ? null : new IntersectionObserver(
+      ([entry]) => {
+        inView = entry.isIntersecting;
+        syncVisibility();
+      },
+      { threshold: 0 },
+    );
+    visibilityObserver?.observe(el);
+    document.addEventListener("visibilitychange", syncVisibility);
     return () => {
       ro.disconnect();
-      stop?.();
+      visibilityObserver?.disconnect();
+      document.removeEventListener("visibilitychange", syncVisibility);
+      controller?.destroy();
+      ambient.forEach((node, index) => { node.style.animationPlayState = previousPlayStates[index]; });
     };
   }, [reducedMotion, atRest]);
 

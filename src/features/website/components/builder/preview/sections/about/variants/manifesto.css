@@ -23,7 +23,7 @@
   margin: 0;
   color: color-mix(in oklch, var(--mc-bg) 62%, transparent);
   font-family: var(--mc-mono);
-  font-size: 11px;
+  font-size: 13px;
   letter-spacing: 0.18em;
   text-transform: uppercase;
 }
@@ -40,7 +40,7 @@
 .mc-abm-lede {
   margin: clamp(30px, 4cqw, 56px) 0 0;
   font-family: var(--mc-display);
-  font-size: clamp(31px, 5cqw, 78px);
+  font-size: clamp(34px, 4.8cqw, 72px);
   font-weight: var(--mc-display-weight);
   letter-spacing: var(--mc-display-tracking);
   line-height: 1.08;
@@ -56,8 +56,8 @@
   max-width: 56ch;
   margin: clamp(26px, 3.4cqw, 42px) auto 0;
   color: color-mix(in oklch, var(--mc-bg) 74%, transparent);
-  font-size: 16px;
-  line-height: 1.72;
+  font-size: clamp(18px, 1.5cqw, 21px);
+  line-height: 1.65;
   white-space: pre-line;
   text-wrap: pretty;
 }
@@ -99,7 +99,7 @@
 .mc-abm-label {
   color: color-mix(in oklch, var(--mc-bg) 58%, transparent);
   font-family: var(--mc-mono);
-  font-size: 10.5px;
+  font-size: 13px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
@@ -110,7 +110,7 @@
   }
 
   .mc-abm-lede {
-    font-size: clamp(26px, 8cqw, 34px);
+    font-size: clamp(30px, 8cqw, 36px);
   }
 
   .mc-abm-signature {

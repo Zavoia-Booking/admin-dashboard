@@ -72,7 +72,7 @@ export function Team({ entry, data, t, no }: { entry: SectionEntry; data: Previe
         />
       ) : showSublede ? (
         <div className="mb-[clamp(20px,3cqw,36px)]">
-          <p className="max-w-[480px] text-[14px] leading-relaxed" style={{ color: "var(--mc-muted)" }}>
+          <p className="max-w-[480px] text-[16px] leading-relaxed" style={{ color: "var(--mc-muted)" }}>
             {sublede}
           </p>
         </div>

@@ -6,8 +6,8 @@
   left: 0;
   height: var(--mc-anno-overlay-height, 100dvh);
   background: color-mix(in oklch, #110f0d 58%, transparent);
-  backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
 }
 
 .mc-anno-details-panel {

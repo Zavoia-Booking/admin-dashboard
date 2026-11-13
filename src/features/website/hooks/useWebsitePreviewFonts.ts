@@ -4,8 +4,6 @@ import { useSelector } from "react-redux";
 import { fontStylesheetFor } from "../components/builder/theme";
 import { selectWebsiteDraft } from "../selectors";
 
-const PRECONNECT_ID = "website-preview-fonts-preconnect";
-const PRECONNECT_STATIC_ID = "website-preview-fonts-static-preconnect";
 const STYLESHEET_ID = "website-preview-fonts-stylesheet";
 
 interface ActiveFontRequest {
@@ -43,22 +41,14 @@ function syncManagedFontLinks(): void {
   const stylesheetUrl = current?.stylesheetUrl;
   if (!stylesheetUrl) {
     removeManagedLink(STYLESHEET_ID);
-    removeManagedLink(PRECONNECT_ID);
-    removeManagedLink(PRECONNECT_STATIC_ID);
     return;
   }
 
-  ensureLink(PRECONNECT_ID, { rel: "preconnect", href: "https://fonts.googleapis.com" });
-  ensureLink(PRECONNECT_STATIC_ID, {
-    rel: "preconnect",
-    href: "https://fonts.gstatic.com",
-    crossorigin: "anonymous",
-  });
   ensureLink(STYLESHEET_ID, { rel: "stylesheet", href: stylesheetUrl });
 }
 
 /**
- * Loads only the selected preview display face while the Website route is mounted.
+ * Loads only the selected local preview stylesheet while the Website route is mounted.
  * Dashboard Geist remains local, and this hook never changes the preview's fixed paper theme.
  */
 export function useWebsitePreviewFonts(fontKeyOverride?: string | null) {

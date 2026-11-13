@@ -1,12 +1,16 @@
 .mc-bento {
+  --mc-bento-row-height: clamp(116px, 12cqw, 168px);
+  --mc-bento-gap: clamp(8px, 0.9cqw, 14px);
+  display: grid;
+  gap: var(--mc-bento-gap);
+}
+
+.mc-bento-group {
   display: grid;
   grid-auto-flow: dense;
-  /* Gallery aggregates every location's portfolio, so the source's hero-sized rows become
-     disproportionately tall as the collection grows. An eight-column rhythm fits more images
-     between each feature while preserving a strong editorial anchor. */
-  grid-auto-rows: clamp(116px, 12cqw, 168px);
+  grid-auto-rows: var(--mc-bento-row-height);
   grid-template-columns: repeat(8, minmax(0, 1fr));
-  gap: clamp(8px, 0.9cqw, 14px);
+  gap: var(--mc-bento-gap);
 }
 
 .mc-bento-tile {
@@ -21,9 +25,10 @@
 }
 
 .mc-bento-tile.mc-bento-wide { grid-column: span 4; }
+.mc-bento-tile.mc-bento-full { grid-column: 1 / -1; }
 
 /* Mirror every second feature block so long galleries do not repeat a left-heavy motif. */
-.mc-bento-tile.mc-bento-feature:nth-child(16n + 9) {
+.mc-bento-group[data-mirrored="true"] .mc-bento-feature:first-child {
   grid-column: 5 / span 4;
 }
 
@@ -45,33 +50,36 @@
 
 @container (min-width: 721px) and (max-width: 1024px) {
   .mc-bento {
-    grid-auto-rows: clamp(108px, 16cqw, 148px);
-    grid-template-columns: repeat(6, minmax(0, 1fr));
-    gap: clamp(8px, 1.2cqw, 12px);
+    --mc-bento-row-height: clamp(108px, 16cqw, 148px);
+    --mc-bento-gap: clamp(8px, 1.2cqw, 12px);
   }
 
-  .mc-bento-tile { grid-column: span 2; }
-  .mc-bento-tile.mc-bento-feature { grid-column: span 4; }
-  .mc-bento-tile.mc-bento-wide { grid-column: span 2; }
-  .mc-bento-tile:nth-child(8n + 7),
-  .mc-bento-tile:nth-child(8n + 8) { grid-column: span 3; }
-  .mc-bento-tile.mc-bento-feature:nth-child(16n + 9) {
+  /* Keep the established tablet rhythm for full groups. Partial groups retain
+     their balanced eight-column shapes rather than leaving a partly filled row. */
+  .mc-bento-group[data-count="8"] {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+
+  .mc-bento-group[data-count="8"] .mc-bento-wide { grid-column: span 2; }
+  .mc-bento-group[data-count="8"] .mc-bento-tile:nth-last-child(-n + 2) { grid-column: span 3; }
+  .mc-bento-group[data-count="8"][data-mirrored="true"] .mc-bento-feature:first-child {
     grid-column: 3 / span 4;
   }
 }
 
 @container (max-width: 720px) {
   .mc-bento {
-    grid-auto-rows: clamp(96px, 24cqw, 128px);
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 8px;
+    --mc-bento-row-height: clamp(96px, 24cqw, 128px);
+    --mc-bento-gap: 8px;
   }
 
-  .mc-bento-tile,
-  .mc-bento-tile:nth-child(8n + 7),
-  .mc-bento-tile:nth-child(8n + 8) { grid-column: span 1; }
+  .mc-bento-group {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .mc-bento-tile { grid-column: span 1; }
   .mc-bento-tile.mc-bento-feature,
-  .mc-bento-tile.mc-bento-feature:nth-child(16n + 9),
+  .mc-bento-group[data-mirrored="true"] .mc-bento-feature:first-child,
   .mc-bento-tile.mc-bento-wide { grid-column: span 2; }
 }
 

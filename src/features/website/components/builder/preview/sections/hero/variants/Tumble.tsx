@@ -87,7 +87,8 @@ export function Tumble(props: HeroVariantProps) {
       const s = Math.sin(seed * 127.1 + 311.7) * 43758.5453;
       return s - Math.floor(s);
     };
-    const stageH = () => stage.getBoundingClientRect().height || 700;
+    // Physics writes logical CSS pixels; preview scaling must not shorten the fall.
+    const stageH = () => stage.clientHeight || 700;
     const parts = Array.from({ length: N }).map((_, i) => ({
       v: 0,
       vr: (rnd(i * 5 + 4) - 0.5) * 0.32 * scatterK,
@@ -139,7 +140,9 @@ export function Tumble(props: HeroVariantProps) {
           p.y += p.v * dt;
           p.rot += p.vr * dt;
           p.vr *= 0.99; // spin damping
-          if (p.y >= 0) {
+          // A toss starts at the baseline with upward velocity. Its first frame
+          // can have dt=0; only descending letters should collide with the floor.
+          if (p.y >= 0 && p.v > 0) {
             p.y = 0;
             if (p.v > 0.42) {
               p.v = -p.v * 0.2;

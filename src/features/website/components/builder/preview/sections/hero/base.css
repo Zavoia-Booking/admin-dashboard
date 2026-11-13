@@ -17,11 +17,31 @@
 /* Applied by the orchestrator (Microsite) on the hero's section wrapper in the scoped preview, not within Hero. */
 .mc-hero-swap { animation: mcHeroSwap 440ms var(--ease-out-strong) both; }
 
+/* Booking is the primary hero action in every design. Scope the larger action to the hero so
+   navigation and inline booking controls retain their own proportions. The root qualifier also
+   keeps this size above the preview's global button-minimum reset. */
+.mc-root :is(.mc-plate, .mc-hero-drench, .mc-hero-cine, .mc-heropo, .mc-heropt, .mc-herodr, .mc-herotb) .mc-book-button {
+  min-height: clamp(48px, 4cqw, 52px);
+  max-width: 100%;
+  justify-content: center;
+  gap: 12px;
+  padding: 12px clamp(24px, 2cqw, 30px);
+  font-size: 16px;
+  line-height: 1.5;
+  text-align: center;
+  white-space: normal;
+}
+.mc-root :is(.mc-plate, .mc-hero-drench, .mc-hero-cine, .mc-heropo, .mc-heropt, .mc-herodr, .mc-herotb) .mc-book-button > svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
 /* ── Shared rating lockup (paper + on-image tones) — ported from microsite.css .lb-hx-rate*. ── */
 .mc-hx-rate { display: inline-flex; align-items: center; gap: 10px; color: var(--mc-fg); }
-.mc-hx-rate-n { font-family: var(--mc-display); font-weight: var(--mc-display-weight); letter-spacing: var(--mc-display-tracking); font-size: clamp(26px, 2.6cqw, 34px); line-height: 0.85; font-variant-numeric: tabular-nums; }
+.mc-hx-rate-n { align-self: flex-start; font-family: var(--mc-display); font-weight: var(--mc-display-weight); letter-spacing: var(--mc-display-tracking); font-size: clamp(26px, 2.6cqw, 34px); line-height: 1; font-variant-numeric: lining-nums tabular-nums; }
 .mc-hx-rate-col { display: inline-flex; flex-direction: column; gap: 4px; }
-.mc-hx-rate-cnt { font-family: var(--mc-mono); font-size: 10.5px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--mc-muted); }
+.mc-hx-rate-cnt { font-family: var(--mc-mono); font-size: 12px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--mc-muted); }
 .mc-hx-rate.on-img { color: #fff; }
 .mc-hx-rate.on-img .mc-hx-rate-cnt { color: rgba(255, 255, 255, 0.8); }
 

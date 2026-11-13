@@ -36,10 +36,10 @@ export function CountUp({ value, decimals = 0, durationMs = 760, delayMs = 0 }: 
 export function Section({ children, soft, narrow }: { children: React.ReactNode; soft?: boolean; narrow?: boolean }) {
   return (
     <section
-      className="px-[clamp(20px,5cqw,48px)] py-[clamp(40px,7cqw,76px)]"
+      className="px-[var(--mc-content-gutter)] py-[clamp(40px,7cqw,76px)]"
       style={soft ? { background: "var(--mc-soft)" } : undefined}
     >
-      <div className={cn("mx-auto w-full", narrow ? "max-w-[940px]" : "max-w-[1320px]")}>{children}</div>
+      <div className={cn("mx-auto w-full", narrow ? "max-w-[940px]" : "max-w-[var(--mc-content-max)]")}>{children}</div>
     </section>
   );
 }
@@ -59,7 +59,7 @@ export function SectionHead({ heading, sublede, stacked }: { no?: string; kicker
           {heading}
         </h2>
         {sublede && (
-          <p className="mt-[clamp(14px,2.2cqw,20px)] max-w-[540px] text-[clamp(14px,1.7cqw,16px)] leading-relaxed" style={{ color: "var(--mc-muted)" }}>
+          <p className="mt-[clamp(14px,2.2cqw,20px)] max-w-[540px] text-[clamp(16px,1.3cqw,18px)] leading-relaxed" style={{ color: "var(--mc-muted)" }}>
             {sublede}
           </p>
         )}
@@ -70,7 +70,7 @@ export function SectionHead({ heading, sublede, stacked }: { no?: string; kicker
     <div className="mb-[clamp(28px,4cqw,52px)] flex flex-wrap items-end justify-between gap-x-[clamp(16px,3cqw,40px)] gap-y-3">
       <h2 style={{ ...DISPLAY, fontSize: "clamp(34px,5.2cqw,72px)", lineHeight: 0.98, marginTop: 10 }}>{heading}</h2>
       {sublede && (
-        <p className="max-w-[300px] text-[14px] leading-relaxed" style={{ color: "var(--mc-muted)" }}>
+        <p className="max-w-[400px] text-[clamp(16px,1.3cqw,18px)] leading-relaxed" style={{ color: "var(--mc-muted)" }}>
           {sublede}
         </p>
       )}
@@ -109,7 +109,7 @@ export function BookButton({ label, tone, size = "md", styleOverride }: { label:
           : "px-5 py-2.5 text-[13.5px]";
   return (
     <span
-      className={cn("pointer-events-none inline-flex items-center gap-2 whitespace-nowrap rounded-full font-semibold", size !== "nav" && "shadow-sm", sizing)}
+      className={cn("mc-book-button pointer-events-none inline-flex items-center gap-2 whitespace-nowrap rounded-full font-semibold", size !== "nav" && "shadow-sm", sizing)}
       style={style}
     >
       {label}

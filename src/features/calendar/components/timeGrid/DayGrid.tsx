@@ -90,6 +90,14 @@ import {
 import { DragTimeIndicator } from "./DragTimeIndicator.tsx";
 import { AppointmentViewMode } from "../../types.ts";
 
+// Keep the gutter, staff headers and every day-grid overlay on one origin.
+// This explicitly preserves the shared 44px minimum touch target for buttons.
+const DAY_GRID_HEADER_HEIGHT = 44;
+const DAY_GRID_HEADER_STYLE = {
+  height: DAY_GRID_HEADER_HEIGHT,
+  minHeight: DAY_GRID_HEADER_HEIGHT,
+};
+
 export const DayGrid: FC = () => {
   const {
     dispatch,
@@ -160,7 +168,7 @@ export const DayGrid: FC = () => {
   const nowMinutes = calendarTimezone
     ? getMinutesInTimezone(new Date().toISOString(), calendarTimezone)
     : new Date().getHours() * 60 + new Date().getMinutes();
-  const nowGutterTop = 32 /* h-8 header offset */ + ((nowMinutes - dayGridStartMinutes) / slotIntervalMinutes) * daySlotHeight;
+  const nowGutterTop = DAY_GRID_HEADER_HEIGHT + ((nowMinutes - dayGridStartMinutes) / slotIntervalMinutes) * daySlotHeight;
   const is24h = calendarPreferences.getTimeFormat() === '24h';
   const nowLabel = formatNowLabel(nowMinutes, is24h);
 
@@ -664,7 +672,7 @@ export const DayGrid: FC = () => {
         <div className="relative flex" style={isScrollableGrid ? { minWidth: `calc((100% - ${GUTTER_WIDTH}px) / ${COLUMN_SCROLL_THRESHOLD} * ${columns.length} + ${GUTTER_WIDTH}px)` } : undefined}>
             {/* Time gutter */}
             <div className="relative flex flex-col items-end pr-2 select-none flex-shrink-0 sticky left-0 z-20 bg-white dark:bg-surface" style={{ width: GUTTER_WIDTH }}>
-              <div className="h-8 flex-shrink-0 sticky top-0 z-30 bg-white dark:bg-surface" />
+              <div className="flex-shrink-0 sticky top-0 z-30 bg-white dark:bg-surface" style={DAY_GRID_HEADER_STYLE} />
               {dayGridSlotStarts.length > 0
                 ? dayGridSlotStarts.map((slot) => {
                   const isOutside = !open247 && (slot.hour < openHour || slot.hour >= closeHour);
@@ -681,10 +689,10 @@ export const DayGrid: FC = () => {
                 ))}
               {isToday && (
                 <div
-                  className="absolute right-0 z-30 pointer-events-none -translate-y-1/2"
+                  className="absolute right-0 z-30 pointer-events-none flex h-[2px] items-center"
                   style={{ top: nowGutterTop }}
                 >
-                  <span className="bg-white text-primary text-[10px] border border-primary border-2 font-semibold leading-none px-1 py-1.5 rounded-full tabular-nums whitespace-nowrap min-w-[58px] text-center inline-block">
+                  <span className="bg-white text-primary text-[10px] border border-primary border-2 font-semibold leading-none px-1 py-1.5 rounded-full tabular-nums whitespace-nowrap min-w-[58px] text-center block">
                     {nowLabel}
                   </span>
                 </div>
@@ -694,7 +702,7 @@ export const DayGrid: FC = () => {
                 dayGridStartMinutes={dayGridStartMinutes}
                 slotIntervalMinutes={slotIntervalMinutes}
                 daySlotHeight={daySlotHeight}
-                headerOffset={32}
+                headerOffset={DAY_GRID_HEADER_HEIGHT}
                 is24h={is24h}
               />
             </div>
@@ -725,7 +733,7 @@ export const DayGrid: FC = () => {
                   const s = locationStaff.find(m => m.id === col.id);
                   const isOnlyFiltered = !col.isUnassigned && staffFilter.length === 1 && staffFilter[0] === col.id;
                   const clickable = !col.isUnassigned;
-                  const headerClass = `flex items-center justify-center gap-1.5 text-xs font-medium truncate px-1 sticky top-0 z-30 bg-white dark:bg-surface h-8 border-b border-border w-full ${
+                  const headerClass = `flex items-center justify-center gap-1.5 text-xs font-medium truncate px-1 sticky top-0 z-30 bg-white dark:bg-surface shrink-0 border-b border-border w-full ${
                     isOnlyFiltered ? "text-foreground-1 font-semibold" : "text-muted-foreground"
                   } ${
                     clickable ? "cursor-pointer hover:bg-muted/30 transition-colors" : "cursor-default"
@@ -760,7 +768,7 @@ export const DayGrid: FC = () => {
                     </>
                   );
                   if (!clickable) {
-                    return <div className={headerClass}>{content}</div>;
+                    return <div className={headerClass} style={DAY_GRID_HEADER_STYLE}>{content}</div>;
                   }
                   return (
                     <button
@@ -769,6 +777,7 @@ export const DayGrid: FC = () => {
                       aria-pressed={isOnlyFiltered}
                       aria-label={isOnlyFiltered ? `${col.label} — show all staff` : `Show only ${col.label}`}
                       className={headerClass}
+                      style={DAY_GRID_HEADER_STYLE}
                     >
                       {content}
                     </button>
@@ -804,9 +813,8 @@ export const DayGrid: FC = () => {
 
           {/* ── Shared (location / business-wide) block overlays ─────────────────
               Rendered as a single stripe spanning all staff columns (after the gutter).
-              Column headers are h-8 = 32px; timed block tops are offset by that. ── */}
+              Use the same header origin as the gutter and staff appointment columns. ── */}
           {(() => {
-            const HEADER_H = 32;
             return (
               <>
                 {/* All-day shared blocks — compact banner at the top, not full-height */}
@@ -825,7 +833,7 @@ export const DayGrid: FC = () => {
                         style={{
                           left: GUTTER_WIDTH + 4,
                           right: 4,
-                          top: HEADER_H + 2,
+                          top: DAY_GRID_HEADER_HEIGHT + 2,
                           backgroundImage: BLOCK_STRIPE_GRID,
                           borderLeftColor: BLOCK_STRIPE_ACCENT,
                         }}
@@ -867,7 +875,7 @@ export const DayGrid: FC = () => {
                           style={{
                             left: GUTTER_WIDTH + 4,
                             right: 4,
-                            top: HEADER_H + pos.top + blockInset,
+                            top: DAY_GRID_HEADER_HEIGHT + pos.top + blockInset,
                             height: h,
                             backgroundImage: BLOCK_STRIPE_GRID,
                             borderLeftColor: BLOCK_STRIPE_ACCENT,
@@ -921,7 +929,7 @@ export const DayGrid: FC = () => {
                         style={{
                           left: GUTTER_WIDTH + 4,
                           right: 4,
-                          top: HEADER_H + pos.top + mergedInset,
+                          top: DAY_GRID_HEADER_HEIGHT + pos.top + mergedInset,
                           height: h,
                           backgroundImage: BLOCK_STRIPE_GRID,
                           borderLeftColor: BLOCK_STRIPE_ACCENT,

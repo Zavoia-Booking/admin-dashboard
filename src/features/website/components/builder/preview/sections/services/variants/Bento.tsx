@@ -113,17 +113,23 @@ export function Bento({
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented) return;
       if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
       const target = event.target as HTMLElement | null;
       if (target && (/^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName) || target.isContentEditable)) return;
       const grid = gridRef.current;
       if (!grid) return;
+      // Keep the visible-section shortcut, without paging services when keyboard input belongs
+      // to another section or to the surrounding editor/demo controls.
+      const section = grid.closest("[data-preview-section]");
+      if (target && target !== document.body && !section?.contains(target)) return;
       const gridRect = grid.getBoundingClientRect();
       const scroller = findScrollParent(grid);
       const viewport = scroller?.getBoundingClientRect();
       const top = viewport?.top ?? 0;
       const bottom = viewport?.bottom ?? window.innerHeight;
       if (gridRect.bottom < top + 140 || gridRect.top > bottom - 140) return;
+      event.preventDefault();
       go(event.key === "ArrowRight" ? 1 : -1);
     };
     window.addEventListener("keydown", onKeyDown);

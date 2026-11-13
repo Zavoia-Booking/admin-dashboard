@@ -43,7 +43,7 @@ export function StageHours({ loc, t }: { loc: WebsiteBuilderLocation; t: T }) {
           return (
             <div
               key={r.start}
-              className="mc-locx-rowin flex items-center justify-between gap-6 text-[13.5px]"
+              className="mc-locx-rowin flex items-center justify-between gap-6 text-[14px]"
               style={{
                 padding: today ? "7px 12px" : "7px 0",
                 margin: today ? "0 -12px" : undefined,
