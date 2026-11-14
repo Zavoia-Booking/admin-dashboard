@@ -9,6 +9,8 @@ import CredentialsForm from "../../../shared/components/auth/CredentialsForm";
 import { Input } from "../../../shared/components/ui/input";
 import { Label } from "../../../shared/components/ui/label";
 import { Spinner } from "../../../shared/components/ui/spinner";
+import { Drawer, DrawerContent, DrawerDescription, DrawerTitle } from "../../../shared/components/ui/drawer";
+import { useIsMobile } from "../../../shared/hooks/use-mobile";
 import { cn } from "../../../shared/lib/utils";
 import {
   modalScrim,
@@ -19,6 +21,8 @@ import {
   modalCancel,
   modalPrimary,
   modalGhost,
+  drawerSheet,
+  drawerScrim,
 } from "../../../shared/components/ui/modal-tokens";
 
 const CODE_PATTERN = /^\d{6}$/;
@@ -107,6 +111,7 @@ export default function AppleLinkModal() {
   const step = useSelector((s: RootState) => s.auth.appleLinkStep);
   const loading = useSelector((s: RootState) => !!s.auth.appleStepLoading);
   const stepError = useSelector((s: RootState) => s.auth.appleStepError);
+  const isMobile = useIsMobile();
 
   if (!step) return null;
 
@@ -117,6 +122,90 @@ export default function AppleLinkModal() {
   const close = () => dispatch(closeAppleStep());
   const sendCode = () => dispatch(appleLinkSendCodeAction.request());
 
+  // Content shared by the phone sheet and the desktop dialog.
+  const description = (
+    <p className={cn(modalBody, "mt-3 [&_strong]:font-semibold")}>
+      <Trans i18nKey="appleLink.description" t={t} values={{ email: step.email }} components={{ strong: <strong /> }} />
+    </p>
+  );
+  const body = (
+    <>
+      {stepError && (
+        <p
+          className="mt-4 flex items-start gap-2 rounded-lg border border-destructive/20 bg-error-bg px-3 py-2.5 text-[13px] text-destructive"
+          role="alert"
+          aria-live="polite"
+        >
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+          <span>{stepError.message}</span>
+        </p>
+      )}
+
+      {usesPassword ? (
+        <CredentialsForm
+          className="mt-6"
+          onSubmit={({ password }) => {
+            if (!finished) dispatch(appleLinkVerifyAction.request({ password }));
+          }}
+          defaultEmail={step.email}
+          emailReadOnly
+          autoFocusField="password"
+          submitLabel={t('appleLink.submit')}
+          isLoading={loading || finished}
+        />
+      ) : step.codeSentTo ? (
+        <AppleLinkCodeForm
+          key={`${step.txId}:${step.codeSentTo}`}
+          sentTo={step.codeSentTo}
+          loading={loading}
+          finished={finished}
+          onSubmit={(code) => dispatch(appleLinkVerifyAction.request({ code }))}
+          onResend={sendCode}
+        />
+      ) : (
+        <div className="mt-6 space-y-4">
+          <p className={cn(modalBody, "mt-0 [&_strong]:font-semibold")}>
+            <Trans i18nKey="appleLink.codeIntro" t={t} values={{ email: step.email }} components={{ strong: <strong /> }} />
+          </p>
+          <button type="button" onClick={sendCode} disabled={loading || finished} className={cn(modalPrimary, "w-full")}>
+            {loading ? <Spinner size="sm" color="white" /> : t('appleLink.sendCode')}
+          </button>
+        </div>
+      )}
+
+      <button
+        type="button"
+        onClick={close}
+        disabled={loading}
+        className={cn(modalCancel, "mt-3 w-full")}
+      >
+        {t('appleLink.cancel')}
+      </button>
+    </>
+  );
+
+  // Phones: a bottom sheet that follows the keyboard, so the password or code
+  // field and its button stay visible while typing.
+  if (isMobile) {
+    return (
+      <Drawer
+        open
+        onOpenChange={(open) => { if (!open && !loading) close(); }}
+        dismissible={!loading}
+        autoFocus
+      >
+        <DrawerContent className={drawerSheet} overlayClassName={drawerScrim}>
+          <div className="min-h-0 flex-1 overflow-y-auto pt-4">
+            <div className={modalEyebrow}>{t('appleLink.eyebrow')}</div>
+            <DrawerTitle className={modalTitleCompact}>{t('appleLink.title')}</DrawerTitle>
+            <DrawerDescription asChild>{description}</DrawerDescription>
+            {body}
+          </div>
+        </DrawerContent>
+      </Drawer>
+    );
+  }
+
   return (
     <DialogPrimitive.Root open onOpenChange={(open) => { if (!open && !loading) close(); }}>
       <DialogPrimitive.Portal>
@@ -126,63 +215,9 @@ export default function AppleLinkModal() {
           <DialogPrimitive.Title className={cn(modalTitleCompact, "pr-8")}>
             {t('appleLink.title')}
           </DialogPrimitive.Title>
-          <DialogPrimitive.Description asChild>
-            <p className={cn(modalBody, "mt-3 [&_strong]:font-semibold")}>
-              <Trans i18nKey="appleLink.description" t={t} values={{ email: step.email }} components={{ strong: <strong /> }} />
-            </p>
-          </DialogPrimitive.Description>
+          <DialogPrimitive.Description asChild>{description}</DialogPrimitive.Description>
 
-          {stepError && (
-            <p
-              className="mt-4 flex items-start gap-2 rounded-lg border border-destructive/20 bg-error-bg px-3 py-2.5 text-[13px] text-destructive"
-              role="alert"
-              aria-live="polite"
-            >
-              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-              <span>{stepError.message}</span>
-            </p>
-          )}
-
-          {usesPassword ? (
-            <CredentialsForm
-              className="mt-6"
-              onSubmit={({ password }) => {
-                if (!finished) dispatch(appleLinkVerifyAction.request({ password }));
-              }}
-              defaultEmail={step.email}
-              emailReadOnly
-              autoFocusField="password"
-              submitLabel={t('appleLink.submit')}
-              isLoading={loading || finished}
-            />
-          ) : step.codeSentTo ? (
-            <AppleLinkCodeForm
-              key={`${step.txId}:${step.codeSentTo}`}
-              sentTo={step.codeSentTo}
-              loading={loading}
-              finished={finished}
-              onSubmit={(code) => dispatch(appleLinkVerifyAction.request({ code }))}
-              onResend={sendCode}
-            />
-          ) : (
-            <div className="mt-6 space-y-4">
-              <p className={cn(modalBody, "mt-0 [&_strong]:font-semibold")}>
-                <Trans i18nKey="appleLink.codeIntro" t={t} values={{ email: step.email }} components={{ strong: <strong /> }} />
-              </p>
-              <button type="button" onClick={sendCode} disabled={loading || finished} className={cn(modalPrimary, "w-full")}>
-                {loading ? <Spinner size="sm" color="white" /> : t('appleLink.sendCode')}
-              </button>
-            </div>
-          )}
-
-          <button
-            type="button"
-            onClick={close}
-            disabled={loading}
-            className={cn(modalCancel, "mt-3 w-full")}
-          >
-            {t('appleLink.cancel')}
-          </button>
+          {body}
 
           {/* Rendered last so a content control is focused first; kept top-right via absolute. */}
           <button

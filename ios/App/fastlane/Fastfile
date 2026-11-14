@@ -13,6 +13,16 @@ platform :ios do
     build_and_upload(
       bundle_id: "com.zavoia.admin.staging",
       profile_name: "Zavoia Admin Staging AppStore",
+      ipa_name: "ZavoiaAdmin-staging.ipa",
+    )
+  end
+
+  desc "Build the production app (com.zavoia.admin) and upload it to TestFlight"
+  lane :prod do
+    build_and_upload(
+      bundle_id: "com.zavoia.admin",
+      profile_name: "Zavoia Admin AppStore",
+      ipa_name: "ZavoiaAdmin.ipa",
     )
   end
 
@@ -74,7 +84,7 @@ platform :ios do
       configuration: "Release",
       export_method: "app-store",
       output_directory: "build",
-      output_name: "ZavoiaAdmin-staging.ipa",
+      output_name: opts.fetch(:ipa_name),
       cloned_source_packages_path: "SourcePackages",
       xcargs: "CURRENT_PROJECT_VERSION=#{ENV.fetch('BUILD_NUMBER')}",
     )

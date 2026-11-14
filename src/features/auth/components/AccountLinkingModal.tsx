@@ -11,7 +11,11 @@ import {
   modalTitleCompact,
   modalBody,
   modalCancel,
+  drawerSheet,
+  drawerScrim,
 } from "../../../shared/components/ui/modal-tokens";
+import { Drawer, DrawerContent, DrawerDescription, DrawerTitle } from "../../../shared/components/ui/drawer";
+import { useIsMobile } from "../../../shared/hooks/use-mobile";
 import CredentialsForm from "../../../shared/components/auth/CredentialsForm";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useCallback } from "react";
@@ -28,6 +32,7 @@ export default function AccountLinkingModal() {
   const pendingLinkEmail = useSelector((s: RootState) => (s as any).auth.pendingLinkEmail) as string | null | undefined;
   const navigate = useNavigate();
   const location = useLocation();
+  const isMobile = useIsMobile();
 
   const handleCancel = useCallback(() => {
     dispatch(closeAccountLinkingModal());
@@ -73,6 +78,66 @@ export default function AccountLinkingModal() {
     }
   }
 
+  // Content shared by the phone sheet and the desktop dialog.
+  const description = <p className={cn(modalBody, "mt-3")}>{t('accountLinking.description')}</p>;
+  const body = (
+    <>
+      {displayError && (
+        <p
+          className="mt-4 flex items-start gap-2 rounded-lg border border-destructive/20 bg-error-bg px-3 py-2.5 text-[13px] text-destructive"
+          role="alert"
+          aria-live="polite"
+        >
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+          <span>{displayError}</span>
+        </p>
+      )}
+
+      <CredentialsForm
+        className="mt-6"
+        onSubmit={({ email, password }) => {
+          dispatch(reauthForLinkAction.request({ email, password }));
+        }}
+        defaultEmail={pendingLinkEmail ?? undefined}
+        emailReadOnly={!!pendingLinkEmail}
+        autoFocusField={pendingLinkEmail ? 'password' : 'email'}
+        submitLabel={t('accountLinking.submitLabel')}
+        isLoading={!!isLinking || sessionExpired}
+      />
+
+      <button
+        type="button"
+        onClick={handleCancel}
+        disabled={!!isLinking}
+        className={cn(modalCancel, "mt-3 w-full")}
+      >
+        {t('accountLinking.cancel')}
+      </button>
+    </>
+  );
+
+  // Phones: a bottom sheet that follows the keyboard, so the password field
+  // and its button stay visible while typing.
+  if (isMobile) {
+    return (
+      <Drawer
+        open
+        onOpenChange={(isOpen) => { if (!isOpen && !isLinking) handleCancel(); }}
+        dismissible={!isLinking}
+        autoFocus
+      >
+        <DrawerContent className={drawerSheet} overlayClassName={drawerScrim}>
+          <div className="min-h-0 flex-1 overflow-y-auto pt-4">
+            <div className={modalEyebrow}>{t('accountLinking.eyebrow')}</div>
+            <DrawerTitle className={modalTitleCompact}>{t('accountLinking.title')}</DrawerTitle>
+            <DrawerDescription asChild>{description}</DrawerDescription>
+            {body}
+          </div>
+        </DrawerContent>
+      </Drawer>
+    );
+  }
+
   return (
     <DialogPrimitive.Root open onOpenChange={(isOpen) => { if (!isOpen && !isLinking) handleCancel(); }}>
       <DialogPrimitive.Portal>
@@ -82,41 +147,9 @@ export default function AccountLinkingModal() {
           <DialogPrimitive.Title className={cn(modalTitleCompact, "pr-8")}>
             {t('accountLinking.title')}
           </DialogPrimitive.Title>
-          <DialogPrimitive.Description asChild>
-            <p className={cn(modalBody, "mt-3")}>{t('accountLinking.description')}</p>
-          </DialogPrimitive.Description>
+          <DialogPrimitive.Description asChild>{description}</DialogPrimitive.Description>
 
-          {displayError && (
-            <p
-              className="mt-4 flex items-start gap-2 rounded-lg border border-destructive/20 bg-error-bg px-3 py-2.5 text-[13px] text-destructive"
-              role="alert"
-              aria-live="polite"
-            >
-              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-              <span>{displayError}</span>
-            </p>
-          )}
-
-          <CredentialsForm
-            className="mt-6"
-            onSubmit={({ email, password }) => {
-              dispatch(reauthForLinkAction.request({ email, password }));
-            }}
-            defaultEmail={pendingLinkEmail ?? undefined}
-            emailReadOnly={!!pendingLinkEmail}
-            autoFocusField={pendingLinkEmail ? 'password' : 'email'}
-            submitLabel={t('accountLinking.submitLabel')}
-            isLoading={!!isLinking || sessionExpired}
-          />
-
-          <button
-            type="button"
-            onClick={handleCancel}
-            disabled={!!isLinking}
-            className={cn(modalCancel, "mt-3 w-full")}
-          >
-            {t('accountLinking.cancel')}
-          </button>
+          {body}
 
           {/* Rendered last so the email field is the first focusable on open; kept top-right via absolute. */}
           <button

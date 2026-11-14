@@ -7,6 +7,7 @@ import { Button } from '../../../shared/components/ui/button';
 import { Label } from '../../../shared/components/ui/label';
 import { Input } from '../../../shared/components/ui/input';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../../../shared/components/ui/dialog';
+import { Drawer, DrawerContent, DrawerDescription, DrawerTitle } from '../../../shared/components/ui/drawer';
 import {
   modalPanel,
   modalEyebrow,
@@ -15,7 +16,11 @@ import {
   modalFooterRowRight,
   modalCancel,
   modalPrimary,
+  drawerSheet,
+  drawerScrim,
 } from '../../../shared/components/ui/modal-tokens';
+import { useIsMobile } from '../../../shared/hooks/use-mobile';
+import { cn } from '../../../shared/lib/utils';
 import type { RootState } from '../../../app/providers/store';
 import { setAuthUserAction } from '../../auth/actions';
 import { linkAppleApi, unlinkAppleApi } from '../../auth/api';
@@ -49,6 +54,7 @@ const AppleAccountManager: React.FC<AppleAccountManagerProps> = ({ className, on
   const store = useStore<RootState>();
   const user = useSelector((state: RootState) => state.auth.user);
   const available = isAppleSignInAvailable();
+  const isMobile = useIsMobile();
 
   const [connecting, setConnecting] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -142,6 +148,78 @@ const AppleAccountManager: React.FC<AppleAccountManagerProps> = ({ className, on
     }
   };
 
+  // Disconnect content, shared by the phone sheet and the desktop dialog.
+  const sheetEyebrow = needsPasswordFirst ? t('appleAccount.passwordRequiredEyebrow') : t('appleAccount.unlinkEyebrow');
+  const sheetTitle = needsPasswordFirst ? t('appleAccount.passwordRequired') : t('appleAccount.unlinkTitle');
+  const sheetBody = needsPasswordFirst ? (
+    <div className="space-y-3 text-left">
+      <p className={modalBody}>{t('appleAccount.passwordRequiredDescription')}</p>
+      <p className={modalBody}>{t('appleAccount.passwordRequiredHint')}</p>
+    </div>
+  ) : (
+    <p className={modalBody}>
+      {hasPassword ? t('appleAccount.unlinkDescriptionPassword') : t('appleAccount.unlinkDescriptionGoogle')}
+    </p>
+  );
+  const passwordField = !needsPasswordFirst && hasPassword ? (
+    <div className="mt-5 space-y-2">
+      <Label htmlFor="apple-unlink-password" className="text-[13px] font-medium text-neutral-700 dark:text-foreground-2">
+        {t('appleAccount.currentPassword')}
+      </Label>
+      <Input
+        id="apple-unlink-password"
+        type="password"
+        autoComplete="current-password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        placeholder={t('appleAccount.currentPasswordPlaceholder')}
+        className={`w-full ${unlinkError ? 'border-destructive' : ''}`}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' && !unlinking) void handleDisconnect();
+        }}
+        disabled={unlinking}
+      />
+    </div>
+  ) : null;
+  const errorLine = !needsPasswordFirst && unlinkError ? (
+    <p className="mt-2 text-[13px] text-destructive" role="alert">{unlinkError}</p>
+  ) : null;
+  const cancelButton = (extraClass?: string) => (
+    <button type="button" onClick={closeDialog} disabled={unlinking} className={cn(modalCancel, extraClass)}>
+      {t('appleAccount.cancel')}
+    </button>
+  );
+  const primaryButton = (extraClass?: string) =>
+    needsPasswordFirst ? (
+      <button
+        type="button"
+        onClick={() => {
+          setDialogOpen(false);
+          resetDialog();
+          onSetPasswordClick?.();
+        }}
+        className={cn(modalPrimary, extraClass)}
+      >
+        {t('appleAccount.setUpPassword')}
+      </button>
+    ) : (
+      <button
+        type="button"
+        onClick={() => { void handleDisconnect(); }}
+        disabled={(hasPassword && !password.trim()) || unlinking}
+        className={cn(modalPrimary, 'bg-destructive hover:bg-destructive/90 focus-visible:ring-destructive/40', extraClass)}
+      >
+        {unlinking ? (
+          <>
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            {t('appleAccount.unlinkingLong')}
+          </>
+        ) : (
+          t('appleAccount.unlinkAccount')
+        )}
+      </button>
+    );
+
   return (
     <>
       <div className={`space-y-2 ${className ?? ''}`}>
@@ -210,99 +288,47 @@ const AppleAccountManager: React.FC<AppleAccountManagerProps> = ({ className, on
         </div>
       </div>
 
-      <Dialog open={dialogOpen} onOpenChange={(open) => { if (!open) closeDialog(); }}>
-        <DialogContent className={modalPanel}>
-          {needsPasswordFirst ? (
-            <>
-              <DialogHeader className="space-y-4 !text-left">
-                <div className={modalEyebrow}>{t('appleAccount.passwordRequiredEyebrow')}</div>
-                <DialogTitle className={`${modalTitleCompact} text-left`}>
-                  {t('appleAccount.passwordRequired')}
-                </DialogTitle>
-                <DialogDescription asChild>
-                  <div className="space-y-3 text-left">
-                    <p className={modalBody}>{t('appleAccount.passwordRequiredDescription')}</p>
-                    <p className={modalBody}>{t('appleAccount.passwordRequiredHint')}</p>
-                  </div>
-                </DialogDescription>
-              </DialogHeader>
-              <DialogFooter className={`${modalFooterRowRight} mt-7`}>
-                <button type="button" onClick={closeDialog} className={modalCancel}>
-                  {t('appleAccount.cancel')}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setDialogOpen(false);
-                    resetDialog();
-                    onSetPasswordClick?.();
-                  }}
-                  className={modalPrimary}
-                >
-                  {t('appleAccount.setUpPassword')}
-                </button>
-              </DialogFooter>
-            </>
-          ) : (
-            <>
-              <DialogHeader className="space-y-3 !text-left">
-                <div className={modalEyebrow}>{t('appleAccount.unlinkEyebrow')}</div>
-                <DialogTitle className={`${modalTitleCompact} text-left`}>
-                  {t('appleAccount.unlinkTitle')}
-                </DialogTitle>
-                <DialogDescription asChild>
-                  <p className={modalBody}>
-                    {hasPassword ? t('appleAccount.unlinkDescriptionPassword') : t('appleAccount.unlinkDescriptionGoogle')}
-                  </p>
-                </DialogDescription>
-              </DialogHeader>
-              {hasPassword && (
-                <div className="mt-5 space-y-2">
-                  <Label htmlFor="apple-unlink-password" className="text-[13px] font-medium text-neutral-700 dark:text-foreground-2">
-                    {t('appleAccount.currentPassword')}
-                  </Label>
-                  <Input
-                    id="apple-unlink-password"
-                    type="password"
-                    autoComplete="current-password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder={t('appleAccount.currentPasswordPlaceholder')}
-                    className={`w-full ${unlinkError ? 'border-destructive' : ''}`}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !unlinking) void handleDisconnect();
-                    }}
-                    disabled={unlinking}
-                  />
-                </div>
-              )}
-              {unlinkError && (
-                <p className="mt-2 text-[13px] text-destructive" role="alert">{unlinkError}</p>
-              )}
-              <DialogFooter className={`${modalFooterRowRight} mt-7`}>
-                <button type="button" onClick={closeDialog} disabled={unlinking} className={modalCancel}>
-                  {t('appleAccount.cancel')}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { void handleDisconnect(); }}
-                  disabled={(hasPassword && !password.trim()) || unlinking}
-                  className={`${modalPrimary} bg-destructive hover:bg-destructive/90 focus-visible:ring-destructive/40`}
-                >
-                  {unlinking ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      {t('appleAccount.unlinkingLong')}
-                    </>
-                  ) : (
-                    t('appleAccount.unlinkAccount')
-                  )}
-                </button>
-              </DialogFooter>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
+      {isMobile ? (
+        <Drawer
+          open={dialogOpen}
+          onOpenChange={(open) => { if (!open) closeDialog(); }}
+          dismissible={!unlinking}
+          autoFocus
+        >
+          <DrawerContent className={drawerSheet} overlayClassName={drawerScrim}>
+            <div className="min-h-0 flex-1 overflow-y-auto pt-4">
+              <div className="space-y-3">
+                <div className={modalEyebrow}>{sheetEyebrow}</div>
+                <DrawerTitle className={modalTitleCompact}>{sheetTitle}</DrawerTitle>
+                <DrawerDescription asChild>{sheetBody}</DrawerDescription>
+              </div>
+              {passwordField}
+              {errorLine}
+            </div>
+            {/* Stacked full-width actions: thumb-reachable, primary on top. */}
+            <div className="mt-6 flex flex-col gap-2">
+              {primaryButton('w-full')}
+              {cancelButton('w-full')}
+            </div>
+          </DrawerContent>
+        </Drawer>
+      ) : (
+        <Dialog open={dialogOpen} onOpenChange={(open) => { if (!open) closeDialog(); }}>
+          <DialogContent className={modalPanel}>
+            <DialogHeader className={cn(needsPasswordFirst ? 'space-y-4' : 'space-y-3', '!text-left')}>
+              <div className={modalEyebrow}>{sheetEyebrow}</div>
+              <DialogTitle className={`${modalTitleCompact} text-left`}>{sheetTitle}</DialogTitle>
+              <DialogDescription asChild>{sheetBody}</DialogDescription>
+            </DialogHeader>
+            {passwordField}
+            {errorLine}
+            <DialogFooter className={`${modalFooterRowRight} mt-7`}>
+              {cancelButton()}
+              {primaryButton()}
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </>
   );
 };

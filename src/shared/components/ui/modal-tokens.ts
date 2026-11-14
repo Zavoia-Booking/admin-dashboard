@@ -30,6 +30,14 @@ const panelBase =
 export const modalPanel = `${panelBase} max-w-[440px]`;
 export const modalPanelLarge = `${panelBase} max-w-[520px]`;
 
+// Phone counterparts of modalPanel / modalScrim: the bottom sheet (Drawer)
+// a modal turns into below the md breakpoint. The sheet follows the soft
+// keyboard, so forms stay visible. Same values as ConfirmDialog's mobileDrawer.
+export const drawerSheet =
+  '!z-[300] bg-neutral-50 text-neutral-900 dark:bg-surface dark:text-foreground-1 ' +
+  'px-5 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-1 text-left';
+export const drawerScrim = '!z-[299] bg-[oklch(15%_0.004_70/0.42)]';
+
 export const modalEyebrow =
   'mb-4 text-[11px] font-semibold uppercase tracking-[0.12em] ' +
   'text-primary-700 dark:text-[oklch(61%_0.14_38)]';
