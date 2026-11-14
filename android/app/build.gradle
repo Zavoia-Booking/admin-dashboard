@@ -1,5 +1,16 @@
 apply plugin: 'com.android.application'
 
+// Play upload key for release builds, read from android/keystore.properties
+// (gitignored; see D:\Zavoia\Prod\android-upload-key\README.txt). Without
+// that file, release builds stay unsigned and debug builds are unaffected.
+def keystorePropertiesFile = rootProject.file('keystore.properties')
+def keystoreProperties = new Properties()
+if (keystorePropertiesFile.exists()) {
+    keystorePropertiesFile.withInputStream { keystoreProperties.load(it) }
+}
+def uploadStoreFile = keystoreProperties['storeFile'] ? file(keystoreProperties['storeFile']) : null
+def hasUploadKey = uploadStoreFile != null && uploadStoreFile.exists()
+
 android {
     namespace "com.zavoia.admin"
     compileSdk rootProject.ext.compileSdkVersion
@@ -27,8 +38,21 @@ android {
             dimension "env"
         }
     }
+    signingConfigs {
+        if (hasUploadKey) {
+            release {
+                storeFile uploadStoreFile
+                storePassword keystoreProperties['storePassword']
+                keyAlias keystoreProperties['keyAlias']
+                keyPassword keystoreProperties['keyPassword']
+            }
+        }
+    }
     buildTypes {
         release {
+            if (hasUploadKey) {
+                signingConfig signingConfigs.release
+            }
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
