@@ -23,6 +23,8 @@ platform :ios do
       bundle_id: "com.zavoia.admin",
       profile_name: "Zavoia Admin AppStore",
       ipa_name: "ZavoiaAdmin.ipa",
+      # Home-screen name of the store app; staging keeps Info.plist's "Zavoia Admin".
+      display_name: "Zavoia Business",
     )
   end
 
@@ -67,6 +69,14 @@ platform :ios do
       cert_id: DIST_CERT_ID,
       output_path: ".",
     )
+
+    if opts[:display_name]
+      update_info_plist(
+        xcodeproj: "App.xcodeproj",
+        plist_path: "App/Info.plist",
+        display_name: opts[:display_name],
+      )
+    end
 
     update_code_signing_settings(
       path: "App.xcodeproj",

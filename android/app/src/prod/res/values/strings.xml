@@ -1,0 +1,6 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <!-- Store (prod flavor) name; overrides main/res "Zavoia Admin", which staging keeps. -->
+    <string name="app_name">Zavoia Business</string>
+    <string name="title_activity_main">Zavoia Business</string>
+</resources>
