@@ -14,6 +14,8 @@ platform :ios do
       bundle_id: "com.zavoia.admin.staging",
       profile_name: "Zavoia Admin Staging AppStore",
       ipa_name: "ZavoiaAdmin-staging.ipa",
+      # Home-screen name, distinct from the store app "Zavoia Business".
+      display_name: "Zav B Stg",
     )
   end
 
@@ -23,7 +25,7 @@ platform :ios do
       bundle_id: "com.zavoia.admin",
       profile_name: "Zavoia Admin AppStore",
       ipa_name: "ZavoiaAdmin.ipa",
-      # Home-screen name of the store app; staging keeps Info.plist's "Zavoia Admin".
+      # Home-screen name of the store app.
       display_name: "Zavoia Business",
     )
   end

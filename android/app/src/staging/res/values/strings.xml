@@ -1,0 +1,6 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <!-- Staging flavor home-screen name, distinct from the store app "Zavoia Business". -->
+    <string name="app_name">Zav B Stg</string>
+    <string name="title_activity_main">Zav B Stg</string>
+</resources>
