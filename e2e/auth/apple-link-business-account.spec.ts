@@ -23,6 +23,7 @@ test.describe('Sign in with Apple — /link-business-account', () => {
     await expect(page.getByText('This account uses Apple to sign in.', { exact: false })).toBeVisible({ timeout: 10_000 })
     await expect(page.getByRole('button', { name: /google/i })).toHaveCount(0)
 
+    await page.locator('#acceptTerms').click()
     await page.getByRole('button', { name: 'Continue with Apple' }).click()
     await expect(page).toHaveURL(/\/welcome/, { timeout: 15_000 })
 
@@ -50,6 +51,7 @@ test.describe('Sign in with Apple — /link-business-account', () => {
     await expect(page.getByRole('button', { name: 'Continue with Apple' })).toHaveCount(0)
 
     await page.locator('#password').fill('whatever')
+    await page.locator('#acceptTerms').click()
     await page.getByRole('button', { name: 'Enable access' }).click()
 
     await expect(page.getByRole('button', { name: 'Continue with Apple' })).toBeVisible({ timeout: 10_000 })
@@ -67,6 +69,7 @@ test.describe('Sign in with Apple — /link-business-account', () => {
     }))
 
     await page.goto('/link-business-account?token=link-token-3')
+    await page.locator('#acceptTerms').click()
     await page.getByRole('button', { name: 'Continue with Apple' }).click()
     await expect(page.getByText("This Apple ID doesn't match customer@test.com.", { exact: false })).toBeVisible({ timeout: 10_000 })
   })

@@ -238,7 +238,7 @@ function LinkBusinessConfirmCard({
                 <AppleSignInButton
                   context="register"
                   label="continue"
-                  disabled={submitting}
+                  disabled={submitting || !termsAccepted}
                   className="h-11 rounded-full text-sm"
                   onCredential={onAppleCredential}
                 />
