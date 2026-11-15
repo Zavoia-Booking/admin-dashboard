@@ -300,15 +300,17 @@ export function RegisterForm({ initialEmail, lockEmail, welcomeToken, preferGoog
               <label htmlFor="acceptTerms" className="text-sm text-foreground-2 leading-normal cursor-pointer select-none">
                 {t('register.termsAgreement')}{" "}
                 <span onClick={(e) => { e.preventDefault(); openLegalPage("terms") }} className="text-primary hover:text-primary-hover underline underline-offset-2 cursor-pointer" role="link" tabIndex={0} onKeyDown={(e) => e.key === "Enter" && openLegalPage("terms")}>
-                  {t('register.termsAndConditions')}
-                </span>,{" "}
-                <span onClick={(e) => { e.preventDefault(); openLegalPage("cookies") }} className="text-primary hover:text-primary-hover underline underline-offset-2 cursor-pointer" role="link" tabIndex={0} onKeyDown={(e) => e.key === "Enter" && openLegalPage("cookies")}>
-                  {t('register.cookiesPolicy')}
+                  {t('register.termsOfUse')}
                 </span>{" "}
-                {t('register.and')}{" "}
-                <span onClick={(e) => { e.preventDefault(); openLegalPage("privacy") }} className="text-primary hover:text-primary-hover underline underline-offset-2 cursor-pointer" role="link" tabIndex={0} onKeyDown={(e) => e.key === "Enter" && openLegalPage("privacy")}>
-                  {t('register.privacyPolicy')}
+                {t('register.andThe')}{" "}
+                <span onClick={(e) => { e.preventDefault(); openLegalPage("business") }} className="text-primary hover:text-primary-hover underline underline-offset-2 cursor-pointer" role="link" tabIndex={0} onKeyDown={(e) => e.key === "Enter" && openLegalPage("business")}>
+                  {t('register.businessTerms')}
                 </span>
+                . {t('register.seeOur')}{" "}
+                <span onClick={(e) => { e.preventDefault(); openLegalPage("privacy") }} className="text-primary hover:text-primary-hover underline underline-offset-2 cursor-pointer" role="link" tabIndex={0} onKeyDown={(e) => e.key === "Enter" && openLegalPage("privacy")}>
+                  {t('register.privacyNotice')}
+                </span>
+                .
               </label>
             </div>
             <div className="h-5">

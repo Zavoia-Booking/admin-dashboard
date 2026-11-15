@@ -382,6 +382,7 @@ export function buildPreviewData({
     aboutContent,
     establishedYear,
     businessCurrency: business?.businessCurrency?.trim().toUpperCase() || "EUR",
+    countryCode: business?.countryCode ?? null,
     email: useBusinessEmail ? business?.email ?? "" : email,
     phone: useBusinessPhone ? business?.phone ?? "" : phone,
     social: {

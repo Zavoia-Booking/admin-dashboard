@@ -4,11 +4,12 @@
   --fmh-line: rgba(244, 242, 238, 0.13);
   --fmh-fg: #f4f2ee;
   --fmh-muted: rgba(244, 242, 238, 0.46);
+  --fmh-bg: #0a0908;
   position: static;
   min-height: 0;
   padding: 0;
   overflow: hidden;
-  background: #0a0908;
+  background: var(--fmh-bg);
   color: var(--fmh-fg);
 }
 
@@ -133,6 +134,13 @@
   font-family: var(--mc-mono);
   font-size: var(--mc-foot-meta-size);
   letter-spacing: 0.04em;
+}
+
+/* Romanian ANPC block: stack the link over the 250px badge, flush with the row's end, so the badge
+   stays inside the last column of the rule grid wherever a column is wide enough. */
+.mc-fmh-base .mc-foot-anpc {
+  flex-direction: column;
+  align-items: flex-end;
 }
 
 .mc-fmh-mark-wrap {
@@ -272,5 +280,20 @@
 @container (max-width: 860px) {
   .mc-footer--masthead {
     padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+}
+
+/* Phones: the legal row is one centred stack. The rule grid's centre line would run through it, so the
+   row takes the footer's own background, inset 1px so the outer frame lines stay visible. */
+@container (max-width: 620px) {
+  .mc-fmh-base {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    background: linear-gradient(var(--fmh-bg), var(--fmh-bg)) center / calc(100% - 2px) 100% no-repeat;
+  }
+
+  .mc-fmh-base .mc-foot-anpc {
+    align-items: center;
   }
 }

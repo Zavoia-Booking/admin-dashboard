@@ -3,12 +3,14 @@ import { Browser } from "@capacitor/browser"
 import i18n from "../../shared/lib/i18n"
 import { CUSTOMER_WEB_ORIGIN } from "../../shared/lib/customerWeb"
 
-export type LegalPageType = "terms" | "cookies" | "privacy"
+export type LegalPageType = "terms" | "business" | "account" | "cookies" | "privacy"
 
 // Slugs of the corresponding documents in zavoia-web (src/data/legal), which is
 // the single source of truth for legal content.
 const LEGAL_SLUGS: Record<LegalPageType, string> = {
   terms: "terms-of-use",
+  business: "business-terms",
+  account: "account-terms",
   cookies: "cookie-policy",
   privacy: "privacy-policy",
 }

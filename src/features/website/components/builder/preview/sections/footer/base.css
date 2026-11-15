@@ -95,6 +95,62 @@
   letter-spacing: 0.04em;
 }
 
+/* Romanian sites only (FooterLegal): ANPC link + SAL pictogram on their own line, flush with the row's
+   end above the "Powered by Zavoia" credit. On phones every variant centres its whole legal row. */
+.mc-foot-anpc {
+  display: flex;
+  flex: 1 0 100%;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  /* No column gap: the badge slot's own transparent margin (see below) separates it from the link. */
+  gap: 10px 0;
+}
+
+.mc-foot-anpc-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.mc-foot-anpc-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.mc-foot-sal {
+  display: block;
+  flex: none;
+  max-width: 100%;
+}
+
+/* Ordin ANPC 449/2022 art. 2: a 250 × 50 px pictogram. ANPC's own file is 201 × 50, so it sits in the
+   slot unstretched, at the slot's end so it lines up with the credit below it. */
+.mc-foot-sal img {
+  display: block;
+  width: 250px;
+  max-width: 100%;
+  height: 50px;
+  object-fit: contain;
+  object-position: right center;
+}
+
+@container (max-width: 620px) {
+  .mc-foot-anpc {
+    justify-content: center;
+  }
+
+  .mc-foot-sal img {
+    object-position: center;
+  }
+
+  /* The credit wraps between its parts, never inside a word, when one line is too narrow. */
+  .mc-foot-zav {
+    flex-wrap: wrap;
+    justify-content: center;
+    white-space: nowrap;
+  }
+}
+
 .mc-foot-brand-lockup {
   display: inline-flex;
   min-width: 0;

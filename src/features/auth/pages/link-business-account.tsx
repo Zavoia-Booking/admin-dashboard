@@ -14,6 +14,8 @@ import { setTokensAction, setAuthUserAction, fetchCurrentUserAction } from "../a
 import type { AppleCredential, BusinessLinkTokenValidation } from "../types";
 import { tokenStorage } from "../../../shared/lib/tokenStorage";
 import { getErrorMessage } from "../../../shared/utils/error";
+import { Checkbox } from "../../../shared/components/ui/checkbox";
+import { openLegalPage } from "../../legal/legal-links";
 import { useTranslation, Trans } from "react-i18next";
 import { cn } from "../../../shared/lib/utils";
 import {
@@ -111,6 +113,31 @@ function LinkBusinessConfirmCard({
   const { register, handleSubmit, formState: { errors } } = useForm<FormValues>({
     defaultValues: { password: '' },
   });
+  // The password confirm and Google both add the owner role, so both wait for the box.
+  const [termsAccepted, setTermsAccepted] = useState(false);
+
+  const termsBox = (
+    <div className="flex items-start gap-2">
+      <Checkbox
+        id="acceptTerms"
+        checked={termsAccepted}
+        onCheckedChange={(checked) => setTermsAccepted(checked === true)}
+        disabled={submitting}
+        className="mt-1"
+      />
+      <label htmlFor="acceptTerms" className="text-sm text-foreground-2 leading-normal cursor-pointer select-none">
+        {t('register.termsAgreement')}{" "}
+        <span onClick={(e) => { e.preventDefault(); openLegalPage("business") }} className="text-primary hover:text-primary-hover underline underline-offset-2 cursor-pointer" role="link" tabIndex={0} onKeyDown={(e) => e.key === "Enter" && openLegalPage("business")}>
+          {t('register.businessTerms')}
+        </span>
+        . {t('register.seeOur')}{" "}
+        <span onClick={(e) => { e.preventDefault(); openLegalPage("privacy") }} className="text-primary hover:text-primary-hover underline underline-offset-2 cursor-pointer" role="link" tabIndex={0} onKeyDown={(e) => e.key === "Enter" && openLegalPage("privacy")}>
+          {t('register.privacyNotice')}
+        </span>
+        .
+      </label>
+    </div>
+  );
 
   return (
     <Panel>
@@ -179,12 +206,13 @@ function LinkBusinessConfirmCard({
               <span>{submitError}</span>
             </p>
           )}
+          <div className="mt-4">{termsBox}</div>
           <footer className="mt-7 border-t border-neutral-200 pt-5 dark:border-border-subtle">
             <Button
               className={cn(modalPrimary, "h-auto w-full")}
               rounded="full"
               type="submit"
-              disabled={submitting}
+              disabled={submitting || !termsAccepted}
             >
               {submitting ? <Spinner size="sm" color="white" /> : <span>{t('linkBusiness.confirmSubmit')}</span>}
             </Button>
@@ -195,7 +223,7 @@ function LinkBusinessConfirmCard({
                   <span className="text-[12px] text-neutral-500 dark:text-foreground-3">{t('linkBusiness.or')}</span>
                   <div className="h-px flex-1 bg-neutral-200 dark:bg-border-subtle" />
                 </div>
-                <GoogleSignInButton context="register" disabled={submitting} className="h-11 rounded-full text-sm" />
+                <GoogleSignInButton context="register" disabled={submitting || !termsAccepted} className="h-11 rounded-full text-sm" />
               </div>
             )}
             {info.appleLinked && (
@@ -219,30 +247,33 @@ function LinkBusinessConfirmCard({
           </footer>
         </form>
       ) : (
-        <div className="mt-7 border-t border-neutral-200 pt-5 dark:border-border-subtle">
-          {(info.googleLinked || !info.appleLinked) && (
-            <GoogleSignInButton context="register" className="h-11 rounded-full text-sm" />
-          )}
-          {info.appleLinked && (
-            <AppleSignInButton
-              context="register"
-              label="continue"
-              disabled={submitting}
-              className={cn("h-11 rounded-full text-sm", info.googleLinked && "mt-4")}
-              onCredential={onAppleCredential}
-            />
-          )}
-          {info.appleLinked && submitError && (
-            <p
-              className="mt-4 flex items-center gap-2 rounded-lg border border-destructive/20 bg-error-bg px-3 py-2.5 text-[13px] text-destructive"
-              role="alert"
-              aria-live="polite"
-            >
-              <AlertCircle className="h-4 w-4 shrink-0" />
-              <span>{submitError}</span>
-            </p>
-          )}
-        </div>
+        <>
+          <div className="mt-7">{termsBox}</div>
+          <div className="mt-7 border-t border-neutral-200 pt-5 dark:border-border-subtle">
+            {(info.googleLinked || !info.appleLinked) && (
+              <GoogleSignInButton context="register" disabled={!termsAccepted} className="h-11 rounded-full text-sm" />
+            )}
+            {info.appleLinked && (
+              <AppleSignInButton
+                context="register"
+                label="continue"
+                disabled={submitting || !termsAccepted}
+                className={cn("h-11 rounded-full text-sm", info.googleLinked && "mt-4")}
+                onCredential={onAppleCredential}
+              />
+            )}
+            {info.appleLinked && submitError && (
+              <p
+                className="mt-4 flex items-center gap-2 rounded-lg border border-destructive/20 bg-error-bg px-3 py-2.5 text-[13px] text-destructive"
+                role="alert"
+                aria-live="polite"
+              >
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                <span>{submitError}</span>
+              </p>
+            )}
+          </div>
+        </>
       )}
     </Panel>
   );

@@ -4,6 +4,8 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription }
 import { Button } from "../../../shared/components/ui/button";
 import { Input } from "../../../shared/components/ui/input";
 import { Label } from "../../../shared/components/ui/label";
+import { Checkbox } from "../../../shared/components/ui/checkbox";
+import { openLegalPage } from "../../legal/legal-links";
 import { useDispatch, useSelector } from "react-redux";
 import { useForm } from "react-hook-form";
 import { checkTeamInvitationAction, completeTeamInvitationAction, setTokensAction } from "../actions";
@@ -47,18 +49,16 @@ export default function TeamInvitationPage() {
   const [topError, setTopError] = useState<string | null>(null);
   const [pwFocused, setPwFocused] = useState(false);
   const [pwInteracted, setPwInteracted] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   const passwordValue = watch('password');
 
+  // The check call accepts the invitation for existing users, so it runs only
+  // when the person ticks the box and clicks "Accept invitation" — never on
+  // page load, where email link scanners would trigger it too.
   useEffect(() => {
     dispatch(setTokensAction({ accessToken: null, csrfToken: null }));
-    
-    if (!token) {
-      setTopError(t('teamInvitation.errorInvalidToken'));
-      return;
-    }
-    dispatch(checkTeamInvitationAction.request({ token }));
-  }, [dispatch, token, t]);
+  }, [dispatch]);
 
   const onSubmit = (values: FormValues) => {
     setPwFocused(false);
@@ -76,7 +76,60 @@ export default function TeamInvitationPage() {
     }));
   };
 
-  if (invitationStatus === 'checking' || invitationStatus === null) {
+  if (invitationStatus === null) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-muted to-background">
+        <Card className="w-full max-w-md border-0 shadow-xl bg-card/80 backdrop-blur-sm">
+          <CardHeader>
+            <CardTitle className="text-2xl text-center">{t('teamInvitation.introTitle')}</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-4">
+            {!token && (
+              <div className="bg-destructive/15 text-destructive text-sm p-3 rounded-md">
+                {t('teamInvitation.errorInvalidToken')}
+              </div>
+            )}
+            <div className="flex items-start gap-2">
+              <Checkbox
+                id="acceptTerms"
+                checked={termsAccepted}
+                onCheckedChange={(checked) => setTermsAccepted(checked === true)}
+                className="mt-1"
+              />
+              <label htmlFor="acceptTerms" className="text-sm text-foreground-2 leading-normal cursor-pointer select-none">
+                {t('register.termsAgreement')}{" "}
+                <span onClick={(e) => { e.preventDefault(); openLegalPage("terms") }} className="text-primary hover:text-primary-hover underline underline-offset-2 cursor-pointer" role="link" tabIndex={0} onKeyDown={(e) => e.key === "Enter" && openLegalPage("terms")}>
+                  {t('register.termsOfUse')}
+                </span>{" "}
+                {t('register.andThe')}{" "}
+                <span onClick={(e) => { e.preventDefault(); openLegalPage("account") }} className="text-primary hover:text-primary-hover underline underline-offset-2 cursor-pointer" role="link" tabIndex={0} onKeyDown={(e) => e.key === "Enter" && openLegalPage("account")}>
+                  {t('teamInvitation.accountTerms')}
+                </span>
+                . {t('register.seeOur')}{" "}
+                <span onClick={(e) => { e.preventDefault(); openLegalPage("privacy") }} className="text-primary hover:text-primary-hover underline underline-offset-2 cursor-pointer" role="link" tabIndex={0} onKeyDown={(e) => e.key === "Enter" && openLegalPage("privacy")}>
+                  {t('register.privacyNotice')}
+                </span>
+                .
+              </label>
+            </div>
+          </CardContent>
+          <CardFooter className="flex flex-col gap-3 mt-4">
+            <Button
+              type="button"
+              rounded="full"
+              className="w-full"
+              disabled={!token || !termsAccepted}
+              onClick={() => dispatch(checkTeamInvitationAction.request({ token }))}
+            >
+              {t('teamInvitation.acceptInvitation')}
+            </Button>
+          </CardFooter>
+        </Card>
+      </div>
+    );
+  }
+
+  if (invitationStatus === 'checking') {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-gradient-to-br from-muted to-background">
         <Spinner size="lg" color="info" />

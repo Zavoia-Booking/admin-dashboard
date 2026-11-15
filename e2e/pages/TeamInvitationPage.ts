@@ -2,6 +2,8 @@ import type { Locator, Page } from '@playwright/test'
 
 export class TeamInvitationPage {
   readonly page: Page
+  readonly termsCheckbox: Locator
+  readonly acceptButton: Locator
   readonly firstName: Locator
   readonly lastName: Locator
   readonly phone: Locator
@@ -14,6 +16,11 @@ export class TeamInvitationPage {
 
   constructor(page: Page) {
     this.page = page
+    // Opening the link only shows the invitation: the ticked box + "Accept
+    // invitation" is what sends the check call (which accepts it for existing
+    // users).
+    this.termsCheckbox = page.locator('#acceptTerms')
+    this.acceptButton = page.getByRole('button', { name: /^accept invitation$/i })
     this.firstName = page.locator('#firstName')
     this.lastName = page.locator('#lastName')
     this.phone = page.locator('#phone')
@@ -31,6 +38,12 @@ export class TeamInvitationPage {
     await this.page.goto(
       `/team-invitation?token=${encodeURIComponent(token)}`,
     )
+  }
+
+  /** Ticks the terms box and clicks "Accept invitation". */
+  async accept(): Promise<void> {
+    await this.termsCheckbox.click()
+    await this.acceptButton.click()
   }
 
   async complete(values: {

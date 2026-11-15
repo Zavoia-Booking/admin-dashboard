@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react"
 import { Outlet, useLocation, useSearchParams } from "react-router-dom"
 import { useTranslation } from "react-i18next"
-import { openLegalPage } from "../../legal/legal-links"
 import { AuthShell } from "./AuthShell"
 import { AuthCard } from "./AuthCard"
 import { ZavoiaWordmark } from "./ZavoiaWordmark"
@@ -93,27 +92,6 @@ export function AuthLayout() {
     }
   }, [])
 
-  const footer = (
-    <div className="text-muted-foreground text-center text-xs text-balance w-full">
-      {t("login.termsNotice")}{" "}
-      <button
-        type="button"
-        onClick={() => openLegalPage("terms")}
-        className="text-muted-foreground hover:text-primary underline underline-offset-4 cursor-pointer"
-      >
-        {t("login.termsOfService")}
-      </button>{" "}
-      {t("login.and")}{" "}
-      <button
-        type="button"
-        onClick={() => openLegalPage("privacy")}
-        className="text-muted-foreground hover:text-primary underline underline-offset-4 cursor-pointer"
-      >
-        {t("login.privacyPolicy")}
-      </button>.
-    </div>
-  )
-
   return (
     <>
       <div
@@ -136,7 +114,6 @@ export function AuthLayout() {
             <Outlet context={{ onRegisterEmailSentChange: setIsRegisterEmailSent } satisfies AuthOutletContext} />
           </AuthCard>
         </div>
-        {footer}
         <MobileAuthControls />
       </AuthShell>
     </>

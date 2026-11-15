@@ -331,6 +331,8 @@ export interface WebsiteIdentity {
   description: string | null;
   /** Customer-facing ISO 4217 currency used by service prices. Additive for rolling API responses. */
   businessCurrency?: string | null;
+  /** Signup country, ISO 3166-1 alpha-2 (e.g. "ro"); Romanian sites get the ANPC/SAL footer links. Additive. */
+  countryCode?: string | null;
   instagramUrl: string | null;
   facebookUrl: string | null;
   tiktokUrl: string | null;

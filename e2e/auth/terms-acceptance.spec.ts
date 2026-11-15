@@ -98,6 +98,7 @@ test.describe('Terms acceptance stamp', () => {
 
     const invitePage = new TeamInvitationPage(page)
     await invitePage.goto(token)
+    await invitePage.accept()
     await expect(invitePage.submit).toBeVisible({ timeout: 15_000 })
     await invitePage.complete({
       firstName: invitee.firstName,

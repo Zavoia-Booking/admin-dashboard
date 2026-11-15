@@ -26,6 +26,8 @@ export interface PreviewData {
   establishedYear: number | null;
   /** Customer-facing ISO 4217 currency for the location service menu. */
   businessCurrency: string;
+  /** Business country from signup, ISO 3166-1 alpha-2 (e.g. "ro"). Romanian sites get the ANPC/SAL footer links. */
+  countryCode?: string | null;
   email: string;
   phone: string;
   social: {

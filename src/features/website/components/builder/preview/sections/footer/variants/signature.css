@@ -244,3 +244,12 @@
     );
   }
 }
+
+/* Phones: the legal row (Romanian ANPC block, ©, credit) is one centred stack. */
+@container (max-width: 620px) {
+  .mc-fsig-base {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+}

@@ -15,6 +15,7 @@ test.describe('Team invitation', () => {
 
     const invite = new TeamInvitationPage(page)
     await invite.goto('mock-team-invite-token')
+    await invite.accept()
 
     await expect(page.getByText(/Bookaroo Studio/i)).toBeVisible({
       timeout: 10_000,
@@ -33,11 +34,24 @@ test.describe('Team invitation', () => {
     page,
   }) => {
     await mockTeamInvitation(page, { status: 'accepted' })
+    // The check call accepts the invitation for existing users, so opening the
+    // link must not send it: only the ticked box + "Accept invitation" does.
+    const checkRequests: string[] = []
+    page.on('request', (request) => {
+      if (request.url().includes('/api/auth/check-team-invitation')) {
+        checkRequests.push(request.url())
+      }
+    })
 
     const invite = new TeamInvitationPage(page)
     await invite.goto('mock-team-invite-token')
 
+    await expect(invite.acceptButton).toBeDisabled({ timeout: 10_000 })
+    expect(checkRequests).toHaveLength(0)
+
+    await invite.accept()
     await expect(invite.acceptedTitle).toBeVisible({ timeout: 10_000 })
+    expect(checkRequests).toHaveLength(1)
   })
 
   test('invalid token shows the invalid-invitation state', async ({ page }) => {
@@ -45,6 +59,7 @@ test.describe('Team invitation', () => {
 
     const invite = new TeamInvitationPage(page)
     await invite.goto('mock-bad-token')
+    await invite.accept()
 
     await expect(invite.errorTitle).toBeVisible({ timeout: 10_000 })
   })

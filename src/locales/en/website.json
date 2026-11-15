@@ -1317,6 +1317,8 @@
         "locationCount_one": "{{count}} location",
         "locationCount_other": "{{count}} locations",
         "footer": {
+          "alternativeDisputeResolution": "Alternative dispute resolution (SAL) with ANPC",
+          "consumerProtection": "Consumer protection (ANPC)",
           "poweredBy": "Powered by Zavoia",
           "rights": "© {{year}} {{name}}"
         },
