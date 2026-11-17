@@ -24,6 +24,8 @@
   height: clamp(600px, calc(var(--mc-vph, 760px) * 0.86), 980px);
   margin-inline: calc(50% - 50cqw);
   overflow: hidden;
+  /* Its size never depends on its photos, so keep per-frame layout and paint inside the wall. */
+  contain: strict;
   padding: 12px;
   background: #0b0a09;
   cursor: default;

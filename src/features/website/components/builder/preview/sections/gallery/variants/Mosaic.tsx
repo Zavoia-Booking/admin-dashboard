@@ -1,4 +1,6 @@
 import {
+  useCallback,
+  useContext,
   useEffect,
   useLayoutEffect,
   useRef,
@@ -7,7 +9,7 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import { ArrowRight } from "lucide-react";
-import { useReducedMotion } from "../../../shared/hooks";
+import { PreviewAtRestContext, StaticPreviewContext, useInView, useReducedMotion } from "../../../shared/hooks";
 import { GalleryImage } from "../parts/GalleryImage";
 import { useGalleryFan } from "../parts/useGalleryFan";
 import type { GalleryVariantProps } from "../types";
@@ -16,6 +18,17 @@ import "./mosaic.css";
 const COLUMN_WEIGHTS = [1, 1.3, 1.08, 0.92];
 const TILE_WEIGHTS = [1, 1.45, 0.8, 1.2, 0.9, 1.3];
 const formatCount = (value: number) => String(value).padStart(2, "0");
+/** Sized for full view, the widest a photo gets, so its file never changes while tiles resize. */
+const PHOTO_SIZES = "(max-width: 1400px) 100vw, 1400px";
+const paneTransform = (page: number, pos: number, unit: number) =>
+  `translate3d(${((page - pos) * unit).toFixed(2)}px, 0, 0)`;
+/** A page waiting beside the wall, not sliding in or out: mounted and loaded, but left unpainted. */
+const isParked = (page: number, pos: number) => Math.abs(page - pos) >= 1;
+/** Everything rendered from the pager position: the mounted page range and the active page. */
+const pagePositionKey = (pos: number, pages: number) => {
+  const max = pages - 1;
+  return `${Math.max(0, Math.floor(pos))}:${Math.min(max, Math.ceil(pos))}:${Math.max(0, Math.min(max, Math.round(pos)))}`;
+};
 
 function useReducedMotionPreference() {
   // Shared hook: OS preference + static thumbnails + the at-rest desktop mock (PreviewAtRestContext).
@@ -29,6 +42,11 @@ export function Mosaic({ images, t }: GalleryVariantProps) {
   const downTileRef = useRef(-1);
   const previousPageRef = useRef(0);
   const reducedMotion = useReducedMotionPreference();
+  const staticPreview = useContext(StaticPreviewContext);
+  const atRestPreview = useContext(PreviewAtRestContext);
+  const onScreen = useInView(stageRef, { threshold: 0, once: true });
+  // Once the wall is on screen, the neighbouring pages stay mounted and load early, so a page change never waits for photos.
+  const loadAhead = onScreen && !staticPreview && !atRestPreview;
   const [rootWidth, setRootWidth] = useState(1000);
   const [paneWidth, setPaneWidth] = useState(0);
   const [focused, setFocused] = useState(0);
@@ -39,7 +57,27 @@ export function Mosaic({ images, t }: GalleryVariantProps) {
   const pages = Math.max(1, Math.ceil(images.length / pageSize));
   const gap = mobile ? 8 : 10;
   const unit = (paneWidth || 1) + gap;
-  const pager = useGalleryFan(pages, unit, { reducedMotion });
+  const paneNodesRef = useRef(new Map<number, HTMLDivElement>());
+  const frameRef = useRef({ unit, pages, key: "" });
+  // Swipe frames move the mounted panes directly; React renders only when the mounted or active page changes.
+  const applyFrame = useCallback((pos: number) => {
+    const frame = frameRef.current;
+    paneNodesRef.current.forEach((pane, page) => {
+      pane.style.transform = paneTransform(page, pos, frame.unit);
+      pane.style.visibility = isParked(page, pos) ? "hidden" : "";
+    });
+    return pagePositionKey(pos, frame.pages) !== frame.key;
+  }, []);
+  const pager = useGalleryFan(pages, unit, { reducedMotion, onFrame: applyFrame });
+  // The page the wall last rested on: its neighbours change while the wall is still, never mid-swipe.
+  const [restPage, setRestPage] = useState(pager.active);
+  if (!pager.dragging && pager.pos === pager.active && restPage !== pager.active) setRestPage(pager.active);
+
+  useLayoutEffect(() => {
+    frameRef.current = { unit, pages, key: pagePositionKey(pager.pos, pages) };
+    // React skips unchanged style props, so re-apply the committed position to every mounted pane.
+    applyFrame(pager.pos);
+  });
 
   useLayoutEffect(() => {
     const stage = stageRef.current;
@@ -187,6 +225,8 @@ export function Mosaic({ images, t }: GalleryVariantProps) {
                       src={image.src}
                       alt={image.alt}
                       fallbackLabel={t("businessPage.builder.preview.galleryTitle")}
+                      sizes={PHOTO_SIZES}
+                      loading={loadAhead ? "eager" : "lazy"}
                       draggable={false}
                     />
                   </button>
@@ -199,9 +239,22 @@ export function Mosaic({ images, t }: GalleryVariantProps) {
     );
   };
 
-  const lowPage = Math.max(0, Math.floor(pager.pos));
-  const highPage = Math.min(pages - 1, Math.ceil(pager.pos));
-  const visiblePages = Array.from({ length: highPage - lowPage + 1 }, (_, offset) => lowPage + offset);
+  const firstVisible = Math.floor(pager.pos);
+  const lastVisible = Math.ceil(pager.pos);
+  const lowPage = Math.max(0, loadAhead ? Math.min(firstVisible, restPage - 1) : firstVisible);
+  const highPage = Math.min(pages - 1, loadAhead ? Math.max(lastVisible, restPage + 1) : lastVisible);
+  const mountedPages = Array.from({ length: highPage - lowPage + 1 }, (_, offset) => lowPage + offset);
+
+  // Photos on parked pages are decoded ahead, so they paint in the first frame of a page change.
+  useEffect(() => {
+    if (!loadAhead) return;
+    for (let page = lowPage; page <= highPage; page++) {
+      if (page === restPage) continue;
+      paneNodesRef.current.get(page)?.querySelectorAll("img").forEach((image) => {
+        image.decode().catch(() => undefined);
+      });
+    }
+  }, [loadAhead, lowPage, highPage, restPage]);
   const pagingProps = pages > 1 && !full ? pager.stageProps : {};
 
   return (
@@ -219,16 +272,21 @@ export function Mosaic({ images, t }: GalleryVariantProps) {
         onClick={handleStageClick}
       >
         <div ref={boxRef} className="mc-galmosaic-box">
-          {visiblePages.map((page) => {
+          {mountedPages.map((page) => {
             const activePage = page === pager.active;
             return (
               <div
                 key={page}
+                ref={(node) => {
+                  if (node) paneNodesRef.current.set(page, node);
+                  else paneNodesRef.current.delete(page);
+                }}
                 className="mc-galmosaic-pane"
                 aria-hidden={!activePage}
                 style={{
                   width: `${paneWidth}px`,
-                  transform: `translate3d(${((page - pager.pos) * unit).toFixed(2)}px, 0, 0)`,
+                  transform: paneTransform(page, pager.pos, unit),
+                  visibility: isParked(page, pager.pos) ? "hidden" : undefined,
                 }}
               >
                 {buildGrid(

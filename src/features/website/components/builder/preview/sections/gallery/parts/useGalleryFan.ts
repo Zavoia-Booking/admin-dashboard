@@ -1,6 +1,7 @@
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
@@ -8,6 +9,7 @@ import {
   type RefObject,
   type WheelEvent as ReactWheelEvent,
 } from "react";
+import { flushSync } from "react-dom";
 
 type FanMode = "idle" | "glide" | "settle";
 
@@ -17,6 +19,8 @@ type FanDrag = {
   lastX: number;
   lastT: number;
   velocity: number;
+  /** Frame-path touch presses render their drag state only once they move horizontally. */
+  renderDeferred: boolean;
 };
 
 type FanState = {
@@ -32,10 +36,18 @@ type FanState = {
   step: number;
   max: number;
   reducedMotion: boolean;
+  /** Drag state shown by the latest render. */
+  renderedDrag: boolean;
 };
 
 type UseGalleryFanOptions = {
   reducedMotion?: boolean;
+  /**
+   * Opt-in frame path: receives every position change, applies it outside React and
+   * returns true only when the rendered output must change. Without it, every
+   * position change re-renders.
+   */
+  onFrame?: (pos: number) => boolean;
 };
 
 const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
@@ -44,7 +56,7 @@ const clamp = (value: number, min: number, max: number) => Math.max(min, Math.mi
  * Continuous one-dimensional drag physics shared by the Gallery Fan and Mosaic pager.
  * Position stays fractional while dragging/gliding, then eases onto the nearest item.
  */
-export function useGalleryFan(count: number, stepPx: number, { reducedMotion = false }: UseGalleryFanOptions = {}) {
+export function useGalleryFan(count: number, stepPx: number, { reducedMotion = false, onFrame }: UseGalleryFanOptions = {}) {
   const [, render] = useState(0);
   const stateRef = useRef<FanState | null>(null);
 
@@ -63,6 +75,7 @@ export function useGalleryFan(count: number, stepPx: number, { reducedMotion = f
       step: Math.max(40, stepPx || 160),
       max,
       reducedMotion,
+      renderedDrag: false,
     };
   }
 
@@ -78,6 +91,19 @@ export function useGalleryFan(count: number, stepPx: number, { reducedMotion = f
   }
 
   const requestRender = useCallback(() => render((value) => value + 1), []);
+  const onFrameRef = useRef(onFrame);
+  useLayoutEffect(() => {
+    onFrameRef.current = onFrame;
+  });
+
+  // Shows a position change. The frame path has already moved its content, so when its rendered
+  // output changes too, that render happens in the same frame and everything stays in step.
+  const commit = useCallback(() => {
+    const current = stateRef.current;
+    const frame = onFrameRef.current;
+    if (!current || !frame) requestRender();
+    else if (frame(current.pos)) flushSync(requestRender);
+  }, [requestRender]);
 
   const stop = useCallback(() => {
     const current = stateRef.current;
@@ -113,8 +139,8 @@ export function useGalleryFan(count: number, stepPx: number, { reducedMotion = f
       const distance = current.target - current.pos;
       if (Math.abs(distance) < 0.0015) {
         current.pos = current.target;
-        requestRender();
         stop();
+        commit();
         return;
       }
       current.pos += distance * 0.135;
@@ -122,9 +148,9 @@ export function useGalleryFan(count: number, stepPx: number, { reducedMotion = f
       return;
     }
 
-    requestRender();
     current.frame = requestAnimationFrame(tickRef.current);
-  }, [requestRender, stop]);
+    commit();
+  }, [commit, stop]);
   tickRef.current = tick;
 
   const kick = useCallback((mode: FanMode) => {
@@ -176,15 +202,17 @@ export function useGalleryFan(count: number, stepPx: number, { reducedMotion = f
       stop();
       const current = stateRef.current;
       if (!current) return;
+      const renderDeferred = !!onFrameRef.current && event.pointerType === "touch";
       current.drag = {
         x0: event.clientX,
         base: current.pos,
         lastX: event.clientX,
         lastT: performance.now(),
         velocity: 0,
+        renderDeferred,
       };
       current.moved = false;
-      requestRender();
+      if (!renderDeferred) requestRender();
     },
     [requestRender, stop],
   );
@@ -206,9 +234,13 @@ export function useGalleryFan(count: number, stepPx: number, { reducedMotion = f
       drag.velocity = drag.velocity * 0.5 + velocity * 0.5;
       drag.lastX = event.clientX;
       drag.lastT = now;
-      requestRender();
+      commit();
+      if (drag.renderDeferred && current.moved) {
+        drag.renderDeferred = false;
+        requestRender();
+      }
     },
-    [requestRender],
+    [commit, requestRender],
   );
 
   const onPointerUp = useCallback(() => {
@@ -234,8 +266,10 @@ export function useGalleryFan(count: number, stepPx: number, { reducedMotion = f
       const latest = stateRef.current;
       if (latest) latest.moved = false;
     }, 0);
-    requestRender();
-  }, [kick, requestRender, stop]);
+    // A frame-path press whose drag state never rendered has no drag state to clear.
+    if (onFrameRef.current && !current.renderedDrag) commit();
+    else requestRender();
+  }, [commit, kick, requestRender, stop]);
 
   const onWheel = useCallback(
     (event: ReactWheelEvent<HTMLDivElement>) => {
@@ -244,11 +278,11 @@ export function useGalleryFan(count: number, stepPx: number, { reducedMotion = f
       const current = stateRef.current;
       if (!current) return;
       current.pos = clamp(current.pos + event.deltaX / (current.step * 1.6), -0.35, current.max + 0.35);
-      requestRender();
+      commit();
       if (current.wheelTimer) window.clearTimeout(current.wheelTimer);
       current.wheelTimer = window.setTimeout(() => goTo(current.pos), 110);
     },
-    [goTo, requestRender, stop],
+    [commit, goTo, stop],
   );
 
   const onKeyDown = useCallback(
@@ -287,6 +321,12 @@ export function useGalleryFan(count: number, stepPx: number, { reducedMotion = f
     },
     [stop],
   );
+
+  // Records the drag state each commit shows, so a press that never rendered it can skip clearing it.
+  useLayoutEffect(() => {
+    const current = stateRef.current;
+    if (current) current.renderedDrag = !!current.drag;
+  });
 
   return {
     pos: state.pos,
