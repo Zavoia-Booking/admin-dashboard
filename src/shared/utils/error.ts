@@ -121,6 +121,16 @@ export function getErrorMessage(error: unknown, fallbackMessage?: string): strin
     // ("Too many requests. Please try again later.") or bare message codes.
     // Show a friendly localized message unless the code has a real translation.
     if (response?.status === 429) {
+      // Sign-in wait on the ACCOUNT after repeated wrong passwords (not the IP
+      // limit). The wait comes from the body: the API is cross-origin and
+      // doesn't expose Retry-After. Up to an hour, so past a minute show minutes.
+      if (response.data?.code === "login_account_throttled") {
+        const seconds = response.data?.details?.retryAfterSeconds;
+        if (typeof seconds !== "number" || seconds <= 0) return i18n.t("messages:rateLimited");
+        const wait = seconds < 60 ? `${seconds} s` : `${Math.ceil(seconds / 60)} min`;
+        return i18n.t("messages:AUTH.E42", { wait });
+      }
+
       const raw = Array.isArray(response.data?.message)
         ? response.data.message[0]
         : response.data?.message;
