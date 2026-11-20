@@ -7,6 +7,7 @@ import type {
     CalendarDayFilters,
     SlimAppointment,
     CalendarBlockDto,
+    BlockConflictOffer,
 } from "../../shared/types/calendar.ts";
 import type { LocationService, LocationTeamMember } from "../assignments/types.ts";
 
@@ -22,6 +23,13 @@ export type PendingDrop =
     }
     | { type: "reassign"; appointment: SlimAppointment; staffId: number; staffLabel: string }
     | null;
+
+/** Staff reassignment the editor can retry after a working-hours confirmation. */
+export type ReassignmentHoursOverrideOffer = {
+    appointmentId: number;
+    staffUserIds: number[];
+    notes?: string;
+};
 
 // ─────────────────────────────────────────────────────────────
 // View Enums
@@ -137,6 +145,11 @@ export type CalendarViewState = {
 
     /** When an update returns 409 Conflict, offer the user to retry with override (overrideConflicts + reason). Only for non–staff conflicts; staff_appointment must not show override. */
     updateConflictOffer: { appointmentId: number; data: Record<string, unknown>; message: string; conflictType?: 'staff_appointment' | 'block' } | null;
+
+    reassignmentHoursOverrideOffer: ReassignmentHoursOverrideOffer | null;
+
+    /** When a block create/update returns 409 because upcoming appointments fall inside it, offer "Block anyway". */
+    blockConflictOffer: BlockConflictOffer | null;
 
     /** Pending drag-drop: card stays at drop position until confirm/cancel or update success. */
     pendingDrop: PendingDrop;

@@ -27,6 +27,7 @@ import { selectCurrentUser, selectIsTeamMember } from '../../auth/selectors';
 import {
   adminCreateAppointmentGroup,
   beginAddFormCloseAfterMutations,
+  setReassignmentHoursOverrideOffer,
   updateAppointment,
 } from '../actions';
 import {
@@ -36,13 +37,16 @@ import {
   getLocationOpen247,
   getBookingSettings,
   getAddFormPrefill,
+  getAddFormSaveInFlight,
   getLocationServices,
   getLocationTeamMembers,
   getLocationBundles,
+  getLocationContext,
   getLocationContextLoading,
   getCalendarTimezone,
+  getReassignmentHoursOverrideOffer,
 } from '../selectors';
-import type { AppointmentBookingSource } from '../../../shared/types/calendar';
+import type { AppointmentBookingSource, AvailableSlotsRequest, AvailableSlotsResponse } from '../../../shared/types/calendar';
 import { formatSlotTime, getEndTimeString, formatTimeKey } from './utils';
 import DatePicker from '../../../shared/components/ui/date-picker';
 import ConfirmDialog from '../../../shared/components/common/ConfirmDialog';
@@ -78,7 +82,8 @@ import CustomerSearchPicker from './CustomerSearchPicker';
 import { AssignmentReminderNote } from '../../services/components/AssignmentReminderNote';
 import type { Service as ManageSheetService } from '../../../shared/components/common/ManageServicesSheet/types';
 import type { Bundle as ManageSheetBundle } from '../../../shared/components/common/ManageBundlesSheet/types';
-import { buildZonedDateFromDateKey, formatDateInTimezone, getCalendarLocale } from '../timezone';
+import { formatDateInTimezone, getCalendarLocale, localCalendarDateFromDateKey, minSelectableCalendarDateForTimezone } from '../timezone';
+import { toLocalDateString } from '../utils';
 import { validateDescription } from '../../../shared/utils/validation';
 import "./addAppointmentSliderPopover.css";
 
@@ -156,6 +161,7 @@ interface AppointmentItemRowProps {
    *  PriceDisplay with locale-aware grouping. */
   currency: string;
   onUpdateStaff: (index: number, staffUserId: number | null) => void;
+  onStaffPickerActiveChange?: (active: boolean) => void;
   onRemoveItem: (index: number) => void;
   /** Assignments deep link used by the "nobody can perform this" notice, which
    *  is a dead end without it. */
@@ -175,6 +181,7 @@ function AppointmentItemRow({
   locationTeamMembers,
   currency,
   onUpdateStaff,
+  onStaffPickerActiveChange,
   onRemoveItem,
   assignmentsPath,
   onNavigateAway,
@@ -217,10 +224,14 @@ function AppointmentItemRow({
   const [staffPopoverOpen, setStaffPopoverOpen] = useState(false);
   const [closingAnimation, setClosingAnimation] = useState(false);
   const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const handleStaffPickerCloseAutoFocus = useCallback(() => {
+    onStaffPickerActiveChange?.(false);
+  }, [onStaffPickerActiveChange]);
 
   const handleStaffPopoverOpenChange = useCallback((open: boolean) => {
     setStaffPopoverOpen(open);
     if (open) {
+      onStaffPickerActiveChange?.(true);
       if (closeTimeoutRef.current) {
         clearTimeout(closeTimeoutRef.current);
         closeTimeoutRef.current = null;
@@ -233,7 +244,7 @@ function AppointmentItemRow({
         closeTimeoutRef.current = null;
       }, 250);
     }
-  }, []);
+  }, [onStaffPickerActiveChange]);
 
   useEffect(() => () => {
     if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
@@ -343,6 +354,7 @@ function AppointmentItemRow({
           <ResponsivePopover
               open={staffPopoverOpen}
               onOpenChange={handleStaffPopoverOpenChange}
+              onCloseAutoFocus={onStaffPickerActiveChange ? handleStaffPickerCloseAutoFocus : undefined}
               title={tCal('page.appointments.add.assignStaff')}
               trigger={
                     <Button
@@ -465,9 +477,12 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
   const open247 = useSelector(getLocationOpen247);
   const bookingSettings = useSelector(getBookingSettings);
   const prefill = useSelector(getAddFormPrefill);
+  const saveInFlight = useSelector(getAddFormSaveInFlight);
+  const reassignmentHoursOverrideOffer = useSelector(getReassignmentHoursOverrideOffer);
   const locationServices = useSelector(getLocationServices);
   const allLocationTeamMembers = useSelector(getLocationTeamMembers);
   const locationBundles = useSelector(getLocationBundles);
+  const locationContext = useSelector(getLocationContext);
   const servicesLoading = useSelector(getLocationContextLoading);
   const calendarTimezone = useSelector(getCalendarTimezone);
   const currentUser = useSelector(selectCurrentUser);
@@ -494,7 +509,10 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
   /** Prefilled time when opening edit; kept valid even if availability omits past slots. */
   const [editInitialTime, setEditInitialTime] = useState('');
   /** Initial field values when opening edit (for dirty check + minimal PUT payload). */
-  const [editSnapshot, setEditSnapshot] = useState<EditFormSnapshot | null>(null);
+  const [initialSchedule, setInitialSchedule] = useState<{
+    instant: Date;
+    editSnapshot: EditFormSnapshot | null;
+  } | null>(null);
 
   /** Use ref first so reschedule always updates the appointment that was opened, even if prefill is later overwritten (e.g. by clicking a slot). */
   const editingAppointmentId = rescheduleAppointmentIdRef.current ?? prefill?.appointmentId ?? null;
@@ -506,7 +524,16 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
     : null;
 
   // Form state
-  const [form, setForm] = useState<FormState>(initialForm);
+  const [draft, setForm] = useState<FormState>(initialForm);
+  // Only dates picked by the user are stored in the draft. Derive the initial
+  // day from the prefill after location context loads, without resetting inputs.
+  const initialWallDate = useMemo(() => initialSchedule
+    ? localCalendarDateFromDateKey(formatDateInTimezone(initialSchedule.instant, calendarTimezone))
+    : null, [calendarTimezone, initialSchedule]);
+  const form = useMemo(() => draft.date || !initialWallDate ? draft : { ...draft, date: initialWallDate }, [draft, initialWallDate]);
+  const editSnapshot = useMemo(() => initialSchedule?.editSnapshot && initialWallDate
+    ? { ...initialSchedule.editSnapshot, date: initialWallDate }
+    : null, [initialSchedule, initialWallDate]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -518,13 +545,16 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
   const [isManageServicesSheetOpen, setIsManageServicesSheetOpen] = useState(false);
   const [isManageBundlesSheetOpen, setIsManageBundlesSheetOpen] = useState(false);
   const [appointmentItems, setAppointmentItems] = useState<AppointmentItem[]>([]);
+  const [hasReassignedStaff, setHasReassignedStaff] = useState(false);
+  const [staffPickerActive, setStaffPickerActive] = useState(false);
+  const dateFieldRef = useRef<HTMLDivElement>(null);
+  const timeFieldRef = useRef<HTMLDivElement>(null);
+  const [visibleScheduleField, setVisibleScheduleField] = useState<'date' | 'time' | null>(null);
 
-  /** Available slot starts from API (ISO strings); when set, time picker shows only these. */
-  const [availableSlots, setAvailableSlots] = useState<string[] | null>(null);
-  const [outOfHoursSlots, setOutOfHoursSlots] = useState<string[]>([]);
-  const [nextAvailableDate, setNextAvailableDate] = useState<string | null>(null);
-  const [availableSlotsLoading, setAvailableSlotsLoading] = useState(false);
-  const [slotFetchError, setSlotFetchError] = useState<string | null>(null);
+  const [slotResult, setSlotResult] = useState<{
+    request: AvailableSlotsRequest;
+    response: AvailableSlotsResponse | null;
+  } | null>(null);
   // Time picker state
   const [hourOpen, setHourOpen] = useState(false);
   const [hourClosingAnimation, setHourClosingAnimation] = useState(false);
@@ -547,11 +577,15 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
         rescheduleAppointmentIdRef.current = null;
         setEditInitialTime('');
       }
+      const initialInstant = prefill?.date ?? new Date();
+      setInitialSchedule({
+        instant: initialInstant,
+        editSnapshot: buildEditSnapshotFromPrefill(prefill, selectedLocationId),
+      });
       setForm({
         ...initialForm,
         customerId: prefill?.customerId ?? null,
         customerDisplay: prefill?.customerDisplay ?? null,
-        date: prefill?.date ?? new Date(),
         time: prefill?.time ?? '',
         notes: prefill?.notes ?? '',
         bookingSource: (prefill?.bookingSource as AppointmentBookingSource) ?? ('admin' as AppointmentBookingSource),
@@ -570,19 +604,13 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
       } else {
         setAppointmentItems([]);
       }
-      if (prefill?.appointmentId != null) {
-        setEditSnapshot(buildEditSnapshotFromPrefill(prefill, selectedLocationId));
-      } else {
-        setEditSnapshot(null);
-      }
       // Wipe slot state here rather than on close — the slot-fetching effect will
       // refill it based on the new prefill's date/service immediately after.
-      setAvailableSlots(null);
-      setOutOfHoursSlots([]);
-      setNextAvailableDate(null);
-      setAvailableSlotsLoading(false);
+      setHasReassignedStaff(false);
+      setStaffPickerActive(false);
+      setVisibleScheduleField(null);
+      setSlotResult(null);
       setError(null);
-      setSlotFetchError(null);
     } else {
       // Close branch intentionally minimal: anything visible in the panel body must
       // stay painted during Vaul's close animation, otherwise the user sees the form
@@ -612,13 +640,11 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
     });
   }, [isEditMode, locationServices, locationBundles]);
 
-  // Fetch available slots when location, date, and service chain are set (create mode only)
-  const slotDurationMinutes = useMemo(
+  // Fetch available slots when the location, date, and assigned items are set.
+  const estimatedDurationMinutes = useMemo(
     () => getGroupTotalDurationMinutes(getGroupItemsForPayload(appointmentItems), locationServices, locationBundles),
     [appointmentItems, locationServices, locationBundles],
   );
-  const MINUTES_PER_DAY = 24 * 60;
-  const durationExceedsOneDay = slotDurationMinutes > MINUTES_PER_DAY;
 
   const slotFetchItems = useMemo(() => {
     const validItems = appointmentItems.filter((item) => item.serviceId != null || item.bundleId != null);
@@ -636,34 +662,39 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
     return resolvedItems;
   }, [appointmentItems]);
 
-  useEffect(() => {
-    if (!selectedLocationId || !form.date || !slotFetchItems) {
-      setAvailableSlots(null);
-      setOutOfHoursSlots([]);
-      setNextAvailableDate(null);
-      setAvailableSlotsLoading(false);
-      setSlotFetchError(null);
-      return;
-    }
-    const controller = new AbortController();
-    const dateStr = formatDateInTimezone(form.date, calendarTimezone);
-    setAvailableSlotsLoading(true);
-    setSlotFetchError(null);
-    setAvailableSlots(null);
-    setOutOfHoursSlots([]);
-    setNextAvailableDate(null);
-    const slotRequestId = `${Date.now()}-${selectedLocationId}`;
-    getAvailableSlotsRequest({
+  const selectedDateKey = form.date ? toLocalDateString(form.date) : null;
+  const slotRequest = useMemo<AvailableSlotsRequest | null>(() => {
+    if (!selectedLocationId || locationContext?.location.id !== selectedLocationId || !selectedDateKey || !slotFetchItems) return null;
+    return {
       locationId: selectedLocationId,
-      date: dateStr,
+      date: selectedDateKey,
       items: slotFetchItems,
       findNextAvailable: true,
-    }, controller.signal)
+      ...(editingAppointmentId != null ? { rescheduleAppointmentId: editingAppointmentId } : {}),
+    };
+  }, [selectedLocationId, locationContext, selectedDateKey, slotFetchItems, editingAppointmentId]);
+
+  // Ignore a previous result immediately when the date or staff changes, not
+  // just once the fetch effect has run and the next request is in flight.
+  const currentSlotResult = slotResult?.request === slotRequest ? slotResult : null;
+  const currentSlotResponse = currentSlotResult?.response ?? null;
+  const slotDurationMinutes = currentSlotResponse?.durationMinutes ?? estimatedDurationMinutes;
+  const durationExceedsOneDay = slotDurationMinutes > 24 * 60;
+  const nextAvailableDate = currentSlotResponse?.nextAvailableDate ?? null;
+  const nextAvailableSearchDays = currentSlotResponse?.nextAvailableSearchDays;
+  const slotsPending = slotRequest != null && !currentSlotResult;
+  const slotFetchError = currentSlotResult && !currentSlotResponse
+    ? t('page.appointments.add.couldNotLoadAvailability')
+    : null;
+
+  useEffect(() => {
+    if (!isOpen || !slotRequest) return;
+    const controller = new AbortController();
+    const slotRequestId = `${Date.now()}-${slotRequest.locationId}`;
+    getAvailableSlotsRequest(slotRequest, controller.signal)
       .then((res) => {
         if (controller.signal.aborted) return;
-        setAvailableSlots(res.availableSlots ?? []);
-        setOutOfHoursSlots(res.outOfHoursSlots ?? []);
-        setNextAvailableDate(res.nextAvailableDate ?? null);
+        setSlotResult({ request: slotRequest, response: res });
       })
       .catch((err) => {
         if (controller.signal.aborted) return;
@@ -671,23 +702,16 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
           requestId: slotRequestId,
           message: err?.message ?? 'Unknown availability fetch error',
         });
-        setAvailableSlots([]);
-        setOutOfHoursSlots([]);
-        setNextAvailableDate(null);
-        setSlotFetchError(t('page.appointments.add.couldNotLoadAvailability'));
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) {
-          setAvailableSlotsLoading(false);
-        }
+        setSlotResult({ request: slotRequest, response: null });
       });
     return () => controller.abort();
-  }, [selectedLocationId, form.date, slotFetchItems, calendarTimezone]);
+  }, [isOpen, slotRequest]);
 
   // Services and team for the selected location come from Redux (fetched once when location is selected via assignments/full).
 
   const handleDateChange = useCallback((date: Date) => {
     setForm((prev) => ({ ...prev, date, time: '' }));
+    setHourOpen(false);
   }, []);
 
   const handleTimeSelect = useCallback((slot: string) => {
@@ -830,16 +854,17 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
   }, [applySelectedServices]);
 
   const handleUpdateItemStaff = useCallback((index: number, staffUserId: number | null) => {
-    let changed = false;
-    setAppointmentItems((prev) => {
-      if (prev[index]?.staffUserId === staffUserId) return prev;
-      changed = true;
-      return prev.map((item, itemIndex) => (
-        itemIndex === index ? { ...item, staffUserId } : item
-      ));
-    });
-    if (changed) setForm((prev) => ({ ...prev, time: '' }));
-  }, []);
+    const item = appointmentItems[index];
+    if (!item || item.staffUserId === staffUserId) return;
+    setAppointmentItems((prev) => prev.map((item, itemIndex) => (
+      itemIndex === index ? { ...item, staffUserId } : item
+    )));
+    if (isEditMode) {
+      setHasReassignedStaff(true);
+    } else {
+      setForm((prev) => ({ ...prev, time: '' }));
+    }
+  }, [appointmentItems, isEditMode]);
 
   const handleRemoveItem = useCallback((index: number) => {
     setAppointmentItems((prev) => prev.filter((_, itemIndex) => itemIndex !== index));
@@ -863,61 +888,56 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
       return nextItems;
     });
     setIsManageBundlesSheetOpen(false);
-  }, [getAutoStaffForBundle, locationServices, locationBundles, prefillStaffFilter]);
+  }, [locationBundles, prefillStaffFilter, getAutoStaffForBundle]);
 
   // ─────────────────────────────────────────────────────────────
   // Derived data
   // ─────────────────────────────────────────────────────────────
 
-  // Working hours for the selected date
   const timeSlots = useTimeSlots(bookingSettings?.slotIntervalMinutes);
+  const slotStartsByTime = useMemo(() => {
+    const starts = new Map<string, string>();
+    for (const iso of currentSlotResponse?.availableSlots ?? []) {
+      starts.set(formatTimeKey(iso, calendarTimezone), iso);
+    }
+    return starts;
+  }, [currentSlotResponse, calendarTimezone]);
+  const getSlotStart = useCallback((time: string) => {
+    const iso = slotStartsByTime.get(time);
+    // Use the exact instant evaluated by the API, including repeated DST times.
+    return iso ? new Date(iso) : buildScheduledDate(form.date, time, calendarTimezone);
+  }, [calendarTimezone, form.date, slotStartsByTime]);
+  const now = Date.now();
+  const minAdvanceMs = !isEditMode && bookingSettings?.enforceMinAdvanceForAdmin
+    ? Math.max(0, bookingSettings.minAdvanceBookingMinutes ?? 0) * 60_000
+    : 0;
+  const earliestStart = now + minAdvanceMs;
   const displayTimeSlots = useMemo(() => {
-    if (availableSlotsLoading) {
-      return [];
-    }
-    let list: string[];
-    if (availableSlots == null) {
-      list = timeSlots;
-    } else if (availableSlots.length === 0) {
-      return [];
-    } else {
-      const times = availableSlots.map((iso) => formatTimeKey(iso, calendarTimezone));
-      list = [...new Set(times)].sort();
-    }
-    // Filter out past slots when the selected date is today (in calendar timezone)
+    if (slotsPending || slotFetchError) return [];
+    const list = currentSlotResponse ? [...slotStartsByTime.keys()].sort() : timeSlots;
     if (!form.date) return list;
-    const now = Date.now();
-    const isSelectedDateToday =
-      formatDateInTimezone(form.date, calendarTimezone) === formatDateInTimezone(new Date(), calendarTimezone);
-    const minAdvanceMs =
-      isSelectedDateToday &&
-      bookingSettings?.enforceMinAdvanceForAdmin &&
-      (bookingSettings?.minAdvanceBookingMinutes ?? 0) > 0
-        ? (bookingSettings.minAdvanceBookingMinutes ?? 0) * 60 * 1000
-        : 0;
-    const earliestStart = now + minAdvanceMs;
     return list.filter((slot) => {
-      const slotStart = buildScheduledDate(form.date, slot, calendarTimezone);
-      if (!slotStart || slotStart.getTime() < now) return false;
-      if (minAdvanceMs > 0 && slotStart.getTime() < earliestStart) return false;
-      if (doesTimeRangeSpanMidnight(slotStart, slotDurationMinutes, calendarTimezone)) return false;
-      return true;
+      const slotStart = getSlotStart(slot);
+      return slotStart != null && slotStart.getTime() >= earliestStart &&
+        !doesTimeRangeSpanMidnight(slotStart, slotDurationMinutes, calendarTimezone);
     });
   }, [
-    availableSlots,
-    availableSlotsLoading,
+    currentSlotResponse,
+    slotsPending,
+    slotFetchError,
+    slotStartsByTime,
+    getSlotStart,
     timeSlots,
     calendarTimezone,
     form.date,
     slotDurationMinutes,
-    bookingSettings?.enforceMinAdvanceForAdmin,
-    bookingSettings?.minAdvanceBookingMinutes,
+    earliestStart,
   ]);
   const outOfHoursTimeSet = useMemo(() => {
     return new Set(
-      outOfHoursSlots.map((iso) => formatTimeKey(iso, calendarTimezone)),
+      (currentSlotResponse?.outOfHoursSlots ?? []).map((iso) => formatTimeKey(iso, calendarTimezone)),
     );
-  }, [calendarTimezone, outOfHoursSlots]);
+  }, [calendarTimezone, currentSlotResponse]);
 
   const { dayWorkingHours, isSlotOutsideHours } = useWorkingHoursForDate(
     form.date,
@@ -932,8 +952,7 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
     if (open247) {
       return { inHoursSlots: [...displayTimeSlots], slotsOutsideHours: [] };
     }
-    const hasBackendClassification = availableSlots != null;
-    if (hasBackendClassification) {
+    if (currentSlotResponse) {
       const inHours = displayTimeSlots.filter((slot) => !outOfHoursTimeSet.has(slot));
       const outside = displayTimeSlots.filter((slot) => outOfHoursTimeSet.has(slot));
       return { inHoursSlots: inHours, slotsOutsideHours: outside };
@@ -945,7 +964,12 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
       else inHours.push(slot);
     }
     return { inHoursSlots: inHours, slotsOutsideHours: outside };
-  }, [displayTimeSlots, isSlotOutsideHours, outOfHoursTimeSet, open247, availableSlots]);
+  }, [displayTimeSlots, isSlotOutsideHours, outOfHoursTimeSet, open247, currentSlotResponse]);
+
+  const needsHoursOverride = useCallback((scheduledAt: Date) => {
+    if (slotStartsByTime.has(form.time)) return outOfHoursTimeSet.has(form.time);
+    return isTimeRangeOutsideWorkingHours(scheduledAt, slotDurationMinutes, dayWorkingHours, open247, calendarTimezone);
+  }, [calendarTimezone, dayWorkingHours, form.time, open247, outOfHoursTimeSet, slotDurationMinutes, slotStartsByTime]);
 
   const workingHoursLabel = useMemo(() => {
     if (open247) return t('page.appointments.add.open247');
@@ -988,14 +1012,20 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
     return false;
   }, [isEditMode, editSnapshot, form.date, form.time, selectedLocationId, appointmentItems]);
 
+  // A previous staff member's response must not enable Save or trigger the pulse.
+  const reassignmentAvailabilityReady = currentSlotResponse != null && !slotsPending && !slotFetchError;
   const isTimeInAvailableSlots = useMemo(() => {
     if (form.time === '') return false;
-    if (availableSlots == null) return isEditMode;
     if (isEditMode && editInitialTime !== '' && form.time === editInitialTime && !hasSchedulingFieldChanged) return true;
+    if (hasReassignedStaff && !reassignmentAvailabilityReady) return false;
+    if (!currentSlotResponse) return false;
     return displayTimeSlots.includes(form.time);
-  }, [availableSlots, displayTimeSlots, form.time, isEditMode, editInitialTime, hasSchedulingFieldChanged]);
+  }, [
+    currentSlotResponse, displayTimeSlots, form.time, isEditMode, editInitialTime,
+    hasSchedulingFieldChanged, hasReassignedStaff, reassignmentAvailabilityReady,
+  ]);
   const isScheduledInPast = useMemo(() => {
-    const scheduled = buildScheduledDate(form.date, form.time, calendarTimezone);
+    const scheduled = getSlotStart(form.time);
     if (scheduled === null) return false;
     if (
       isEditMode &&
@@ -1009,12 +1039,12 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
       return false;
     }
     return scheduled.getTime() < Date.now();
-  }, [form.date, form.time, calendarTimezone, isEditMode, editSnapshot, editInitialTime]);
+  }, [form.date, form.time, getSlotStart, isEditMode, editSnapshot, editInitialTime]);
   const isSpanMidnight = useMemo(() => {
     if (!form.date || !form.time) return false;
-    const scheduled = buildScheduledDate(form.date, form.time, calendarTimezone);
+    const scheduled = getSlotStart(form.time);
     return scheduled !== null && doesTimeRangeSpanMidnight(scheduled, slotDurationMinutes, calendarTimezone);
-  }, [form.date, form.time, calendarTimezone, slotDurationMinutes]);
+  }, [form.date, form.time, getSlotStart, calendarTimezone, slotDurationMinutes]);
   const totalPrice = useMemo(
     () => getGroupTotalPriceMajor(appointmentItems, locationServices, locationBundles),
     [appointmentItems, locationServices, locationBundles],
@@ -1041,11 +1071,13 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
 
   // When we switch to showing only available slots, clear time if current selection is not in the list
   useEffect(() => {
-    if (availableSlots != null && availableSlots.length > 0 && form.time && !displayTimeSlots.includes(form.time)) {
+    // Reassignment keeps the existing choice so we can revalidate it for another staff member.
+    if (hasReassignedStaff) return;
+    if (!slotsPending && currentSlotResponse?.availableSlots.length && form.time && !displayTimeSlots.includes(form.time)) {
       if (isEditMode && editInitialTime !== '' && form.time === editInitialTime && !hasSchedulingFieldChanged) return;
       setForm((prev) => ({ ...prev, time: '' }));
     }
-  }, [availableSlots, displayTimeSlots, form.time, isEditMode, editInitialTime, hasSchedulingFieldChanged]);
+  }, [slotsPending, currentSlotResponse, displayTimeSlots, form.time, isEditMode, editInitialTime, hasSchedulingFieldChanged, hasReassignedStaff]);
 
   const canSubmit =
     form.date !== null &&
@@ -1055,10 +1087,32 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
     !isSpanMidnight &&
     !durationExceedsOneDay &&
     isTimeInAvailableSlots &&
-    (allowSubmitWhileSlotsLoading || !availableSlotsLoading) &&
+    (allowSubmitWhileSlotsLoading || !slotsPending) &&
     allCreateItemsValid &&
     !notesError &&
     (!isEditMode || isDirty);
+
+  const reassignmentOverride = (() => {
+    const offer = reassignmentHoursOverrideOffer;
+    if (!isOpen || !offer || offer.appointmentId !== editingAppointmentId || !editSnapshot) return null;
+    const scheduledDate = getSlotStart(form.time);
+    if (!scheduledDate) return null;
+    // Ignore a late response if the user has edited the form since pressing Save.
+    const draft = buildMinimalEditAppointmentPayload({
+      snapshot: editSnapshot, form, appointmentItems, selectedLocationId, scheduledDate,
+    });
+    return draft.scheduledAt === undefined && draft.serviceId === undefined &&
+      draft.locationId === undefined && draft.notes === offer.notes &&
+      draft.staffUserIds && areNumberArraysEqual(draft.staffUserIds, offer.staffUserIds)
+      ? offer
+      : null;
+  })();
+
+  useEffect(() => {
+    if (reassignmentHoursOverrideOffer && !reassignmentOverride) {
+      dispatch(setReassignmentHoursOverrideOffer(null));
+    }
+  }, [dispatch, reassignmentHoursOverrideOffer, reassignmentOverride]);
 
   const runEditAppointmentMutations = useCallback(
     (
@@ -1074,6 +1128,7 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
         updateAppointment.request({
           appointmentId,
           data: updateData,
+          source: 'editor',
         }),
       );
       return true;
@@ -1136,16 +1191,24 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
   }, [dispatch, onClose, overrideReasonText, t]);
 
   const handleConfirmOverrides = useCallback(() => {
-    if (pendingGroupSubmitRef.current) doCreateGroupAppointment();
+    if (reassignmentOverride) {
+      runEditAppointmentMutations(reassignmentOverride.appointmentId, {
+        staffUserIds: reassignmentOverride.staffUserIds,
+        notes: reassignmentOverride.notes,
+        allowOutOfHours: true,
+        overrideReason: overrideReasonText.trim() || undefined,
+      });
+    } else if (pendingGroupSubmitRef.current) doCreateGroupAppointment();
     else if (pendingUpdateRef.current) doUpdateAppointment();
-  }, [doCreateGroupAppointment, doUpdateAppointment]);
+  }, [reassignmentOverride, runEditAppointmentMutations, overrideReasonText, doCreateGroupAppointment, doUpdateAppointment]);
 
   const handleCancelOverrides = useCallback(() => {
+    if (reassignmentOverride) dispatch(setReassignmentHoursOverrideOffer(null));
     pendingGroupSubmitRef.current = null;
     pendingUpdateRef.current = null;
     setConfirmReason(null);
     setOverrideReasonText('');
-  }, []);
+  }, [dispatch, reassignmentOverride]);
 
   const openConfirmDialog = useCallback((reason: 'out_of_hours' | 'on_block') => {
     setConfirmReason(reason);
@@ -1163,7 +1226,7 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
       const isOutOfHours =
         hasScheduledAt &&
         scheduledDate != null &&
-        isTimeRangeOutsideWorkingHours(scheduledDate, durationMinutes, dayWorkingHours, open247, calendarTimezone);
+        needsHoursOverride(scheduledDate);
       if (isOutOfHours) {
         pendingUpdateRef.current = {
           appointmentId: editingAppointmentId!,
@@ -1188,10 +1251,7 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
       }
     },
     [
-      durationMinutes,
-      dayWorkingHours,
-      open247,
-      calendarTimezone,
+      needsHoursOverride,
       editingAppointmentId,
       openConfirmDialog,
       runEditAppointmentMutations,
@@ -1209,8 +1269,7 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
         notes: form.notes.trim() || undefined,
         bookingSource: form.bookingSource,
       };
-      const totalDurationMinutes = getGroupTotalDurationMinutes(items, locationServices, locationBundles);
-      const groupOutOfHours = isTimeRangeOutsideWorkingHours(scheduledDate, totalDurationMinutes, dayWorkingHours, open247, calendarTimezone);
+      const groupOutOfHours = needsHoursOverride(scheduledDate);
       if (groupOutOfHours) {
         pendingGroupSubmitRef.current = {
           ...groupPayload,
@@ -1233,11 +1292,7 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
       form,
       appointmentItems,
       selectedLocationId,
-      locationServices,
-      locationBundles,
-      dayWorkingHours,
-      open247,
-      calendarTimezone,
+      needsHoursOverride,
       openConfirmDialog,
       dispatch,
       onClose,
@@ -1246,11 +1301,13 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    // A save is still running, or the slider is already closing.
+    if (saveInFlight || !isOpen) return;
     if (!canSubmit || !selectedLocationId || !form.date) return;
 
     setError(null);
 
-    const scheduledDate = buildScheduledDate(form.date, form.time, calendarTimezone);
+    const scheduledDate = getSlotStart(form.time);
     if (!scheduledDate) return;
     const editScheduleUnchanged =
       isEditMode &&
@@ -1260,12 +1317,17 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
       form.date != null &&
       editSnapshot.date != null &&
       form.date.toDateString() === editSnapshot.date.toDateString();
-    if (!editScheduleUnchanged && scheduledDate.getTime() < Date.now()) {
+    const submittedAt = Date.now();
+    if (!editScheduleUnchanged && scheduledDate.getTime() < submittedAt) {
       setError(
         isEditMode
           ? t('page.appointments.add.cannotReschedulePast')
           : t('page.appointments.add.cannotSchedulePast'),
       );
+      return;
+    }
+    if (minAdvanceMs > 0 && scheduledDate.getTime() < submittedAt + minAdvanceMs) {
+      setError(t('page.appointments.add.minimumNoticeRequired', { count: minAdvanceMs / 60_000 }));
       return;
     }
     if (doesTimeRangeSpanMidnight(scheduledDate, slotDurationMinutes, calendarTimezone)) {
@@ -1307,6 +1369,54 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
   const hasSelectedAnyItem = appointmentItems.length > 0;
   const isStaffReadyForSlots = allItemsHaveStaff(appointmentItems);
   const canSelectDateTime = isStaffReadyForSlots && !durationExceedsOneDay;
+  const locationToday = minSelectableCalendarDateForTimezone(new Date(now), calendarTimezone);
+  const suggestedDate = nextAvailableDate ? localCalendarDateFromDateKey(nextAvailableDate) : null;
+  const showNextAvailable = canSelectDateTime && !slotsPending && !slotFetchError && inHoursSlots.length === 0;
+  const scheduleAttention = isOpen && hasReassignedStaff && canSelectDateTime &&
+    reassignmentAvailabilityReady && !isTimeInAvailableSlots
+    ? (displayTimeSlots.length > 0 ? 'time' : 'date')
+    : null;
+
+  useEffect(() => {
+    if (!scheduleAttention) return;
+    const field = scheduleAttention === 'date' ? dateFieldRef.current : timeFieldRef.current;
+    if (!field) return;
+
+    const observer = new IntersectionObserver(([entry]) => {
+      setVisibleScheduleField(entry.isIntersecting ? scheduleAttention : null);
+    });
+    observer.observe(field);
+    return () => observer.disconnect();
+  }, [scheduleAttention]);
+
+  useEffect(() => {
+    if (!scheduleAttention || staffPickerActive) return;
+    const field = scheduleAttention === 'date' ? dateFieldRef.current : timeFieldRef.current;
+    if (!field) return;
+
+    // Run after the picker releases focus. Only scroll the editor, not the page
+    // or a nested overflow container that has nothing to scroll.
+    const frame = requestAnimationFrame(() => {
+      for (
+        let scroller = field.parentElement;
+        scroller && scroller.getAttribute('role') !== 'dialog';
+        scroller = scroller.parentElement
+      ) {
+        const { overflowY } = getComputedStyle(scroller);
+        const maxScroll = scroller.scrollHeight - scroller.clientHeight;
+        if ((overflowY !== 'auto' && overflowY !== 'scroll') || maxScroll <= 0) continue;
+
+        const fieldRect = field.getBoundingClientRect();
+        const scrollerTop = scroller.getBoundingClientRect().top + scroller.clientTop;
+        const centeredTop = scroller.scrollTop + fieldRect.top - scrollerTop - (scroller.clientHeight - fieldRect.height) / 2;
+        const top = Math.max(0, Math.min(centeredTop, maxScroll));
+        const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        scroller.scrollTo({ top, behavior: reduceMotion ? 'instant' : 'smooth' });
+        break;
+      }
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [scheduleAttention, staffPickerActive]);
 
   /** At least one selected item has nobody assigned to it at this location, so
    *  it can never get a staff member here — the fix lives on Assignments. */
@@ -1342,7 +1452,7 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
           cancelLabel={t('page.appointments.add.cancel')}
           submitLabel={isEditMode ? t('page.appointments.add.saveChanges') : t('page.appointments.add.createAppointment')}
           disabled={!canSubmit}
-          isLoading={submitting}
+          isLoading={submitting || saveInFlight}
         />
       }
     >
@@ -1537,6 +1647,7 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
                         locationTeamMembers={locationTeamMembers}
                         currency={businessCurrency}
                         onUpdateStaff={handleUpdateItemStaff}
+                        onStaffPickerActiveChange={isEditMode ? setStaffPickerActive : undefined}
                         onRemoveItem={handleRemoveItem}
                         assignmentsPath={assignmentsPath}
                         onNavigateAway={onClose}
@@ -1606,27 +1717,27 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
               )}
 
               <div className={cn('grid grid-cols-1 sm:grid-cols-2 gap-4', !canSelectDateTime && 'opacity-60 pointer-events-none')}>
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-foreground-1">{t('page.appointments.add.dateLabel')}</Label>
+                <div ref={dateFieldRef} className="space-y-2">
+                  <Label htmlFor="appointment-date" className="text-sm font-medium text-foreground-1">{t('page.appointments.add.dateLabel')}</Label>
                   <DatePicker
                     value={form.date}
                     onChange={handleDateChange}
-                    minDate={(() => {
-                      const d = new Date();
-                      d.setHours(0, 0, 0, 0);
-                      return d;
-                    })()}
+                    triggerId="appointment-date"
+                    invalid={scheduleAttention === 'date'}
+                    minDate={locationToday}
+                    today={locationToday}
                     connectedPopover
                     className={cn(
                       "border bg-surface hover:bg-surface-hover focus:bg-surface h-12 text-base w-full px-4",
-                      canSelectDateTime ? "border-border-strong dark:border-border-strong" : "border-border dark:border-border-subtle"
+                      canSelectDateTime ? "border-border-strong dark:border-border-strong" : "border-border dark:border-border-subtle",
+                      scheduleAttention === 'date' && visibleScheduleField === 'date' && "staff-picker-pulse"
                     )}
                     placeholder={t('page.appointments.add.selectDate')}
                     mobileTitle={t('page.appointments.add.dateLabel')}
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-foreground-1">{t('page.appointments.add.timeLabel')}</Label>
+                <div ref={timeFieldRef} className="space-y-2">
+                  <Label htmlFor="appointment-time" className="text-sm font-medium text-foreground-1">{t('page.appointments.add.timeLabel')}</Label>
                   {displayTimeSlots.length > 0 ? (
                     <ResponsivePopover
                       open={hourOpen}
@@ -1634,28 +1745,32 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
                       title={t('page.appointments.add.timeLabel')}
                       trigger={
                         <Button
+                          id="appointment-time"
                           type="button"
                           variant="outline"
+                          aria-invalid={scheduleAttention === 'time' || undefined}
                           className={cn(
                             "w-full h-12 text-base justify-between font-normal border bg-surface hover:bg-surface-hover rounded-full px-4",
                             !isMobile && (hourOpen || hourClosingAnimation)
                               ? "!rounded-b-none !rounded-t-[16px] border-x border-t border-b-0 border-border-strong dark:border-border-strong shadow-none"
-                              : (availableSlotsLoading || !canSelectDateTime || !form.date)
+                              : (slotsPending || !canSelectDateTime || !form.date)
                                 ? "border-border dark:border-border-subtle"
-                                : "border-border-strong dark:border-border-strong"
+                                : "border-border-strong dark:border-border-strong",
+                            scheduleAttention === 'time' && visibleScheduleField === 'time' &&
+                              !hourOpen && !hourClosingAnimation && "staff-picker-pulse"
                           )}
-                          disabled={availableSlotsLoading || !canSelectDateTime || !form.date}
+                          disabled={slotsPending || !canSelectDateTime || !form.date}
                         >
-                          {availableSlotsLoading ? (
+                          {slotsPending ? (
                             <span className="flex items-center gap-2 text-foreground-3 dark:text-foreground-2">
                               <Loader2 className="h-4 w-4 animate-spin" /> Loading times...
                             </span>
-                          ) : form.time ? (
+                          ) : form.time && scheduleAttention !== 'time' ? (
                             <span className="text-foreground-1">{formatSlotTime(form.time)}</span>
                           ) : (
                             <span className="text-foreground-3 dark:text-foreground-2">{t('page.appointments.add.selectTime')}</span>
                           )}
-                          {!availableSlotsLoading && <Clock className="ml-2 h-4 w-4 shrink-0 opacity-50" />}
+                          {!slotsPending && <Clock className="ml-2 h-4 w-4 shrink-0 opacity-50" />}
                         </Button>
                       }
                       contentClassName={cn(
@@ -1743,7 +1858,7 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
                         canSelectDateTime ? "border-border-strong dark:border-border-strong" : "border-border dark:border-border-subtle"
                       )}
                     >
-                      {availableSlotsLoading ? (
+                      {slotsPending ? (
                         <span className="flex items-center gap-2">
                           <Loader2 className="h-4 w-4 animate-spin" /> Loading times...
                         </span>
@@ -1757,7 +1872,7 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
                 </div>
               </div>
 
-              {availableSlotsLoading && form.date && slotFetchItems ? (
+              {slotsPending && canSelectDateTime && slotRequest ? (
                 <div className="space-y-2" aria-busy="true" aria-label={t('page.aria.loadingNextAvailable')}>
                   <div className="flex items-start gap-2">
                     <Skeleton className="h-4 w-4 mt-0.5 flex-shrink-0 rounded-md" />
@@ -1768,48 +1883,42 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
                   </div>
                   <Skeleton className="h-10 w-full max-w-[11rem] rounded-full" />
                 </div>
-              ) : nextAvailableDate ? (() => {
-                const nextDateFormatted = (() => {
-                  const d = new Date(nextAvailableDate + 'T12:00:00');
-                  return d.toLocaleDateString(getCalendarLocale(), { day: 'numeric', month: 'short', year: 'numeric' });
-                })();
-                return (
-                  <div className="space-y-2">
-                    <div className="flex items-start gap-2 text-sm text-foreground-1 leading-relaxed">
-                      <CalendarClock className="h-4 w-4 mt-0.5 flex-shrink-0 text-primary" />
-                      <div className="space-y-0.5 min-w-0">
-                        <p className="font-medium text-foreground-1">{t('page.appointments.add.noInHoursSlots')}</p>
-                        <p className="text-xs text-foreground-3 dark:text-foreground-2">
-                          {t('page.appointments.add.nextAvailableDay', { date: nextDateFormatted })}
-                        </p>
-                      </div>
+              ) : showNextAvailable && suggestedDate ? (
+                <div className="space-y-2">
+                  <div className="flex items-start gap-2 text-sm text-foreground-1 leading-relaxed">
+                    <CalendarClock className="h-4 w-4 mt-0.5 flex-shrink-0 text-primary" />
+                    <div className="space-y-0.5 min-w-0">
+                      <p className="font-medium text-foreground-1">{t('page.appointments.add.noInHoursSlots')}</p>
+                      <p className="text-xs text-foreground-3 dark:text-foreground-2">
+                        {t('page.appointments.add.nextAvailableDay', {
+                          date: suggestedDate.toLocaleDateString(getCalendarLocale(), { day: 'numeric', month: 'short', year: 'numeric' }),
+                        })}
+                      </p>
                     </div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      rounded="full"
-                      className="!px-6 w-fit border-border-strong text-foreground-1 group disabled:opacity-50"
-                      onClick={() => {
-                        setForm((prev) => ({
-                          ...prev,
-                          date: buildZonedDateFromDateKey(nextAvailableDate, '00:00', calendarTimezone),
-                          time: '',
-                        }));
-                      }}
-                    >
-                      <span>{t('page.appointmentCard.nextAvailableDate')}</span>
-                      <ArrowRight className="h-4 w-4 ml-2 text-primary transition-transform duration-300 ease-out group-hover:translate-x-1.5" />
-                    </Button>
                   </div>
-                );
-              })() : null}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    rounded="full"
+                    className="!px-6 w-fit border-border-strong text-foreground-1 group disabled:opacity-50"
+                    onClick={() => handleDateChange(suggestedDate)}
+                  >
+                    <span>{t('page.appointmentCard.nextAvailableDate')}</span>
+                    <ArrowRight className="h-4 w-4 ml-2 text-primary transition-transform duration-300 ease-out group-hover:translate-x-1.5" />
+                  </Button>
+                </div>
+              ) : showNextAvailable && nextAvailableSearchDays != null ? (
+                <p className="text-xs text-foreground-3 dark:text-foreground-2">
+                  {t('page.appointments.add.noNextAvailableDay', { count: nextAvailableSearchDays })}
+                </p>
+              ) : null}
               {slotFetchError && (
                 <div className="text-xs text-destructive">
                   {slotFetchError}
                 </div>
               )}
 
-              {form.time && durationMinutes > 0 && (
+              {form.time && !scheduleAttention && durationMinutes > 0 && (
                 <div className="text-xs text-foreground-3 dark:text-foreground-2">
                   Appointment: {formatSlotTime(form.time)} &ndash;{' '}
                   {formatSlotTime(getEndTimeString(form.time, durationMinutes))}{' '}
@@ -1870,18 +1979,22 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
       </form>
 
       <ConfirmDialog
-        open={confirmOpen}
+        open={confirmOpen || reassignmentOverride !== null}
         onOpenChange={(open) => {
           setConfirmOpen(open);
           if (!open) handleCancelOverrides();
         }}
         onConfirm={handleConfirmOverrides}
         onCancel={handleCancelOverrides}
-        title={getConfirmDialogTitle(pendingUpdateRef.current != null, t)}
+        title={reassignmentOverride
+          ? t('page.appointments.confirmDialog.reassignAnyway')
+          : getConfirmDialogTitle(pendingUpdateRef.current != null, t)}
         description={
           <div className="space-y-3">
             <p className="text-sm text-foreground-3 dark:text-foreground-2">
-              {getConfirmDialogDescription(confirmReason ?? 'out_of_hours', pendingUpdateRef.current != null, t)}
+              {reassignmentOverride
+                ? t('page.appointments.confirmDialog.outOfHoursReassign')
+                : getConfirmDialogDescription(confirmReason ?? 'out_of_hours', pendingUpdateRef.current != null, t)}
             </p>
             <div className="space-y-1.5">
               <Label htmlFor="override-reason" className="text-xs font-medium text-foreground-3 dark:text-foreground-2">
@@ -1898,7 +2011,9 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
           </div>
         }
         cancelTitle={t('page.appointments.confirmDialog.cancel')}
-        confirmTitle={getConfirmButtonTitle(pendingUpdateRef.current != null, t)}
+        confirmTitle={reassignmentOverride
+          ? t('page.appointments.confirmDialog.yesReassign')
+          : getConfirmButtonTitle(pendingUpdateRef.current != null, t)}
       />
     </BaseSlider>
   );

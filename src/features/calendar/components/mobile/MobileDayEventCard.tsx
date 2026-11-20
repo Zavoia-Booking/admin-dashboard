@@ -15,6 +15,7 @@ import {
   getStatusDotClass,
   getBookedViaLabel,
   getNoCustomerDisplayLabel,
+  getStaffDisplayNames,
 } from "../utils";
 import { StaffAvatarCluster } from "../SlimAppointmentCard";
 import { cn } from "../../../../shared/lib/utils";
@@ -52,10 +53,9 @@ export const MobileDayEventCard: FC<MobileDayEventCardProps> = ({
   const resolvedStaff = appointment.staffUserIds
     .map((id) => locationStaff.find((s) => s.id === id))
     .filter((s): s is CalendarStaffMember => s != null);
-  const staffLabel = resolvedStaff.length > 0
-    ? resolvedStaff.map((s) => `${s.firstName} ${s.lastName}`).join(", ")
-    : t("page.common.unassigned");
-  const hasAssignedStaff = appointment.staffUserIds.length > 0;
+  // Someone no longer on the team is named from the appointment itself.
+  const staffLabel = getStaffDisplayNames(appointment.staffUserIds, locationStaff, t, appointment.staffNames);
+  const hasAssignedStaff = resolvedStaff.length > 0;
 
   const hasCustomerName = !!appointment.customerName;
   const customerName = appointment.customerName ?? getNoCustomerDisplayLabel(t);

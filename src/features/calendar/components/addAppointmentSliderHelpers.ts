@@ -5,7 +5,8 @@
 
 import type { TFunction } from "i18next";
 import type { AppointmentBookingSource } from '../../../shared/types/calendar';
-import { buildZonedDate } from '../timezone';
+import { buildZonedDateFromDateKey } from '../timezone';
+import { toLocalDateString } from '../utils';
 import type { AddFormPrefill } from '../types';
 import { getNoCustomerDisplayLabel } from './utils.tsx';
 
@@ -25,7 +26,7 @@ export interface CustomerDisplay {
 export interface FormState {
   customerId: number | null;
   customerDisplay: CustomerDisplay | null;
-  date: Date | null;
+  date: Date | null; // Location wall day stored as a date-picker value, not an instant.
   time: string;
   notes: string;
   bookingSource: AppointmentBookingSource;
@@ -66,15 +67,9 @@ export interface BundleForDuration {
 // Date
 // ─────────────────────────────────────────────────────────────
 
-export function buildScheduledDate(date: Date | null, time: string, timezone?: string): Date | null {
+export function buildScheduledDate(date: Date | null, time: string, timezone: string): Date | null {
   if (!date || !time) return null;
-  if (timezone) {
-    return buildZonedDate(date, time, timezone);
-  }
-  const [hours, minutes] = time.split(':').map(Number);
-  const localDate = new Date(date);
-  localDate.setHours(hours, minutes, 0, 0);
-  return localDate;
+  return buildZonedDateFromDateKey(toLocalDateString(date), time, timezone);
 }
 
 // ─────────────────────────────────────────────────────────────

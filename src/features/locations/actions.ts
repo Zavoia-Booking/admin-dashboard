@@ -1,6 +1,6 @@
-import { createAsyncAction } from "typesafe-actions";
+import { createAction, createAsyncAction } from "typesafe-actions";
 import type { LocationType } from "../../shared/types/location";
-import type { EditLocationType, EditLocationWorkingHours, UpdateLocationResponse } from "./types";
+import type { EditLocationType, EditLocationWorkingHours, LocationHoursConflictOffer, UpdateLocationResponse } from "./types";
 import type { NewLocationPayload } from "./types";
 
 export const fetchLocationByIdAction = createAsyncAction(
@@ -32,3 +32,6 @@ export const deleteLocationAction = createAsyncAction(
   'locations/DELETE_LOCATION_SUCCESS',
   'locations/DELETE_LOCATION_FAILURE',
 )<{ id: number }, { deleteResponse: any }, { message: string }>();
+
+/** Offer to resend a location save after a 409 "appointments outside the new hours" (null clears). */
+export const setLocationHoursConflictOffer = createAction('locations/HOURS_CONFLICT_OFFER/SET')<LocationHoursConflictOffer | null>();

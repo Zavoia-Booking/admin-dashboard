@@ -105,6 +105,15 @@
     "title": "Editează {{name}}",
     "titleFallback": "Editează locația",
     "subtitle": "Actualizează informațiile locației",
+    "hoursConflict": {
+      "title_one": "{{count}} programare rămâne în afara noului program",
+      "title_few": "{{count}} programări rămân în afara noului program",
+      "title_other": "{{count}} de programări rămân în afara noului program",
+      "description_one": "Dacă salvezi noul program, programarea rămâne activă și nimeni nu este notificat. Îți recomandăm să o reprogramezi sau să o anulezi din calendar.",
+      "description_few": "Dacă salvezi noul program, programările rămân active și nimeni nu este notificat. Îți recomandăm să le reprogramezi sau să le anulezi din calendar.",
+      "description_other": "Dacă salvezi noul program, programările rămân active și nimeni nu este notificat. Îți recomandăm să le reprogramezi sau să le anulezi din calendar.",
+      "saveAnyway": "Salvează oricum"
+    },
     "form": {
       "nameLabel": "Nume locație",
       "namePlaceholder": "ex. Birou Central",
@@ -179,6 +188,8 @@
     }
   },
   "toasts": {
+    "createSuccess": "Locația a fost creată cu succes",
+    "updateSuccess": "Locația a fost actualizată cu succes",
     "createFailed": "Nu s-a putut crea locația",
     "updateFailed": "Nu s-a putut actualiza locația",
     "listFailed": "Nu s-au putut încărca locațiile",

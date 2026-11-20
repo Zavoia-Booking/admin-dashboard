@@ -28,7 +28,8 @@ const config: CapacitorConfig = {
 
   android: {
     allowMixedContent: true,
-    captureInput: true,
+    // Keep WebView's input connection so the IME receives each field's keyboard hints.
+    captureInput: false,
     webContentsDebuggingEnabled: !isProduction,
   },
 

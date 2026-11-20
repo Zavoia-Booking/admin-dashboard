@@ -221,6 +221,8 @@ interface DroppableSlotProps {
   isPast?: boolean;
   /** When true, this slot is within the dragged appointment's duration range (multi-slot highlight). */
   inDurationRange?: boolean;
+  /** Disable per-slot hover feedback when the grid draws its own drop preview. */
+  showDropHover?: boolean;
   onSlotClick?: (hour: number, minute?: number, columnId?: number) => void;
 }
 
@@ -236,6 +238,7 @@ export const DroppableSlot: FC<DroppableSlotProps> = memo(({
   dndActive = false,
   isPast = false,
   inDurationRange = false,
+  showDropHover = true,
   onSlotClick,
 }) => {
   const { setNodeRef, isOver } = useDroppable({
@@ -251,7 +254,7 @@ export const DroppableSlot: FC<DroppableSlotProps> = memo(({
   // the user drags over a slot that can't accept the drop (past, overlapping,
   // out-of-hours, or cross-column on mobile). Carries a denial signal so we
   // don't silently ignore the gesture.
-  const forbiddenHover = dropDisabled && dndActive && isOver;
+  const forbiddenHover = showDropHover && dropDisabled && dndActive && isOver;
 
   const interactClass = forbiddenHover
     ? "bg-destructive/12 dark:bg-destructive/18 cursor-not-allowed"
@@ -271,7 +274,7 @@ export const DroppableSlot: FC<DroppableSlotProps> = memo(({
 
   const overClass = forbiddenHover
     ? "ring-2 ring-destructive/40"
-    : !dropDisabled && (isOver || inDurationRange)
+    : !dropDisabled && ((showDropHover && isOver) || inDurationRange)
       ? inDurationRange
         ? "bg-primary/15 dark:bg-primary/22"
         : validDropHighlight

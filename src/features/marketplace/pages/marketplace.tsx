@@ -155,9 +155,8 @@ export default function MarketplacePage() {
 
   // Published listings, "Start Listing", and explicit setup links open configuration.
   if (listing && (listing.isListed || configurationOpen)) {
-    // mobileViewport: the header sits above the scrolling column, so its
-    // collapsing Save row resizes the column instead of shifting the content
-    // inside it (see MarketplaceHeaderActionRow).
+    // mobileViewport: the header sits above the scrolling column instead of
+    // scrolling inside it.
     return (
       <AppLayout tabbedPage mobileViewport>
         <BusinessSetupGate>
@@ -165,6 +164,7 @@ export default function MarketplacePage() {
             business={business}
             locationsWithAssignments={locationCatalog}
             isPublishing={isPublishing}
+            isRefreshing={isLoading}
             isListed={listing.isListed}
             marketplaceName={listing.marketplaceName}
             marketplaceEmail={listing.marketplaceEmail}

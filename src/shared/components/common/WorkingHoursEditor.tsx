@@ -1,4 +1,4 @@
-import React, { memo, useCallback, useState, useRef, useEffect } from "react";
+import React, { memo, useCallback, useId, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Switch } from "../../components/ui/switch";
 import type { WorkingHours, WorkingHoursDay } from "../../types/location";
@@ -6,7 +6,6 @@ import CustomTimePicker from "./CustomTimePicker";
 import WorkingHoursQuickActions from "./WorkingHoursQuickActions";
 import { Moon, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
-import { useIsMobile } from "../../hooks/use-mobile";
 
 const showWarningToast = (message: string): void => {
   const warnFn =
@@ -169,28 +168,10 @@ const WorkingHoursEditor: React.FC<WorkingHoursEditorProps> = ({
 }) => {
   const { t } = useTranslation('common');
   const [showAllMobile, setShowAllMobile] = useState(false);
-  const isMobile = useIsMobile();
-  const restRef = useRef<HTMLDivElement>(null);
-  const [restHeight, setRestHeight] = useState(0);
+  const remainingDaysId = useId();
   const [flashDays, setFlashDays] = useState<Set<keyof WorkingHours>>(
     new Set()
   );
-
-  useEffect(() => {
-    if (!isMobile) return;
-    const el = restRef.current;
-    if (!el) return;
-    // Measure full height for animation variable
-    const fullHeight = Array.from(el.children).reduce(
-      (acc, child) => acc + (child as HTMLElement).offsetHeight,
-      0
-    );
-    setRestHeight(fullHeight);
-    el.style.setProperty(
-      "--radix-collapsible-content-height",
-      `${fullHeight}px`
-    );
-  }, [value, showAllMobile, isMobile]);
 
   const setDay = useCallback(
     (
@@ -288,44 +269,29 @@ const WorkingHoursEditor: React.FC<WorkingHoursEditorProps> = ({
               )}
             </div>
           ))}
-          {/* Remaining days inside collapsible container */}
+          {/* Remove collapsed rows from layout so they can't extend the drawer's scroll area. */}
           <div
-            ref={restRef}
-            {...(isMobile
-              ? {
-                  "data-slot": "collapsible-content",
-                  "data-state": showAllMobile ? "open" : "closed",
-                }
-              : {})}
-            className={`max-md:block md:block ${
-              showAllMobile ? "max-md:h-auto" : "max-md:h-0"
-            } max-md:overflow-hidden divide-y divide-border-subtle`}
-            style={
-              isMobile
-                ? ({
-                    ["--radix-collapsible-content-height" as any]: `${restHeight}px`,
-                  } as any)
-                : undefined
-            }
+            id={remainingDaysId}
+            className={`divide-y divide-border-subtle ${showAllMobile ? "" : "max-md:hidden"}`}
           >
-            {orderedDays.slice(2).map((day) => (
-              <div
-                key={day}
-                className={`${
-                  flashDays.has(day)
-                    ? "bg-warning-bg transition-colors duration-1700"
-                    : ""
-                }`}
-              >
-                <DayRow
-                  day={day}
-                  hours={value[day]}
-                  onToggleOpen={handleToggleOpen}
-                  onChangeOpen={handleChangeOpen}
-                  onChangeClose={handleChangeClose}
-                />
-              </div>
-            ))}
+              {orderedDays.slice(2).map((day) => (
+                <div
+                  key={day}
+                  className={`${
+                    flashDays.has(day)
+                      ? "bg-warning-bg transition-colors duration-1700"
+                      : ""
+                  }`}
+                >
+                  <DayRow
+                    day={day}
+                    hours={value[day]}
+                    onToggleOpen={handleToggleOpen}
+                    onChangeOpen={handleChangeOpen}
+                    onChangeClose={handleChangeClose}
+                  />
+                </div>
+              ))}
           </div>
         </div>
         {/* Mobile expand/collapse toggle */}
@@ -335,6 +301,8 @@ const WorkingHoursEditor: React.FC<WorkingHoursEditorProps> = ({
             aria-label={
               showAllMobile ? t('workingHours.collapseAria') : t('workingHours.expandAria')
             }
+            aria-controls={remainingDaysId}
+            aria-expanded={showAllMobile}
             className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border bg-surface shadow-sm active:bg-surface-hover cursor-pointer"
             onClick={() => setShowAllMobile((v) => !v)}
           >

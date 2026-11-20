@@ -37,7 +37,7 @@ const LOCATION_STORAGE_KEY = "zavoia_dashboard_selected_location";
 
 function DashboardSkeleton() {
   return (
-    <div className="skeleton-delayed-reveal space-y-4">
+    <div className="skeleton-delayed-reveal flex flex-col gap-4">
       {/* Row 1: Merged Location & Capacity widget (full width) */}
       <div className="bg-surface border border-border rounded-2xl p-5 space-y-5">
         {/* Header — mobile */}
@@ -156,10 +156,10 @@ function DashboardSkeleton() {
         </div>
       </div>
 
-      {/* Row 2: Needs Attention (2col) + Reviews (1col) */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      {/* Row 2: Needs Attention (2col) + Reviews (1col); on phones Needs Attention comes first, as on the page */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 max-md:contents">
         {/* Needs Attention */}
-        <div className="lg:col-span-2 bg-surface border border-border rounded-2xl p-5">
+        <div className="lg:col-span-2 bg-surface border border-border rounded-2xl p-5 max-md:order-first">
           <div className="flex items-center justify-between mb-4">
             <Skeleton className="h-3 w-28" />
             <Skeleton className="h-5 w-16 rounded" />
@@ -483,14 +483,15 @@ export default function DashboardPage() {
     // Show grid layout with default widget order
     const rows = groupWidgetsIntoRows(defaultWidgetOrder);
 
+    // Phones: the rows dissolve into one column (max-md:contents) so "Needs attention" can come first.
     return (
-      <div className="space-y-4">
+      <div className="flex flex-col gap-4">
         {rows.map((row, rowIndex) => {
           const totalSpan = row.reduce((sum, widgetId) => sum + (WIDGET_CONFIG[widgetId]?.span || 1), 0);
           const colSpanClass = totalSpan === 3 ? "lg:grid-cols-3" : "grid-cols-1";
 
           return (
-            <div key={rowIndex} className={`grid grid-cols-1 ${colSpanClass} gap-4`}>
+            <div key={rowIndex} className={`grid grid-cols-1 ${colSpanClass} gap-4 max-md:contents`}>
               {row.map((widgetId) => {
                 const span = WIDGET_CONFIG[widgetId]?.span || 1;
                 const colSpanUtil = span === 2 ? "lg:col-span-2" : span === 3 ? "lg:col-span-3" : "";
@@ -503,6 +504,7 @@ export default function DashboardPage() {
                     transition-[transform,box-shadow,border-color] duration-200
                     md:hover:-translate-y-0.5 md:hover:shadow-md md:hover:border-border-strong
                     ${colSpanUtil}
+                    ${widgetId === "needsAttention" ? "max-md:order-first" : ""}
                   `}>
                     {renderWidget(widgetId, data, selectedLocationId!, handleRefreshDashboard, businessCurrency)}
                   </div>

@@ -59,6 +59,18 @@ export const setLocationPortfolioAction = createAction(
   'marketplace/SET_LOCATION_PORTFOLIO',
 )<SetLocationPortfolioPayload>();
 
+// Local Redux sync after the marketplace-details slider saves a location's tags.
+export interface SetLocationMarketplaceTagsPayload {
+  locationId: number;
+  amenityTagIds: number[];
+  paymentMethodTagIds: number[];
+  languageTagIds: number[];
+}
+
+export const setLocationMarketplaceTagsAction = createAction(
+  'marketplace/SET_LOCATION_MARKETPLACE_TAGS',
+)<SetLocationMarketplaceTagsPayload>();
+
 /**
  * Local Redux sync after a successful business logo upload. The logo is saved
  * immediately via the settings API and lives on the BUSINESS entity; mirror it

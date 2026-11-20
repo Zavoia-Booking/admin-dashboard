@@ -19,14 +19,15 @@ import { MapDialog } from '../../../shared/components/map';
 import { maptilerGeocode } from '../../../shared/lib/maptiler';
 import { AssignmentsCard } from '../../../shared/components/common/AssignmentsCard';
 import type { DeleteResponse } from '../../../shared/types/delete-response';
-import { updateLocationAction, deleteLocationAction } from '../actions';
+import { updateLocationAction, deleteLocationAction, setLocationHoursConflictOffer } from '../actions';
 import type { EditLocationType } from '../types';
 import type { LocationType, WorkingHours } from '../../../shared/types/location';
 import { useForm, useController } from 'react-hook-form';
 import { defaultWorkingHours } from '../constants';
 import { selectCurrentUser } from '../../auth/selectors';
 import { isE164, sanitizePhoneToE164Draft } from '../../../shared/utils/validation';
-import { getLocationLoadingSelector, getLocationErrorSelector, getIsDeletingSelector, getDeleteResponseSelector } from '../selectors';
+import { getLocationUpdateStatusSelector, getIsDeletingSelector, getDeleteResponseSelector, getLocationHoursConflictOfferSelector } from '../selectors';
+import { LocationHoursConflictDialog } from './LocationHoursConflictDialog';
 import { toast } from 'sonner';
 import { mapLocationForEdit } from '../utils';
 
@@ -50,10 +51,11 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
   const navigate = useNavigate();
   const { t } = useTranslation("locations");
   const currentUser = useSelector(selectCurrentUser);
-  const locationError = useSelector(getLocationErrorSelector);
-  const isLocationLoading = useSelector(getLocationLoadingSelector);
+  const updateStatus = useSelector(getLocationUpdateStatusSelector);
+  const isSaving = updateStatus === 'pending';
   const isDeleting = useSelector(getIsDeletingSelector);
   const deleteResponseFromState = useSelector(getDeleteResponseSelector);
+  const hoursConflictOffer = useSelector(getLocationHoursConflictOfferSelector);
   const businessCountryCode = currentUser?.business?.countryCode || null;
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [useBusinessContact, setUseBusinessContact] = useState<boolean>(false);
@@ -392,6 +394,7 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
       setShowDeleteDialog(false);
       setDeleteResponse(null);
       setHasAttemptedDelete(false);
+      dispatch(setLocationHoursConflictOffer(null));
     }
   }, [isOpen]);
 
@@ -466,23 +469,23 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
     }
   }, [deleteResponseFromState, hasAttemptedDelete, isDeleting, onClose]);
 
-  // Watch for errors and show toast
   useEffect(() => {
-    if (locationError && isSubmitting) {
-      toast.error(t("editLocation.toasts.updateFailed"), {
-        description: t("editLocation.toasts.updateFailedDescription"),
-        icon: undefined,
-      });
-      setIsSubmitting(false);
-    }
-  }, [locationError, isSubmitting]);
+    if (!isOpen || !isSubmitting || justOpenedRef.current) return;
+    if (updateStatus === 'failure') setIsSubmitting(false);
+    if (updateStatus === 'success') onClose();
+  }, [isOpen, isSubmitting, onClose, updateStatus]);
 
-  // Watch for success and close slider
+  // A 409 offer ends this submit; the form stays open with the edits.
   useEffect(() => {
-    if (!isLocationLoading && isSubmitting && !locationError && !justOpenedRef.current) {
-      onClose();
-    }
-  }, [isLocationLoading, isSubmitting, locationError, onClose]);
+    if (hoursConflictOffer && isSubmitting) setIsSubmitting(false);
+  }, [hoursConflictOffer, isSubmitting]);
+
+  const handleSaveHoursAnyway = () => {
+    if (!hoursConflictOffer) return;
+    dispatch(setLocationHoursConflictOffer(null));
+    setIsSubmitting(true);
+    dispatch(updateLocationAction.request({ location: { ...hoursConflictOffer.payload, overrideConflicts: true } }));
+  };
 
   const handleContactToggleChange = useCallback(
     (checked: boolean) => {
@@ -543,7 +546,7 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
 
   const onSubmit = () => {
     // Prevent double submission
-    if (isSubmitting || isLocationLoading || !location) {
+    if (isSubmitting || isSaving || !location) {
       return;
     }
 
@@ -619,17 +622,18 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
             formId="edit-location-form"
             cancelLabel={t("editLocation.buttons.cancel")}
             submitLabel={t("editLocation.buttons.update")}
-            disabled={isFormDisabled || isSubmitting || isLocationLoading}
-            isLoading={isSubmitting || isLocationLoading}
+            disabled={isFormDisabled || isSubmitting || isSaving}
+            isLoading={isSubmitting || isSaving}
           />
         }
       >
         <form
           id="edit-location-form"
           onSubmit={handleSubmit(onSubmit)}
-          className="h-full flex flex-col cursor-default"
+          className="cursor-default"
         >
-          <div className="flex-1 overflow-y-auto p-1 py-6 pt-0 md:p-6 md:pt-0 bg-surface">
+          {/* BaseSlider owns scrolling so collapsing hours cannot leave a second scroll offset. */}
+          <div className="p-1 py-6 pt-0 md:p-6 md:pt-0 bg-surface">
             <div className="max-w-2xl mx-auto space-y-6 cursor-default">
               <div className="space-y-4">
                   <TextField
@@ -821,6 +825,14 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
           </div>
         </form>
       </BaseSlider>
+
+      <LocationHoursConflictDialog
+        offer={hoursConflictOffer}
+        locationId={location?.id ?? null}
+        fallbackTimezone={location?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone}
+        onCancel={() => dispatch(setLocationHoursConflictOffer(null))}
+        onSaveAnyway={handleSaveHoursAnyway}
+      />
 
       {/* Delete Confirmation Dialog */}
       {location && (

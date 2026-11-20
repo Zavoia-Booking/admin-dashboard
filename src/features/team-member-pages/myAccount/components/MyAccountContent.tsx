@@ -696,6 +696,7 @@ const MyAccountContent = ({ onDirtyChange, onSavingChange }: MyAccountContentPro
                 <TextField
                   label={t('profile.fields.phone')}
                   placeholder={t('profile.fields.phonePlaceholder')}
+                  type="tel"
                   value={formData.phone}
                   onChange={(value) => {
                     const sanitized = sanitizePhoneToE164Draft(value);

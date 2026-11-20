@@ -245,14 +245,20 @@
         "dateLabel": "Date",
         "timeLabel": "Time",
         "noInHoursSlots": "No in-hours slots on this date",
-        "nextAvailableDay": "The next day with availability is {{date}}. Use the button below to switch."
+        "minimumNoticeRequired_one": "Choose a time at least {{count}} minute from now.",
+        "minimumNoticeRequired_other": "Choose a time at least {{count}} minutes from now.",
+        "nextAvailableDay": "The next date with an opening during working hours is {{date}}.",
+        "noNextAvailableDay": "No openings during working hours in the {{count}} days after this date. Try a later date or change the selected staff or services."
       },
       "confirmDialog": {
         "rescheduleAnyway": "Reschedule anyway?",
+        "reassignAnyway": "Reassign anyway?",
         "createAnyway": "Create appointment anyway?",
         "yesReschedule": "Yes, reschedule",
+        "yesReassign": "Yes, reassign",
         "yesCreate": "Yes, create",
         "outOfHoursReschedule": "This time is outside business hours. Are you sure you want to reschedule?",
+        "outOfHoursReassign": "This appointment is outside the location’s working hours. Reassign it without changing its time?",
         "outOfHoursCreate": "This time is outside business hours. Are you sure you want to create this appointment?",
         "onBlockReschedule": "This time overlaps with blocked time. Are you sure you want to reschedule?",
         "onBlockCreate": "This time overlaps with blocked time. Are you sure you want to create this appointment?",
@@ -305,6 +311,15 @@
       "blockDetails": "Block details",
       "details": "Details",
       "actions": "Actions",
+      "conflict": {
+        "title_one": "{{count}} appointment is booked in this time",
+        "title_other": "{{count}} appointments are booked in this time",
+        "description_one": "If you block this time, it stays booked and nobody is notified. We suggest rescheduling or cancelling it in the calendar.",
+        "description_other": "If you block this time, they stay booked and nobody is notified. We suggest rescheduling or cancelling them in the calendar.",
+        "others_one": "and {{count}} other",
+        "others_other": "and {{count}} others",
+        "blockAnyway": "Block anyway"
+      },
       "scope": {
         "locationBlock": "Location block",
         "staffTimeOff": "Staff time off",
@@ -473,6 +488,7 @@
       "unknown": "Unknown",
       "customer": "Customer",
       "staffId": "Staff #{{id}}",
+      "formerMember": "{{name}} · former team member",
       "close": "Close",
       "selectLocation": "Select a location",
       "location": "Location",

@@ -92,6 +92,10 @@ const EditBundleSlider: React.FC<EditBundleSliderProps> = ({
   const [hasAttemptedDelete, setHasAttemptedDelete] = useState(false);
 
   const prevLoadingRef = useRef(isBundlesLoading);
+  const formRef = useRef<HTMLFormElement>(null);
+  const priceTypeToFocus = useRef<
+    BundlePriceType.FIXED | BundlePriceType.DISCOUNT | null
+  >(null);
 
   // Keep track of the last valid bundle to allow exit animation when bundle becomes null
   const [activeBundle, setActiveBundle] = useState<Bundle | null>(bundle);
@@ -401,33 +405,25 @@ const EditBundleSlider: React.FC<EditBundleSliderProps> = ({
     reset(getInitialFormData());
   };
 
-  // Autofocus fixed price input when Fixed Price option is selected
+  // Focus a price field only after an explicit pricing-option choice, not when
+  // opening the editor hydrates an existing bundle's price type.
   useEffect(() => {
-    if (priceType === BundlePriceType.FIXED) {
-      // Small delay to ensure the input is rendered
-      setTimeout(() => {
-        const input = document.getElementById("fixed-price");
-        if (input instanceof HTMLInputElement) {
-          input.focus();
-          input.select(); // Select all text for easier editing
-        }
-      }, 100);
-    }
-  }, [priceType]);
+    const requestedPriceType = priceTypeToFocus.current;
+    priceTypeToFocus.current = null;
+    if (!isOpen || requestedPriceType !== priceType) return;
 
-  // Autofocus discount input when Discount option is selected
-  useEffect(() => {
-    if (priceType === BundlePriceType.DISCOUNT) {
-      // Small delay to ensure the input is rendered
-      setTimeout(() => {
-        const input = document.getElementById("discount-percentage");
-        if (input instanceof HTMLInputElement) {
-          input.focus();
-          input.select(); // Select all text for easier editing
-        }
-      }, 100);
-    }
-  }, [priceType]);
+    const selector =
+      requestedPriceType === BundlePriceType.FIXED
+        ? "#fixed-price"
+        : "#discount-percentage";
+    const timeout = window.setTimeout(() => {
+      const input = formRef.current?.querySelector<HTMLInputElement>(selector);
+      input?.focus();
+      input?.select();
+    }, 100);
+
+    return () => window.clearTimeout(timeout);
+  }, [isOpen, bundle, priceType]);
 
   // Handle delete response from Redux state
   useEffect(() => {
@@ -494,6 +490,7 @@ const EditBundleSlider: React.FC<EditBundleSliderProps> = ({
         }
       >
         <form
+          ref={formRef}
           id="edit-bundle-form"
           onSubmit={(e) => {
             if (isFormDisabled || isSubmitting || isBundlesLoading) {
@@ -735,6 +732,7 @@ const EditBundleSlider: React.FC<EditBundleSliderProps> = ({
                     onClick={() => {
                       if (isPricingDisabled) return;
                       if (priceType === BundlePriceType.FIXED) return;
+                      priceTypeToFocus.current = BundlePriceType.FIXED;
                       priceTypeField.onChange(BundlePriceType.FIXED);
                       setValue("discountPercentage", undefined);
                     }}
@@ -815,6 +813,7 @@ const EditBundleSlider: React.FC<EditBundleSliderProps> = ({
                     onClick={() => {
                       if (isPricingDisabled) return;
                       if (priceType === BundlePriceType.DISCOUNT) return;
+                      priceTypeToFocus.current = BundlePriceType.DISCOUNT;
                       priceTypeField.onChange(BundlePriceType.DISCOUNT);
                       setValue("fixedPriceAmountMinor", undefined);
                     }}
@@ -1015,6 +1014,7 @@ const EditBundleSlider: React.FC<EditBundleSliderProps> = ({
                         {/* Discount Percentage Input */}
                         <div>
                           <TextField
+                            inputMode="decimal"
                             value={discountInput}
                             onChange={(value) => {
                               const sanitized = sanitizeDecimalInput(value, 2, 3);

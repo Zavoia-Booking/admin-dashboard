@@ -55,6 +55,7 @@
       "saveChanges": "Save changes",
       "save": "Save",
       "publish": "Publish listing",
+      "publishShort": "Publish",
       "saving": "Saving...",
       "publishing": "Publishing..."
     },
@@ -157,8 +158,11 @@
       "autoSave": "Visibility and booking changes save automatically.",
       "locationDetails": "Location details",
       "servicesAndTeam": "Services & team",
-      "marketplaceDetails": "Marketplace details",
-      "marketplaceDetailsDescription": "Amenities, accessibility, payment methods, and languages."
+      "marketplaceDetails": "Amenities & details",
+      "marketplaceDetailsEmpty": "Amenities, payment methods and languages spoken help clients find and choose this location.",
+      "addDetails": "Add details",
+      "editDetails": "Edit details",
+      "noneAdded": "None added yet"
     },
     "reviews": {
       "title": "Reviews",

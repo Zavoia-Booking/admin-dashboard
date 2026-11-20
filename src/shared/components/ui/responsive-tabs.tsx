@@ -1,5 +1,6 @@
 import * as React from "react";
 import { useLayoutEffect } from "react";
+import { flushSync } from "react-dom";
 import { type LucideIcon } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { useIsMobile } from "../../hooks/use-mobile";
@@ -260,8 +261,8 @@ export function ResponsiveTabs({
 
 /** The mobile pill switcher, self-contained so it can live in the breadcrumb
  *  header slot (it measures its own active-tab indicator where it mounts).
- *  h-10, full width: the marketplace header row gives it the whole width
- *  (its bell moves to the Save row above). */
+ *  h-10; shares the marketplace header row with the bell, or Save while there
+ *  are unsaved edits, so its width changes. */
 function MobileHeaderTabs({
   items,
   value,
@@ -275,23 +276,51 @@ function MobileHeaderTabs({
   const [indicator, setIndicator] = React.useState<{
     left: number;
     width: number;
+    // Re-measured for a width change rather than a tab switch: jump, don't glide.
+    instant: boolean;
   } | null>(null);
 
+  const measure = React.useCallback(
+    (instant: boolean) => {
+      if (!listRef.current) return;
+
+      const activeButton = listRef.current.querySelector<HTMLButtonElement>(
+        `[data-tab-id="${value}"]`
+      );
+      if (!activeButton) return;
+
+      const containerRect = listRef.current.getBoundingClientRect();
+      const rect = activeButton.getBoundingClientRect();
+      setIndicator({
+        left: rect.left - containerRect.left,
+        width: rect.width,
+        instant,
+      });
+    },
+    [value]
+  );
+
   useLayoutEffect(() => {
-    if (!listRef.current) return;
+    measure(false);
+  }, [measure, items.length]);
 
-    const activeButton = listRef.current.querySelector<HTMLButtonElement>(
-      `[data-tab-id="${value}"]`
-    );
-    if (!activeButton) return;
-
-    const containerRect = listRef.current.getBoundingClientRect();
-    const rect = activeButton.getBoundingClientRect();
-    setIndicator({
-      left: rect.left - containerRect.left,
-      width: rect.width,
+  // Tab widths change when the header slot swaps bell and Save, or a badge
+  // widens a tight tab. ResizeObserver runs before paint; flushSync commits then.
+  useLayoutEffect(() => {
+    const list = listRef.current;
+    if (!list || typeof ResizeObserver === "undefined") return;
+    const tabs = Array.from(list.querySelectorAll<HTMLElement>("[data-tab-id]"));
+    const widths = () => tabs.map((tab) => tab.offsetWidth).join();
+    let lastWidths = widths();
+    const observer = new ResizeObserver(() => {
+      const next = widths();
+      if (next === lastWidths) return;
+      lastWidths = next;
+      flushSync(() => measure(true));
     });
-  }, [value, items.length]);
+    tabs.forEach((tab) => observer.observe(tab));
+    return () => observer.disconnect();
+  }, [measure, items.length]);
 
   return (
     <div
@@ -306,15 +335,16 @@ function MobileHeaderTabs({
             data-tab-id={item.id}
             onClick={() => onSelect(item.id)}
             className={cn(
-              // !min-* neutralize the global 44px touch-target rule, which would
-              // overflow the h-10 track and push the labels off-center
-              "relative z-10 flex flex-1 items-center justify-center gap-1.5 rounded-full px-1.5 !min-h-0 !min-w-0 py-0 text-xs font-medium transition-colors",
+              // !min-h-0: the global 44px touch target would overflow the h-10
+              // track. From 360px a tab too narrow for its label and dot widens;
+              // below that the label truncates.
+              "relative z-10 flex flex-1 items-center justify-center gap-1.5 rounded-full px-1.5 !min-h-0 !min-w-0 min-[360px]:!min-w-min py-0 text-xs font-medium transition-colors",
               isActive
                 ? "text-foreground cursor-default"
                 : "text-foreground-2 hover:text-foreground cursor-pointer"
             )}
           >
-            <span className="text-[15px]">{item.mobileLabel ?? item.label}</span>
+            <span className="min-w-0 truncate text-[15px]">{item.mobileLabel ?? item.label}</span>
             {item.showBadge && <AttentionDot />}
           </button>
         );
@@ -322,7 +352,10 @@ function MobileHeaderTabs({
 
       {indicator && (
         <span
-          className="pointer-events-none absolute inset-y-1 block rounded-full bg-surface shadow-sm transition-all duration-300 ease-out"
+          className={cn(
+            "pointer-events-none absolute inset-y-1 block rounded-full bg-surface shadow-sm",
+            !indicator.instant && "transition-all duration-300 ease-out"
+          )}
           style={{
             width: `${Math.max(0, indicator.width - 2)}px`,
             transform: `translateX(${indicator.left - 3}px)`,

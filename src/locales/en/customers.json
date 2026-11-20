@@ -162,7 +162,7 @@
     "history": {
       "title": "Customer history",
       "subtitle": "Full activity timeline for this customer.",
-      "downloadButton": "Download history",
+      "downloadButton": "Download",
       "loadMore": "Load more",
       "showingCount": "Showing {{shown}} of {{total}}",
       "empty": {

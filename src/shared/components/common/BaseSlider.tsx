@@ -9,6 +9,7 @@ import { ignoreToastPointerDown } from "../../lib/toastInteraction";
 import { PortalContainerContext } from "../../contexts/PortalContainerContext";
 import { useKeyboardVisible } from "../../hooks/useKeyboardVisible";
 import { insetForKeyboard } from "../../lib/keyboardDrawerFollow";
+import appConfig from "../../../app/config/env";
 
 /**
  * Slide-in panel built on Vaul (right-direction drawer).
@@ -73,6 +74,7 @@ export const BaseSlider: React.FC<BaseSliderProps> = ({
   }, []);
   // Native keyboard covers the footer (like the bottom nav) instead of pushing it up.
   const keyboardVisible = useKeyboardVisible();
+  const isNativeAndroid = appConfig.IS_NATIVE && appConfig.PLATFORM === "android";
 
   // iOS: the panel makes room for the keyboard on the keyboard's own curve
   // (instead of the web view shrinking), so the footer is back the moment the
@@ -199,6 +201,7 @@ export const BaseSlider: React.FC<BaseSliderProps> = ({
 
             {/* Scrollable body */}
             <div
+              data-android-slider-body={isNativeAndroid ? "" : undefined}
               className={cn(
                 "flex flex-col overflow-y-auto",
                 "flex-1 p-3",

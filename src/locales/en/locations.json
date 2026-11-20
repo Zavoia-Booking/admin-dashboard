@@ -105,6 +105,13 @@
     "title": "Edit {{name}}",
     "titleFallback": "Edit Location",
     "subtitle": "Update location information",
+    "hoursConflict": {
+      "title_one": "{{count}} appointment falls outside the new hours",
+      "title_other": "{{count}} appointments fall outside the new hours",
+      "description_one": "If you save the new hours, it stays booked and nobody is notified. We suggest rescheduling or cancelling it in the calendar.",
+      "description_other": "If you save the new hours, they stay booked and nobody is notified. We suggest rescheduling or cancelling them in the calendar.",
+      "saveAnyway": "Save anyway"
+    },
     "form": {
       "nameLabel": "Location Name",
       "namePlaceholder": "e.g. Downtown Office",
@@ -179,6 +186,8 @@
     }
   },
   "toasts": {
+    "createSuccess": "Location created successfully",
+    "updateSuccess": "Location updated successfully",
     "createFailed": "Failed to create location",
     "updateFailed": "Failed to update location",
     "listFailed": "Failed to list locations",

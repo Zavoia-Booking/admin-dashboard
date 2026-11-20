@@ -18,7 +18,8 @@ export interface TextFieldProps {
   /** Optional override icon; pass null for a text-only field. */
   icon?: React.ComponentType<{ className?: string }> | null;
   autoFocus?: boolean;
-  type?: 'text' | 'password' | 'email';
+  type?: 'text' | 'password' | 'email' | 'tel';
+  inputMode?: React.ComponentProps<'input'>['inputMode'];
   onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   onFocus?: () => void;
   onBlur?: () => void;
@@ -42,6 +43,7 @@ export const TextField: React.FC<TextFieldProps> = ({
   icon,
   autoFocus = false,
   type = "text",
+  inputMode,
   onKeyDown,
   onFocus,
   onBlur,
@@ -65,6 +67,7 @@ export const TextField: React.FC<TextFieldProps> = ({
           ref={inputRef}
           id={id}
           type={type}
+          inputMode={inputMode}
           placeholder={placeholder}
           value={value}
           onChange={(e) => onChange(e.target.value)}

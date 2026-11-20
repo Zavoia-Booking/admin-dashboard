@@ -360,7 +360,8 @@
 }
 .profile-banner .profile-banner-body ul {
   margin: 6px 0 0;
-  padding-left: 1rem;
+  /* The icon already provides the gutter; align the list with its heading. */
+  padding-inline-start: 0;
   list-style: none;
   display: flex;
   flex-direction: column;

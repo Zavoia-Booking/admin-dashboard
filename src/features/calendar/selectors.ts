@@ -28,6 +28,11 @@ export const getAddFormPrefill = createSelector(getCalendarViewStateSelector, (s
     return state.addFormPrefill
 })
 
+/** Editor save sent and not answered yet (the reducer clears it on success or failure). */
+export const getAddFormSaveInFlight = createSelector(getCalendarViewStateSelector, (state) => {
+    return state.addFormCloseAfterMutationsRemaining > 0
+})
+
 export const getEditFormSelector = createSelector(getCalendarViewStateSelector, (state) => {
     return state.editForm;
 })
@@ -339,6 +344,18 @@ export const getActiveCalendarFiltersCount = createSelector(
 export const getUpdateConflictOffer = createSelector(
     getCalendarViewStateSelector,
     (state: CalendarViewState): CalendarViewState['updateConflictOffer'] => state.updateConflictOffer,
+)
+
+/** Pending working-hours confirmation for a staff-only edit. */
+export const getReassignmentHoursOverrideOffer = createSelector(
+    getCalendarViewStateSelector,
+    (state: CalendarViewState) => state.reassignmentHoursOverrideOffer,
+)
+
+/** Pending 409 offer for a block that would cover upcoming appointments. */
+export const getBlockConflictOffer = createSelector(
+    getCalendarViewStateSelector,
+    (state: CalendarViewState): CalendarViewState['blockConflictOffer'] => state.blockConflictOffer,
 )
 
 export const getPendingDrop = createSelector(getCalendarViewStateSelector, (state) => {

@@ -632,7 +632,7 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange, onSavi
                 <div className="profile-banner-reveal">
                   <div className="profile-banner profile-banner-info">
                     <Info className="profile-banner-icon h-4 w-4" aria-hidden />
-                    <div className="profile-banner-body">
+                    <div className="profile-banner-body min-w-0 text-start">
                       <strong>{t('profile.basicInfo.changingIndustry')}</strong>
                       <ul>
                         <li>{t('profile.basicInfo.industryWarning1')}</li>
@@ -702,6 +702,7 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange, onSavi
                 <TextField
                   label={t('profile.basicInfo.phone')}
                   placeholder={t('profile.basicInfo.phonePlaceholder')}
+                  type="tel"
                   value={formData.businessPhone}
                   onChange={(value) => {
                     const sanitized = sanitizePhoneToE164Draft(value);

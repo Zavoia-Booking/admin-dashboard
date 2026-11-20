@@ -26,6 +26,8 @@ interface MobileTimelineApptCardProps {
   dateKey?: string;
   /** Past / ended / cancelled — drag disabled; tap still opens details. */
   disableDrag?: boolean;
+  /** The overlay wrapper already has the measured card width, including its grid insets. */
+  isDragPreview?: boolean;
 }
 
 // Stable module-level constant so the inline style object's `transition` slot
@@ -61,6 +63,7 @@ export const MobileTimelineApptCard: FC<MobileTimelineApptCardProps> = memo(({
   columnId,
   dateKey,
   disableDrag = false,
+  isDragPreview = false,
 }) => {
   const { t } = useTranslation("calendar");
   const colorCoding = calendarPreferences.getColorCoding();
@@ -122,8 +125,8 @@ export const MobileTimelineApptCard: FC<MobileTimelineApptCardProps> = memo(({
       style={{
         top: top + inset,
         height: height - inset * 2,
-        left: `calc(${leftPct}% + 1px)`,
-        width: `calc(${widthPct}% - 2px)`,
+        left: isDragPreview ? 0 : `calc(${leftPct}% + 1px)`,
+        width: isDragPreview ? "100%" : `calc(${widthPct}% - 2px)`,
         backgroundColor,
         color,
         opacity: isCancelled ? 0.6 : undefined,

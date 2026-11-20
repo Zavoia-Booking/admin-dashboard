@@ -7,6 +7,7 @@ import {
   getStatusBadge,
   getBookedViaLabel,
   getNoCustomerDisplayLabel,
+  getStaffDisplayNames,
 } from "./utils.tsx";
 import { ShieldAlert, User } from "lucide-react";
 import { PersonAvatar, getPersonColorKey } from "../../../shared/components/common/PersonAvatar.tsx";
@@ -96,9 +97,8 @@ export const SlimAppointmentCard: FC<SlimAppointmentCardProps> = ({
   const resolvedStaff = appointment.staffUserIds
     .map((id) => locationStaff.find((s) => s.id === id))
     .filter((s): s is CalendarStaffMember => s != null);
-  const staffLabel = resolvedStaff.length > 0
-    ? resolvedStaff.map((s) => `${s.firstName} ${s.lastName}`).join(', ')
-    : t("page.common.unassigned");
+  // Someone no longer on the team is named from the appointment itself.
+  const staffLabel = getStaffDisplayNames(appointment.staffUserIds, locationStaff, t, appointment.staffNames);
 
   const hasCustomerName = !!appointment.customerName;
   const displayName = appointment.customerName ?? getNoCustomerDisplayLabel(t);
@@ -156,7 +156,7 @@ export const SlimAppointmentCard: FC<SlimAppointmentCardProps> = ({
 
       {/* ── Staff ── */}
       <div className="flex min-w-0 items-center gap-2 border-l border-border pl-3">
-        {appointment.staffUserIds.length > 0 ? (
+        {resolvedStaff.length > 0 ? (
           <StaffAvatarCluster
             staffIds={appointment.staffUserIds}
             staff={locationStaff}

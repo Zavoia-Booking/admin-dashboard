@@ -9,6 +9,8 @@ type Actions = ActionType<typeof actions> | ActionType<typeof logoutRequestActio
 const initialState: LocationState = {
   isLoading: false,
   error: null,
+  createStatus: 'idle',
+  updateStatus: 'idle',
   listError: null,
   listLoaded: false,
   allLocations: [],
@@ -16,6 +18,7 @@ const initialState: LocationState = {
   deleteError: null,
   deleteResponse: null,
   updateResponse: null,
+  hoursConflictOffer: null,
 };
 
 export const LocationsReducer: Reducer<LocationState, any> = (state: LocationState = initialState, action: Actions) => {
@@ -34,13 +37,21 @@ export const LocationsReducer: Reducer<LocationState, any> = (state: LocationSta
       return { ...state, isLoading: false, error: action.payload.message };
 
     case getType(actions.createLocationAction.request):
-      return { ...state, isLoading: true, error: null };
+      return { ...state, isLoading: true, error: null, createStatus: 'pending' };
+
+    case getType(actions.createLocationAction.success):
+      return { ...state, isLoading: false, error: null, createStatus: 'success' };
 
     case getType(actions.updateLocationAction.request):
-      return { ...state, isLoading: true, error: null, updateResponse: null };
+      return { ...state, isLoading: true, error: null, updateStatus: 'pending', updateResponse: null, hoursConflictOffer: null };
 
     case getType(actions.updateLocationAction.success):
-      return { ...state, isLoading: false, updateResponse: action.payload.updateResponse, error: null };
+      return { ...state, isLoading: false, updateStatus: 'success', updateResponse: action.payload.updateResponse, error: null };
+
+    case getType(actions.setLocationHoursConflictOffer):
+      return action.payload
+        ? { ...state, isLoading: false, updateStatus: 'idle', hoursConflictOffer: action.payload }
+        : { ...state, hoursConflictOffer: null };
 
     case getType(actions.listLocationsAction.request):
       return { ...state, isLoading: true, error: null, listError: null };
@@ -52,10 +63,10 @@ export const LocationsReducer: Reducer<LocationState, any> = (state: LocationSta
       return { ...state, isLoading: false, listLoaded: true, error: action.payload.message, listError: action.payload.message };
 
     case getType(actions.createLocationAction.failure):
-      return { ...state, isLoading: false, error: action.payload.message };
+      return { ...state, isLoading: false, error: action.payload.message, createStatus: 'failure' };
 
     case getType(actions.updateLocationAction.failure):
-      return { ...state, isLoading: false, error: action.payload.message };
+      return { ...state, isLoading: false, error: action.payload.message, updateStatus: 'failure' };
 
     case getType(actions.deleteLocationAction.request):
       return { ...state, isDeleting: true, deleteError: null, deleteResponse: null };

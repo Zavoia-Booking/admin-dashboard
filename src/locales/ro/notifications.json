@@ -65,12 +65,12 @@
       "body": "Programarea pentru {{service}} ({{customer}}) a fost mutată de pe {{from}} pe {{to}}."
     },
     "appointment_assigned": {
-      "title": "Programare nouă atribuită",
-      "body": "Programarea pentru {{service}} ({{customer}}) din {{date}} ți-a fost atribuită."
+      "title": "Programare nouă alocată",
+      "body": "Programarea pentru {{service}} ({{customer}}) din {{date}} ți-a fost alocată."
     },
     "appointment_unassigned": {
       "title": "Programare scoasă din programul tău",
-      "body": "Programarea pentru {{service}} ({{customer}}) din {{date}} a fost atribuită altcuiva."
+      "body": "Programarea pentru {{service}} ({{customer}}) din {{date}} a fost alocată altcuiva."
     },
     "appointment_rescheduled": {
       "title": "Programarea ta a fost mutată",

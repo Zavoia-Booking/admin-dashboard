@@ -966,6 +966,7 @@ const AddBundleSlider: React.FC<AddBundleSliderProps> = ({
                           {/* Discount Percentage Input */}
                           <div>
                             <TextField
+                              inputMode="decimal"
                               value={discountInput}
                               onChange={(value) => {
                                 const sanitized = sanitizeDecimalInput(value, 2, 3);

@@ -10,6 +10,7 @@ export type PlanTier = 'STANDARD' | 'PLUS' | 'CUSTOM';
 
 export type PlanFeatures = {
   websiteBuilder: boolean;
+  websiteBuilderEdit?: boolean;
 };
 
 // GET /plans/list — self-serve plans (STANDARD + PLUS) with pricing resolved

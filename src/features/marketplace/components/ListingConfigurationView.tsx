@@ -1,4 +1,4 @@
-import { useState, useEffect, useLayoutEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import { useCanWrite } from "../../../shared/components/common/subscription/useCanWrite";
 import { LimitedAccessBanner } from "../../../shared/components/common/subscription/LimitedAccessBanner";
@@ -19,13 +19,10 @@ import {
 } from "../utils/locationSettingsAttention";
 import ConfirmDialog from "../../../shared/components/common/ConfirmDialog";
 import { useTranslation } from "react-i18next";
-import { ArrowLeft, ArrowRight, Save } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { Button } from "../../../shared/components/ui/button";
-import { useIsMobile } from "../../../shared/hooks/use-mobile";
-import { HeaderRightSlot, HeaderTopSlot } from "../../../shared/components/layouts/HeaderRightSlot";
-import { NotificationBell } from "../../../shared/components/common/NotificationBell";
-import { APP_SCROLL_CONTAINER_ATTR } from "../../../shared/utils/scroll";
-import { MarketplaceHeaderActionRow } from "./MarketplaceHeaderActionRow";
+import { HeaderRightSlot } from "../../../shared/components/layouts/HeaderRightSlot";
+import { MarketplaceHeaderAction } from "./MarketplaceHeaderAction";
 
 import { BusinessListingTab } from "./business/BusinessListingTab";
 import { LocationsTab } from "./locations/LocationsTab";
@@ -60,6 +57,8 @@ interface ListingConfigurationViewProps {
   business: Business | null;
   locationsWithAssignments: LocationWithAssignments[];
   isPublishing: boolean;
+  /** The listing refetch is in flight (the saga runs one after each publish). */
+  isRefreshing?: boolean;
   isListed: boolean;
   marketplaceName?: string | null;
   marketplaceEmail?: string | null;
@@ -76,7 +75,7 @@ interface ListingConfigurationViewProps {
 }
 
 export function ListingConfigurationView(props: ListingConfigurationViewProps) {
-  const { business, locationsWithAssignments, isPublishing, isListed } = props;
+  const { business, locationsWithAssignments, isPublishing, isListed, isRefreshing = false } = props;
   const { t } = useTranslation("marketplace");
   const { t: tReviews } = useTranslation("reviews");
 
@@ -89,15 +88,7 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
     searchParams.get("locationId") ?? "",
     10,
   );
-  const isLocationDetail =
-    activeTab === "locations" &&
-    locationsWithAssignments.length > 1 &&
-    !Number.isNaN(selectedLocationId) &&
-    locationsWithAssignments.some(
-      (locationItem) => locationItem.id === selectedLocationId,
-    );
-  // Unlike isLocationDetail, no minimum-count requirement: single-location
-  // businesses also use the list-to-detail flow below xl.
+  // Single-location businesses also use the list-to-detail flow below xl.
   const hasLocationSelected =
     activeTab === "locations" &&
     locationsWithAssignments.some(
@@ -109,23 +100,16 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
   // State for unsaved changes confirmation dialog
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
   const [ownerProfileSetupNeeded, setOwnerProfileSetupNeeded] = useState(false);
-  // Mobile publish-checklist disclosure — lives here (not in the strip) because
-  // the strip renders once per tab panel. Open by default: until the listing is
-  // live, what is still missing is the point of the page.
-  //
-  // Stored as "which tab was it collapsed on" rather than a boolean, so a tab
-  // switch re-opens it by derivation. The boolean version needed a render-phase
-  // setState to reset, which discards the render and rebuilds all three tab
-  // panels a second time on every single switch.
-  const [collapsedTab, setCollapsedTab] = useState<MarketplaceTab | null>(null);
-  const mobileChecklistOpen = collapsedTab !== activeTab;
+  // The strip renders once per tab. Only override the default for the tab
+  // where the user explicitly toggled the checklist.
+  const [checklistDisclosure, setChecklistDisclosure] = useState<{
+    tab: MarketplaceTab;
+    open: boolean;
+  } | null>(null);
   const handleChecklistOpenChange = useCallback(
-    (open: boolean) => setCollapsedTab(open ? null : activeTab),
+    (open: boolean) => setChecklistDisclosure({ tab: activeTab, open }),
     [activeTab],
   );
-  // Whether the active panel's mobile publish button is on screen. Starts true
-  // so the header stand-in cannot flash in before the observer reports.
-  const [publishActionInView, setPublishActionInView] = useState(true);
   // Reviews mounts lazily (deferring its fetches) but then STAYS mounted, so
   // returning to the tab shows the loaded list instantly instead of a
   // remount → refetch → skeleton flash.
@@ -139,7 +123,6 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
   const allowNavigationRef = useRef(false);
 
   const canWrite = useCanWrite();
-  const isMobile = useIsMobile();
 
   // Canonicalize legacy tab names. The active tab itself is derived from the URL above,
   // so browser navigation and redirects never require a second state synchronization pass.
@@ -415,103 +398,40 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
   // Mirrors the strip's own gate: a missing photo routes the action to the
   // uploader instead of saving, so both entry points behave identically.
   const photosBlocked = !hasLocationPhoto || !locationImagesOk;
+  const mobileChecklistOpen =
+    checklistDisclosure?.tab === activeTab
+      ? checklistDisclosure.open
+      : !industryTagOk || !businessDetailsOk || photosBlocked;
   // Gates the header action's visibility rather than its disabled state: a
   // permanently dead button says nothing the checklist in the strip does not
   // already say. isPublishing is excluded on purpose so the button stays put
   // and shows its spinner through an in-flight save.
   const actionReady = !form.hasValidationErrors && industryTagOk;
 
-  /* Mobile header row 1 (Save / Publish + bell, above the tabs). It exists only
-   * while there is something to save - listed: unsaved edits; not listed: the
-   * strip's own publish button has scrolled away - and then collapses when
-   * scrolling down and comes back when scrolling up or on any edit, like the
-   * calendar's toolbar. */
-  const headerActionAvailable =
-    isMobile &&
-    canWrite &&
-    actionReady &&
-    (isListed ? isCombinedDirty : !publishActionInView);
-  const [headerActionScrolledAway, setHeaderActionScrolledAway] = useState(false);
-  const editSignature = JSON.stringify([
-    form.useBusinessName,
-    form.useBusinessEmail,
-    form.useBusinessPhone,
-    form.useBusinessDescription,
-    form.name,
-    form.email,
-    form.phone,
-    form.description,
-    form.selectedIndustryTags,
-    isCombinedDirty,
-  ]);
-  const [seenEditSignature, setSeenEditSignature] = useState(editSignature);
-  if (seenEditSignature !== editSignature) {
-    setSeenEditSignature(editSignature);
-    setHeaderActionScrolledAway(false);
+  /* Mobile header: the right end of the tab row holds the bell, or the one
+   * primary action while there is something to do (listed: unsaved edits;
+   * not listed: publishing). The header is md:hidden, so no isMobile gate:
+   * its first render reads false, which would animate a swap on load. */
+  const headerActionShown =
+    canWrite && actionReady && (!isListed || isCombinedDirty);
+  // Swaps animate; the first paint and the skeleton handover don't.
+  const [seenHeaderActionShown, setSeenHeaderActionShown] =
+    useState(headerActionShown);
+  const [headerSwapAnimates, setHeaderSwapAnimates] = useState(false);
+  if (seenHeaderActionShown !== headerActionShown) {
+    setSeenHeaderActionShown(headerActionShown);
+    setHeaderSwapAnimates(true);
   }
-  const [seenTab, setSeenTab] = useState(activeTab);
-  if (seenTab !== activeTab) {
-    setSeenTab(activeTab);
-    setHeaderActionScrolledAway(false);
+  // Publish success clears isPublishing before the refetch that makes the form
+  // clean lands; keep the spinner up through it so Save doesn't flash back.
+  const [seenPublishing, setSeenPublishing] = useState(isPublishing);
+  const [awaitingRefresh, setAwaitingRefresh] = useState(false);
+  if (seenPublishing !== isPublishing) {
+    setSeenPublishing(isPublishing);
+    setAwaitingRefresh(!isPublishing && isRefreshing);
+  } else if (awaitingRefresh && !isRefreshing) {
+    setAwaitingRefresh(false);
   }
-  const headerActionShown = headerActionAvailable && !headerActionScrolledAway;
-
-  // Scroll direction, as in MobileCalendarLayout.
-  const lastScrollYRef = useRef(0);
-  const cumDeltaRef = useRef(0);
-  useEffect(() => {
-    if (!isMobile) return;
-    const scroller = document.querySelector<HTMLElement>(`[${APP_SCROLL_CONTAINER_ATTR}]`);
-    if (!scroller) return;
-    const THRESHOLD = 15;
-    // Collapsing gives the column this much more room; a page that can't
-    // scroll by more than that (plus the bounce zones) could never scroll up
-    // again to bring the row back.
-    const ROW_HEIGHT = 56;
-    let ticking = false;
-    lastScrollYRef.current = scroller.scrollTop;
-    const update = () => {
-      ticking = false;
-      const y = Math.max(0, scroller.scrollTop);
-      const delta = y - lastScrollYRef.current;
-      lastScrollYRef.current = y;
-      const maxScroll = scroller.scrollHeight - scroller.clientHeight;
-      const cum = cumDeltaRef.current;
-      cumDeltaRef.current = (delta > 0 && cum >= 0) || (delta < 0 && cum <= 0) ? cum + delta : delta;
-      // Only act outside the elastic bounce zones.
-      if (y <= 10 || y >= maxScroll - 10) return;
-      if (cumDeltaRef.current > THRESHOLD) {
-        cumDeltaRef.current = 0;
-        // Not while typing: the keyboard's reveal scroll and caret-follow
-        // scrolls read as "down", and Save should stay at hand anyway.
-        const focused = document.activeElement;
-        const typing =
-          focused instanceof HTMLInputElement ||
-          focused instanceof HTMLTextAreaElement ||
-          (focused instanceof HTMLElement && focused.isContentEditable);
-        if (typing || maxScroll < ROW_HEIGHT + 40) return;
-        setHeaderActionScrolledAway(true);
-      } else if (cumDeltaRef.current < -THRESHOLD) {
-        cumDeltaRef.current = 0;
-        setHeaderActionScrolledAway(false);
-      }
-    };
-    const onScroll = () => {
-      if (ticking) return;
-      ticking = true;
-      requestAnimationFrame(update);
-    };
-    scroller.addEventListener("scroll", onScroll, { passive: true });
-    return () => scroller.removeEventListener("scroll", onScroll);
-  }, [isMobile]);
-  // An edit or a tab switch starts the direction count over. Runs after
-  // ResponsiveTabs restores the tab's scroll offset (child layout effects run
-  // first), so that restore isn't read as a scroll either.
-  useLayoutEffect(() => {
-    cumDeltaRef.current = 0;
-    const scroller = document.querySelector<HTMLElement>(`[${APP_SCROLL_CONTAINER_ATTR}]`);
-    if (scroller) lastScrollYRef.current = Math.max(0, scroller.scrollTop);
-  }, [editSignature, activeTab]);
 
 
   // Publish clicked while photos are missing: deep-link into the offending
@@ -526,6 +446,19 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
     if (!target) return;
     navigate(`/marketplace?tab=locations&locationId=${target.id}`);
     requestPortfolioAttention(target.id);
+  };
+  // Typing is done: close the keyboard so the whole form is back in view.
+  const handleHeaderAction = () => {
+    const focused = document.activeElement;
+    if (
+      focused instanceof HTMLInputElement ||
+      focused instanceof HTMLTextAreaElement ||
+      (focused instanceof HTMLElement && focused.isContentEditable)
+    ) {
+      focused.blur();
+    }
+    if (photosBlocked) handlePhotosNeeded();
+    else handleCombinedSave();
   };
   // Persistent business-level go-live status strip. Rendered at the top of every
   // tab panel (ResponsiveTabs keeps panels mounted but only shows the active one,
@@ -626,10 +559,8 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
           focusBusinessSection("marketplace-owner-profile-section")
         }
         onPublish={handleCombinedSave}
-        compactOnMobile={isLocationDetail}
         mobileChecklistOpen={mobileChecklistOpen}
         onMobileChecklistOpenChange={handleChecklistOpenChange}
-        onMobileActionInViewChange={setPublishActionInView}
       />
     </div>
   );
@@ -727,49 +658,22 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
           tab's floating "Clear filters" pill still needs it. */}
       <div className="h-16 md:hidden" aria-hidden />
 
-      {/* Mobile header: row 1 holds the one primary action (listed → Save while
-          there are unsaved edits; not listed → Publish once the strip's own
-          publish button has scrolled away, so the two are never on screen
-          together) with the bell beside it; the tabs below span the full row,
-          so the breadcrumb row gives up its bell. Rendered here rather than in
-          the strip, which renders once per tab panel. */}
-      {isMobile && (
-        <>
-          <HeaderRightSlot>{false}</HeaderRightSlot>
-          <HeaderTopSlot>
-            <MarketplaceHeaderActionRow shown={headerActionShown}>
-              <Button
-                onClick={() =>
-                  photosBlocked ? handlePhotosNeeded() : handleCombinedSave()
-                }
-                disabled={isPublishing}
-                rounded="full"
-                className="btn-primary group h-10 px-5 text-sm font-semibold active:scale-[0.98] flex items-center justify-center gap-2"
-              >
-                <span>
-                  {t(
-                    isListed
-                      ? "configuration.buttons.save"
-                      : "configuration.buttons.publish",
-                  )}
-                </span>
-                {isPublishing ? (
-                  <div className="size-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
-                ) : isListed ? (
-                  <Save className="size-4" strokeWidth={1.9} />
-                ) : (
-                  <ArrowRight className="size-4" strokeWidth={1.9} />
-                )}
-              </Button>
-              {/* data-navigate: the unsaved-changes guard above intercepts the
-                  bell's navigation like any other way off the page. */}
-              <span data-navigate="/notifications">
-                <NotificationBell variant="header" />
-              </span>
-            </MarketplaceHeaderActionRow>
-          </HeaderTopSlot>
-        </>
-      )}
+      {/* Mobile header, right of the tabs (that header is md:hidden). Not gated
+          on isMobile, which is false on the first render: the skeleton's bell
+          then hands over without a remount. */}
+      <HeaderRightSlot>
+        <MarketplaceHeaderAction
+          shown={headerActionShown}
+          label={t(
+            isListed
+              ? "configuration.buttons.save"
+              : "configuration.buttons.publishShort",
+          )}
+          busy={isPublishing || awaitingRefresh}
+          onAction={handleHeaderAction}
+          animate={headerSwapAnimates}
+        />
+      </HeaderRightSlot>
 
       {/* Unsaved Changes Confirmation Dialog */}
       <ConfirmDialog

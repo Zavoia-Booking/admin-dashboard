@@ -915,6 +915,17 @@ textarea {
   display: none;  /* Chrome, Safari, and Opera */
 }
 
+/* In Android WebView, a nested scroll container can cancel Vaul's horizontal
+ * pointer stream even when that container has nothing to scroll. Keep native
+ * vertical scrolling while reserving horizontal gestures for BaseSlider. */
+:is([data-android-slider-body], [data-android-slider-body] *):is(.overflow-y-auto, .overflow-y-scroll):not(
+  .overflow-x-auto, .overflow-x-scroll, .overflow-hidden, [class~="!overflow-hidden"],
+  [data-vaul-no-drag], [data-vaul-no-drag] *,
+  [data-android-slider-body] [data-vaul-drawer], [data-android-slider-body] [data-vaul-drawer] *
+) {
+  touch-action: pan-y pinch-zoom;
+}
+
 /*
  * Vaul drawer close-animation override.
  *

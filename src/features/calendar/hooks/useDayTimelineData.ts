@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useSelector } from "react-redux";
 import {
   getSelectedDate,
@@ -8,7 +9,7 @@ import {
 } from "../selectors";
 import {
   getWorkingHoursForDate,
-  getDayOpenCloseHours,
+  getDayOpenCloseMinutes,
   getSlotStartsInRange,
 } from "../workingHours";
 import { getMinutesInTimezone, formatDateInTimezone } from "../timezone";
@@ -33,11 +34,10 @@ export interface UseDayTimelineDataResult {
   calendarTimezone: string | null;
   /** Resolved working hours for the selected date (respects open247). */
   dayWorkingHours: ReturnType<typeof getWorkingHoursForDate>;
-  isOpen: boolean;
   isToday: boolean;
-  /** Open/close hours clamped to the working-hours window (with fallback bounds 6-22). */
-  openHour: number;
-  closeHour: number;
+  isClosed: boolean;
+  /** Exact opening and closing minutes, if the day has a restricted opening window. */
+  workingHoursBounds: ReturnType<typeof getDayOpenCloseMinutes>;
   /** Slot configuration (minutes of day for each slot start). */
   slotIntervalMinutes: number;
   daySlotMinutes: number[];
@@ -53,14 +53,8 @@ export interface UseDayTimelineDataResult {
 }
 
 /**
- * Shared data layer for a day timeline (slot grid + now line + working hours).
- * Consumed by mobile `MobileDayTimeline` and mirrors the exact derivation
- * desktop `DayGrid` performs inline. Do NOT add behavior here; the desktop
- * derivation is the source of truth and has been tested in production.
- *
- * Desktop continues to compute these values inline inside `DayGrid.tsx` because
- * `DayGrid`'s DnD machinery is tightly coupled to the same scope. If/when
- * `DayGrid` is refactored, it should consume this hook.
+ * Day timeline data for mobile: full-day slots, the now line, and exact
+ * working-hours bounds. Desktop `DayGrid` computes its data separately.
  */
 export function useDayTimelineData(
   options: UseDayTimelineDataOptions = {},
@@ -75,19 +69,23 @@ export function useDayTimelineData(
   const calendarTimezone = useSelector(getCalendarTimezone);
 
   const dayWorkingHours = getWorkingHoursForDate(selectedDate, workingHours, open247);
-  const isOpen = open247 || (dayWorkingHours?.isOpen ?? false);
-  const isToday =
-    formatDateInTimezone(selectedDate, calendarTimezone) ===
-    formatDateInTimezone(new Date(), calendarTimezone);
-  const { openHour, closeHour } = getDayOpenCloseHours(dayWorkingHours, open247, 6, 22);
+  const isClosed = dayWorkingHours?.isOpen === false;
+  const bounds = getDayOpenCloseMinutes(dayWorkingHours, open247);
+  const workingHoursBounds = bounds && bounds.start >= 0 && bounds.start < bounds.end && bounds.end <= 24 * 60
+    ? bounds
+    : null;
   const dateKey = formatDateInTimezone(selectedDate, calendarTimezone);
+  const isToday = dateKey === formatDateInTimezone(new Date(), calendarTimezone);
 
   const slotIntervalMinutes = bookingSettings?.slotIntervalMinutes ?? 15;
-  const daySlotMinutes = getSlotStartsInRange(0, 24 * 60, slotIntervalMinutes);
-  const dayGridSlotStarts: GridSlot[] = daySlotMinutes.map((m) => ({
-    hour: Math.floor(m / 60),
-    minute: m % 60,
-  }));
+  const daySlotMinutes = useMemo(
+    () => getSlotStartsInRange(0, 24 * 60, slotIntervalMinutes),
+    [slotIntervalMinutes],
+  );
+  const dayGridSlotStarts = useMemo<GridSlot[]>(
+    () => daySlotMinutes.map((m) => ({ hour: Math.floor(m / 60), minute: m % 60 })),
+    [daySlotMinutes],
+  );
   const dayGridStartMinutes = daySlotMinutes[0] ?? 0;
   const daySlotHeight =
     daySlotMinutes.length > 0 ? hourHeight / (60 / slotIntervalMinutes) : HOUR_HEIGHT;
@@ -106,10 +104,9 @@ export function useDayTimelineData(
     dateKey,
     calendarTimezone,
     dayWorkingHours,
-    isOpen,
     isToday,
-    openHour,
-    closeHour,
+    isClosed,
+    workingHoursBounds,
     slotIntervalMinutes,
     daySlotMinutes,
     dayGridSlotStarts,

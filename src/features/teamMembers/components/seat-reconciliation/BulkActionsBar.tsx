@@ -20,7 +20,8 @@ export const BulkActionsBar: React.FC<BulkActionsBarProps> = ({
 
   if (undecidedAppts.length === 0) return null;
 
-  const cancelAll = () => {
+  // Marks only the appointments still without a decision; reassignments stay as they are.
+  const cancelRemaining = () => {
     onApplyMany(
       undecidedAppts.map((a) => a.id),
       { kind: 'cancel' },
@@ -28,16 +29,14 @@ export const BulkActionsBar: React.FC<BulkActionsBarProps> = ({
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <Button
-        variant="ghost"
-        size="sm"
-        rounded="full"
-        onClick={cancelAll}
-        className="!h-7 !min-h-0 border border-error/60 px-3 text-xs text-destructive hover:bg-error-bg/40 hover:text-destructive"
-      >
-        {t('teamMembers:seatOverflow.bulkCancel')}
-      </Button>
-    </div>
+    <Button
+      variant="ghost"
+      size="sm"
+      rounded="full"
+      onClick={cancelRemaining}
+      className="!h-9 !min-h-0 shrink-0 border border-error/60 px-3.5 text-xs text-destructive hover:bg-error-bg/40 hover:text-destructive sm:!h-8"
+    >
+      {t('teamMembers:seatOverflow.bulkCancel', { count: undecidedAppts.length })}
+    </Button>
   );
 };

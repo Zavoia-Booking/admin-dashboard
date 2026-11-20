@@ -13,6 +13,7 @@ import {
   modalCancel,
   drawerSheet,
   drawerScrim,
+  drawerFormBody,
 } from "../../../shared/components/ui/modal-tokens";
 import { Drawer, DrawerContent, DrawerDescription, DrawerTitle } from "../../../shared/components/ui/drawer";
 import { useIsMobile } from "../../../shared/hooks/use-mobile";
@@ -127,7 +128,7 @@ export default function AccountLinkingModal() {
         autoFocus
       >
         <DrawerContent className={drawerSheet} overlayClassName={drawerScrim}>
-          <div className="min-h-0 flex-1 overflow-y-auto pt-4">
+          <div className={drawerFormBody}>
             <div className={modalEyebrow}>{t('accountLinking.eyebrow')}</div>
             <DrawerTitle className={modalTitleCompact}>{t('accountLinking.title')}</DrawerTitle>
             <DrawerDescription asChild>{description}</DrawerDescription>

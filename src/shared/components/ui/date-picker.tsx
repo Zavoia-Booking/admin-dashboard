@@ -19,6 +19,8 @@ interface DatePickerProps {
   viewMode?: 'day' | 'week' | 'month';
   minDate?: Date;
   maxDate?: Date;
+  /** Override Today when this picker represents a different timezone's calendar day. */
+  today?: Date;
   /** When true, trigger is rounded and connects to popover with open/close animation (e.g. add-appointment flow). */
   connectedPopover?: boolean;
   /** Optional class for popover content when connectedPopover (e.g. add-appointment-popover-expand). */
@@ -52,6 +54,7 @@ const DatePicker: React.FC<DatePickerProps> = ({
   viewMode = 'day',
   minDate,
   maxDate,
+  today: todayOverride,
   connectedPopover = false,
   contentClassName,
   popoverHeaderSlot,
@@ -70,7 +73,7 @@ const DatePicker: React.FC<DatePickerProps> = ({
     if (minDate != null && date.getTime() < minDate.getTime()) return minDate;
     return date;
   };
-  const fallbackDate = value ?? clampToBounds(new Date());
+  const fallbackDate = value ?? clampToBounds(todayOverride ?? new Date());
   const [isOpen, setIsOpen] = useState(false);
   const [closingAnimation, setClosingAnimation] = useState(false);
   const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -117,7 +120,7 @@ const DatePicker: React.FC<DatePickerProps> = ({
   const valueTime = value?.getTime() ?? null;
   const [syncedValueTime, setSyncedValueTime] = useState(valueTime);
   if (syncedValueTime !== valueTime) {
-    const d = valueTime != null ? new Date(valueTime) : clampToBounds(new Date());
+    const d = valueTime != null ? new Date(valueTime) : clampToBounds(todayOverride ?? new Date());
     setSyncedValueTime(valueTime);
     setCurrentMonth(d);
     setCurrentYear(d.getFullYear());
@@ -199,7 +202,7 @@ const DatePicker: React.FC<DatePickerProps> = ({
   };
 
   const isToday = (date: Date) => {
-    const today = new Date();
+    const today = todayOverride ?? new Date();
     return date.toDateString() === today.toDateString();
   };
 
@@ -319,7 +322,7 @@ const DatePicker: React.FC<DatePickerProps> = ({
   };
 
   const goToToday = () => {
-    const today = new Date();
+    const today = todayOverride ?? new Date();
     setCurrentMonth(today);
     setCurrentYear(today.getFullYear());
     // Today can sit outside the min/max window — navigate to it, but never select a disabled day.

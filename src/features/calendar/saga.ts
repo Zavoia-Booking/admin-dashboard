@@ -18,10 +18,12 @@ import {
     updateAppointmentStatus,
     updateAppointment,
     setUpdateConflictOffer,
+    setReassignmentHoursOverrideOffer,
     cancelAppointment,
     createCalendarBlock,
     deleteCalendarBlock,
     updateCalendarBlock,
+    setBlockConflictOffer,
     mergeCalendarSummaryAction,
 } from "./actions.ts";
 import {
@@ -38,6 +40,8 @@ import {
 } from "./api.ts";
 import { AppointmentViewMode } from "./types.ts";
 import {
+    getAddFormSelector,
+    getAddFormPrefill,
     getSelectedLocationId,
     getSelectedDate,
     getViewModeSelector,
@@ -49,7 +53,7 @@ import {
 } from "./selectors.ts";
 import { getDateRangeForMode } from "./utils.ts";
 import { formatDateInTimezone } from "./timezone.ts";
-import type { CalendarDayFilters, DayDataResponse, LocationContextData, CalendarSummaryResponse } from "../../shared/types/calendar.ts";
+import type { CalendarDayFilters, DayDataResponse, LocationContextData, CalendarSummaryResponse, BlockConflictAppointment } from "../../shared/types/calendar.ts";
 import { toast } from "sonner";
 import i18n from "../../shared/lib/i18n";
 import { getErrorMessage, translateMessageCode, wasGlobalHttpErrorToastHandled } from "../../shared/utils/error";
@@ -422,7 +426,12 @@ function* handleUpdateAppointmentStatus(action: ActionType<typeof updateAppointm
 }
 
 function* handleUpdateAppointment(action: ActionType<typeof updateAppointment.request>): Generator<any, void, any> {
-    const { appointmentId, data } = action.payload;
+    const { appointmentId, data, source } = action.payload;
+    const isEditorReassignment = source === 'editor' &&
+        Array.isArray(data.staffUserIds) && data.staffUserIds.length > 0 &&
+        data.scheduledAt === undefined && data.serviceId === undefined &&
+        data.locationId === undefined && data.status === undefined;
+    const editorPrefill = isEditorReassignment ? yield select(getAddFormPrefill) : null;
 
     try {
         const result: any = yield call(updateAppointmentRequest, appointmentId, data);
@@ -433,11 +442,36 @@ function* handleUpdateAppointment(action: ActionType<typeof updateAppointment.re
     } catch (error: any) {
         yield put(updateAppointment.failure(error));
         const status = error?.response?.status;
+        if (
+            isEditorReassignment && status === 400 &&
+            error?.response?.data?.code === 'appointment_reassignment_out_of_hours' &&
+            data.allowOutOfHours !== true && data.overrideConflicts !== true
+        ) {
+            const editorOpen = yield select(getAddFormSelector);
+            const currentPrefill = yield select(getAddFormPrefill);
+            if (editorOpen && currentPrefill === editorPrefill && currentPrefill?.appointmentId === appointmentId) {
+                yield put(setReassignmentHoursOverrideOffer({
+                    appointmentId,
+                    staffUserIds: data.staffUserIds,
+                    notes: data.notes,
+                }));
+                return;
+            }
+        }
         if (status === 409) {
             const raw = error?.response?.data?.message;
             const firstRaw = Array.isArray(raw) ? (raw[0] ?? raw?.join?.(' ') ?? '') : (raw ?? '');
             const message = translateMessageCode(firstRaw) || i18n.t("calendar:page.toasts.timeSlotNotAvailable");
             const conflictType = error?.response?.data?.details?.conflictType as 'staff_appointment' | 'block' | undefined;
+            // Confirming working hours in the editor must not offer a separate bypass for conflicts.
+            if (isEditorReassignment && data.allowOutOfHours === true) {
+                if (conflictType === 'staff_appointment') {
+                    toast.error(i18n.t("calendar:page.toasts.staffConflict"));
+                } else {
+                    toastCalendarError(error, i18n.t("calendar:page.toasts.timeSlotNotAvailable"));
+                }
+                return;
+            }
             yield put(setUpdateConflictOffer({ appointmentId, data, message, conflictType }));
             if (conflictType === 'staff_appointment') {
                 toast.error(i18n.t("calendar:page.toasts.staffConflict"));
@@ -472,6 +506,14 @@ function* handleCancelAppointment(action: ActionType<typeof cancelAppointment.re
 // New sagas: Calendar block CRUD
 // ─────────────────────────────────────────────────────────────
 
+/** 409 details when a block would cover upcoming appointments: how many and the soonest one, else null. */
+function blockConflictFromError(error: any): { total: number; firstAppointment: BlockConflictAppointment | null } | null {
+    const details = error?.response?.data?.details;
+    if (error?.response?.status !== 409 || details?.conflictType !== 'appointments') return null;
+    if (typeof details.total !== 'number') return null;
+    return { total: details.total, firstAppointment: details.firstAppointment ?? null };
+}
+
 function* handleCreateCalendarBlock(action: ActionType<typeof createCalendarBlock.request>): Generator<any, void, any> {
     try {
         const result: any = yield call(createCalendarBlockRequest, action.payload);
@@ -481,6 +523,11 @@ function* handleCreateCalendarBlock(action: ActionType<typeof createCalendarBloc
         toast.success(i18n.t("calendar:page.toasts.blockCreated"));
     } catch (error: any) {
         yield put(createCalendarBlock.failure(error));
+        const conflict = blockConflictFromError(error);
+        if (conflict) {
+            yield put(setBlockConflictOffer({ mode: 'create', payload: action.payload, ...conflict }));
+            return;
+        }
         toastCalendarError(error, i18n.t("calendar:page.toasts.blockCreateFailed"));
     }
 }
@@ -516,6 +563,11 @@ function* handleUpdateCalendarBlock(action: ActionType<typeof updateCalendarBloc
         toast.success(i18n.t("calendar:page.toasts.blockUpdated"));
     } catch (error: any) {
         yield put(updateCalendarBlock.failure(error));
+        const conflict = blockConflictFromError(error);
+        if (conflict) {
+            yield put(setBlockConflictOffer({ mode: 'update', id: action.payload.id, payload: action.payload.payload, ...conflict }));
+            return;
+        }
         toastCalendarError(error, i18n.t("calendar:page.toasts.blockUpdateFailed"));
     }
 }

@@ -444,7 +444,7 @@ export const WeekGrid: FC = () => {
   }, [dispatch, columnDataWithPreview, columnData, calendarTimezone, bufferTimeMinutes, dndSessionRef, setActiveId, setOverId]);
 
   const handleConfirmDrop = useCallback(() => {
-    if (!pendingDrop || pendingDrop.type !== "reschedule") return;
+    if (!pendingDrop || dropConfirmInProgress || pendingDrop.type !== "reschedule") return;
     const toConfirm = pendingDrop;
     const { appointment, dateKey: dKey, hour } = toConfirm;
     const minute = toConfirm.minute ?? 0;
@@ -475,7 +475,7 @@ export const WeekGrid: FC = () => {
         data: payload,
       }),
     );
-  }, [pendingDrop, dispatch, open247, workingHours, weekDays, calendarTimezone, setDropConfirmInProgress, setPendingReschedulePayload, setOverrideDialogOpen]);
+  }, [pendingDrop, dropConfirmInProgress, dispatch, open247, workingHours, weekDays, calendarTimezone, setDropConfirmInProgress, setPendingReschedulePayload, setOverrideDialogOpen]);
 
   // Loading state is handled as an overlay below to preserve scroll position.
 

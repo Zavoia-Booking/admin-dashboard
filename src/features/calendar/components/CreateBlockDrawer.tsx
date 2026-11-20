@@ -552,6 +552,8 @@ export const CreateBlockDrawer: React.FC = () => {
   const isOpen = useSelector(getBlockFormOpen);
   const editingBlock = useSelector(getBlockFormEditingBlock);
   const isEditMode = editingBlock != null;
+  // A repeating block keeps its first day when edited; changing the recurrence needs a new block.
+  const datesLocked = isEditMode && !!editingBlock?.isRecurring;
   const selectedLocationId = useSelector(getSelectedLocationId);
   const locationStaff = useSelector(getLocationStaff);
   const selectedDate = useSelector(getSelectedDate);
@@ -617,8 +619,11 @@ export const CreateBlockDrawer: React.FC = () => {
     setError(null);
     if (editingBlock) {
       const tz = calendarTimezone || 'UTC';
-      const startKey = formatDateInTimezone(new Date(editingBlock.startsAt), tz);
-      const endKey = formatDateInTimezone(new Date(editingBlock.endsAt), tz);
+      // A repeating row is one day's copy: edit the series from its first day so saving keeps its start.
+      const editStartsAt = (editingBlock.isRecurring && editingBlock.seriesStartsAt) || editingBlock.startsAt;
+      const editEndsAt = (editingBlock.isRecurring && editingBlock.seriesEndsAt) || editingBlock.endsAt;
+      const startKey = formatDateInTimezone(new Date(editStartsAt), tz);
+      const endKey = formatDateInTimezone(new Date(editEndsAt), tz);
       setForm({
         ...initialForm,
         blockScope: editingBlock.blockScope,
@@ -626,8 +631,8 @@ export const CreateBlockDrawer: React.FC = () => {
         userId: editingBlock.userId,
         startDate: localCalendarDateFromDateKey(startKey),
         endDate: localCalendarDateFromDateKey(endKey),
-        startTime: editingBlock.isAllDay ? '09:00' : formatWallHmInTimezone(editingBlock.startsAt, tz),
-        endTime: editingBlock.isAllDay ? '17:00' : formatWallHmInTimezone(editingBlock.endsAt, tz),
+        startTime: editingBlock.isAllDay ? '09:00' : formatWallHmInTimezone(editStartsAt, tz),
+        endTime: editingBlock.isAllDay ? '17:00' : formatWallHmInTimezone(editEndsAt, tz),
         isAllDay: editingBlock.isAllDay,
         reason: editingBlock.reason,
         title: editingBlock.title ?? '',
@@ -882,6 +887,8 @@ export const CreateBlockDrawer: React.FC = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    // Closing: edit mode is already gone, so a submit now would create a copy.
+    if (!isOpen) return;
     if (!canCreateBlocks || !canSubmit || !form.startDate || !form.endDate) return;
     if (blockTitleError || blockNotesError) return;
     if (form.isRecurring && !recurrenceAllowed) return;
@@ -1188,32 +1195,34 @@ export const CreateBlockDrawer: React.FC = () => {
               </div>
 
               <div className="space-y-4">
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-foreground-1">{t("page.blocks.create.startDate")}</Label>
-                    <DatePicker
-                      value={form.startDate}
-                      onChange={handleStartDateChange}
-                      minDate={startDatePickerMin}
-                      connectedPopover
-                      className={cn(datePickerClass)}
-                      placeholder={t("page.blocks.create.selectDate")}
-                      mobileTitle={t("page.blocks.create.startDate")}
-                    />
+                <fieldset disabled={datesLocked} className="min-w-0">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-foreground-1">{t("page.blocks.create.startDate")}</Label>
+                      <DatePicker
+                        value={form.startDate}
+                        onChange={handleStartDateChange}
+                        minDate={startDatePickerMin}
+                        connectedPopover
+                        className={cn(datePickerClass)}
+                        placeholder={t("page.blocks.create.selectDate")}
+                        mobileTitle={t("page.blocks.create.startDate")}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-foreground-1">{t("page.blocks.create.endDate")}</Label>
+                      <DatePicker
+                        value={form.endDate}
+                        onChange={handleEndDateChange}
+                        minDate={endOrRepeatDatePickerMin}
+                        connectedPopover
+                        className={cn(datePickerClass)}
+                        placeholder={t("page.blocks.create.selectDate")}
+                        mobileTitle={t("page.blocks.create.endDate")}
+                      />
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-foreground-1">{t("page.blocks.create.endDate")}</Label>
-                    <DatePicker
-                      value={form.endDate}
-                      onChange={handleEndDateChange}
-                      minDate={endOrRepeatDatePickerMin}
-                      connectedPopover
-                      className={cn(datePickerClass)}
-                      placeholder={t("page.blocks.create.selectDate")}
-                      mobileTitle={t("page.blocks.create.endDate")}
-                    />
-                  </div>
-                </div>
+                </fieldset>
 
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <BlockDrawerTimeSlotSelect

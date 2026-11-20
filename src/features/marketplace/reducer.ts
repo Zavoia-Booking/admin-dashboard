@@ -137,6 +137,21 @@ export const MarketplaceReducer: Reducer<MarketplaceState, any> = (state: Market
         ),
       };
 
+    case getType(actions.setLocationMarketplaceTagsAction):
+      return {
+        ...state,
+        locationCatalog: state.locationCatalog.map((loc) =>
+          loc.id === action.payload.locationId
+            ? {
+                ...loc,
+                amenityTagIds: action.payload.amenityTagIds,
+                paymentMethodTagIds: action.payload.paymentMethodTagIds,
+                languageTagIds: action.payload.languageTagIds,
+              }
+            : loc,
+        ),
+      };
+
     case getType(actions.setBusinessLogoAction):
       return {
         ...state,

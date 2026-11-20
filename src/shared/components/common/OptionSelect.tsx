@@ -1,10 +1,11 @@
-import React, { useState, useMemo } from "react";
+import React, { useId, useState, useMemo } from "react";
 import { AlertCircle, ChevronDown, Check } from "lucide-react";
-import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
+import { ResponsivePopover } from "../ui/responsive-popover";
 import { Button } from "../ui/button";
 import { Label } from "../ui/label";
 import { Command, CommandList, CommandGroup, CommandItem } from "../ui/command";
 import { cn } from "../../lib/utils";
+import { useIsMobile } from "../../hooks/use-mobile";
 
 export interface OptionSelectOption {
   value: string;
@@ -33,6 +34,10 @@ export const OptionSelect: React.FC<OptionSelectProps> = ({
   className,
 }) => {
   const [open, setOpen] = useState(false);
+  const isMobile = useIsMobile();
+  const generatedId = useId();
+  const fieldId = id ?? generatedId;
+  const errorId = `${fieldId}-error`;
   const hasError = !!error;
   const errorMessage = typeof error === "string" ? error : undefined;
 
@@ -46,17 +51,24 @@ export const OptionSelect: React.FC<OptionSelectProps> = ({
   return (
     <div className={cn("space-y-2 pt-2", className)}>
       {label && (
-        <Label className="text-base font-medium mb-0" htmlFor={id}>{label}</Label>
+        <Label className="text-base font-medium mb-0" htmlFor={fieldId}>{label}</Label>
       )}
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
+      <ResponsivePopover
+        open={open}
+        onOpenChange={setOpen}
+        title={label ?? placeholder}
+        contentClassName="w-[var(--radix-popover-trigger-width)] min-w-[8rem] max-w-[400px] py-4 px-1 shadow-lg border border-border"
+        drawerBodyClassName="px-2"
+        trigger={
           <Button
-            id={id}
+            id={fieldId}
             type="button"
             variant="outline"
-            role="combobox"
-            aria-haspopup="listbox"
+            role={isMobile ? undefined : "combobox"}
+            aria-haspopup={isMobile ? "dialog" : "listbox"}
             aria-expanded={open}
+            aria-invalid={hasError || undefined}
+            aria-describedby={errorMessage ? errorId : undefined}
             className={cn(
               "w-full !min-h-0 h-12 md:h-10 justify-between items-center font-normal transition-all focus-visible:ring-1 focus-visible:ring-offset-0 cursor-pointer",
               hasError
@@ -76,45 +88,47 @@ export const OptionSelect: React.FC<OptionSelectProps> = ({
               )}
             />
           </Button>
-        </PopoverTrigger>
-        <PopoverContent
-          className="w-[var(--radix-popover-trigger-width)] min-w-[8rem] max-w-[400px] py-4 px-1 shadow-lg border border-border"
-          align="start"
-        >
-          <Command>
-            <CommandList>
-              <CommandGroup>
-                {options.map((option) => {
-                  const isSelected = value === option.value;
-                  return (
-                    <CommandItem
-                      key={option.value}
-                      value={option.label}
-                      onSelect={() => {
-                        onChange(option.value);
-                        setOpen(false);
-                      }}
-                      className="cursor-pointer"
-                    >
-                      <div className="flex items-center gap-3 w-full py-1.5">
-                        {isSelected ? (
-                          <Check className="h-4 w-4 text-green-400 shrink-0" />
-                        ) : (
-                          <span className="h-4 w-4 shrink-0" />
-                        )}
-                        <span className="text-sm">{option.label}</span>
-                      </div>
-                    </CommandItem>
-                  );
-                })}
-              </CommandGroup>
-            </CommandList>
-          </Command>
-        </PopoverContent>
-      </Popover>
+        }
+      >
+        <Command className={isMobile ? "bg-transparent" : undefined}>
+          <CommandList className={isMobile ? "max-h-none overflow-visible" : undefined}>
+            <CommandGroup>
+              {options.map((option) => {
+                const isSelected = value === option.value;
+                return (
+                  <CommandItem
+                    key={option.value}
+                    value={option.label}
+                    onSelect={() => {
+                      onChange(option.value);
+                      setOpen(false);
+                    }}
+                    className={cn(
+                      "cursor-pointer",
+                      isMobile && (isSelected
+                        ? "bg-info-100 text-foreground-1 dark:bg-neutral-900"
+                        : "data-[selected=true]:bg-transparent dark:data-[selected=true]:bg-transparent data-[selected=true]:text-inherit"),
+                    )}
+                  >
+                    <div className="flex items-center gap-3 w-full py-1.5">
+                      {isSelected ? (
+                        <Check className="h-4 w-4 text-green-400 shrink-0" />
+                      ) : (
+                        <span className="h-4 w-4 shrink-0" />
+                      )}
+                      <span className="text-sm">{option.label}</span>
+                    </div>
+                  </CommandItem>
+                );
+              })}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </ResponsivePopover>
       <div className="min-h-5">
         {errorMessage && (
           <p
+            id={errorId}
             className="mt-1 flex items-center gap-1.5 text-xs text-destructive"
             role="alert"
             aria-live="polite"

@@ -14,7 +14,6 @@ import {
   setStaffFilter,
   setDayFiltersAction,
   setSelectedDateAction,
-  setScrollToNow,
   setDisplayedWeekAction,
   setDisplayedMonthAction,
   fetchLocationContext,
@@ -24,6 +23,8 @@ import {
   getAddFormSelector,
   getEditFormSelector,
   getViewModeSelector,
+  getViewTypeSelector,
+  getCalendarTimezone,
   getSelectedLocationId,
   getLocationContext,
   getLocationStaff,
@@ -42,9 +43,9 @@ import {
   getWeekData,
 } from "../selectors.ts";
 import { getWeekStart, getWeekEnd } from "../utils.ts";
-import { getCalendarLocale } from "../timezone.ts";
+import { formatDateInTimezone, getCalendarLocale } from "../timezone.ts";
 import { NotificationBell } from "../../../shared/components/common/NotificationBell";
-import { AppointmentViewMode } from "../types.ts";
+import { AppointmentViewMode, AppointmentViewType } from "../types.ts";
 import { calendarPreferences } from "../calendarPreferences.ts";
 import { dispatchSelectDateAndDayView } from "../selectDateAndDayViewDispatch.ts";
 import { store } from "../../../app/providers/store";
@@ -56,6 +57,7 @@ import {
   getLocationListErrorSelector,
 } from "../../locations/selectors.ts";
 import { CreateBlockDrawer } from "../components/CreateBlockDrawer.tsx";
+import { BlockConflictDialog } from "../components/BlockConflictDialog.tsx";
 import { CalendarSidebar } from "../components/CalendarSidebar.tsx";
 import { CalendarHeader } from "../components/CalendarHeader.tsx";
 import { CalendarSettingsSheet } from "../components/CalendarSettingsSheet.tsx";
@@ -70,6 +72,8 @@ const Calendar = () => {
   const addFormOpen = useSelector(getAddFormSelector);
   const editForm = useSelector(getEditFormSelector);
   const viewMode: AppointmentViewMode = useSelector(getViewModeSelector);
+  const viewType = useSelector(getViewTypeSelector);
+  const calendarTimezone = useSelector(getCalendarTimezone);
   const selectedLocationId = useSelector(getSelectedLocationId);
   const locationContext = useSelector(getLocationContext);
   const locationTeamMembers = useSelector(getLocationTeamMembers);
@@ -140,10 +144,7 @@ const Calendar = () => {
   ]);
 
   /* ── "Today" chip for mobile breadcrumb header ──
-   * True when tapping Today would be a no-op — i.e. selectedDate is already
-   * today AND the displayed period is current. In Month mode both must hold,
-   * so tapping Today from (current month, non-today selected) still selects
-   * today instead of short-circuiting. */
+   * Track whether the selected day and displayed period are already current. */
   const isOnToday = useMemo(() => {
     const today = new Date();
     const selectedIsToday = selectedDate.toDateString() === today.toDateString();
@@ -172,19 +173,21 @@ const Calendar = () => {
   }, [viewMode, selectedDate, displayedWeekStart, displayedMonthStart]);
 
   const handleToday = useCallback(() => {
-    if (isOnToday) {
-      // Already on today — give a confirmation pulse on the visible today pill
-      // (week strip in Day mode, month grid cell in Month mode). Apple-style
-      // feedback so the tap isn't silently ignored.
-      window.dispatchEvent(new CustomEvent("calendar:today-pulse"));
-      return;
-    }
     const now = new Date();
-    dispatch(setScrollToNow(true));
-    dispatch(setSelectedDateAction(now));
-    dispatch(setDisplayedWeekAction(getWeekStart(now)));
-    dispatch(setDisplayedMonthAction(new Date(now.getFullYear(), now.getMonth(), 1)));
-  }, [dispatch, isOnToday]);
+    const isDayGrid = viewMode !== AppointmentViewMode.MONTH && viewType === AppointmentViewType.GRID;
+    const alreadyToday = isDayGrid
+      ? formatDateInTimezone(selectedDate, calendarTimezone) === formatDateInTimezone(now, calendarTimezone)
+      : isOnToday;
+    if (alreadyToday) {
+      // No date change to trigger the normal pulse on the visible day pill.
+      window.dispatchEvent(new CustomEvent("calendar:today-pulse"));
+    } else {
+      dispatch(setSelectedDateAction(now));
+      dispatch(setDisplayedWeekAction(getWeekStart(now)));
+      dispatch(setDisplayedMonthAction(new Date(now.getFullYear(), now.getMonth(), 1)));
+    }
+    if (isDayGrid) window.dispatchEvent(new Event("calendar:scroll-to-now"));
+  }, [dispatch, isOnToday, viewMode, viewType, selectedDate, calendarTimezone]);
 
   /* Mobile header prev/next — DAY → ±1 day, MONTH → ±1 month. Mobile
    * doesn't expose Week, so that branch is gone. */
@@ -499,6 +502,7 @@ const Calendar = () => {
             onClose={handleCloseEditForm}
           />
           <CreateBlockDrawer />
+          <BlockConflictDialog />
           <CalendarSettingsSheet
             open={settingsOpen}
             onClose={() => setSettingsOpen(false)}

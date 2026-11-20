@@ -38,6 +38,10 @@ export const drawerSheet =
   'px-5 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-1 text-left';
 export const drawerScrim = '!z-[299] bg-[oklch(15%_0.004_70/0.42)]';
 
+// Give full-width fields and buttons 4px for their focus rings inside the
+// scrollport. The negative margin keeps content aligned with the drawer footer.
+export const drawerFormBody = 'min-h-0 flex-1 overflow-y-auto -mx-1 px-1 pb-1 pt-4';
+
 export const modalEyebrow =
   'mb-4 text-[11px] font-semibold uppercase tracking-[0.12em] ' +
   'text-primary-700 dark:text-[oklch(61%_0.14_38)]';

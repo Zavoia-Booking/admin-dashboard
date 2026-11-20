@@ -17,6 +17,7 @@ import {
   modalPrimary,
   drawerSheet,
   drawerScrim,
+  drawerFormBody,
 } from '../../../shared/components/ui/modal-tokens';
 import { useIsMobile } from '../../../shared/hooks/use-mobile';
 import { cn } from '../../../shared/lib/utils';
@@ -286,7 +287,7 @@ const GoogleAccountManager: React.FC<GoogleAccountManagerProps> = ({ className, 
           autoFocus
         >
           <DrawerContent className={drawerSheet} overlayClassName={drawerScrim}>
-            <div className="min-h-0 flex-1 overflow-y-auto pt-4">
+            <div className={drawerFormBody}>
               <div className="space-y-3">
                 <div className={modalEyebrow}>{sheetEyebrow}</div>
                 <DrawerTitle className={modalTitleCompact}>{sheetTitle}</DrawerTitle>

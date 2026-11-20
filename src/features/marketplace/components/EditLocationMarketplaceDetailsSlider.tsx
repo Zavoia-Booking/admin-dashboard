@@ -16,6 +16,7 @@ interface EditLocationMarketplaceDetailsSliderProps {
   isOpen: boolean;
   onClose: () => void;
   location: { id: number; name: string } | null;
+  onSaved?: (tags: LocationMarketplaceTags) => void;
 }
 
 const arraysShallowEqual = (a: number[], b: number[]) => {
@@ -311,7 +312,7 @@ const LanguagePicker: React.FC<LanguagePickerProps> = ({
 
 export const EditLocationMarketplaceDetailsSlider: React.FC<
   EditLocationMarketplaceDetailsSliderProps
-> = ({ isOpen, onClose, location }) => {
+> = ({ isOpen, onClose, location, onSaved }) => {
   const { t } = useTranslation("locationMarketplaceDetails");
   const { dictionaries, isLoading: dictsLoading, error: dictsError } =
     useLocationTagDictionaries();
@@ -355,11 +356,12 @@ export const EditLocationMarketplaceDetailsSlider: React.FC<
   const handleSave = async () => {
     if (!location?.id) return;
     try {
-      await save({
+      const saved = await save({
         amenityTagIds: draft.amenityTagIds,
         paymentMethodTagIds: draft.paymentMethodTagIds,
         languageTagIds: draft.languageTagIds,
       });
+      onSaved?.(saved);
       toast.success(t("slider.savedToast"));
       onClose();
     } catch {
@@ -383,7 +385,7 @@ export const EditLocationMarketplaceDetailsSlider: React.FC<
         onClose={handleCancel}
         title={
           location
-            ? `${location.name} · ${t("slider.title")}`
+            ? location.name
             : t("slider.title")
         }
         subtitle={t("slider.subtitle")}

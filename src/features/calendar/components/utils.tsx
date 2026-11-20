@@ -2,7 +2,7 @@ import type { ReactElement } from "react";
 import type { TFunction } from "i18next";
 import { Badge } from "../../../shared/components/ui/badge.tsx";
 import { cn } from "../../../shared/lib/utils";
-import type { CalendarStaffMember } from "../../../shared/types/calendar.ts";
+import type { AppointmentStaffName, CalendarStaffMember } from "../../../shared/types/calendar.ts";
 import { calendarPreferences } from "../calendarPreferences.ts";
 import { getCalendarLocale } from "../timezone.ts";
 
@@ -330,12 +330,22 @@ export const formatSlotTime = (slot: string): string => {
  * Resolve staff user IDs to display names using the location staff list.
  * Returns "Unassigned" if no staff assigned.
  */
-export const getStaffDisplayNames = (staffUserIds: number[], locationStaff: CalendarStaffMember[], t: TFunction): string => {
+export const getStaffDisplayNames = (
+    staffUserIds: number[],
+    locationStaff: CalendarStaffMember[],
+    t: TFunction,
+    savedNames?: AppointmentStaffName[],
+): string => {
     if (staffUserIds.length === 0) return t("page.common.unassigned");
 
     const names = staffUserIds.map(id => {
         const staff = locationStaff.find(s => s.id === id);
-        return staff ? `${staff.firstName} ${staff.lastName}` : t("page.common.staffId", { id });
+        if (staff) return `${staff.firstName} ${staff.lastName}`;
+        // Not in this location's list: the name the API sent with the appointment, marked if they left the team.
+        const saved = savedNames?.find(s => s.userId === id);
+        const savedName = saved ? `${saved.firstName} ${saved.lastName}`.trim() : "";
+        if (savedName) return saved?.former ? t("page.common.formerMember", { name: savedName }) : savedName;
+        return t("page.common.staffId", { id });
     });
 
     return names.join(', ');

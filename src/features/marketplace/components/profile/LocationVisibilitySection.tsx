@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ChevronRight, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
 import { Switch } from "../../../../shared/components/ui/switch";
@@ -12,11 +12,11 @@ import {
   type LocationSettingsAttentionTarget,
 } from "../../utils/locationSettingsAttention";
 import { selectUpdatingLocationFlags } from "../../selectors";
-import { EditLocationMarketplaceDetailsSlider } from "../EditLocationMarketplaceDetailsSlider";
 import { cn } from "../../../../shared/lib/utils";
 
 interface LocationVisibilitySectionProps {
   location: LocationWithAssignments;
+  className?: string;
 }
 
 /**
@@ -25,11 +25,11 @@ interface LocationVisibilitySectionProps {
  */
 export function LocationVisibilitySection({
   location,
+  className,
 }: LocationVisibilitySectionProps) {
   const dispatch = useDispatch();
   const { t } = useTranslation("marketplace");
   const updatingIds = useSelector(selectUpdatingLocationFlags);
-  const [isEditingDetails, setIsEditingDetails] = useState(false);
   // Redux tracks the updating location, not which flag; remember the toggle
   // that fired so only its row shows the spinner.
   const [pendingFlag, setPendingFlag] = useState<"public" | "booking" | null>(
@@ -210,7 +210,10 @@ export function LocationVisibilitySection({
   return (
     <>
       <section
-        className="rounded-2xl border border-border bg-surface shadow-sm"
+        className={cn(
+          "rounded-2xl border border-border bg-surface shadow-sm",
+          className,
+        )}
         aria-labelledby={`marketplace-visibility-title-${location.id}`}
       >
         <div className="divide-y divide-border px-4 md:px-5">
@@ -312,33 +315,8 @@ export function LocationVisibilitySection({
               />
             </span>
           </label>
-
-          <button
-            type="button"
-            onClick={() => setIsEditingDetails(true)}
-            className="group flex w-full cursor-pointer items-center justify-between gap-4 py-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring md:py-5"
-          >
-            <span className="min-w-0 flex-1">
-              <span className="block text-sm font-semibold text-foreground-1 transition-colors duration-200 group-hover:text-primary">
-                {t("locations.workspace.marketplaceDetails")}
-              </span>
-              <span className="mt-1 block text-sm leading-6 text-foreground-3 dark:text-foreground-2">
-                {t("locations.workspace.marketplaceDetailsDescription")}
-              </span>
-            </span>
-            <ChevronRight
-              className="size-4 shrink-0 text-foreground-3 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-primary"
-              aria-hidden="true"
-            />
-          </button>
         </div>
       </section>
-
-      <EditLocationMarketplaceDetailsSlider
-        isOpen={isEditingDetails}
-        onClose={() => setIsEditingDetails(false)}
-        location={{ id: location.id, name: location.name }}
-      />
     </>
   );
 }

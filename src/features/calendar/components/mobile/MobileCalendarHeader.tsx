@@ -15,7 +15,6 @@ import {
   setBlockFormEditingAction,
   toggleAddForm,
   toggleBlockFormAction,
-  setScrollToNow,
   setDayFiltersAction,
 } from "../../actions";
 import { AppointmentViewMode, AppointmentViewType } from "../../types";
@@ -194,9 +193,6 @@ export const MobileCalendarHeader: FC<MobileCalendarHeaderProps> = ({
         ? AppointmentViewType.LIST
         : AppointmentViewType.GRID;
     dispatch(setViewTypeAction(next));
-    if (next === AppointmentViewType.GRID) {
-      dispatch(setScrollToNow(true));
-    }
   }, [dispatch, viewType]);
 
   const handleOpenAddForm = useCallback(() => {

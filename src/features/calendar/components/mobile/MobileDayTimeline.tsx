@@ -10,6 +10,8 @@ import {
   pointerWithin,
   type CollisionDetection,
   type DragEndEvent,
+  type DragMoveEvent,
+  type DragStartEvent,
 } from "@dnd-kit/core";
 import { snapCenterToCursor } from "@dnd-kit/modifiers";
 import { toast } from "sonner";
@@ -21,9 +23,10 @@ import type {
 } from "../../../../shared/types/calendar";
 import { CalendarBlockScope } from "../../../../shared/types/calendar";
 import {
-  getScrollToNow,
+  getLocationContext,
   getLocationStaff,
   getSelectedDate,
+  getSelectedLocationId,
   getEffectiveStaffFilterIds,
   getLocationServices,
   getLocationBundles,
@@ -36,7 +39,6 @@ import {
 import {
   toggleEditFormAction,
   toggleAddForm,
-  setScrollToNow,
   setStaffFilter,
   setCalendarPendingDrop,
   updateAppointment,
@@ -69,6 +71,7 @@ import {
   MOBILE_COLUMN_MIN_WIDTH,
   EMPTY_FORBIDDEN_SLOT_SET,
   formatHourLabel,
+  type GridSlot,
 } from "../timeGrid/constants";
 import { EmptyState } from "../../../../shared/components/common/EmptyState";
 import { getCalendarBlockReasonLabel } from "../blockReasonMeta";
@@ -81,7 +84,7 @@ import { MobileDayColumnHeader } from "./MobileDayColumnHeader";
 import { MobileBlockSummary } from "./MobileBlockSummary";
 import { Skeleton } from "../../../../shared/components/ui/skeleton";
 import { useMobileCalendarDragContext } from "./mobileDragContext";
-import { dropRejectHaptic } from "../../haptics";
+import { dropRejectHaptic, emptySlotTapHaptic } from "../../haptics";
 
 /**
  * Mobile single-day timeline with one column per staff member, horizontally
@@ -97,6 +100,7 @@ import { dropRejectHaptic } from "../../haptics";
 
 const HEADER_HEIGHT = 44; // column-header row height
 const MOBILE_HEADER_OFFSET = HEADER_HEIGHT;
+const OPENING_SCROLL_INSET = 8; // Leave room for the hour label below the sticky header.
 
 type MobileColumnDef = { key: string; staff: CalendarStaffMember | null };
 interface MobileDayLayout {
@@ -111,8 +115,10 @@ interface MobileDayLayout {
 export const MobileDayTimeline: FC = () => {
   const dispatch = useDispatch();
   const { t } = useTranslation("calendar");
-  const scrollToNow = useSelector(getScrollToNow);
+  const [scrollToNowRequest, setScrollToNowRequest] = useState(0);
   const locationStaff = useSelector(getLocationStaff);
+  const locationContext = useSelector(getLocationContext);
+  const selectedLocationId = useSelector(getSelectedLocationId);
   const selectedDate = useSelector(getSelectedDate);
   const staffFilterIds = useSelector(getEffectiveStaffFilterIds);
 
@@ -121,6 +127,7 @@ export const MobileDayTimeline: FC = () => {
     headerOffset: 0, // header is rendered separately; grid math starts at 0
   });
   const list = useDayAppointmentList();
+  const showFilterEmptyState = list.sortedItems.length === 0 && list.hasActiveFilters;
 
   const locationServices = useSelector(getLocationServices);
   const locationBundles = useSelector(getLocationBundles);
@@ -139,7 +146,6 @@ export const MobileDayTimeline: FC = () => {
     updateConflictOffer,
     activeId,
     setActiveId,
-    overId,
     setOverId,
     dropConfirmInProgress,
     setDropConfirmInProgress,
@@ -151,7 +157,7 @@ export const MobileDayTimeline: FC = () => {
     setPendingReschedulePayload,
     dndSessionRef,
     dndSensors,
-    handleDragStart,
+    handleDragStart: startGridDrag,
     handleDragOver,
     handleConfirmOverride,
     handleCancelDrop,
@@ -176,6 +182,8 @@ export const MobileDayTimeline: FC = () => {
   const headerScrollRef = useRef<HTMLDivElement>(null);
   const bodyScrollRef = useRef<HTMLDivElement>(null);
   const isSyncingScroll = useRef(false);
+  const handledScrollToNowRequest = useRef(0);
+  const positionedGrid = useRef<{ element: HTMLDivElement; dateKey: string; locationId: number } | null>(null);
 
   const syncScroll = useCallback((source: "header" | "body") => {
     if (isSyncingScroll.current) return;
@@ -189,20 +197,42 @@ export const MobileDayTimeline: FC = () => {
     });
   }, []);
 
-  // Same "scroll to now" behavior as desktop — only when the explicit flag is set.
-  // Waits for day data: on first mount `isDayLoading` is still false before the
-  // fetch starts, and consuming the flag then is lost when the skeleton swaps in
-  // and the grid remounts at the top.
+  useEffect(() => {
+    const requestScrollToNow = () => setScrollToNowRequest((request) => request + 1);
+    window.addEventListener("calendar:scroll-to-now", requestScrollToNow);
+    return () => window.removeEventListener("calendar:scroll-to-now", requestScrollToNow);
+  }, []);
+
+  const openingMinutes = timeline.workingHoursBounds?.start ?? 0;
+  const hasLocationContext = selectedLocationId != null && selectedLocationId === locationContext?.location.id;
   useLayoutEffect(() => {
-    if (!scrollToNow || !timeline.isToday || list.isDayLoading || !hasDayData) return;
+    // Wait for the actual grid and the selected location's hours, not the loading skeleton.
+    if (list.isDayLoading || showFilterEmptyState || !hasLocationContext) return;
     const el = containerRef.current;
     if (!el) return;
-    const scroller = findScrollParent(el);
-    if (!scroller) return;
-    const target = Math.max(0, timeline.nowGutterTop + MOBILE_HEADER_OFFSET - scroller.clientHeight / 2);
-    scroller.scrollTop = target;
-    dispatch(setScrollToNow(false));
-  }, [scrollToNow, timeline.isToday, list.isDayLoading, hasDayData, timeline.nowGutterTop, dispatch]);
+    const previous = positionedGrid.current;
+    // Keep an explicit Today jump pending until the day data is ready.
+    const hasPendingNowRequest = scrollToNowRequest !== handledScrollToNowRequest.current;
+    const shouldJumpToNow = hasPendingNowRequest && timeline.isToday && hasDayData;
+    const isNewGrid = !previous || previous.element !== el ||
+      previous.dateKey !== timeline.dateKey || previous.locationId !== selectedLocationId;
+    if (shouldJumpToNow || isNewGrid) {
+      const scroller = findScrollParent(el);
+      if (!scroller) return;
+      const target = shouldJumpToNow
+        ? timeline.nowGutterTop + MOBILE_HEADER_OFFSET - scroller.clientHeight / 2
+        : (openingMinutes / 60) * timeline.hourHeight - OPENING_SCROLL_INSET;
+      scroller.scrollTop = Math.max(0, target);
+      positionedGrid.current = { element: el, dateKey: timeline.dateKey, locationId: selectedLocationId };
+    }
+    if (hasPendingNowRequest && (shouldJumpToNow || !timeline.isToday)) {
+      handledScrollToNowRequest.current = scrollToNowRequest;
+    }
+  }, [
+    hasDayData, hasLocationContext, list.isDayLoading, openingMinutes, scrollToNowRequest,
+    selectedLocationId, showFilterEmptyState, timeline.dateKey, timeline.hourHeight,
+    timeline.isToday, timeline.nowGutterTop,
+  ]);
 
   // Tap an empty slot → open the add form prefilled with that time and staff, like desktop.
   // Column id 0 is the unassigned column.
@@ -210,6 +240,7 @@ export const MobileDayTimeline: FC = () => {
     (hour: number, minute?: number, columnId?: number) => {
       const hh = String(hour).padStart(2, "0");
       const mm = String(minute ?? 0).padStart(2, "0");
+      emptySlotTapHaptic();
       dispatch(
         toggleAddForm({
           open: true,
@@ -319,28 +350,18 @@ export const MobileDayTimeline: FC = () => {
     return map;
   }, [dayBlocks, dndColumns]);
 
-  const parseActiveApptId = useCallback((raw: string | null): number | null => {
-    if (!raw) return null;
-    const m = raw.match(/^appointment-(-?\d+)-(\d+)$/);
-    return m ? parseInt(m[2], 10) : null;
-  }, []);
-
-  const activeAppointment = useMemo(() => {
-    const id = parseActiveApptId(activeId);
-    if (id == null) return null;
-    return dayAppointments.find((a) => a.id === id) ?? null;
-  }, [activeId, dayAppointments, parseActiveApptId]);
+  const [dragSource, setDragSource] = useState<{
+    dragData: AppointmentDragData;
+    nowMs: number;
+  } | null>(null);
+  const activeAppointment = dragSource?.dragData.appointment;
 
   // While a drag is active, only the source column needs live drop targets —
   // mobile is reschedule-only, same-column. Non-source columns skip mounting
   // `DroppableSlot` entirely so dnd-kit's pointerWithin collision loop shrinks
   // from ~N×96 to just 96. That's the dominant cost of multi-column drag lag
   // on cheap Android WebView.
-  const dragSourceColumnId = useMemo<number | null>(() => {
-    if (!activeAppointment) return null;
-    if (activeAppointment.isUnassigned || activeAppointment.staffUserIds.length === 0) return 0;
-    return activeAppointment.staffUserIds[0] ?? 0;
-  }, [activeAppointment]);
+  const dragSourceColumnId = dragSource?.dragData.columnId ?? null;
 
   const schedulingLockedAppointmentIds = useMemo(() => {
     const ids = new Set<number>();
@@ -352,82 +373,57 @@ export const MobileDayTimeline: FC = () => {
 
   const slotIntervalMinutes = timeline.slotIntervalMinutes;
   const dayGridSlotStarts = timeline.dayGridSlotStarts;
+  const [dropPreviewSlot, setDropPreviewSlot] = useState<GridSlot | null>(null);
+  const latestDropPreview = useRef<GridSlot | null>(null);
+  const dropPreviewFrame = useRef<number | null>(null);
 
-  const prevDurationHighlightRef = useRef<ReadonlySet<string>>(EMPTY_FORBIDDEN_SLOT_SET);
-  const dayDurationHighlightSlotIds = useMemo(() => {
-    if (!overId || !activeAppointment || slotIntervalMinutes <= 0) return EMPTY_FORBIDDEN_SLOT_SET;
-    const match = overId.match(/^slot-(-?\d+)-(.+)-(\d+)-(\d+)$/);
-    if (!match) return EMPTY_FORBIDDEN_SLOT_SET;
-    const [, colId, dk, hourStr, minStr] = match;
-    const dropSlotMin = parseInt(hourStr, 10) * 60 + parseInt(minStr, 10);
-
-    const ids = new Set<string>();
-    const slotsNeeded = Math.ceil(activeAppointment.duration / slotIntervalMinutes);
-    for (let i = 0; i < slotsNeeded; i++) {
-      const m = Math.round(dropSlotMin) + i * slotIntervalMinutes;
-      if (m < 0 || m >= 24 * 60) continue;
-      ids.add(`slot-${colId}-${dk}-${Math.floor(m / 60)}-${m % 60}`);
+  const cancelDropPreviewFrame = useCallback(() => {
+    if (dropPreviewFrame.current != null) {
+      cancelAnimationFrame(dropPreviewFrame.current);
+      dropPreviewFrame.current = null;
     }
-    const prev = prevDurationHighlightRef.current;
-    if (ids.size === prev.size && [...ids].every((id) => prev.has(id))) return prev;
-    prevDurationHighlightRef.current = ids;
-    return ids;
-  }, [overId, activeAppointment, slotIntervalMinutes]);
+  }, []);
+  useEffect(() => cancelDropPreviewFrame, [cancelDropPreviewFrame]);
 
-  const prevForbiddenRef = useRef<ReadonlySet<string>>(EMPTY_FORBIDDEN_SLOT_SET);
+  const handleDragStart = useCallback((event: DragStartEvent) => {
+    startGridDrag(event);
+    setDragSource(dndSessionRef.current);
+  }, [startGridDrag, dndSessionRef]);
+
   const dayForbiddenSlotIds = useMemo(() => {
-    if (!activeId || !activeAppointment) return EMPTY_FORBIDDEN_SLOT_SET;
-    if (activeAppointment.status === "cancelled") return EMPTY_FORBIDDEN_SLOT_SET;
-    if (isSlimAppointmentSchedulingLocked(activeAppointment, dayAppointments)) {
-      return EMPTY_FORBIDDEN_SLOT_SET;
-    }
-    const session = dndSessionRef.current;
-    if (!session || session.dragData.appointment.id !== activeAppointment.id) {
-      return EMPTY_FORBIDDEN_SLOT_SET;
-    }
-    const { nowMs, dragData } = session;
+    if (!dragSource) return EMPTY_FORBIDDEN_SLOT_SET;
+    const { nowMs, dragData } = dragSource;
+    const { appointment, columnId } = dragData;
+    if (appointment.status === "cancelled" || schedulingLockedAppointmentIds.has(appointment.id)) return EMPTY_FORBIDDEN_SLOT_SET;
+    const targetColumnLabel = dndColumns.find((col) => col.id === columnId)?.label ?? t("page.dnd.thisTeamMember");
     const forbidden = new Set<string>();
-    const slotRows = dayGridSlotStarts;
-    for (const col of dndColumns) {
-      for (const slot of slotRows) {
-        const slotId = `slot-${col.id}-${dateKey}-${slot.hour}-${slot.minute}`;
-        // Hard-reject any slot outside the source column — mobile MVP is
-        // reschedule-only, no cross-column drops.
-        if (col.id !== dragData.columnId) {
-          forbidden.add(slotId);
-          continue;
-        }
-        if (
-          isDayTimeSlotForbiddenForPreview({
-            appointment: activeAppointment,
-            sourceColumnId: dragData.columnId,
-            sourceDateKey: dragData.dateKey,
-            targetColumnId: col.id,
-            targetDateKey: dateKey,
-            targetHour: slot.hour,
-            targetMinute: slot.minute,
-            nowMs,
-            calendarTimezone,
-            dayAppointments,
-            appointmentsByColumn: dndAppointmentsByColumn,
-            blocksByColumn: dndBlocksByColumn,
-            locationServices,
-            locationBundles,
-            targetColumnLabel: col.label,
-            bufferTimeMinutes,
-          })
-        ) {
-          forbidden.add(slotId);
-        }
+    // Only the source column has mounted drop targets while dragging.
+    for (const slot of dayGridSlotStarts) {
+      if (isDayTimeSlotForbiddenForPreview({
+        appointment,
+        sourceColumnId: columnId,
+        sourceDateKey: dragData.dateKey,
+        targetColumnId: columnId,
+        targetDateKey: dateKey,
+        targetHour: slot.hour,
+        targetMinute: slot.minute,
+        nowMs,
+        calendarTimezone,
+        dayAppointments,
+        appointmentsByColumn: dndAppointmentsByColumn,
+        blocksByColumn: dndBlocksByColumn,
+        locationServices,
+        locationBundles,
+        targetColumnLabel,
+        bufferTimeMinutes,
+      })) {
+        forbidden.add(`slot-${columnId}-${dateKey}-${slot.hour}-${slot.minute}`);
       }
     }
-    const prev = prevForbiddenRef.current;
-    if (forbidden.size === prev.size && [...forbidden].every((id) => prev.has(id))) return prev;
-    prevForbiddenRef.current = forbidden;
     return forbidden;
   }, [
-    activeId,
-    activeAppointment,
+    dragSource,
+    schedulingLockedAppointmentIds,
     dndColumns,
     dayGridSlotStarts,
     dateKey,
@@ -438,58 +434,75 @@ export const MobileDayTimeline: FC = () => {
     locationServices,
     locationBundles,
     bufferTimeMinutes,
-    dndSessionRef,
+    t,
   ]);
+
+  const resolveDropSlot = useCallback((event: DragMoveEvent | DragEndEvent, data: AppointmentDragData): GridSlot | null => {
+    if (data.dateKey !== dateKey) return null;
+    // The move event can still carry the previous `over` while dnd-kit
+    // publishes the current collision. Prefer the hit from this event.
+    const hit = event.collisions?.[0]?.data?.droppableContainer;
+    const target = event.collisions == null ? event.over : hit;
+    const slot = target?.data.current as TimeSlotDropData | undefined;
+    if (
+      slot?.type === "time-slot" && slot.columnId === data.columnId &&
+      slot.dateKey === data.dateKey && !target?.disabled
+    ) {
+      return { hour: slot.hour, minute: slot.minute ?? 0 };
+    }
+    if (slotIntervalMinutes <= 0 || timeline.daySlotHeight <= 0 || dayGridSlotStarts.length === 0) return null;
+
+    // Preserve the same-column fallback, including dnd-kit's autoscroll delta.
+    const sourceMinutes = getMinutesInTimezone(data.appointment.scheduledAt, calendarTimezone);
+    const sourceIndex = Math.max(0, Math.round((sourceMinutes - timeline.dayGridStartMinutes) / slotIntervalMinutes));
+    const slotDelta = Math.round(event.delta.y / timeline.daySlotHeight);
+    const index = Math.max(0, Math.min(dayGridSlotStarts.length - 1, sourceIndex + slotDelta));
+    return dayGridSlotStarts[index] ?? null;
+  }, [calendarTimezone, dateKey, dayGridSlotStarts, slotIntervalMinutes, timeline.dayGridStartMinutes, timeline.daySlotHeight]);
+
+  const handleDragPreview = useCallback((event: DragMoveEvent) => {
+    const data = event.active.data.current as AppointmentDragData | undefined;
+    if (data?.type !== "appointment" || !dndSessionRef.current) return;
+    const next = resolveDropSlot(event, data);
+    const previous = latestDropPreview.current;
+    if (next?.hour === previous?.hour && next?.minute === previous?.minute) return;
+    latestDropPreview.current = next;
+    if (dropPreviewFrame.current == null) {
+      dropPreviewFrame.current = requestAnimationFrame(() => {
+        dropPreviewFrame.current = null;
+        setDropPreviewSlot(latestDropPreview.current);
+      });
+    }
+  }, [dndSessionRef, resolveDropSlot]);
+
+  const handleMobileDragOver = useCallback((event: DragMoveEvent) => {
+    handleDragOver(event);
+    handleDragPreview(event);
+  }, [handleDragOver, handleDragPreview]);
+
+  const clearMobileDrag = useCallback(() => {
+    dndSessionRef.current = null;
+    cancelDropPreviewFrame();
+    latestDropPreview.current = null;
+    setActiveId(null);
+    setOverId(null);
+    setDragSource(null);
+    setDropPreviewSlot(null);
+  }, [cancelDropPreviewFrame, dndSessionRef, setActiveId, setOverId]);
 
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
-      dndSessionRef.current = null;
-      setActiveId(null);
-      setOverId(null);
+      clearMobileDrag();
       const nowMs = Date.now();
       const data = event.active.data?.current as AppointmentDragData | null;
       if (!data || data.type !== "appointment") return;
       const appointment = data.appointment;
       if (appointment.status === "cancelled") return;
       if (isSlimAppointmentSchedulingLocked(appointment, dayAppointments)) return;
-
-      // Mobile is reschedule-only, same-column. The target column is always
-      // the drag source — horizontal finger movement is ignored. We derive the
-      // target hour/minute from whatever we can:
-      //   a) `event.over` is a same-column time-slot → use its hour/minute
-      //   b) finger drifted off the source column's droppables (e.g. into an
-      //      adjacent staff column, which we intentionally don't mount
-      //      droppables for) → fall back to `event.delta.y` snapped to the
-      //      slot grid. This recovers cleanly instead of silently dropping
-      //      the gesture (which previously snapped the card back to origin).
-      const overData = event.over?.data?.current as TimeSlotDropData | null;
-
-      let targetHour: number;
-      let targetMinute: number;
+      const slot = resolveDropSlot(event, data);
+      if (!slot) return;
       const targetDateKey = data.dateKey;
       const targetColumnId = data.columnId;
-
-      if (overData && overData.type === "time-slot" && overData.columnId === data.columnId) {
-        targetHour = overData.hour;
-        targetMinute = overData.minute ?? 0;
-      } else {
-        // Derive from vertical delta: convert pixel offset → slot offset,
-        // add to the appointment's source slot, clamp to [0, lastSlot].
-        const tz = calendarTimezone ?? "UTC";
-        const sourceMinutes = getMinutesInTimezone(appointment.scheduledAt, tz);
-        const sourceSlotIndex = Math.max(
-          0,
-          Math.round(
-            (sourceMinutes - timeline.dayGridStartMinutes) / timeline.slotIntervalMinutes,
-          ),
-        );
-        const slotDelta = Math.round(event.delta.y / timeline.daySlotHeight);
-        const lastSlot = timeline.dayGridSlotStarts.length - 1;
-        const targetIndex = Math.max(0, Math.min(lastSlot, sourceSlotIndex + slotDelta));
-        const targetSlot = timeline.dayGridSlotStarts[targetIndex];
-        targetHour = targetSlot.hour;
-        targetMinute = targetSlot.minute;
-      }
 
       const label =
         dndColumns.find((c) => c.id === targetColumnId)?.label ?? t("page.dnd.thisTeamMember");
@@ -499,8 +512,8 @@ export const MobileDayTimeline: FC = () => {
         sourceDateKey: data.dateKey,
         targetColumnId,
         targetDateKey,
-        targetHour,
-        targetMinute,
+        targetHour: slot.hour,
+        targetMinute: slot.minute,
         nowMs,
         calendarTimezone,
         dayAppointments,
@@ -540,19 +553,14 @@ export const MobileDayTimeline: FC = () => {
       locationBundles,
       dndColumns,
       bufferTimeMinutes,
-      dndSessionRef,
-      setActiveId,
-      setOverId,
-      timeline.dayGridStartMinutes,
-      timeline.slotIntervalMinutes,
-      timeline.daySlotHeight,
-      timeline.dayGridSlotStarts,
+      clearMobileDrag,
+      resolveDropSlot,
       t,
     ],
   );
 
   const handleConfirmDrop = useCallback(() => {
-    if (!pendingDrop) return;
+    if (!pendingDrop || dropConfirmInProgress) return;
     const toConfirm = pendingDrop;
     if (toConfirm.type !== "reschedule") return; // mobile has no reassign drop
 
@@ -588,6 +596,7 @@ export const MobileDayTimeline: FC = () => {
     );
   }, [
     pendingDrop,
+    dropConfirmInProgress,
     dndDispatch,
     open247,
     dayWorkingHours,
@@ -599,7 +608,7 @@ export const MobileDayTimeline: FC = () => {
 
   // Column + appointment layout derivation. Memoized to avoid rebuilding
   // `appointmentsByColumn` (O(cols × appts) allocations) and running the
-  // group-drag preview rewrite on every `setOverId` tick during drag — that
+  // group-drag preview rewrite on every target change during drag — that
   // rebuild was a top bottleneck on cheap Android WebView.
   const layout = useMemo<MobileDayLayout>(() => {
     const appointments = list.sortedItems
@@ -715,11 +724,11 @@ export const MobileDayTimeline: FC = () => {
   // refetch is in flight over existing data — e.g. post-drop refresh after a
   // reschedule — keep the grid mounted so cards' POSITION_TRANSITION animates
   // from old to new top instead of unmount-remounting at the new spot.
-  if (list.isDayLoading && layout.appointments.length === 0 && layout.blocks.length === 0) {
+  if (!hasLocationContext || (list.isDayLoading && layout.appointments.length === 0 && layout.blocks.length === 0)) {
     return <MobileTimelineSkeleton />;
   }
 
-  if (list.sortedItems.length === 0 && list.hasActiveFilters) {
+  if (showFilterEmptyState) {
     return (
       <div className="flex-1 flex items-center justify-center px-4">
         <EmptyState
@@ -738,6 +747,21 @@ export const MobileDayTimeline: FC = () => {
   // as full-width, skip horizontal scrolling entirely.
   const isSingleColumn = columns.length === 1;
   const gridHeight = 24 * MOBILE_GRID_HEIGHT_PER_HOUR;
+  const previewSlotId = dragSource && dropPreviewSlot &&
+    dragSource.dragData.dateKey === dateKey && activeAppointment && activeAppointment.status !== "cancelled" &&
+    !schedulingLockedAppointmentIds.has(activeAppointment.id)
+    ? `slot-${dragSource.dragData.columnId}-${dateKey}-${dropPreviewSlot.hour}-${dropPreviewSlot.minute}`
+    : null;
+  const validPreviewSlotId = previewSlotId && !dayForbiddenSlotIds.has(previewSlotId) ? previewSlotId : null;
+  const previewTop = validPreviewSlotId && dropPreviewSlot
+    ? ((dropPreviewSlot.hour * 60 + dropPreviewSlot.minute - timeline.dayGridStartMinutes) / slotIntervalMinutes) * timeline.daySlotHeight
+    : 0;
+  const dropPreview = validPreviewSlotId && activeAppointment
+    ? {
+        top: previewTop,
+        height: Math.min(gridHeight - previewTop, (activeAppointment.duration / slotIntervalMinutes) * timeline.daySlotHeight),
+      }
+    : undefined;
 
   // Sticky staff-column indicator on the filter state.
   const filteredStaffId = staffFilterIds.length === 1 ? staffFilterIds[0] : null;
@@ -784,8 +808,10 @@ export const MobileDayTimeline: FC = () => {
       autoScroll={{ layoutShiftCompensation: false, threshold: { x: 0, y: 0.15 } }}
       measuring={{ droppable: { strategy: MeasuringStrategy.BeforeDragging } }}
       onDragStart={handleDragStart}
-      onDragOver={handleDragOver}
+      onDragMove={handleDragPreview}
+      onDragOver={handleMobileDragOver}
       onDragEnd={handleDragEnd}
+      onDragCancel={clearMobileDrag}
      >
       {/* Sticky header row — lives outside the horizontal scroll zone so it can
        *  stick to the top of the outer MobileCalendarLayout scroll container
@@ -850,7 +876,7 @@ export const MobileDayTimeline: FC = () => {
               </div>
             )}
             <DragTimeIndicator
-              overId={activeId ? overId : null}
+              overId={validPreviewSlotId}
               dayGridStartMinutes={timeline.dayGridStartMinutes}
               slotIntervalMinutes={timeline.slotIntervalMinutes}
               daySlotHeight={timeline.daySlotHeight}
@@ -864,11 +890,11 @@ export const MobileDayTimeline: FC = () => {
           className={scrollZoneClass}
         >
           <div
-            className="relative"
+            className="relative bg-surface"
             style={{ minWidth: innerMinWidth, height: gridHeight }}
           >
+            <WorkingHoursShading timeline={timeline} />
             <HourDividers timeline={timeline} headerOffset={0} />
-            <WorkingHoursShading timeline={timeline} headerOffset={0} />
             <div className="flex relative" style={{ minHeight: gridHeight }}>
               {columns.map((col) => {
                 const columnId = col.staff?.id ?? 0;
@@ -905,11 +931,8 @@ export const MobileDayTimeline: FC = () => {
                     gridSlotStarts={isInactiveDragColumn ? undefined : dayGridSlotStarts}
                     dndActive={!!activeId}
                     forbiddenSlotIds={activeId ? dayForbiddenSlotIds : EMPTY_FORBIDDEN_SLOT_SET}
-                    durationHighlightSlotIds={dayDurationHighlightSlotIds}
+                    dropPreview={columnId === dragSourceColumnId ? dropPreview : undefined}
                     schedulingLockedAppointmentIds={schedulingLockedAppointmentIds}
-                    openHour={timeline.openHour}
-                    closeHour={timeline.closeHour}
-                    open247={open247}
                     isToday={timeline.isToday}
                     isDayInPast={isDayInPast}
                     nowMinutes={timeline.nowMinutes}
@@ -938,6 +961,7 @@ export const MobileDayTimeline: FC = () => {
           // the saga commits the reschedule.
           dropAnimation={DROP_ANIMATION}
           modifiers={[snapCenterToCursor]}
+          style={{ pointerEvents: "none" }}
         >
           {activeAppointment ? (
             <MobileDragOverlayCard
@@ -1021,11 +1045,7 @@ const HourLabels: FC<{ timeline: UseDayTimelineDataResult }> = ({ timeline }) =>
 };
 
 // ─────────────────────────────────────────────────────────────
-// Drag-overlay card — mirrors the source draggable's actual rendered width
-// via `useDndContext` → `active.rect.current.initial.width`, captured at
-// drag-start. Without this the overlay was hardcoded to 160px, which looked
-// narrow in single-column (full-width) and too wide in multi-column (min
-// 112px) layouts.
+// DragOverlay already sizes its wrapper to the draggable's measured width.
 // ─────────────────────────────────────────────────────────────
 
 interface MobileDragOverlayCardProps {
@@ -1045,7 +1065,7 @@ const MobileDragOverlayCard: FC<MobileDragOverlayCardProps> = ({
     <div
       style={{
         position: "relative",
-        width: MOBILE_COLUMN_MIN_WIDTH,
+        width: "100%",
         height,
         filter:
           "drop-shadow(0 8px 16px rgba(0,0,0,0.22)) drop-shadow(0 2px 4px rgba(0,0,0,0.10))",
@@ -1058,6 +1078,7 @@ const MobileDragOverlayCard: FC<MobileDragOverlayCardProps> = ({
         height={height}
         colorMap={colorMap}
         timezone={timezone}
+        isDragPreview
         onTap={() => {}}
       />
     </div>
@@ -1090,36 +1111,34 @@ const HourDividers: FC<{ timeline: UseDayTimelineDataResult; headerOffset: numbe
 // Non-working-hours shading (wrapper-level)
 // ─────────────────────────────────────────────────────────────
 
-const WorkingHoursShading: FC<{ timeline: UseDayTimelineDataResult; headerOffset: number }> = ({
-  timeline,
-  headerOffset,
-}) => {
-  const { openHour, closeHour, hourHeight, isOpen } = timeline;
-  if (!isOpen) {
+const WorkingHoursShading: FC<{ timeline: UseDayTimelineDataResult }> = ({ timeline }) => {
+  const { workingHoursBounds, isClosed, hourHeight } = timeline;
+  if (isClosed) {
     return (
       <div
-        className="absolute left-0 right-0 bg-muted/40 pointer-events-none"
-        style={{ top: headerOffset, height: 24 * hourHeight }}
+        className="pointer-events-none absolute inset-0 bg-neutral-200 dark:bg-surface-active"
         aria-hidden
       />
     );
   }
-  const preOpenHeight = openHour * hourHeight;
-  const postCloseTop = closeHour * hourHeight + headerOffset;
-  const postCloseHeight = (24 - closeHour) * hourHeight;
+  // A 24/7 location has no closed-hours regions.
+  if (!workingHoursBounds) return null;
+  const openingTop = (workingHoursBounds.start / 60) * hourHeight;
+  const closingTop = (workingHoursBounds.end / 60) * hourHeight;
+
   return (
     <>
-      {preOpenHeight > 0 && (
+      {workingHoursBounds.start > 0 && (
         <div
-          className="absolute left-0 right-0 bg-muted/40 pointer-events-none"
-          style={{ top: headerOffset, height: preOpenHeight }}
+          className="pointer-events-none absolute inset-x-0 top-0 border-b-2 border-border-strong bg-neutral-200 dark:bg-surface-active"
+          style={{ height: openingTop }}
           aria-hidden
         />
       )}
-      {postCloseHeight > 0 && (
+      {workingHoursBounds.end < 24 * 60 && (
         <div
-          className="absolute left-0 right-0 bg-muted/40 pointer-events-none"
-          style={{ top: postCloseTop, height: postCloseHeight }}
+          className="pointer-events-none absolute inset-x-0 bottom-0 border-t-2 border-border-strong bg-neutral-200 dark:bg-surface-active"
+          style={{ top: closingTop }}
           aria-hidden
         />
       )}

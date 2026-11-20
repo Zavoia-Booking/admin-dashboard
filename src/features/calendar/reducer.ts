@@ -70,6 +70,8 @@ const initialState: CalendarViewState = {
     sidebarMiniCalendarMonthStart: null,
 
     updateConflictOffer: null,
+    reassignmentHoursOverrideOffer: null,
+    blockConflictOffer: null,
     pendingDrop: null as PendingDrop,
 
     optimisticBlocks: [],
@@ -110,6 +112,7 @@ export const handleOpenAddForm = (state: CalendarViewState, payload: { open: boo
         addFormOpen: payload.open,
         addFormPrefill: payload.open ? (payload.prefill ?? null) : null,
         addFormCloseAfterMutationsRemaining: 0,
+        reassignmentHoursOverrideOffer: null,
     }
 }
 
@@ -468,12 +471,23 @@ export const CalendarReducer: Reducer<CalendarViewState, any> = (state: Calendar
         // --- Update conflict offer (409 override flow) ---
         case getType(actions.setUpdateConflictOffer):
             return handleSetUpdateConflictOffer(state, action.payload);
+        case getType(actions.setReassignmentHoursOverrideOffer): {
+            const offer = action.payload;
+            if (offer && (!state.addFormOpen || state.addFormPrefill?.appointmentId !== offer.appointmentId)) {
+                return state;
+            }
+            return { ...state, reassignmentHoursOverrideOffer: offer };
+        }
+        case getType(actions.setBlockConflictOffer):
+            return { ...state, blockConflictOffer: action.payload };
         case getType(actions.setCalendarPendingDrop):
             return { ...state, pendingDrop: action.payload };
         case getType(actions.beginAddFormCloseAfterMutations):
             return { ...state, addFormCloseAfterMutationsRemaining: action.payload };
         case getType(actions.updateAppointment.request):
-            return clearUpdateConflictOffer(state);
+            return clearUpdateConflictOffer(
+                state.reassignmentHoursOverrideOffer ? { ...state, reassignmentHoursOverrideOffer: null } : state,
+            );
         case getType(actions.updateAppointment.success): {
             const cleared = clearUpdateConflictOffer(state);
             return decrementAddFormCloseAfterMutations(cleared);

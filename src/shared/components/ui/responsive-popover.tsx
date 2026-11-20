@@ -44,6 +44,8 @@ function parkFocusOnPanel(event: { preventDefault: () => void; currentTarget: Ev
 export interface SelectDrawerProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  /** Runs when the picker closes, just before the trigger regains focus. */
+  onCloseAutoFocus?: (event: Event) => void
   /** Rendered as the sheet's trigger; must accept a ref (`asChild`). */
   trigger: React.ReactNode
   children: React.ReactNode
@@ -64,6 +66,7 @@ export interface SelectDrawerProps {
 export function SelectDrawer({
   open,
   onOpenChange,
+  onCloseAutoFocus,
   trigger,
   children,
   title,
@@ -83,6 +86,7 @@ export function SelectDrawer({
         overlayClassName={DRAWER_OVERLAY_Z}
         tabIndex={-1}
         onOpenAutoFocus={parkFocusOnPanel}
+        onCloseAutoFocus={onCloseAutoFocus}
       >
         <DrawerHeader className="shrink-0 pb-1 text-left">
           <DrawerTitle className="text-foreground-1">{title}</DrawerTitle>
@@ -128,6 +132,7 @@ export interface ResponsivePopoverProps
 export function ResponsivePopover({
   open,
   onOpenChange,
+  onCloseAutoFocus,
   trigger,
   children,
   title,
@@ -148,6 +153,7 @@ export function ResponsivePopover({
       <SelectDrawer
         open={open}
         onOpenChange={onOpenChange}
+        onCloseAutoFocus={onCloseAutoFocus}
         trigger={trigger}
         title={title}
         description={description}
@@ -164,6 +170,7 @@ export function ResponsivePopover({
       <PopoverTrigger asChild>{trigger}</PopoverTrigger>
       <PopoverContent
         className={contentClassName}
+        onCloseAutoFocus={onCloseAutoFocus}
         align={align}
         side={side}
         sideOffset={sideOffset}

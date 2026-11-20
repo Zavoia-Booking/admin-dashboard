@@ -50,12 +50,9 @@ interface MobileDayColumnProps {
   gridSlotStarts?: GridSlot[];
   dndActive?: boolean;
   forbiddenSlotIds?: ReadonlySet<string>;
-  durationHighlightSlotIds?: ReadonlySet<string>;
+  dropPreview?: { top: number; height: number };
   schedulingLockedAppointmentIds?: ReadonlySet<number>;
-  /** Working hours + today context for slot styling (past / outside-hours tint). */
-  openHour?: number;
-  closeHour?: number;
-  open247?: boolean;
+  /** Date and time context for past-slot styling. */
   isToday?: boolean;
   isDayInPast?: boolean;
   nowMinutes?: number;
@@ -87,11 +84,8 @@ export const MobileDayColumn: FC<MobileDayColumnProps> = memo(({
   gridSlotStarts,
   dndActive = false,
   forbiddenSlotIds,
-  durationHighlightSlotIds,
+  dropPreview,
   schedulingLockedAppointmentIds,
-  openHour,
-  closeHour,
-  open247 = false,
   isToday = false,
   isDayInPast = false,
   nowMinutes = 0,
@@ -121,14 +115,8 @@ export const MobileDayColumn: FC<MobileDayColumnProps> = memo(({
         {enableDnd && gridSlotStarts!.map((slot) => {
           const slotId = `slot-${columnId}-${dateKey}-${slot.hour}-${slot.minute}`;
           const slotMinutes = slot.hour * 60 + slot.minute;
-          const isOutsideHours =
-            !open247 &&
-            openHour != null &&
-            closeHour != null &&
-            (slot.hour < openHour ||
-              (slot.hour === closeHour && slot.minute > 0) ||
-              slot.hour >= closeHour);
           const isPast = isDayInPast || (isToday && slotMinutes < nowMinutes);
+          // Mobile paints closed hours across the grid so boundaries can fall within a slot.
           return (
             <DroppableSlot
               key={slotId}
@@ -137,12 +125,12 @@ export const MobileDayColumn: FC<MobileDayColumnProps> = memo(({
               dateKey={dateKey}
               hour={slot.hour}
               minute={slot.minute}
-              isOutsideHours={!!isOutsideHours}
+              isOutsideHours={false}
               slotHeight={daySlotHeight}
               dropDisabled={forbiddenSlotIds?.has(slotId) ?? false}
               dndActive={dndActive}
               isPast={isPast}
-              inDurationRange={durationHighlightSlotIds?.has(slotId) ?? false}
+              showDropHover={false}
               onSlotClick={onSlotClick}
             />
           );
@@ -242,6 +230,13 @@ export const MobileDayColumn: FC<MobileDayColumnProps> = memo(({
             </AppointmentGroupDialog>
           );
         })}
+        {dropPreview && (
+          <div
+            className="pointer-events-none absolute inset-x-0 z-10 rounded-sm border-2 border-primary/80 bg-primary/12 dark:bg-primary/18"
+            style={dropPreview}
+            aria-hidden
+          />
+        )}
       </div>
     </div>
   );

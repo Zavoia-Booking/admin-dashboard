@@ -10,8 +10,9 @@ import type {
     CalendarBlockCreatePayload,
     CalendarBlockUpdatePayload,
     CalendarBlockDto,
+    BlockConflictOffer,
 } from "../../shared/types/calendar.ts";
-import { AppointmentViewMode, AppointmentViewType, type AddFormPrefill, type PendingDrop } from "./types.ts";
+import { AppointmentViewMode, AppointmentViewType, type AddFormPrefill, type PendingDrop, type ReassignmentHoursOverrideOffer } from "./types.ts";
 
 export const toggleAddForm = createAction('CALENDAR/CREATE/TOGGLE')<{ open: boolean; prefill?: AddFormPrefill }>()
 
@@ -162,6 +163,10 @@ export const setUpdateConflictOffer = createAction(
     'CALENDAR/UPDATE_CONFLICT_OFFER/SET',
 )<{ appointmentId: number; data: Record<string, unknown>; message: string; conflictType?: 'staff_appointment' | 'block' } | null>()
 
+export const setReassignmentHoursOverrideOffer = createAction(
+    'CALENDAR/REASSIGNMENT_HOURS_OVERRIDE_OFFER/SET',
+)<ReassignmentHoursOverrideOffer | null>()
+
 /** Set/clear pending drag-drop (card preview). Cleared on update success or cancel. */
 export const setCalendarPendingDrop = createAction(
     'CALENDAR/PENDING_DROP/SET',
@@ -177,7 +182,7 @@ export const updateAppointment = createAsyncAction(
     'CALENDAR/UPDATE_APPOINTMENT/REQUEST',
     'CALENDAR/UPDATE_APPOINTMENT/SUCCESS',
     'CALENDAR/UPDATE_APPOINTMENT/FAILURE',
-)<{ appointmentId: number; data: Record<string, any> }, any, any>()
+)<{ appointmentId: number; data: Record<string, any>; source?: 'editor' }, any, any>()
 
 /** Cancel appointment with reason and notification preferences (POST /appointments/:id/cancel) */
 export const cancelAppointment = createAsyncAction(
@@ -207,3 +212,8 @@ export const updateCalendarBlock = createAsyncAction(
     'CALENDAR/BLOCK/UPDATE/SUCCESS',
     'CALENDAR/BLOCK/UPDATE/FAILURE',
 )<{ id: number; payload: CalendarBlockUpdatePayload }, any, any>()
+
+/** Offer to resend a block create/update after a 409 "appointments inside the block" (null clears). */
+export const setBlockConflictOffer = createAction(
+    'CALENDAR/BLOCK/CONFLICT_OFFER/SET',
+)<BlockConflictOffer | null>()

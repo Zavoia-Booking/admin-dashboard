@@ -30,8 +30,8 @@ import {
  *   full-height layout, so it can't paint at the keyboard's top edge (why it
  *   used to wait for keyboardDidHide) yet is back while the keyboard retracts.
  * Footers inside a drawer that is still sliding out always wait for
- * keyboardDidHide, so they don't reappear mid-close. Android and the web keep
- * the event-based hook in useKeyboardVisible.ts.
+ * keyboardDidHide, so they don't reappear mid-close. Android has its own state
+ * in keyboardChromeAndroid.ts; the web never hides chrome.
  *
  * Hiding a footer grows the scroller above it; one scrolled to its end then
  * clamps and drops its content by the footer's height. The focused field's
@@ -176,7 +176,7 @@ function releaseNav() {
  * Runs `hide`, which hides chrome synchronously, and gives the focused
  * field's scroller end space for whatever scroll it lost to clamping.
  */
-function keepScrollerInPlace(hide: () => void) {
+export function keepScrollerInPlace(hide: () => void) {
   const scroller = overflowingScrollerOf(document.activeElement)
   const top = scroller?.scrollTop ?? 0
   hide()
@@ -190,7 +190,7 @@ function keepScrollerInPlace(hide: () => void) {
   scroller.scrollTop = top
 }
 
-function releaseSpacers() {
+export function releaseSpacers() {
   spacers.forEach((_, scroller) => {
     scroller.removeAttribute("data-keyboard-spacer")
     scroller.style.removeProperty("--keyboard-spacer")

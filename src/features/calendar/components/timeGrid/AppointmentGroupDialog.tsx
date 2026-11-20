@@ -159,7 +159,10 @@ export const AppointmentGroupDialog: FC<AppointmentGroupDialogProps> = ({
       </div>
 
       {/* Appointment list */}
-      <div className="min-h-0 flex-1 overflow-y-auto bg-muted/20 px-4 py-3 scrollbar-hide dark:bg-background/50 md:px-6 md:py-4">
+      <div className={cn(
+        "min-h-0 flex-1 overflow-y-auto bg-muted/20 px-4 py-3 scrollbar-hide dark:bg-background/50 md:px-6 md:py-4",
+        isMobile && "overscroll-contain",
+      )}>
         {loading ? (
           <div className="space-y-2">
             {[1, 2, 3].map((i) => (
@@ -273,7 +276,11 @@ export const AppointmentGroupDialog: FC<AppointmentGroupDialogProps> = ({
     return (
       <Drawer open={open} onOpenChange={handleOpenChange}>
         {children && <DrawerTrigger asChild>{children}</DrawerTrigger>}
-        <DrawerContent className="max-h-[85vh]">
+        {/* Above the tab bar (60), below the appointment and block details (70). */}
+        <DrawerContent
+          className="z-[69] overflow-hidden pb-[env(safe-area-inset-bottom,0px)]"
+          overlayClassName="z-[65]"
+        >
           <DialogPrimitive.Title className="sr-only">
             {t("page.groupDialog.appointmentCount", { count })}
           </DialogPrimitive.Title>

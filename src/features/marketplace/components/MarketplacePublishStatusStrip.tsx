@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { Trans, useTranslation } from "react-i18next";
 import { ArrowRight, Save } from "lucide-react";
 import { Button } from "../../../shared/components/ui/button";
@@ -8,7 +7,6 @@ import {
   type SetupSummaryItem,
 } from "../../../shared/components/common/SetupSummaryPanel";
 import { cn } from "../../../shared/lib/utils";
-import { useInView } from "../../../shared/hooks/useInView";
 import type { LocationType } from "../../../shared/types/location";
 import type { LocationWithAssignments } from "../types";
 
@@ -37,10 +35,8 @@ interface MarketplacePublishStatusStripProps {
   onPublish: () => void;
   onPhotosNeeded: () => void;
   onResolveChecklistItem?: (item: PublishChecklistItemKey) => void;
-  compactOnMobile?: boolean;
   mobileChecklistOpen?: boolean;
   onMobileChecklistOpenChange?: (open: boolean) => void;
-  onMobileActionInViewChange?: (inView: boolean) => void;
 }
 
 /** Reuses the Assignments summary renderer; its rows never change publish gates. */
@@ -64,21 +60,10 @@ export function MarketplacePublishStatusStrip({
   onPublish,
   onPhotosNeeded,
   onResolveChecklistItem,
-  compactOnMobile = false,
   mobileChecklistOpen,
   onMobileChecklistOpenChange,
-  onMobileActionInViewChange,
 }: MarketplacePublishStatusStripProps) {
   const { t } = useTranslation(["marketplace", "assignments"]);
-  const {
-    ref: mobileActionRef,
-    inView: mobileActionInView,
-    settled: mobileActionSettled,
-  } = useInView<HTMLDivElement>();
-  useEffect(() => {
-    if (!mobileActionSettled) return;
-    onMobileActionInViewChange?.(mobileActionInView);
-  }, [mobileActionInView, mobileActionSettled, onMobileActionInViewChange]);
 
   const photosBlocked = !hasLocationPhoto || !locationImagesOk;
   const photoHintCoveredByChecklist = photosBlocked && locations.length === 1;
@@ -218,6 +203,8 @@ export function MarketplacePublishStatusStrip({
     <Button
       onClick={() => (photosBlocked ? onPhotosNeeded() : onPublish())}
       disabled={publishDisabled}
+      // Mobile: the app Spinner in place of the label, never loading text.
+      loading={mobile && isPublishing}
       rounded="full"
       className={cn(
         "group shrink-0 px-4 text-sm font-semibold shadow-xs",
@@ -276,9 +263,8 @@ export function MarketplacePublishStatusStrip({
         ) : undefined
       }
       footerAction={
-        canWrite && (!isListed || (compactOnMobile && isDirty)) ? (
+        canWrite && !isListed ? (
           <div
-            ref={mobileActionRef}
             className="mt-4 md:hidden"
             onClick={
               publishDisabled && mobileChecklistOpen === false

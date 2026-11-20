@@ -162,7 +162,7 @@
     "history": {
       "title": "Istoric client",
       "subtitle": "Cronologie completă a activității acestui client.",
-      "downloadButton": "Descarcă istoricul",
+      "downloadButton": "Descarcă",
       "loadMore": "Încarcă mai multe",
       "showingCount": "Se afișează {{shown}} din {{total}}",
       "empty": {

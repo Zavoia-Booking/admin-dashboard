@@ -14,6 +14,7 @@ import {
 import { useIsMobile } from "../../hooks/use-mobile";
 import {
   modalScrim,
+  modalEyebrow,
   modalPanel,
   modalTitleCompact,
   modalBody,
@@ -47,6 +48,8 @@ export interface ConfirmDialogProps {
   /** Render as a bottom sheet under `md` instead of a centred panel. Opt-in so
    *  the ~13 existing call sites keep the modal they were designed around. */
   mobileDrawer?: boolean;
+  /** Small uppercase caption above the title, naming what is being confirmed. */
+  eyebrow?: string;
 }
 
 /**
@@ -78,6 +81,7 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   cancelClassName,
   confirmClassName,
   mobileDrawer = false,
+  eyebrow,
 }) => {
   const { t } = useTranslation("common");
   const isMobile = useIsMobile();
@@ -133,22 +137,26 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
           )}
           overlayClassName="!z-[299] bg-[oklch(15%_0.004_70/0.42)]"
         >
-          <div className={cn("flex items-start gap-3.5 pt-4", headerClassName)}>
-            {iconBadge}
-            <div className="min-w-0 flex-1">
-              <DrawerTitle className={modalTitleCompact}>{title}</DrawerTitle>
-              <DrawerDescription asChild>
-                {description ? (
-                  <div className={cn(modalBody, "mt-2")}>{description}</div>
-                ) : (
-                  <span className="sr-only">{title}</span>
-                )}
-              </DrawerDescription>
+          {/* Tall content scrolls here so the actions below stay on screen. */}
+          <div className="min-h-0 overflow-y-auto overscroll-contain">
+            {eyebrow && <div className={cn(modalEyebrow, "mb-3 pt-4")}>{eyebrow}</div>}
+            <div className={cn("flex items-start gap-3.5", eyebrow ? "pt-0" : "pt-4", headerClassName)}>
+              {iconBadge}
+              <div className="min-w-0 flex-1">
+                <DrawerTitle className={modalTitleCompact}>{title}</DrawerTitle>
+                <DrawerDescription asChild>
+                  {description ? (
+                    <div className={cn(modalBody, "mt-2")}>{description}</div>
+                  ) : (
+                    <span className="sr-only">{title}</span>
+                  )}
+                </DrawerDescription>
+              </div>
             </div>
           </div>
 
           {/* Stacked full-width actions: thumb-reachable, primary on top. */}
-          <div className={cn("mt-6 flex flex-col gap-2", footerClassName)}>
+          <div className={cn("mt-6 flex shrink-0 flex-col gap-2", footerClassName)}>
             <button
               type="button"
               onClick={handleConfirm}
@@ -198,6 +206,7 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
             </button>
           )}
 
+          {eyebrow && <div className={cn(modalEyebrow, showCloseButton && "pr-8")}>{eyebrow}</div>}
           <div className={cn("flex items-start gap-3.5", showCloseButton && "pr-8", headerClassName)}>
             {iconBadge}
             <div className="min-w-0 flex-1">

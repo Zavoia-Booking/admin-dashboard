@@ -418,7 +418,16 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
     const ids =
       displayAppointment.teamMembers?.map((tm: any) => tm.id ?? tm) ?? [];
     if (ids.length === 0) return t("page.common.unassigned");
-    return getStaffDisplayNames(ids, locationStaff, t);
+    // The details carry each person's name, so someone no longer on the team is still named.
+    const savedNames = (displayAppointment.teamMembers ?? [])
+      .filter((tm: any) => typeof tm === "object" && tm != null && tm.id != null)
+      .map((tm: any) => ({
+        userId: tm.id,
+        firstName: tm.firstName ?? "",
+        lastName: tm.lastName ?? "",
+        former: tm.former === true,
+      }));
+    return getStaffDisplayNames(ids, locationStaff, t, savedNames);
   }, [displayAppointment, locationStaff, t]);
 
   /** Staff rows from location context (profile images for Visit card). */
@@ -557,7 +566,8 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
   };
 
   const handleCancelConfirm = () => {
-    if (!appointment) return;
+    // A second click while the dialog closes would cancel twice.
+    if (!appointment || !cancelDialogOpen) return;
     setActionLoading("cancelled");
 
     // Convert 'both' to array format expected by backend DTO

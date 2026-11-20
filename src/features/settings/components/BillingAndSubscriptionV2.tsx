@@ -2005,8 +2005,7 @@ const Bv2PlanPickerCard = ({
   viewState: ViewState;
   user: AuthUser | null;
   summary: SubscriptionSummary | null;
-  /** Seat basis for every price here. Mirrors the seat maths the rest of the
-   *  tab uses, so the card can never disagree with the dialog it opens. */
+  /** Paid seats used for the totals, matching the rest of the billing tab. */
   seats: number;
 }) => {
   const { t } = useTranslation('settings');
@@ -2023,7 +2022,7 @@ const Bv2PlanPickerCard = ({
   const timers = useRef<number[]>([]);
   const raf = useRef<number | null>(null);
   const amountRef = useRef<HTMLSpanElement | null>(null);
-  const lastTotal = useRef<number | null>(null);
+  const lastMonthlyFee = useRef<number | null>(null);
 
   // The footer is the only part of the card whose height moves between plans —
   // the panel bodies share one grid cell, but the footer branches differ by a
@@ -2075,6 +2074,7 @@ const Bv2PlanPickerCard = ({
   const totalFor = (plan: AvailablePlan | null) =>
     plan?.pricing ? plan.pricing.basePlanPrice + plan.pricing.pricePerTeamMember * seats : null;
   const shownTotal = totalFor(shownPlan);
+  const shownMonthlyFee = shownPlan?.pricing?.basePlanPrice ?? null;
 
   // The whole morph runs off the click (see the segment buttons below): pin
   // the outgoing body, defocus, swap at PLAN_SWAP_MS, resolve by PLAN_MORPH_MS.
@@ -2098,10 +2098,10 @@ const Bv2PlanPickerCard = ({
 
   // Count the headline price to its new amount across the rest of the morph.
   useEffect(() => {
-    const from = lastTotal.current;
-    lastTotal.current = shownTotal;
+    const from = lastMonthlyFee.current;
+    lastMonthlyFee.current = shownMonthlyFee;
     const node = amountRef.current;
-    if (node == null || from == null || shownTotal == null || from === shownTotal) return;
+    if (node == null || from == null || shownMonthlyFee == null || from === shownMonthlyFee) return;
     if (prefersReducedMotion()) return;
 
     const duration = PLAN_MORPH_MS - PLAN_SWAP_MS;
@@ -2111,13 +2111,13 @@ const Bv2PlanPickerCard = ({
       const k = Math.min(1, (now - start) / duration);
       // ease-in-out cubic so the number lands together with the colour ramp
       const eased = k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
-      node.textContent = formatDecimalPrice(from + (shownTotal - from) * eased, billingCurrency);
+      node.textContent = formatDecimalPrice(from + (shownMonthlyFee - from) * eased, billingCurrency);
       if (k < 1) raf.current = requestAnimationFrame(step);
       else raf.current = null;
     };
     raf.current = requestAnimationFrame(step);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activePlanId, shownTotal]);
+  }, [activePlanId, shownMonthlyFee]);
 
   if (loading) {
     return (
@@ -2169,23 +2169,20 @@ const Bv2PlanPickerCard = ({
 
   const renderBody = (plan: AvailablePlan) => {
     const active = plan.id === shownPlanId;
-    const planTotal = totalFor(plan);
+    const { pricing } = plan;
     const planIsCurrent = !isCheckoutState && plan.isCurrentPlan;
     const planIsUpgrade = (SELF_SERVE_TIER_ORDER[plan.tier] ?? 0) > currentTierOrder;
     const planScheduled = !!scheduled && scheduled.planId === plan.id;
 
     const capLocations =
-      isUnlimitedCap(plan.maxLocations) ? (
-        t('billing.unlimited')
-      ) : (
-        <span className="bv2-plan-chip-num">{plan.maxLocations}</span>
-      );
+      plan.maxLocations == null || plan.maxLocations === -1
+        ? t('billing.v2.plans.unlimitedLocations')
+        : t('billing.v2.plans.maxLocations', { count: plan.maxLocations });
+    // Plus uses the marketing label here; this does not change seat limits.
     const capTeam =
-      isUnlimitedCap(plan.maxTeamMembers) ? (
-        t('billing.unlimited')
-      ) : (
-        <span className="bv2-plan-chip-num">{plan.maxTeamMembers}</span>
-      );
+      plan.tier === 'PLUS' || plan.maxTeamMembers == null || plan.maxTeamMembers === -1
+        ? t('billing.v2.plans.unlimitedTeamMembers')
+        : t('billing.v2.plans.maxTeamMembers', { count: plan.maxTeamMembers });
 
     let footState: { label: string; tone: string } | null = null;
     if (planIsCurrent) footState = statusLabel();
@@ -2207,7 +2204,7 @@ const Bv2PlanPickerCard = ({
         {plan.tier === 'PLUS' && (
           <div className="bv2-plan-top">
             <Crown className="bv2-plan-crown" />
-            <span className="bv2-plan-badge">{t('billing.v2.plans.mostPopular')}</span>
+            <span className="bv2-plan-badge">{t('billing.v2.plans.everythingInBase')}</span>
           </div>
         )}
 
@@ -2215,13 +2212,16 @@ const Bv2PlanPickerCard = ({
           <div className="bv2-plan-eyebrow">
             {t('billing.v2.plans.planEyebrow', { plan: plan.name })}
           </div>
+          <p className="bv2-plan-description">
+            {t(plan.tier === 'PLUS' ? 'billing.v2.plans.plusDescription' : 'billing.v2.plans.baseDescription')}
+          </p>
 
           <div className="bv2-plan-price-row">
             <div className="bv2-plan-price">
-              {planTotal != null ? (
+              {pricing ? (
                 <>
                   <span ref={active ? amountRef : undefined}>
-                    {formatDecimalPrice(planTotal, plan.pricing?.currency ?? billingCurrency)}
+                    {formatDecimalPrice(pricing.basePlanPrice, pricing.currency)}
                   </span>
                   <span className="bv2-plan-per">{t('billing.v2.hero.perMonthSuffix')}</span>
                   <span className="bv2-plan-vat">{t('billing.v2.plans.vatSuffix')}</span>
@@ -2232,16 +2232,24 @@ const Bv2PlanPickerCard = ({
             </div>
           </div>
 
+          <div className="bv2-plan-charges">
+            <p>{t('billing.v2.plans.ownerIncluded')}</p>
+            {pricing && pricing.pricePerTeamMember > 0 && (
+              <p>
+                {t('billing.v2.plans.perSeat', {
+                  price: formatDecimalPrice(pricing.pricePerTeamMember, pricing.currency),
+                })}
+              </p>
+            )}
+          </div>
 
           <div className="bv2-plan-chips">
-            <span className="bv2-plan-chip">
-              {t('billing.v2.usage.locations')} {capLocations}
-            </span>
-            <span className="bv2-plan-chip">
-              {t('billing.v2.usage.teamSeats')} {capTeam}
-            </span>
-            {plan.features.websiteBuilder && (
-              <span className="bv2-plan-chip">{t('billing.v2.plans.websiteBuilder')}</span>
+            <span className="bv2-plan-chip">{capLocations}</span>
+            <span className="bv2-plan-chip">{capTeam}</span>
+            {(plan.features.websiteBuilder || plan.features.websiteBuilderEdit) && (
+              <span className="bv2-plan-chip">
+                {t(plan.features.websiteBuilder ? 'billing.v2.plans.websiteBuilder' : 'billing.v2.plans.websiteBuilderDraft')}
+              </span>
             )}
           </div>
         </div>

@@ -4,6 +4,8 @@ import { useTranslation } from "react-i18next";
 import { Button } from "../../../shared/components/ui/button";
 import { Plus, Mail, Phone, Edit, Clock, Send, XCircle, Users } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "../../../shared/components/ui/dialog";
+import ConfirmDialog from '../../../shared/components/common/ConfirmDialog';
+import { useIsMobile } from '../../../shared/hooks/use-mobile';
 import { toast } from 'sonner';
 import { AppLayout } from '../../../shared/components/layouts/app-layout';
 import { Badge } from "../../../shared/components/ui/badge";
@@ -27,6 +29,7 @@ export default function TeamMembersPage() {
   const dispatch = useDispatch();
   const [searchParams, setSearchParams] = useSearchParams();
   const text = useTranslation("teamMembers").t;
+  const isMobile = useIsMobile();
   const teamMembers = useSelector(selectTeamMembers);
   const isTeamMembersLoading = useSelector(selectTeamMembersLoading);
   const teamMembersListError = useSelector(selectTeamMembersListError);
@@ -162,6 +165,7 @@ export default function TeamMembersPage() {
   const pendingMembers = filteredTeamMembers.filter((member: TeamMember) => member.roleStatus === 'pending_acceptance');
 
   const confirmDialogContent = getConfirmDialogContent();
+  const useRevokeDrawer = isMobile && pendingAction?.type === 'cancelInvite';
 
   return (
     <AppLayout>
@@ -420,7 +424,18 @@ const displayName =
               )}
 
               {/* Confirmation Dialog */}
-              <Dialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
+              <ConfirmDialog
+                mobileDrawer
+                open={isConfirmDialogOpen && useRevokeDrawer}
+                title={confirmDialogContent?.title ?? ''}
+                description={confirmDialogContent?.description}
+                confirmTitle={confirmDialogContent?.confirmText}
+                cancelTitle={text('page.confirmDialog.cancel')}
+                variant="destructive"
+                onConfirm={confirmCancelInvite}
+                onCancel={() => setIsConfirmDialogOpen(false)}
+              />
+              <Dialog open={isConfirmDialogOpen && !useRevokeDrawer} onOpenChange={setIsConfirmDialogOpen}>
                 <DialogContent>
                   <DialogHeader>
                     <DialogTitle>{confirmDialogContent?.title}</DialogTitle>

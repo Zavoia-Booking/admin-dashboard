@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { AppSidebar } from '../navigation/app-sidebar';
 import { SidebarInset, SidebarProvider } from '../ui/sidebar';
 import { useIsMobile } from '../../hooks/use-mobile';
+import { usePlatform } from '../../hooks/usePlatform';
 import { Breadcrumbs } from '../Breadcrumbs';
 import { useBreadcrumbs } from '../../hooks/useBreadcrumbs';
 import { LimitedAccessBanner } from '../common/subscription/LimitedAccessBanner';
@@ -54,7 +55,10 @@ export function AppLayout(props: AppLayoutProps) {
 
 function AppLayoutInner({ children, contentClassName, headerRightContent, noPadding, tabbedPage, headerTitleOverride, headerTitleContent, headerPrevAction, headerNextAction, headerHidden, mobileViewport = false }: AppLayoutProps) {
   const isMobile = useIsMobile();
+  const { isWeb } = usePlatform();
+  const isMobileWeb = isMobile && isWeb;
   const fillMobileViewport = isMobile && mobileViewport;
+  const useDynamicViewport = fillMobileViewport || isMobileWeb;
   const [bottomNavHeight, setBottomNavHeight] = useState(0);
   const breadcrumbs = useBreadcrumbs();
   const location = useLocation();
@@ -93,18 +97,23 @@ function AppLayoutInner({ children, contentClassName, headerRightContent, noPadd
   }, []);
 
   return (
-    <SidebarProvider className={fillMobileViewport ? 'min-h-0' : undefined}>
-      <div className={`flex ${fillMobileViewport ? 'h-dvh' : 'h-screen'} w-full bg-transparent`}>
+    <SidebarProvider className={useDynamicViewport ? 'min-h-0' : undefined}>
+      <div
+        className={`flex ${useDynamicViewport ? 'h-dvh' : 'h-screen'} w-full bg-transparent`}
+        // Mobile browser chrome changes the available height. Reserve the fixed
+        // nav's space outside the scroller, including its safe-area padding.
+        style={isMobileWeb ? { paddingBottom: bottomNavHeight || 'calc(4.75rem + env(safe-area-inset-bottom))' } : undefined}
+      >
         {/* Sidebar: on desktop it's a persistent rail; on mobile it's a sheet controlled via trigger */}
         <AppSidebar />
 
-        <SidebarInset className={fillMobileViewport ? 'min-h-0' : undefined}>
+        <SidebarInset className={useDynamicViewport ? 'min-h-0' : undefined}>
           <main
             // The scroll marker goes on whichever element scrolls: <main>, or
             // the content column below when it fills the mobile viewport.
             {...(fillMobileViewport ? {} : { [APP_SCROLL_CONTAINER_ATTR]: '' })}
-            className={`flex-1 bg-transparent overflow-y-auto overscroll-contain ${fillMobileViewport ? 'flex min-h-0 flex-col' : ''} ${isMobile && !fillMobileViewport && !bottomNavHeight ? 'pb-19' : 'pb-0'} [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]`}
-            style={isMobile && (fillMobileViewport || bottomNavHeight) ? { paddingBottom: bottomNavHeight } : undefined}
+            className={`flex-1 bg-transparent overflow-y-auto overscroll-contain ${fillMobileViewport ? 'flex min-h-0 flex-col' : ''} ${isMobile && !isMobileWeb && !fillMobileViewport && !bottomNavHeight ? 'pb-19' : 'pb-0'} [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]`}
+            style={isMobile && !isMobileWeb && (fillMobileViewport || bottomNavHeight) ? { paddingBottom: bottomNavHeight } : undefined}
           >
             <div className={`w-full bg-transparent max-w-full content-container ${fillMobileViewport ? 'flex min-h-0 flex-1 flex-col' : ''} ${contentClassName ?? 'md:max-w-220'}`}>
               <div

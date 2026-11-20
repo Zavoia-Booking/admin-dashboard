@@ -225,6 +225,14 @@ export interface CalendarSummaryResponse {
 
 // --- POST /calendar/day ---
 
+/** An assigned staff member's name as the API sends it; `former` when they are no longer on the team. */
+export interface AppointmentStaffName {
+  userId: number;
+  firstName: string;
+  lastName: string;
+  former?: boolean;
+}
+
 export interface SlimAppointment {
   id: number;
   scheduledAt: string;
@@ -233,6 +241,8 @@ export interface SlimAppointment {
   bookedItemName: string;
   duration: number;
   staffUserIds: number[];
+  /** Names of the assigned staff (POST /calendar/day and /week), including people no longer on the team. */
+  staffNames?: AppointmentStaffName[];
   /** Null when no customer was linked at booking time. Use bookingSource + this to derive display label. */
   customerName: string | null;
   bookingSource: string;
@@ -287,6 +297,9 @@ export interface CalendarBlockDto {
   repeatDaysOfWeek?: number[];
   /** Inclusive end date for recurrence (YYYY-MM-DD); null means indefinite. */
   repeatEndDate?: string | null;
+  /** Repeating rows only: the series' stored start and end (its first day); startsAt/endsAt are this day's copy. */
+  seriesStartsAt?: string;
+  seriesEndsAt?: string;
 }
 
 export interface DayDataResponse {
@@ -318,6 +331,8 @@ export interface CalendarBlockCreatePayload {
   reason: CalendarBlockReason;
   title?: string;
   notes?: string;
+  /** Save even when upcoming appointments fall inside the block ("Block anyway"). */
+  overrideConflicts?: boolean;
 }
 
 /** Body for PUT /calendar-blocks/:id (matches admin-api UpdateCalendarBlockDto). */
@@ -332,7 +347,27 @@ export interface CalendarBlockUpdatePayload {
   repeatFrequency?: 'daily' | 'weekly' | 'biweekly' | 'monthly';
   repeatDaysOfWeek?: number[];
   repeatEndDate?: string;
+  /** Save even when upcoming appointments fall inside the block ("Block anyway"). */
+  overrideConflicts?: boolean;
 }
+
+/** The soonest upcoming appointment a save would affect (409 details from block and location saves). */
+export interface BlockConflictAppointment {
+  id: number;
+  scheduledAt: string;
+  endsAt: string;
+  /** IANA timezone of the appointment's location, resolved by the API. */
+  timezone: string;
+  customerName: string | null;
+  itemName: string;
+  staff: Array<{ userId: number; firstName: string; lastName: string; profileImage?: string | null }>;
+  location: { id: number; name: string } | null;
+}
+
+/** Pending "Block anyway?" offer after a 409 from block create/update: how many appointments the block would cover, and the soonest one. */
+export type BlockConflictOffer =
+  | { mode: 'create'; payload: CalendarBlockCreatePayload; total: number; firstAppointment: BlockConflictAppointment | null }
+  | { mode: 'update'; id: number; payload: CalendarBlockUpdatePayload; total: number; firstAppointment: BlockConflictAppointment | null };
 
 // --- POST /appointments/admin-create-group ---
 
@@ -368,12 +403,15 @@ export interface AvailableSlotsRequest {
     staffUserId?: number;
   }>;
   findNextAvailable?: boolean;
+  rescheduleAppointmentId?: number;
 }
 
 export interface AvailableSlotsResponse {
   availableSlots: string[]; // ISO 8601 date-time strings
   outOfHoursSlots?: string[];
+  durationMinutes?: number;
   nextAvailableDate?: string | null;
+  nextAvailableSearchDays?: number;
 }
 
 // --- Day Filters (for calendar/day endpoint) ---

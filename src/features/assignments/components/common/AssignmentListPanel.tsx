@@ -103,7 +103,7 @@ export function AssignmentListPanel({
           <div className="h-full bg-transparent flex flex-col">
               <div
                 className={cn(
-                  'flex-1 overflow-y-auto px-0.5 md:py-3',
+                  'flex-1 overflow-y-auto p-0.5 md:py-3',
                   items.length > 0 || isLoading ? 'space-y-2' : ''
                 )}
               >

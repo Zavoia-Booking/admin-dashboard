@@ -11,6 +11,7 @@ import { Dialog, DialogPortal, DialogTitle } from '../../../shared/components/ui
 import {
   Drawer,
   DrawerContent,
+  DrawerDescription,
   DrawerTitle,
 } from '../../../shared/components/ui/drawer';
 import { useIsMobile } from '../../../shared/hooks/use-mobile';
@@ -292,6 +293,7 @@ export const SeatOverflowGate: React.FC = () => {
   const totalAppts = preview?.appointments.length ?? 0;
   const allAppointmentsHandled =
     !!preview && preview.appointments.every((a) => decisions.has(a.id));
+  const remainingCount = preview ? preview.appointments.filter((a) => !decisions.has(a.id)).length : 0;
   const canCommit =
     selectedUserId !== null && (totalAppts === 0 || allAppointmentsHandled);
 
@@ -425,6 +427,12 @@ export const SeatOverflowGate: React.FC = () => {
       ? t('teamMembers:seatOverflow.confirmUnassign')
       : t('teamMembers:seatOverflow.confirmRemoveMember');
 
+  // The appointments sheet on phones names who is leaving in every mode.
+  const sheetTitle = isUnassignLocation
+    ? titleText
+    : t('teamMembers:seatOverflow.removeMemberTitle', { name: memberFirstName });
+  const sheetSubtitle = isUnassignLocation ? subtitleText : t('teamMembers:seatOverflow.removeMemberSubtitle');
+
   // Mode-driven UI flags
   const showAside = isSeatOverflow;
   const showPayBanner = isSeatOverflow && !hasPendingPayment && !isNative;
@@ -477,7 +485,8 @@ export const SeatOverflowGate: React.FC = () => {
 
     return (
       <>
-        <Dialog open modal>
+        {/* Seat overflow keeps the member list behind the sheet; remove/unassign show the sheet alone. */}
+        <Dialog open={isSeatOverflow} modal>
           <DialogPortal>
             <div className="fixed inset-0 z-[210] bg-black/40 backdrop-blur-sm" />
             <DialogPrimitive.Content
@@ -624,9 +633,19 @@ export const SeatOverflowGate: React.FC = () => {
             overlayClassName="z-[220] bg-black/60"
             className="z-[220] h-[92dvh] !max-h-[92dvh] bg-background"
           >
-            <DrawerTitle className="sr-only">
-              {t('teamMembers:seatOverflow.apptsTitle')}
-            </DrawerTitle>
+            <div className="shrink-0 px-5 pb-1 pt-3">
+              <DrawerTitle className="text-[17px] font-semibold leading-snug text-foreground-1 [text-wrap:balance]">
+                {sheetTitle}
+              </DrawerTitle>
+              <DrawerDescription className="mt-1 text-[13px] leading-snug text-foreground-3 [text-wrap:pretty]">
+                {sheetSubtitle}
+              </DrawerDescription>
+            </div>
+            {previewError && (
+              <div className="mx-5 mt-3 shrink-0 rounded-lg border border-error-border bg-error-bg p-3">
+                <p className="text-sm text-error">{previewError}</p>
+              </div>
+            )}
             <div className="flex min-h-0 flex-1 flex-col">
               <AppointmentsPane
                 appointments={preview?.appointments ?? []}
@@ -644,6 +663,11 @@ export const SeatOverflowGate: React.FC = () => {
               className="shrink-0 border-t border-border bg-background px-4 py-3"
               style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
             >
+              {remainingCount > 0 && (
+                <p className="mb-2 text-center text-xs text-foreground-3">
+                  {t('teamMembers:seatOverflow.remainingToDecide', { count: remainingCount })}
+                </p>
+              )}
               <Button
                 variant="default"
                 rounded="full"
@@ -666,7 +690,8 @@ export const SeatOverflowGate: React.FC = () => {
   return (
     <Dialog open modal>
       <DialogPortal>
-        <div className="fixed inset-0 z-[210] bg-black/60 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
+        {/* Radix overlay: takes the scroll lock over from the profile slider underneath, so the list scrolls. */}
+        <DialogPrimitive.Overlay className="fixed inset-0 z-[210] bg-black/60 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
 
         <DialogPrimitive.Content
           aria-describedby={undefined}
@@ -791,17 +816,24 @@ export const SeatOverflowGate: React.FC = () => {
               <span />
             )}
 
-            <Button
-              variant="default"
-              rounded="full"
-              disabled={primaryDisabled}
-              onClick={handleCommit}
-              title={primaryDisabled ? t('teamMembers:seatOverflow.mustComplete') : undefined}
-            >
-              {isCommitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {confirmText}
-              {!isCommitting && <ArrowRight className="ml-1.5 h-4 w-4" />}
-            </Button>
+            <div className="flex items-center gap-3">
+              {remainingCount > 0 && (
+                <p className="text-xs text-foreground-3">
+                  {t('teamMembers:seatOverflow.remainingToDecide', { count: remainingCount })}
+                </p>
+              )}
+              <Button
+                variant="default"
+                rounded="full"
+                disabled={primaryDisabled}
+                onClick={handleCommit}
+                title={primaryDisabled ? t('teamMembers:seatOverflow.mustComplete') : undefined}
+              >
+                {isCommitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {confirmText}
+                {!isCommitting && <ArrowRight className="ml-1.5 h-4 w-4" />}
+              </Button>
+            </div>
           </div>
         </DialogPrimitive.Content>
       </DialogPortal>

@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { ArrowRight, ArrowUpRight, Star } from "lucide-react";
 import type { LocationWithAssignments } from "../../types";
 import { LocationVisibilitySection } from "../profile/LocationVisibilitySection";
+import { LocationMarketplaceDetailsCard } from "./LocationMarketplaceDetailsCard";
 import { MarketplaceImagesSection } from "../MarketplaceImagesSection";
 import { usePortfolioManagement } from "../../hooks/usePortfolioManagement";
 import { Button } from "../../../../shared/components/ui/button";
@@ -60,8 +61,9 @@ export function LocationPanel({
       : 0;
   const roundedRating = rating != null ? Math.round(rating) : 0;
 
+  // Phones: flex lets the visibility card come first; space-y still sets the gaps.
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-md:flex max-md:flex-col">
       <section
         className="rounded-2xl border border-border bg-surface px-4 py-4 shadow-sm md:px-5 md:py-5"
         aria-labelledby={`marketplace-location-title-${location.id}`}
@@ -128,7 +130,12 @@ export function LocationPanel({
         </div>
       </section>
 
-      <LocationVisibilitySection location={location} />
+      <LocationVisibilitySection
+        location={location}
+        className="max-md:order-first"
+      />
+
+      <LocationMarketplaceDetailsCard location={location} />
 
       {/* Portfolio gallery for this location */}
       <MarketplaceImagesSection

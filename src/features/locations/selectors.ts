@@ -10,6 +10,9 @@ export const getLocationLoadingSelector = createSelector(getLocationStateSelecto
     return state.isLoading
 });
 
+export const getLocationCreateStatusSelector = createSelector(getLocationStateSelector, (state) => state.createStatus);
+export const getLocationUpdateStatusSelector = createSelector(getLocationStateSelector, (state) => state.updateStatus);
+
 export const getLocationsListLoadedSelector = createSelector(getLocationStateSelector, (state): boolean => {
     return state.listLoaded ?? false
 });
@@ -37,3 +40,5 @@ export const getDeleteErrorSelector = createSelector(getLocationStateSelector, (
 export const getUpdateResponseSelector = createSelector(getLocationStateSelector, (state) => {
     return state.updateResponse ?? null;
 });
+
+export const getLocationHoursConflictOfferSelector = createSelector(getLocationStateSelector, (state) => state.hoursConflictOffer ?? null);

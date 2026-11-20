@@ -30,7 +30,7 @@ import { getServicesListSelector } from '../../services/selectors';
 import { getServicesAction } from '../../services/actions';
 import type { TeamMember } from '../../../shared/types/team-member';
 import { isE164, sanitizePhoneToE164Draft } from '../../../shared/utils/validation';
-import { getLocationLoadingSelector, getLocationErrorSelector } from '../selectors';
+import { getLocationCreateStatusSelector } from '../selectors';
 import { toast } from 'sonner';
 
 interface AddLocationSliderProps {
@@ -71,8 +71,8 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
   const dispatch = useDispatch();
   const { t } = useTranslation("locations");
   const currentUser = useSelector(selectCurrentUser);
-  const locationError = useSelector(getLocationErrorSelector);
-  const isLocationLoading = useSelector(getLocationLoadingSelector);
+  const createStatus = useSelector(getLocationCreateStatusSelector);
+  const isSaving = createStatus === 'pending';
   const allTeamMembers = useSelector(selectTeamMembers);
   const allServices = useSelector(getServicesListSelector);
   const businessCountryCode = currentUser?.business?.countryCode || null;
@@ -416,26 +416,11 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
     }
   }, [isOpen]);
 
-  // Watch for errors and show toast
   useEffect(() => {
-    if (locationError && isSubmitting) {
-      toast.error(t("addLocation.toasts.createFailed"), {
-        description: t("addLocation.toasts.createFailedDescription"),
-        icon: undefined,
-      });
-      setIsSubmitting(false);
-    }
-  }, [locationError, isSubmitting]);
-
-  // Watch for success and close form
-  useEffect(() => {
-    // Don't close if slider just opened (prevents race condition with isSubmitting reset)
-    if (!isLocationLoading && isSubmitting && !locationError && !justOpenedRef.current) {
-      // Success - close form and reset
-      // Don't set isSubmitting to false here - let it stay true until slider closes
-      onClose();
-    }
-  }, [isLocationLoading, isSubmitting, locationError, onClose]);
+    if (!isOpen || !isSubmitting || justOpenedRef.current) return;
+    if (createStatus === 'failure') setIsSubmitting(false);
+    if (createStatus === 'success') onClose();
+  }, [createStatus, isOpen, isSubmitting, onClose]);
 
   // Reset pin confirmation when address changes (user-initiated only)
   useEffect(() => {
@@ -526,7 +511,7 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
 
   const onSubmit = () => {
     // Prevent double submission
-    if (isSubmitting || isLocationLoading) {
+    if (isSubmitting || isSaving) {
       return;
     }
     const formData = watch();
@@ -573,17 +558,18 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
             formId="add-location-form"
             cancelLabel={t("addLocation.buttons.cancel")}
             submitLabel={t("addLocation.buttons.create")}
-            disabled={isFormDisabled || isSubmitting || isLocationLoading}
-            isLoading={isSubmitting || isLocationLoading}
+            disabled={isFormDisabled || isSubmitting || isSaving}
+            isLoading={isSubmitting || isSaving}
           />
         }
       >
         <form
           id="add-location-form"
           onSubmit={handleSubmit(onSubmit)}
-          className="h-full flex flex-col cursor-default"
+          className="cursor-default"
         >
-          <div className="flex-1 overflow-y-auto p-1 py-6 pt-0 md:p-6 md:pt-0 bg-surface">
+          {/* BaseSlider owns scrolling so collapsing hours cannot leave a second scroll offset. */}
+          <div className="p-1 py-6 pt-0 md:p-6 md:pt-0 bg-surface">
             <div className="max-w-2xl mx-auto space-y-6 cursor-default">
               <div className="space-y-4">
                   <TextField

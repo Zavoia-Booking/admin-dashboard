@@ -55,6 +55,7 @@
       "saveChanges": "Salvează modificările",
       "save": "Salvează",
       "publish": "Publică listarea",
+      "publishShort": "Publică",
       "saving": "Se salvează...",
       "publishing": "Se publică..."
     },
@@ -158,8 +159,11 @@
       "autoSave": "Modificările de vizibilitate și programare se salvează automat.",
       "locationDetails": "Detaliile locației",
       "servicesAndTeam": "Servicii și echipă",
-      "marketplaceDetails": "Detalii marketplace",
-      "marketplaceDetailsDescription": "Facilități, accesibilitate, metode de plată și limbi vorbite."
+      "marketplaceDetails": "Facilități și detalii",
+      "marketplaceDetailsEmpty": "Facilitățile, metodele de plată și limbile vorbite îi ajută pe clienți să găsească și să aleagă această locație.",
+      "addDetails": "Adaugă detalii",
+      "editDetails": "Editează detaliile",
+      "noneAdded": "Niciuna adăugată încă"
     },
     "reviews": {
       "title": "Recenzii",

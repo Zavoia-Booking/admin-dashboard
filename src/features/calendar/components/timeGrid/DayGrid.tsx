@@ -568,7 +568,7 @@ export const DayGrid: FC = () => {
   ]);
 
   const handleConfirmDrop = useCallback(() => {
-    if (!pendingDrop) return;
+    if (!pendingDrop || dropConfirmInProgress) return;
     const toConfirm = pendingDrop;
     if (toConfirm.type === "reassign") {
       setDropConfirmInProgress(true);
@@ -613,7 +613,7 @@ export const DayGrid: FC = () => {
         data: payload,
       }),
     );
-  }, [pendingDrop, dispatch, open247, dayWorkingHours, calendarTimezone, setDropConfirmInProgress, setPendingReschedulePayload, setOverrideDialogOpen]);
+  }, [pendingDrop, dropConfirmInProgress, dispatch, open247, dayWorkingHours, calendarTimezone, setDropConfirmInProgress, setPendingReschedulePayload, setOverrideDialogOpen]);
 
   // Build confirm dialog description
   const confirmDescription = (() => {

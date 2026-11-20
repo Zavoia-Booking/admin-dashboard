@@ -1,13 +1,14 @@
 import React, { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Badge } from '../../../../shared/components/ui/badge';
 import { Skeleton } from '../../../../shared/components/ui/skeleton';
 import { AlertTriangle, CheckCircle2 } from 'lucide-react';
-import { AppointmentRow } from './AppointmentRow';
+import { useIsMobile } from '../../../../shared/hooks/use-mobile';
+import { AppointmentRow, formatApptTime } from './AppointmentRow';
 import { BulkActionsBar } from './BulkActionsBar';
+import { ReassignPickerSheet, type ReassignPickerTarget } from './ReassignPickerSheet';
 import { type EligibleStaffMap } from './eligibility';
 import type { Decision, DecisionMap } from './useDecisions';
-import type { OffboardPreviewAppointment } from '../../api';
+import type { EligibleStaffMember, OffboardPreviewAppointment } from '../../api';
 
 export type StaffById = Map<
   number,
@@ -56,7 +57,9 @@ export const AppointmentsPane: React.FC<AppointmentsPaneProps> = ({
   loading,
 }) => {
   const { t, i18n } = useTranslation();
+  const isMobile = useIsMobile();
   const [openPopoverId, setOpenPopoverId] = useState<number | null>(null);
+  const [picker, setPicker] = useState<ReassignPickerTarget | null>(null);
 
   const handlePopoverChange = useCallback(
     (apptId: number, open: boolean) => {
@@ -67,59 +70,112 @@ export const AppointmentsPane: React.FC<AppointmentsPaneProps> = ({
 
   const total = appointments.length;
   const decided = appointments.filter((a) => decisions.has(a.id)).length;
-  const allHandled = total > 0 && decided === total;
   const undecided = appointments.filter((a) => !decisions.has(a.id));
   const orphanSet = React.useMemo(() => new Set(orphanedAppointmentIds), [orphanedAppointmentIds]);
-  const orphanCount = orphanSet.size;
+  // Appointments someone else can take come first; the ones that can only be cancelled follow.
+  const actionable = appointments.filter((a) => !orphanSet.has(a.id));
+  const orphans = appointments.filter((a) => orphanSet.has(a.id));
 
-  const grouped = appointments.reduce<Record<string, OffboardPreviewAppointment[]>>(
-    (acc, apt) => {
-      const k = dayKey(apt.scheduledAt);
-      (acc[k] ??= []).push(apt);
-      return acc;
-    },
-    {},
-  );
-  const dayKeys = Object.keys(grouped).sort();
+  const openPicker = (apt: OffboardPreviewAppointment, eligibleStaff: EligibleStaffMember[]) => {
+    const customer = apt.customer
+      ? `${apt.customer.firstName ?? ''} ${apt.customer.lastName ?? ''}`.trim()
+      : '';
+    setPicker({
+      appointmentId: apt.id,
+      time: formatApptTime(apt.scheduledAt),
+      summary: [formatDayHeader(apt.scheduledAt, i18n.language, t as any), customer, apt.service?.name ?? '']
+        .filter(Boolean)
+        .join(' · '),
+      eligibleStaff,
+    });
+  };
+
+  const renderDays = (list: OffboardPreviewAppointment[]) => {
+    const grouped = list.reduce<Record<string, OffboardPreviewAppointment[]>>(
+      (acc, apt) => {
+        const k = dayKey(apt.scheduledAt);
+        (acc[k] ??= []).push(apt);
+        return acc;
+      },
+      {},
+    );
+    return (
+      <div className="flex flex-col gap-5">
+        {Object.keys(grouped).sort().map((k) => (
+          <div key={k} className="flex flex-col gap-2">
+            <div className="text-[10.5px] font-semibold uppercase tracking-wider text-foreground-3">
+              {formatDayHeader(grouped[k][0].scheduledAt, i18n.language, t as any)}
+              {' · '}
+              {t('teamMembers:seatOverflow.dayApptsCount', {
+                count: grouped[k].length,
+              })}
+            </div>
+            <div className="flex flex-col gap-2">
+              {grouped[k].map((apt) => {
+                const baseEligible = eligibleStaffMap[apt.id] ?? [];
+                const eligibleStaff = selectedUserId == null
+                  ? baseEligible
+                  : baseEligible.filter((s) => s.userId !== selectedUserId);
+                return (
+                  <AppointmentRow
+                    key={apt.id}
+                    appt={apt}
+                    decision={decisions.get(apt.id)}
+                    eligibleStaff={eligibleStaff}
+                    isOrphan={orphanSet.has(apt.id)}
+                    currentStaff={
+                      apt.staffUserIds && apt.staffUserIds[0] != null
+                        ? staffById.get(apt.staffUserIds[0]) ?? null
+                        : null
+                    }
+                    popoverOpen={openPopoverId === apt.id}
+                    onPopoverChange={(open) => handlePopoverChange(apt.id, open)}
+                    onOpenPicker={isMobile ? () => openPicker(apt, eligibleStaff) : undefined}
+                    onPick={(decision) => {
+                      onDecide(apt.id, decision);
+                      setOpenPopoverId(null);
+                    }}
+                  />
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
 
   return (
     <main className="flex min-h-0 flex-1 flex-col overflow-hidden">
-      <header className="shrink-0 border-b border-border px-5 pt-4 pb-3">
+      <header className="shrink-0 border-b border-border px-5 pb-3 pt-3 sm:pt-4">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
-            <div className="text-sm font-semibold text-foreground-1">
+            {/* On phones the sheet's own title sits above. */}
+            <div className="hidden text-sm font-semibold text-foreground-1 sm:block">
               {t('teamMembers:seatOverflow.apptsTitle')}
             </div>
-            <div className="mt-0.5 text-xs text-foreground-3">
+            <div className="text-[13px] font-medium tabular-nums text-foreground-2 sm:mt-0.5 sm:text-xs sm:font-normal sm:text-foreground-3">
               {selectedUserId == null
                 ? t('teamMembers:seatOverflow.selectMembersHint')
-                : total === 0
-                ? t('teamMembers:seatOverflow.nothingToHandle')
-                : t('teamMembers:seatOverflow.apptsSubtitle', { count: total })}
+                : loading
+                  ? t('teamMembers:seatOverflow.loadingPreview')
+                  : total === 0
+                    ? t('teamMembers:seatOverflow.nothingToHandle')
+                    : t('teamMembers:seatOverflow.handledCount', { decided, total })}
             </div>
           </div>
-          <div className="flex shrink-0 items-center gap-2">
-            {!loading && total > 0 && (
-              <Badge
-                variant={allHandled ? 'default' : 'secondary'}
-                className="text-[10.5px] tabular-nums"
-              >
-                {t('teamMembers:seatOverflow.handledCount', { decided, total })}
-              </Badge>
-            )}
-            {!loading && total > 0 && (
-              <BulkActionsBar
-                undecidedAppts={undecided}
-                selectedUserId={selectedUserId}
-                eligibleStaffMap={eligibleStaffMap}
-                onApplyMany={onDecideMany}
-              />
-            )}
-          </div>
+          {!loading && total > 0 && (
+            <BulkActionsBar
+              undecidedAppts={undecided}
+              selectedUserId={selectedUserId}
+              eligibleStaffMap={eligibleStaffMap}
+              onApplyMany={onDecideMany}
+            />
+          )}
         </div>
       </header>
 
-      <div className="flex-1 overflow-y-auto px-5 py-4 scrollbar-hide">
+      <div className="flex-1 overflow-y-auto px-5 py-4">
         {loading && (
           <div
             className="flex flex-col gap-2"
@@ -132,25 +188,21 @@ export const AppointmentsPane: React.FC<AppointmentsPaneProps> = ({
             {Array.from({ length: 3 }).map((_, i) => (
               <div
                 key={i}
-                className="grid items-center gap-4 rounded-xl border border-border bg-surface px-4 py-3 grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,220px)_minmax(0,1fr)_minmax(0,1fr)_auto]"
+                className="rounded-xl border border-border bg-surface px-3.5 py-3 sm:flex sm:items-center sm:gap-4 sm:px-4"
               >
-                <div className="min-w-0 space-y-2">
-                  <Skeleton className="h-3.5 w-32" />
-                  <Skeleton className="h-3 w-24" />
-                  <div className="mt-1 flex items-center gap-2 sm:hidden">
-                    <Skeleton className="h-3 w-16" />
+                <div className="flex items-start gap-3 sm:flex-1 sm:items-center">
+                  <div className="w-12 shrink-0 space-y-1.5">
+                    <Skeleton className="h-4 w-10" />
+                    <Skeleton className="h-3 w-8" />
+                  </div>
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <Skeleton className="h-3.5 w-32" />
+                    <Skeleton className="h-3 w-24" />
                   </div>
                 </div>
-                <div className="hidden items-center justify-center sm:flex">
-                  <Skeleton className="h-3.5 w-20" />
-                </div>
-                <div className="hidden items-center justify-center gap-2 sm:flex">
-                  <Skeleton className="h-7 w-7 rounded-full" />
-                  <Skeleton className="h-3 w-14" />
-                </div>
-                <div className="flex shrink-0 items-center justify-end gap-1.5">
-                  <Skeleton className="h-8 w-24 rounded-full" />
-                  <Skeleton className="h-8 w-8 rounded-full" />
+                <div className="mt-3 grid grid-cols-2 gap-2 sm:mt-0 sm:flex sm:w-[248px] sm:shrink-0 sm:justify-end">
+                  <Skeleton className="h-10 rounded-full sm:h-8 sm:w-24" />
+                  <Skeleton className="h-10 rounded-full sm:h-8 sm:w-20" />
                 </div>
               </div>
             ))}
@@ -166,66 +218,51 @@ export const AppointmentsPane: React.FC<AppointmentsPaneProps> = ({
           </div>
         )}
 
-        {!loading && total > 0 && orphanCount > 0 && (
-          <div className="mb-3 flex items-start gap-2.5 rounded-lg border border-warning/30 bg-warning-bg/40 p-3 dark:bg-warning-bg/60">
-            <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-md bg-warning-bg text-warning dark:bg-warning-bg/80">
-              <AlertTriangle className="size-3" />
-            </span>
-            <div className="min-w-0 flex-1">
-              <div className="text-xs font-semibold text-foreground-1">
-                {t('teamMembers:seatOverflow.orphanBannerTitle', { count: orphanCount })}
-              </div>
-              <p className="mt-0.5 text-[11.5px] leading-snug text-foreground-3">
-                {t('teamMembers:seatOverflow.orphanBannerBody')}
-              </p>
-            </div>
-          </div>
-        )}
-
         {!loading && total > 0 && (
-          <div className="flex flex-col gap-5">
-            {dayKeys.map((k) => (
-              <div key={k} className="flex flex-col gap-2">
-                <div className="text-[10.5px] font-semibold uppercase tracking-wider text-foreground-3">
-                  {formatDayHeader(grouped[k][0].scheduledAt, i18n.language, t as any)}
-                  {' · '}
-                  {t('teamMembers:seatOverflow.dayApptsCount', {
-                    count: grouped[k].length,
-                  })}
+          <div className="flex flex-col gap-7">
+            {actionable.length > 0 && (
+              <section className="flex flex-col gap-3">
+                {orphans.length > 0 && (
+                  <h3 className="text-sm font-semibold text-foreground-1">
+                    {t('teamMembers:seatOverflow.chooseSectionTitle', { count: actionable.length })}
+                  </h3>
+                )}
+                {renderDays(actionable)}
+              </section>
+            )}
+
+            {orphans.length > 0 && (
+              <section className="flex flex-col gap-3">
+                <div className="flex items-start gap-2.5 rounded-lg border border-warning/30 bg-warning-bg/40 p-3 dark:bg-warning-bg/60">
+                  <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-md bg-warning-bg text-warning dark:bg-warning-bg/80">
+                    <AlertTriangle className="size-3" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-xs font-semibold text-foreground-1">
+                      {t('teamMembers:seatOverflow.orphanBannerTitle', { count: orphans.length })}
+                    </div>
+                    <p className="mt-0.5 text-[11.5px] leading-snug text-foreground-3">
+                      {t('teamMembers:seatOverflow.orphanBannerBody')}
+                    </p>
+                  </div>
                 </div>
-                <div className="flex flex-col gap-2">
-                  {grouped[k].map((apt) => {
-                    const baseEligible = eligibleStaffMap[apt.id] ?? [];
-                    const eligibleStaff = selectedUserId == null
-                      ? baseEligible
-                      : baseEligible.filter((s) => s.userId !== selectedUserId);
-                    return (
-                      <AppointmentRow
-                        key={apt.id}
-                        appt={apt}
-                        decision={decisions.get(apt.id)}
-                        eligibleStaff={eligibleStaff}
-                        isOrphan={orphanSet.has(apt.id)}
-                        currentStaff={
-                          apt.staffUserIds && apt.staffUserIds[0] != null
-                            ? staffById.get(apt.staffUserIds[0]) ?? null
-                            : null
-                        }
-                        popoverOpen={openPopoverId === apt.id}
-                        onPopoverChange={(open) => handlePopoverChange(apt.id, open)}
-                        onPick={(decision) => {
-                          onDecide(apt.id, decision);
-                          setOpenPopoverId(null);
-                        }}
-                      />
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
+                {renderDays(orphans)}
+              </section>
+            )}
           </div>
         )}
       </div>
+
+      {isMobile && (
+        <ReassignPickerSheet
+          target={picker}
+          onPick={(appointmentId, staffUserId) => {
+            onDecide(appointmentId, { kind: 'reassign', toUserId: staffUserId });
+            setPicker(null);
+          }}
+          onClose={() => setPicker(null)}
+        />
+      )}
     </main>
   );
 };
