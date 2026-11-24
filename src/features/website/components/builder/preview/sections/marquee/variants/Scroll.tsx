@@ -22,7 +22,7 @@ export function Scroll({
   useBrandColorBackground,
 }: MarqueeVariantProps) {
   const trackRef = useRef<HTMLDivElement>(null);
-  // Shared hook so the at-rest desktop mock (and static thumbnails) skip the per-scroll paint entirely.
+  // Shared hook so static thumbnails skip the per-scroll paint entirely.
   const reduced = useReducedMotion();
 
   useEffect(() => {

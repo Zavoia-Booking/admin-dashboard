@@ -296,6 +296,31 @@
         "noCustom": "No services have custom pricing."
       }
     },
+    "staffServiceRemoval": {
+      "title": "Remove {{service}}",
+      "description": "Resolve the affected appointments for {{name}} at {{location}}. Your decisions take effect when you confirm the removal.",
+      "confirm": "Remove service",
+      "removing": "Removing service…",
+      "noAffectedAppointments": "No upcoming appointments use this assignment.",
+      "bundleContext": "Part of {{bundles}}",
+      "previewError": "We couldn't load the affected appointments.",
+      "removeError": "We couldn't remove the service. Refresh the appointments and try again.",
+      "refresh": "Refresh appointments"
+    },
+    "appointmentsInUse": {
+      "serviceOff_one": "{{count}} upcoming appointment here includes this service",
+      "serviceOff_other": "{{count}} upcoming appointments here include this service",
+      "bundleOff_one": "{{count}} upcoming appointment here includes this bundle",
+      "bundleOff_other": "{{count}} upcoming appointments here include this bundle",
+      "staffServiceRemoved_one": "This team member has {{count}} upcoming appointment here with this service",
+      "staffServiceRemoved_other": "This team member has {{count}} upcoming appointments here with this service",
+      "staffRemoved_one": "This team member has {{count}} upcoming appointment here",
+      "staffRemoved_other": "This team member has {{count}} upcoming appointments here",
+      "description_one": "It has to be moved, reassigned or cancelled first. Then try again.",
+      "description_other": "They have to be moved, reassigned or cancelled first. Then try again.",
+      "goToCalendar": "Go to calendar",
+      "close": "Close"
+    },
     "toasts": {
       "teamMemberAssigned": "{{memberName}} has been assigned to this location",
       "teamMemberRemoved": "{{memberName}} has been removed from this location",

@@ -2,12 +2,13 @@ import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useTranslation } from 'react-i18next';
 import {
   ArrowRight, Calendar, CalendarClock, CalendarPlus, Check, ChevronsUpDown, Clock, Footprints,
-  Loader2, Percent, Phone, Plus, PlusCircle, ShieldCheck, Tag, X,
+  Ellipsis, Loader2, Percent, Phone, Plus, PlusCircle, ShieldCheck, Tag, X,
 } from 'lucide-react';
 import { Button } from '../../../shared/components/ui/button';
 import { Label } from '../../../shared/components/ui/label';
 import { Input } from '../../../shared/components/ui/input';
 import { Command, CommandItem, CommandList } from '../../../shared/components/ui/command';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../../../shared/components/ui/dropdown-menu';
 import { ResponsivePopover } from '../../../shared/components/ui/responsive-popover';
 import { useIsMobile } from '../../../shared/hooks/use-mobile';
 import { Badge } from '../../../shared/components/ui/badge';
@@ -46,7 +47,8 @@ import {
   getCalendarTimezone,
   getReassignmentHoursOverrideOffer,
 } from '../selectors';
-import type { AppointmentBookingSource, AvailableSlotsRequest, AvailableSlotsResponse } from '../../../shared/types/calendar';
+import type { AppointmentBookingSource, AvailableSlotsRequest, AvailableSlotsResponse, BookedItemEdit } from '../../../shared/types/calendar';
+import type { AddFormPrefill } from '../types';
 import { formatSlotTime, getEndTimeString, formatTimeKey } from './utils';
 import DatePicker from '../../../shared/components/ui/date-picker';
 import ConfirmDialog from '../../../shared/components/common/ConfirmDialog';
@@ -72,17 +74,25 @@ import {
   getGroupTotalPriceMajor,
   buildEditSnapshotFromPrefill,
   buildMinimalEditAppointmentPayload,
+  getPrefillAppointmentItems,
+  getFixedBookingAllowedStaffIds,
   getEditMutationDispatchCount,
+  getEditedBookingAllowedStaffIds,
+  getEditedBookingDisplayItems,
+  getEditedBookingTotals,
+  hasBookedItemChanges,
   pickUpdateAppointmentRequestBody,
   hasItemStaffChanged,
   type EditFormSnapshot,
   type EditAppointmentPayload,
 } from './addAppointmentSliderHelpers';
+import type { FixedBooking } from '../bookedItems';
+import { BookedItemsList } from './BookedItemsList';
 import CustomerSearchPicker from './CustomerSearchPicker';
 import { AssignmentReminderNote } from '../../services/components/AssignmentReminderNote';
 import type { Service as ManageSheetService } from '../../../shared/components/common/ManageServicesSheet/types';
 import type { Bundle as ManageSheetBundle } from '../../../shared/components/common/ManageBundlesSheet/types';
-import { formatDateInTimezone, getCalendarLocale, localCalendarDateFromDateKey, minSelectableCalendarDateForTimezone } from '../timezone';
+import { getCalendarLocale, localCalendarDateFromDateKey, minSelectableCalendarDateForTimezone } from '../timezone';
 import { toLocalDateString } from '../utils';
 import { validateDescription } from '../../../shared/utils/validation';
 import "./addAppointmentSliderPopover.css";
@@ -104,6 +114,10 @@ const initialForm: FormState = {
   notes: '',
   bookingSource: 'admin' as AppointmentBookingSource,
 };
+
+const noSelectedIds: number[] = [];
+
+type BookedDraftRow = { selection: BookedItemEdit; originalIndex?: number };
 
 // ─────────────────────────────────────────────────────────────
 // Constants
@@ -171,6 +185,9 @@ interface AppointmentItemRowProps {
   /** When true, the staff picker gets a soft "next step" pulse — only one row in
    *  the list should receive this at a time (the first one still unassigned). */
   isFirstUnassigned?: boolean;
+  showAssignmentReminder?: boolean;
+  /** Bundle or multi-item booking, or a started appointment: read-only contents and the people who may take it. */
+  fixed?: { content: React.ReactNode; allowedStaffIds: number[] | null; staffLocked?: boolean };
 }
 
 function AppointmentItemRow({
@@ -186,13 +203,15 @@ function AppointmentItemRow({
   assignmentsPath,
   onNavigateAway,
   isFirstUnassigned = false,
+  showAssignmentReminder = true,
+  fixed,
 }: AppointmentItemRowProps) {
   const { t } = useTranslation('assignments');
   const { t: tCal } = useTranslation('calendar');
   const serviceForRow = locationServices.find((s) => s.serviceId === item.serviceId);
   const bundleForRow = locationBundles.find((b) => b.bundleId === item.bundleId);
   const staffForRow = locationTeamMembers.find((t) => t.userId === item.staffUserId);
-  const allowedStaffIdsForRow = getItemAllowedStaffIds(item, locationServices, locationBundles);
+  const allowedStaffIdsForRow = fixed ? fixed.allowedStaffIds : getItemAllowedStaffIds(item, locationServices, locationBundles);
   const eligibleTeamMembersForRow = getEligibleTeamMembers(allowedStaffIdsForRow, locationTeamMembers);
   /** Nobody is assigned to this service/bundle here — it cannot be booked until
    *  someone is assigned on the Assignments page. */
@@ -261,9 +280,15 @@ function AppointmentItemRow({
     !staffPopoverOpen &&
     !closingAnimation;
 
+  // A booked-items list is several rows tall, so its person sits under it, right-aligned like a single row's picker.
+  const staffControlClass = fixed
+    ? "flex items-center justify-end gap-2 border-t border-border pt-3"
+    : "flex items-center gap-2 sm:shrink-0 sm:self-stretch w-full sm:w-auto";
+
   return (
     <div className="group rounded-lg border border-border bg-white dark:bg-surface hover:border-border-strong">
-      <div className="flex flex-col sm:flex-row sm:items-stretch gap-3 px-4 py-3">
+      <div className={cn("flex gap-3 px-4 py-3", fixed ? "flex-col" : "flex-col sm:flex-row sm:items-stretch")}>
+        {fixed ? (<div className="min-w-0">{fixed.content}</div>) : (
         <div className="flex-1 min-w-0 space-y-2">
           <div className="flex items-center gap-2 min-w-0">
             <span className="truncate text-sm font-medium text-foreground-1">{rowLabel}</span>
@@ -346,11 +371,31 @@ function AppointmentItemRow({
             </div>
           )}
         </div>
+        )}
         {/* No assignable team member: a picker would open onto an empty list
             and the X would float next to nothing, so the whole control row
             yields to the banner below, which carries both resolutions. */}
-        {!hasNoEligibleStaff && (
-        <div className="flex items-center gap-2 sm:shrink-0 sm:self-stretch w-full sm:w-auto">
+        {fixed?.staffLocked ? (
+        <div className={staffControlClass}>
+          {staffForRow ? (
+            <>
+              <PersonAvatar
+                key={staffForRow.userId}
+                id={staffForRow.userId}
+                firstName={staffForRow.firstName}
+                lastName={staffForRow.lastName}
+                profileImage={staffForRow.profileImage}
+                className="size-5"
+                initialsClassName="text-[9px] font-semibold"
+              />
+              <span className="text-sm text-foreground-2">{`${staffForRow.firstName} ${staffForRow.lastName}`}</span>
+            </>
+          ) : (
+            <span className="text-sm text-foreground-3 dark:text-foreground-2">{tCal('page.common.unassigned')}</span>
+          )}
+        </div>
+        ) : !hasNoEligibleStaff && (
+        <div className={staffControlClass}>
           <ResponsivePopover
               open={staffPopoverOpen}
               onOpenChange={handleStaffPopoverOpenChange}
@@ -428,6 +473,7 @@ function AppointmentItemRow({
                       </CommandList>
                     </Command>
             </ResponsivePopover>
+          {!fixed && (
           <Button
             type="button"
             variant="ghost"
@@ -439,10 +485,11 @@ function AppointmentItemRow({
           >
             <X className="h-4 w-4" />
           </Button>
+          )}
         </div>
         )}
       </div>
-      {hasNoEligibleStaff && (
+      {showAssignmentReminder && hasNoEligibleStaff && !fixed?.staffLocked && (
         <div className="px-3 pb-3">
           <AssignmentReminderNote
             text={tCal(isService
@@ -480,7 +527,7 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
   const saveInFlight = useSelector(getAddFormSaveInFlight);
   const reassignmentHoursOverrideOffer = useSelector(getReassignmentHoursOverrideOffer);
   const locationServices = useSelector(getLocationServices);
-  const allLocationTeamMembers = useSelector(getLocationTeamMembers);
+  const locationTeamMembers = useSelector(getLocationTeamMembers);
   const locationBundles = useSelector(getLocationBundles);
   const locationContext = useSelector(getLocationContext);
   const servicesLoading = useSelector(getLocationContextLoading);
@@ -488,16 +535,6 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
   const currentUser = useSelector(selectCurrentUser);
   const isTeamMember = useSelector(selectIsTeamMember);
   const businessCurrency = currentUser?.business?.businessCurrency ?? 'eur';
-
-  // Team members can only create/assign appointments for THEMSELVES, so the
-  // assignable-staff pool is just the current user (backend enforces the same).
-  const locationTeamMembers = useMemo(
-    () =>
-      isTeamMember && currentUser?.id != null
-        ? allLocationTeamMembers.filter((t) => t.userId === currentUser.id)
-        : allLocationTeamMembers,
-    [allLocationTeamMembers, isTeamMember, currentUser?.id],
-  );
 
   const pendingGroupSubmitRef = useRef<Parameters<typeof adminCreateAppointmentGroup.request>[0] | null>(null);
   const pendingUpdateRef = useRef<{
@@ -510,16 +547,18 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
   const [editInitialTime, setEditInitialTime] = useState('');
   /** Initial field values when opening edit (for dirty check + minimal PUT payload). */
   const [initialSchedule, setInitialSchedule] = useState<{
-    instant: Date;
+    wallDate: Date | null;
     editSnapshot: EditFormSnapshot | null;
   } | null>(null);
 
   /** Use ref first so reschedule always updates the appointment that was opened, even if prefill is later overwritten (e.g. by clicking a slot). */
   const editingAppointmentId = rescheduleAppointmentIdRef.current ?? prefill?.appointmentId ?? null;
   const isEditMode = editingAppointmentId !== null;
+  const appointmentCurrency = isEditMode ? prefill?.appointmentCurrency ?? businessCurrency : businessCurrency;
 
   /** When opening from a staff column click (not editing, no service pre-selected), filter services/bundles to only those the staff can perform. */
-  const prefillStaffFilter = (!isEditMode && prefill?.staffUserId && !prefill?.serviceId && !prefill?.bundleId)
+  const prefillStaffFilter = (!isEditMode && prefill?.staffUserId && !prefill?.serviceId && !prefill?.bundleId
+    && (!isTeamMember || prefill.staffUserId === currentUser?.id))
     ? prefill.staffUserId
     : null;
 
@@ -528,7 +567,9 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
   // Only dates picked by the user are stored in the draft. Derive the initial
   // day from the prefill after location context loads, without resetting inputs.
   const initialWallDate = useMemo(() => initialSchedule
-    ? localCalendarDateFromDateKey(formatDateInTimezone(initialSchedule.instant, calendarTimezone))
+    ? initialSchedule.wallDate
+      ? new Date(initialSchedule.wallDate.getFullYear(), initialSchedule.wallDate.getMonth(), initialSchedule.wallDate.getDate())
+      : minSelectableCalendarDateForTimezone(new Date(), calendarTimezone)
     : null, [calendarTimezone, initialSchedule]);
   const form = useMemo(() => draft.date || !initialWallDate ? draft : { ...draft, date: initialWallDate }, [draft, initialWallDate]);
   const editSnapshot = useMemo(() => initialSchedule?.editSnapshot && initialWallDate
@@ -545,6 +586,12 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
   const [isManageServicesSheetOpen, setIsManageServicesSheetOpen] = useState(false);
   const [isManageBundlesSheetOpen, setIsManageBundlesSheetOpen] = useState(false);
   const [appointmentItems, setAppointmentItems] = useState<AppointmentItem[]>([]);
+  const [fixedBooking, setFixedBooking] = useState<FixedBooking | null>(null);
+  const [editableBooking, setEditableBooking] = useState<AddFormPrefill['editableBooking']>();
+  const [bookedDraft, setBookedDraft] = useState<BookedDraftRow[]>([]);
+  const bookedItemEdits = useMemo(() => bookedDraft.map((row) => row.selection), [bookedDraft]);
+  const [replaceItemIndex, setReplaceItemIndex] = useState<number | null>(null);
+  const [startedLock, setStartedLock] = useState(false);
   const [hasReassignedStaff, setHasReassignedStaff] = useState(false);
   const [staffPickerActive, setStaffPickerActive] = useState(false);
   const dateFieldRef = useRef<HTMLDivElement>(null);
@@ -577,9 +624,8 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
         rescheduleAppointmentIdRef.current = null;
         setEditInitialTime('');
       }
-      const initialInstant = prefill?.date ?? new Date();
       setInitialSchedule({
-        instant: initialInstant,
+        wallDate: prefill?.date ?? null,
         editSnapshot: buildEditSnapshotFromPrefill(prefill, selectedLocationId),
       });
       setForm({
@@ -590,20 +636,15 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
         notes: prefill?.notes ?? '',
         bookingSource: (prefill?.bookingSource as AppointmentBookingSource) ?? ('admin' as AppointmentBookingSource),
       });
-      const prefillServiceId = prefill?.serviceId ?? null;
-      const prefillStaffId = prefill?.staffUserId ?? null;
-      const prefillBundleId = prefill?.bundleId ?? null;
-      if (prefillServiceId != null || prefillBundleId != null) {
-        setAppointmentItems([
-          {
-            serviceId: prefillServiceId ?? null,
-            bundleId: prefillBundleId,
-            staffUserId: prefillStaffId ?? null,
-          },
-        ]);
-      } else {
-        setAppointmentItems([]);
-      }
+      setAppointmentItems(getPrefillAppointmentItems(prefill));
+      setFixedBooking(prefill?.appointmentId != null ? (prefill.fixedBooking ?? null) : null);
+      setEditableBooking(prefill?.editableBooking);
+      setBookedDraft(prefill?.editableBooking?.items.map((_, bookedIndex) => ({
+        originalIndex: bookedIndex,
+        selection: { bookedIndex },
+      })) ?? []);
+      setReplaceItemIndex(null);
+      setStartedLock(prefill?.appointmentId != null && prefill?.startedLock === true);
       // Wipe slot state here rather than on close — the slot-fetching effect will
       // refill it based on the new prefill's date/service immediately after.
       setHasReassignedStaff(false);
@@ -641,9 +682,31 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
   }, [isEditMode, locationServices, locationBundles]);
 
   // Fetch available slots when the location, date, and assigned items are set.
+  const bookedItemsChanged = !!editableBooking && hasBookedItemChanges(bookedItemEdits, editableBooking.items);
+  const editStaffUserId = bookedItemsChanged && (editableBooking?.staffCount ?? 0) > 1 && !hasReassignedStaff
+    ? null
+    : (appointmentItems[0]?.staffUserId ?? null);
+  const editedDisplayItems = useMemo(() => editableBooking
+    ? getEditedBookingDisplayItems(bookedItemEdits, editableBooking.items, locationServices, locationBundles, editStaffUserId)
+    : [], [editableBooking, bookedItemEdits, locationServices, locationBundles, editStaffUserId]);
+  const editedTotals = useMemo(() => editableBooking
+    ? getEditedBookingTotals(editedDisplayItems)
+    : null, [editableBooking, editedDisplayItems]);
+  const editedAllowedStaffIds = useMemo(() => editableBooking && bookedItemsChanged
+    ? getEditedBookingAllowedStaffIds(bookedItemEdits, editableBooking.items, locationServices, locationBundles)
+    : null, [editableBooking, bookedItemsChanged, bookedItemEdits, locationServices, locationBundles]);
+  const editStaffIsEligible = editStaffUserId != null && (
+    !bookedItemsChanged || editedAllowedStaffIds == null || editedAllowedStaffIds.includes(editStaffUserId)
+  );
+  const keepsUnassignedAppointment = editableBooking?.staffCount === 0 &&
+    !bookedItemsChanged && editStaffUserId == null;
+  const bookedItemEdit = editableBooking && bookedItemsChanged
+    ? { items: bookedItemEdits, expectedUpdatedAt: editableBooking.expectedUpdatedAt, staffUserId: editStaffUserId }
+    : undefined;
   const estimatedDurationMinutes = useMemo(
-    () => getGroupTotalDurationMinutes(getGroupItemsForPayload(appointmentItems), locationServices, locationBundles),
-    [appointmentItems, locationServices, locationBundles],
+    () => editedTotals?.durationMinutes ?? fixedBooking?.durationMinutes ??
+      getGroupTotalDurationMinutes(getGroupItemsForPayload(appointmentItems), locationServices, locationBundles),
+    [appointmentItems, locationServices, locationBundles, editedTotals, fixedBooking],
   );
 
   const slotFetchItems = useMemo(() => {
@@ -664,7 +727,20 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
 
   const selectedDateKey = form.date ? toLocalDateString(form.date) : null;
   const slotRequest = useMemo<AvailableSlotsRequest | null>(() => {
-    if (!selectedLocationId || locationContext?.location.id !== selectedLocationId || !selectedDateKey || !slotFetchItems) return null;
+    if (startedLock) return null;
+    if (!selectedLocationId || locationContext?.location.id !== selectedLocationId || !selectedDateKey) return null;
+    if (fixedBooking || editableBooking) {
+      if ((!editStaffIsEligible && !keepsUnassignedAppointment) || estimatedDurationMinutes <= 0) return null;
+      return {
+        locationId: selectedLocationId,
+        date: selectedDateKey,
+        durationMinutes: estimatedDurationMinutes,
+        ...(editStaffUserId != null ? { staffUserId: editStaffUserId } : {}),
+        findNextAvailable: true,
+        ...(editingAppointmentId != null ? { rescheduleAppointmentId: editingAppointmentId } : {}),
+      };
+    }
+    if (!slotFetchItems) return null;
     return {
       locationId: selectedLocationId,
       date: selectedDateKey,
@@ -672,7 +748,8 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
       findNextAvailable: true,
       ...(editingAppointmentId != null ? { rescheduleAppointmentId: editingAppointmentId } : {}),
     };
-  }, [selectedLocationId, locationContext, selectedDateKey, slotFetchItems, editingAppointmentId]);
+  }, [selectedLocationId, locationContext, selectedDateKey, slotFetchItems, editingAppointmentId, fixedBooking,
+    editableBooking, editStaffIsEligible, editStaffUserId, keepsUnassignedAppointment, estimatedDurationMinutes, startedLock]);
 
   // Ignore a previous result immediately when the date or staff changes, not
   // just once the fetch effect has run and the next request is in flight.
@@ -855,7 +932,7 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
 
   const handleUpdateItemStaff = useCallback((index: number, staffUserId: number | null) => {
     const item = appointmentItems[index];
-    if (!item || item.staffUserId === staffUserId) return;
+    if (!item || (item.staffUserId === staffUserId && !(bookedItemsChanged && (editableBooking?.staffCount ?? 0) > 1))) return;
     setAppointmentItems((prev) => prev.map((item, itemIndex) => (
       itemIndex === index ? { ...item, staffUserId } : item
     )));
@@ -864,7 +941,7 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
     } else {
       setForm((prev) => ({ ...prev, time: '' }));
     }
-  }, [appointmentItems, isEditMode]);
+  }, [appointmentItems, isEditMode, bookedItemsChanged, editableBooking?.staffCount]);
 
   const handleRemoveItem = useCallback((index: number) => {
     setAppointmentItems((prev) => prev.filter((_, itemIndex) => itemIndex !== index));
@@ -889,6 +966,39 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
     });
     setIsManageBundlesSheetOpen(false);
   }, [locationBundles, prefillStaffFilter, getAutoStaffForBundle]);
+
+  const editedPickerServices = useMemo(() => servicesForSheet.filter((service) =>
+    !editedDisplayItems.some((item, index) => index !== replaceItemIndex && item.serviceId === service.id)),
+  [servicesForSheet, editedDisplayItems, replaceItemIndex]);
+  const editedPickerBundles = useMemo(() => bundlesForSheet.filter((bundle) =>
+    !editedDisplayItems.some((item, index) => index !== replaceItemIndex && item.bundleId === bundle.bundleId)),
+  [bundlesForSheet, editedDisplayItems, replaceItemIndex]);
+  const replaceItem = replaceItemIndex == null ? null : editedDisplayItems[replaceItemIndex];
+  const editServiceSelection = useMemo(() => replaceItem?.serviceId == null ? noSelectedIds : [replaceItem.serviceId], [replaceItem?.serviceId]);
+  const editBundleSelection = useMemo(() => replaceItem?.bundleId == null ? noSelectedIds : [replaceItem.bundleId], [replaceItem?.bundleId]);
+  const applyBookedChoices = (kind: 'service' | 'bundle', ids: number[]) => {
+    if (!ids.length) return;
+    const choices = ids.map((id): BookedItemEdit => kind === 'service' ? { serviceId: id } : { bundleId: id });
+    if (replaceItemIndex == null) {
+      setBookedDraft((rows) => [...rows, ...choices.map((selection) => ({ selection }))]);
+    } else if (ids[0] !== (kind === 'service' ? replaceItem?.serviceId : replaceItem?.bundleId)) {
+      setBookedDraft((rows) => rows.map((row, index) => {
+        if (index !== replaceItemIndex) return row;
+        const original = row.originalIndex == null ? null : editableBooking?.items[row.originalIndex];
+        const originalId = kind === 'service' ? original?.serviceId : original?.bundleId;
+        const selection = row.originalIndex != null && ids[0] === originalId
+          ? { bookedIndex: row.originalIndex }
+          : choices[0];
+        return { ...row, selection };
+      }));
+    }
+  };
+
+  const openBookedPicker = (kind: 'service' | 'bundle', index: number | null) => {
+    setReplaceItemIndex(index);
+    if (kind === 'service') setIsManageServicesSheetOpen(true);
+    else setIsManageBundlesSheetOpen(true);
+  };
 
   // ─────────────────────────────────────────────────────────────
   // Derived data
@@ -967,7 +1077,7 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
   }, [displayTimeSlots, isSlotOutsideHours, outOfHoursTimeSet, open247, currentSlotResponse]);
 
   const needsHoursOverride = useCallback((scheduledAt: Date) => {
-    if (slotStartsByTime.has(form.time)) return outOfHoursTimeSet.has(form.time);
+    if (slotStartsByTime.get(form.time) === scheduledAt.toISOString()) return outOfHoursTimeSet.has(form.time);
     return isTimeRangeOutsideWorkingHours(scheduledAt, slotDurationMinutes, dayWorkingHours, open247, calendarTimezone);
   }, [calendarTimezone, dayWorkingHours, form.time, open247, outOfHoursTimeSet, slotDurationMinutes, slotStartsByTime]);
 
@@ -984,8 +1094,10 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
   // ─────────────────────────────────────────────────────────────
 
   const allCreateItemsValid = useMemo(
-    () => appointmentItems.length > 0 && appointmentItems.every((item) => isValidAppointmentItem(item)),
-    [appointmentItems],
+    () => editableBooking ? bookedItemEdits.length > 0 && (editStaffIsEligible || keepsUnassignedAppointment)
+      : fixedBooking ? allItemsHaveStaff(appointmentItems)
+        : appointmentItems.length > 0 && appointmentItems.every((item) => isValidAppointmentItem(item)),
+    [appointmentItems, editableBooking, bookedItemEdits.length, editStaffIsEligible, fixedBooking, keepsUnassignedAppointment],
   );
 
   const isDirty = useMemo(() => {
@@ -994,11 +1106,12 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
     if (form.time !== editSnapshot.time) return true;
     if (form.notes.trim() !== editSnapshot.notes.trim()) return true;
     if (selectedLocationId !== editSnapshot.locationId) return true;
+    if (bookedItemsChanged) return true;
     const editItem = appointmentItems.find((item) => item.serviceId != null);
     if ((editItem?.serviceId ?? null) !== editSnapshot.serviceId) return true;
     if (hasItemStaffChanged(appointmentItems, editSnapshot)) return true;
     return false;
-  }, [isEditMode, editSnapshot, form.date, form.time, form.notes, selectedLocationId, appointmentItems]);
+  }, [isEditMode, editSnapshot, form.date, form.time, form.notes, selectedLocationId, appointmentItems, bookedItemsChanged]);
 
   /** True when staff/service/location/date/time differ from snapshot (excludes notes). Used to narrow edit-mode slot bypasses. */
   const hasSchedulingFieldChanged = useMemo(() => {
@@ -1006,23 +1119,28 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
     if (form.date?.toDateString() !== editSnapshot.date?.toDateString()) return true;
     if (form.time !== editSnapshot.time) return true;
     if (selectedLocationId !== editSnapshot.locationId) return true;
+    if (bookedItemsChanged) return true;
     const editItem = appointmentItems.find((item) => item.serviceId != null);
     if ((editItem?.serviceId ?? null) !== editSnapshot.serviceId) return true;
     if (hasItemStaffChanged(appointmentItems, editSnapshot)) return true;
     return false;
-  }, [isEditMode, editSnapshot, form.date, form.time, selectedLocationId, appointmentItems]);
+  }, [isEditMode, editSnapshot, form.date, form.time, selectedLocationId, appointmentItems, bookedItemsChanged]);
 
   // A previous staff member's response must not enable Save or trigger the pulse.
   const reassignmentAvailabilityReady = currentSlotResponse != null && !slotsPending && !slotFetchError;
+  const keepsBookedStart = !!editableBooking && editSnapshot?.date != null && form.time === editSnapshot.time &&
+    selectedDateKey === toLocalDateString(editSnapshot.date);
   const isTimeInAvailableSlots = useMemo(() => {
     if (form.time === '') return false;
     if (isEditMode && editInitialTime !== '' && form.time === editInitialTime && !hasSchedulingFieldChanged) return true;
+    // The original start may be off the slot grid or blocked; validate it through the normal save.
+    if (bookedItemsChanged && keepsBookedStart) return reassignmentAvailabilityReady;
     if (hasReassignedStaff && !reassignmentAvailabilityReady) return false;
     if (!currentSlotResponse) return false;
     return displayTimeSlots.includes(form.time);
   }, [
     currentSlotResponse, displayTimeSlots, form.time, isEditMode, editInitialTime,
-    hasSchedulingFieldChanged, hasReassignedStaff, reassignmentAvailabilityReady,
+    hasSchedulingFieldChanged, hasReassignedStaff, reassignmentAvailabilityReady, bookedItemsChanged, keepsBookedStart,
   ]);
   const isScheduledInPast = useMemo(() => {
     const scheduled = getSlotStart(form.time);
@@ -1046,8 +1164,9 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
     return scheduled !== null && doesTimeRangeSpanMidnight(scheduled, slotDurationMinutes, calendarTimezone);
   }, [form.date, form.time, getSlotStart, calendarTimezone, slotDurationMinutes]);
   const totalPrice = useMemo(
-    () => getGroupTotalPriceMajor(appointmentItems, locationServices, locationBundles),
-    [appointmentItems, locationServices, locationBundles],
+    () => editedTotals?.priceMajor ?? (fixedBooking ? fixedBooking.priceMinor / 100
+      : getGroupTotalPriceMajor(appointmentItems, locationServices, locationBundles)),
+    [appointmentItems, locationServices, locationBundles, fixedBooking, editedTotals],
   );
   const selectedServicesCount = useMemo(
     () => appointmentItems.filter((item) => item.serviceId != null).length,
@@ -1072,14 +1191,17 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
   // When we switch to showing only available slots, clear time if current selection is not in the list
   useEffect(() => {
     // Reassignment keeps the existing choice so we can revalidate it for another staff member.
-    if (hasReassignedStaff) return;
+    if (hasReassignedStaff || (bookedItemsChanged && keepsBookedStart)) return;
     if (!slotsPending && currentSlotResponse?.availableSlots.length && form.time && !displayTimeSlots.includes(form.time)) {
       if (isEditMode && editInitialTime !== '' && form.time === editInitialTime && !hasSchedulingFieldChanged) return;
       setForm((prev) => ({ ...prev, time: '' }));
     }
-  }, [slotsPending, currentSlotResponse, displayTimeSlots, form.time, isEditMode, editInitialTime, hasSchedulingFieldChanged, hasReassignedStaff]);
+  }, [slotsPending, currentSlotResponse, displayTimeSlots, form.time, isEditMode, editInitialTime,
+    hasSchedulingFieldChanged, hasReassignedStaff, bookedItemsChanged, keepsBookedStart]);
 
-  const canSubmit =
+  const canSubmit = startedLock ? (
+    form.date !== null && selectedLocationId !== null && !notesError && isDirty
+  ) : (
     form.date !== null &&
     form.time !== '' &&
     selectedLocationId !== null &&
@@ -1088,18 +1210,20 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
     !durationExceedsOneDay &&
     isTimeInAvailableSlots &&
     (allowSubmitWhileSlotsLoading || !slotsPending) &&
-    allCreateItemsValid &&
+    (allCreateItemsValid || (isEditMode && !hasSchedulingFieldChanged)) &&
     !notesError &&
-    (!isEditMode || isDirty);
+    (!isEditMode || isDirty)
+  );
 
   const reassignmentOverride = (() => {
     const offer = reassignmentHoursOverrideOffer;
-    if (!isOpen || !offer || offer.appointmentId !== editingAppointmentId || !editSnapshot) return null;
+    if (!isOpen || !offer || offer.appointmentId !== editingAppointmentId || !editSnapshot || bookedItemsChanged) return null;
     const scheduledDate = getSlotStart(form.time);
     if (!scheduledDate) return null;
     // Ignore a late response if the user has edited the form since pressing Save.
     const draft = buildMinimalEditAppointmentPayload({
       snapshot: editSnapshot, form, appointmentItems, selectedLocationId, scheduledDate,
+      contentFixed: fixedBooking != null,
     });
     return draft.scheduledAt === undefined && draft.serviceId === undefined &&
       draft.locationId === undefined && draft.notes === offer.notes &&
@@ -1174,6 +1298,7 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
     setError(null);
     const reason = overrideReasonText.trim() || undefined;
     try {
+      dispatch(beginAddFormCloseAfterMutations(1));
       dispatch(adminCreateAppointmentGroup.request({
         ...pending,
         overrideReason: reason,
@@ -1182,13 +1307,12 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
       setConfirmOpen(false);
       setConfirmReason(null);
       setOverrideReasonText('');
-      onClose();
     } catch {
       setError(t('page.appointments.add.failedToCreate'));
     } finally {
       setSubmitting(false);
     }
-  }, [dispatch, onClose, overrideReasonText, t]);
+  }, [dispatch, overrideReasonText, t]);
 
   const handleConfirmOverrides = useCallback(() => {
     if (reassignmentOverride) {
@@ -1222,9 +1346,7 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
       scheduledDate: Date | null,
       payload: EditAppointmentPayload,
     ) => {
-      const hasScheduledAt = payload.scheduledAt != null;
       const isOutOfHours =
-        hasScheduledAt &&
         scheduledDate != null &&
         needsHoursOverride(scheduledDate);
       if (isOutOfHours) {
@@ -1280,8 +1402,8 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
       }
       setSubmitting(true);
       try {
+        dispatch(beginAddFormCloseAfterMutations(1));
         dispatch(adminCreateAppointmentGroup.request(groupPayload));
-        onClose();
       } catch {
         setError(t('page.appointments.add.failedToCreate'));
       } finally {
@@ -1295,7 +1417,6 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
       needsHoursOverride,
       openConfirmDialog,
       dispatch,
-      onClose,
     ],
   );
 
@@ -1307,7 +1428,9 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
 
     setError(null);
 
-    const scheduledDate = getSlotStart(form.time);
+    const scheduledDate = editableBooking && keepsBookedStart
+      ? new Date(editableBooking.scheduledAt)
+      : getSlotStart(form.time);
     if (!scheduledDate) return;
     const editScheduleUnchanged =
       isEditMode &&
@@ -1330,7 +1453,7 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
       setError(t('page.appointments.add.minimumNoticeRequired', { count: minAdvanceMs / 60_000 }));
       return;
     }
-    if (doesTimeRangeSpanMidnight(scheduledDate, slotDurationMinutes, calendarTimezone)) {
+    if ((!isEditMode || hasSchedulingFieldChanged) && doesTimeRangeSpanMidnight(scheduledDate, slotDurationMinutes, calendarTimezone)) {
       setError(t('page.appointments.add.spansTwoDays'));
       return;
     }
@@ -1339,7 +1462,7 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
 
     if (isEditMode && editingAppointmentId) {
       const editItem = appointmentItems.find((item) => item.serviceId != null);
-      if (!editItem?.serviceId) {
+      if (!editableBooking && !fixedBooking && !editItem?.serviceId) {
         setError(t('page.appointments.add.selectServiceFirst'));
         return;
       }
@@ -1353,12 +1476,14 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
         appointmentItems,
         selectedLocationId,
         scheduledDate,
+        contentFixed: fixedBooking != null,
+        bookedItemEdit,
       });
       if (Object.keys(payload).length === 0) {
         return;
       }
       const scheduledForOoh =
-        payload.scheduledAt != null ? scheduledDate : null;
+        payload.scheduledAt != null || payload.items !== undefined ? scheduledDate : null;
       submitEdit(scheduledForOoh, payload);
       return;
     }
@@ -1366,8 +1491,10 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
     submitGroupCreate(scheduledDate);
   };
 
-  const hasSelectedAnyItem = appointmentItems.length > 0;
-  const isStaffReadyForSlots = allItemsHaveStaff(appointmentItems);
+  const hasSelectedAnyItem = editableBooking ? bookedItemEdits.length > 0 : appointmentItems.length > 0;
+  const isStaffReadyForSlots = editableBooking
+    ? hasSelectedAnyItem && (editStaffIsEligible || keepsUnassignedAppointment)
+    : allItemsHaveStaff(appointmentItems);
   const canSelectDateTime = isStaffReadyForSlots && !durationExceedsOneDay;
   const locationToday = minSelectableCalendarDateForTimezone(new Date(now), calendarTimezone);
   const suggestedDate = nextAvailableDate ? localCalendarDateFromDateKey(nextAvailableDate) : null;
@@ -1418,15 +1545,37 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
     return () => cancelAnimationFrame(frame);
   }, [scheduleAttention, staffPickerActive]);
 
-  /** At least one selected item has nobody assigned to it at this location, so
-   *  it can never get a staff member here — the fix lives on Assignments. */
+  const hasNoEligibleStaffForEdit = editedAllowedStaffIds != null &&
+    getEligibleTeamMembers(editedAllowedStaffIds, locationTeamMembers).length === 0;
   const hasItemWithoutEligibleStaff = useMemo(
-    () => appointmentItems.some((item) => {
-      const allowed = getItemAllowedStaffIds(item, locationServices, locationBundles);
-      return allowed != null && getEligibleTeamMembers(allowed, locationTeamMembers).length === 0;
-    }),
-    [appointmentItems, locationServices, locationBundles, locationTeamMembers],
+    () => {
+      if (editableBooking) {
+        if (!hasNoEligibleStaffForEdit || isTeamMember) return false;
+        return bookedItemEdits.some((edit) => {
+          const allowed = getEditedBookingAllowedStaffIds([edit], editableBooking.items, locationServices, locationBundles);
+          return allowed != null && getEligibleTeamMembers(allowed, locationTeamMembers).length === 0;
+        });
+      }
+      return appointmentItems.some((item) => {
+        const allowed = getItemAllowedStaffIds(item, locationServices, locationBundles);
+        return allowed != null && getEligibleTeamMembers(allowed, locationTeamMembers).length === 0;
+      });
+    },
+    [appointmentItems, editableBooking, hasNoEligibleStaffForEdit, isTeamMember, bookedItemEdits,
+      locationServices, locationBundles, locationTeamMembers],
   );
+  const staffRequiredMessageKey = hasItemWithoutEligibleStaff
+    ? 'page.appointments.add.lockedNeedAssignments'
+    : hasNoEligibleStaffForEdit
+      ? (isTeamMember ? 'page.appointments.add.lockedNeedYourAssignments' : 'page.appointments.add.lockedNeedCommonStaff')
+      : 'page.appointments.add.lockedNeedStaff';
+  const bookedStaffUserId = editSnapshot?.itemStaffMap[0]?.staffUserId ?? null;
+  const fixedAllowedStaffIds = useMemo(() => {
+    if (!fixedBooking) return null;
+    const ids = getFixedBookingAllowedStaffIds(fixedBooking.items, locationServices, locationBundles, bookedStaffUserId);
+    // Nobody on the list can be picked here: show the whole team, the API checks on save.
+    return ids != null && !locationTeamMembers.some((m) => ids.includes(m.userId)) ? null : ids;
+  }, [fixedBooking, locationServices, locationBundles, locationTeamMembers, bookedStaffUserId]);
 
   const assignmentsPath = selectedLocationId != null
     ? `/assignments?locationId=${selectedLocationId}`
@@ -1497,17 +1646,32 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
             <div className="space-y-5">
               <SliderSectionHeader
                 title={
-                  isEditMode
+                  fixedBooking || editableBooking ? t('page.appointments.add.bookedTitle') : isEditMode
                     ? t('page.appointments.add.service')
                     : t('page.appointments.add.servicesAndBundles')
                 }
                 description={
-                  isEditMode
+                  startedLock ? t('page.appointments.add.startedDesc') : editableBooking ? undefined
+                    : fixedBooking ? t('page.appointments.add.bookedDesc') : isEditMode
                     ? t('page.appointments.add.serviceDesc')
                     : t('page.appointments.add.servicesAndBundlesDesc')
                 }
               />
-              {!isEditMode && locationBundles.length > 0 ? (
+              {editableBooking ? (
+                <div className="flex flex-wrap gap-2">
+                  <Button type="button" variant="outline" rounded="full" disabled={servicesLoading || !locationServices.length}
+                    onClick={() => openBookedPicker('service', null)}>
+                    <Plus aria-hidden className="size-3.5" />
+                    {t('page.appointments.add.addServices')}
+                  </Button>
+                  {locationBundles.length > 0 && (
+                    <Button type="button" variant="outline" rounded="full" onClick={() => openBookedPicker('bundle', null)}>
+                      <Plus aria-hidden className="size-3.5" />
+                      {t('page.appointments.add.addBundles')}
+                    </Button>
+                  )}
+                </div>
+              ) : fixedBooking ? null : !isEditMode && locationBundles.length > 0 ? (
                 <div className="w-full flex items-center gap-2">
                   <Button
                     type="button"
@@ -1567,40 +1731,46 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
               <ManageServicesSheet
                 isOpen={isManageServicesSheetOpen}
                 onClose={() => setIsManageServicesSheetOpen(false)}
-                allServices={servicesForSheet}
-                initialSelectedIds={selectedServiceIds}
-                mode={isEditMode ? 'single' : 'multi'}
-                onSelect={handleSelectSingleService}
+                allServices={editableBooking ? editedPickerServices : servicesForSheet}
+                initialSelectedIds={editableBooking ? editServiceSelection : selectedServiceIds}
+                mode={editableBooking ? (replaceItemIndex == null ? 'multi' : 'single') : isEditMode ? 'single' : 'multi'}
+                onSelect={editableBooking ? (serviceId) => {
+                  applyBookedChoices('service', [serviceId]);
+                  setIsManageServicesSheetOpen(false);
+                } : handleSelectSingleService}
                 onApply={(serviceIds) => {
-                  applySelectedServices(serviceIds);
+                  if (editableBooking) applyBookedChoices('service', serviceIds);
+                  else applySelectedServices(serviceIds);
                   setIsManageServicesSheetOpen(false);
                 }}
-                title={isEditMode ? t('page.appointments.add.selectService') : t('page.appointments.add.selectServices')}
-                subtitle={isEditMode ? t('page.appointments.add.selectServiceDesc') : t('page.appointments.add.selectServicesDesc')}
+                title={isEditMode && (!editableBooking || replaceItemIndex != null) ? t('page.appointments.add.selectService') : t('page.appointments.add.selectServices')}
+                subtitle={isEditMode && (!editableBooking || replaceItemIndex != null) ? t('page.appointments.add.selectServiceDesc') : t('page.appointments.add.selectServicesDesc')}
                 expandAllCategories={true}
               />
-              {!isEditMode && locationBundles.length > 0 && (
+              {(!isEditMode || editableBooking) && locationBundles.length > 0 && (
                 <ManageBundlesSheet
                   isOpen={isManageBundlesSheetOpen}
                   onClose={() => setIsManageBundlesSheetOpen(false)}
-                  allBundles={bundlesForSheet}
-                  initialSelectedIds={selectedBundleIds}
-                  onApply={handleApplyBundleIds}
-                  title={t('page.appointments.add.selectBundles')}
-                  subtitle={t('page.appointments.add.selectBundlesDesc')}
+                  allBundles={editableBooking ? editedPickerBundles : bundlesForSheet}
+                  initialSelectedIds={editableBooking ? editBundleSelection : selectedBundleIds}
+                  mode={editableBooking && replaceItemIndex != null ? 'single' : 'multi'}
+                  onApply={editableBooking ? (ids) => applyBookedChoices('bundle', ids) : handleApplyBundleIds}
+                  title={editableBooking && replaceItemIndex != null ? t('page.appointments.add.selectBundle') : t('page.appointments.add.selectBundles')}
+                  subtitle={editableBooking && replaceItemIndex != null ? undefined : t('page.appointments.add.selectBundlesDesc')}
                 />
               )}
 
-              {appointmentItems.length === 0 ? (
+              {!hasSelectedAnyItem ? (
                 <div className="p-3 rounded-lg bg-surface-hover text-foreground-3 dark:text-foreground-2 text-sm">
                   {/* Two whole sentences rather than one built by concatenation:
                       the clause order differs by language. */}
-                  {!isEditMode && locationBundles.length > 0
+                  {(!isEditMode || editableBooking) && locationBundles.length > 0
                     ? t('page.appointments.add.emptyPromptServicesAndBundles')
                     : t('page.appointments.add.emptyPromptServices')}
                 </div>
               ) : (
                 <div className="space-y-3">
+                  {!fixedBooking && !editableBooking && (
                   <div className="flex items-center gap-2 flex-wrap">
                     {selectedServicesCount > 0 && (
                       <Badge
@@ -1627,6 +1797,7 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
                       </Badge>
                     )}
                   </div>
+                  )}
                   {(() => {
                     // Track which row is the "next step" to draw attention to —
                     // the first item without an assigned staff. Only one row
@@ -1640,18 +1811,57 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
                     return appointmentItems.map((item, idx) => (
                       <AppointmentItemRow
                         key={`${item.serviceId ?? 'b'}-${item.bundleId ?? 's'}-${idx}`}
-                        item={item}
+                        item={editableBooking ? { ...item, staffUserId: editStaffUserId } : item}
                         index={idx}
                         locationServices={locationServices}
                         locationBundles={locationBundles}
                         locationTeamMembers={locationTeamMembers}
-                        currency={businessCurrency}
+                        currency={appointmentCurrency}
                         onUpdateStaff={handleUpdateItemStaff}
                         onStaffPickerActiveChange={isEditMode ? setStaffPickerActive : undefined}
                         onRemoveItem={handleRemoveItem}
                         assignmentsPath={assignmentsPath}
                         onNavigateAway={onClose}
+                        showAssignmentReminder={!editableBooking}
                         isFirstUnassigned={idx === firstUnassignedIdx}
+                        fixed={editableBooking ? {
+                          content: (
+                            <BookedItemsList items={editedDisplayItems} currency={appointmentCurrency}
+                              renderActions={(booked, index) => (
+                                <DropdownMenu modal={false}>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button type="button" variant="ghost" rounded="full" size="icon"
+                                      aria-label={t('page.appointments.add.editBookedItem', { name: booked.name || t('page.appointments.add.unknownItem') })}>
+                                      <Ellipsis aria-hidden className="size-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end" className="pointer-events-auto z-90">
+                                    {locationServices.length > 0 && (
+                                      <DropdownMenuItem onSelect={() => openBookedPicker('service', index)}>
+                                        {t('page.appointments.add.replaceWithService')}
+                                      </DropdownMenuItem>
+                                    )}
+                                    {locationBundles.length > 0 && (
+                                      <DropdownMenuItem onSelect={() => openBookedPicker('bundle', index)}>
+                                        {t('page.appointments.add.replaceWithBundle')}
+                                      </DropdownMenuItem>
+                                    )}
+                                    <DropdownMenuItem onSelect={() => setBookedDraft((rows) => rows.filter((_, position) => position !== index))}>
+                                      {t('page.appointments.add.removeBookedItem')}
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              )}
+                            />
+                          ),
+                          allowedStaffIds: bookedItemsChanged ? editedAllowedStaffIds : fixedBooking ? fixedAllowedStaffIds
+                            : getItemAllowedStaffIds(item, locationServices, locationBundles),
+                          staffLocked: isTeamMember && !((editableBooking.staffCount > 1 || editableBooking.staffCount === 0) && bookedItemsChanged),
+                        } : fixedBooking ? {
+                          content: <BookedItemsList items={fixedBooking.items} currency={appointmentCurrency} />,
+                          allowedStaffIds: fixedAllowedStaffIds,
+                          staffLocked: startedLock,
+                        } : undefined}
                       />
                     ));
                   })()}
@@ -1662,7 +1872,7 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
                     <div className="flex items-center gap-3 text-sm text-foreground-2">
                       <PriceDisplay
                         amountDecimal={totalPrice}
-                        currency={businessCurrency}
+                        currency={appointmentCurrency}
                         className="gap-1 font-semibold text-foreground-1"
                         iconClassName="h-3.5 w-3.5 text-foreground-1"
                       />
@@ -1687,21 +1897,37 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
             <div className="space-y-5">
               <SliderSectionHeader
                 title={t('page.appointments.add.dateAndTime')}
-                description={t('page.appointments.add.dateAndTimeDesc')}
+                description={startedLock ? undefined : t('page.appointments.add.dateAndTimeDesc')}
               />
+              {startedLock ? (
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-foreground-1">{form.date?.toLocaleDateString(getCalendarLocale(), { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                  {form.time && (
+                    <p className="text-sm text-foreground-2">
+                      {formatSlotTime(form.time)} – {formatSlotTime(getEndTimeString(form.time, durationMinutes))} · {durationMinutes} min
+                    </p>
+                  )}
+                </div>
+              ) : (<>
               {!hasSelectedAnyItem && (
                 <div className="p-3 rounded-lg bg-surface-hover text-foreground-3 dark:text-foreground-2 text-sm">
                   {t('page.appointments.add.lockedNeedItems')}
                 </div>
               )}
               {hasSelectedAnyItem && !isStaffReadyForSlots && (
-                <div className="p-3 rounded-lg bg-surface-hover text-foreground-3 dark:text-foreground-2 text-sm">
-                  {/* Asking for a staff pick is useless when an item has none to
-                      pick from — point at Assignments instead. */}
-                  {hasItemWithoutEligibleStaff
-                    ? t('page.appointments.add.lockedNeedAssignments')
-                    : t('page.appointments.add.lockedNeedStaff')}
-                </div>
+                editableBooking && hasItemWithoutEligibleStaff ? (
+                  <AssignmentReminderNote
+                    text={t('page.appointments.add.lockedNeedEditedItemAssignments')}
+                    linkLabel={t('page.appointments.add.assignmentsLink')}
+                    to={assignmentsPath}
+                    onNavigate={onClose}
+                    tone="warning"
+                  />
+                ) : (
+                  <div className="p-3 rounded-lg bg-surface-hover text-foreground-3 dark:text-foreground-2 text-sm">
+                    {t(staffRequiredMessageKey)}
+                  </div>
+                )
               )}
 
               {hasSelectedAnyItem && isStaffReadyForSlots && durationExceedsOneDay && (
@@ -1723,6 +1949,7 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
                     value={form.date}
                     onChange={handleDateChange}
                     triggerId="appointment-date"
+                    disabled={!canSelectDateTime}
                     invalid={scheduleAttention === 'date'}
                     minDate={locationToday}
                     today={locationToday}
@@ -1925,6 +2152,12 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
                   ({durationMinutes} min)
                 </div>
               )}
+              {isSpanMidnight && !durationExceedsOneDay && (
+                <p className="text-sm text-destructive" role="status">
+                  {t('page.appointments.add.spansTwoDays')}
+                </p>
+              )}
+              </>)}
             </div>
 
             {/* ── Booking Source Section (create only) ── */}

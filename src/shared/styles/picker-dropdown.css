@@ -1,0 +1,35 @@
+@keyframes add-appointment-popover-expand {
+  from {
+    transform: scaleY(0);
+    opacity: 0.85;
+  }
+  to {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+
+@keyframes add-appointment-popover-collapse {
+  from {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+  to {
+    transform: scaleY(0);
+    opacity: 0.85;
+  }
+}
+
+.add-appointment-popover-expand {
+  overflow: hidden;
+}
+
+.add-appointment-popover-expand[data-state="open"] {
+  animation: add-appointment-popover-expand 0.25s ease-out both !important;
+  transform-origin: top !important;
+}
+
+.add-appointment-popover-expand[data-state="closed"] {
+  animation: add-appointment-popover-collapse 0.25s ease-out both !important;
+  transform-origin: top !important;
+}

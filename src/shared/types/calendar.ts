@@ -34,6 +34,12 @@ export interface BookingItemSnapshot {
   }>;
 }
 
+/** One line in the revised booking, in the order it will be performed. */
+export type BookedItemEdit =
+  | { bookedIndex: number }
+  | { serviceId: number }
+  | { bundleId: number };
+
 export interface Appointment {
   id: number,
   /** Linked user when present; null for some walk-ins / manual bookings. */
@@ -51,6 +57,8 @@ export interface Appointment {
    * run. Null for single-item service/bundle appointments (use service/bundle).
    */
   bookingItemsSnapshot?: BookingItemSnapshot[] | null;
+  /** For a single-bundle appointment: the services inside the bundle at booking time. */
+  bundleServicesSnapshot?: NonNullable<BookingItemSnapshot["bundleServices"]> | null;
   /** Display name from booking (e.g. service or bundle name at book time). */
   bookedItemName?: string | null;
   location: {
@@ -66,6 +74,7 @@ export interface Appointment {
   status: string,
   notes: string,
   price: number,
+  currency?: string,
   cancellationReason: string,
   createdAt: Date,
   updatedAt: Date,
@@ -192,6 +201,8 @@ export interface LocationContextData {
   };
   staff: CalendarStaffMember[];
   bookingSettings: CalendarBookingSettings;
+  /** SMS switch is on and at least one credit is left. */
+  smsAvailable?: boolean;
   /** Set when backend extends location-context with assignment data (services + team per location). */
   services?: LocationContextService[];
   teamMembers?: LocationContextTeamMember[];
@@ -241,6 +252,7 @@ export interface SlimAppointment {
   bookedItemName: string;
   duration: number;
   staffUserIds: number[];
+  bookedRequirements?: { serviceIds: number[]; bundleIds: number[] };
   /** Names of the assigned staff (POST /calendar/day and /week), including people no longer on the team. */
   staffNames?: AppointmentStaffName[];
   /** Null when no customer was linked at booking time. Use bookingSource + this to derive display label. */
@@ -268,6 +280,7 @@ export interface CalendarDisplayBlock {
   status: string;
   label: string;
   duration: number;
+  bookedRequirements?: SlimAppointment["bookedRequirements"];
   staffUserIds: number[];
   /** Null when no customer was linked at booking time. */
   customerName: string | null;
@@ -341,8 +354,8 @@ export interface CalendarBlockUpdatePayload {
   endsAt?: string;
   isAllDay?: boolean;
   reason?: CalendarBlockReason;
-  title?: string;
-  notes?: string;
+  title?: string | null;
+  notes?: string | null;
   isRecurring?: boolean;
   repeatFrequency?: 'daily' | 'weekly' | 'biweekly' | 'monthly';
   repeatDaysOfWeek?: number[];
@@ -386,6 +399,7 @@ export interface AdminCreateGroupAppointmentPayload {
   bookingSource?: AppointmentBookingSource;
   overrideConflicts?: boolean;
   allowOutOfHours?: boolean;
+  allowCustomerOverlap?: boolean;
   overrideReason?: string;
 }
 

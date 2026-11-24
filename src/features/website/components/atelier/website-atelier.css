@@ -3051,7 +3051,7 @@ a.atelier-brand-address:hover {
   .atelier-preview-dialog-title--mobile {
     position: absolute;
     top: env(safe-area-inset-top);
-    right: 112px;
+    right: 64px;
     left: 64px;
     display: grid;
     height: 52px;
@@ -3062,78 +3062,6 @@ a.atelier-brand-address:hover {
     font-weight: 500;
     letter-spacing: 0.01em;
     text-align: center;
-  }
-
-  .atelier-preview-dialog-controls--mobile {
-    z-index: 1;
-    margin-left: auto;
-  }
-
-  .atelier-preview-mobile-devices {
-    position: relative;
-    isolation: isolate;
-    border: 0 !important;
-    border-radius: 11px !important;
-    background: rgb(250 248 243 / 12%) !important;
-    box-shadow: inset 0 0 0 1px rgb(250 248 243 / 8%);
-    padding: 2px !important;
-  }
-
-  .atelier-preview-mobile-devices button {
-    position: relative;
-    width: 38px !important;
-    height: 34px !important;
-    min-height: 34px !important;
-    border-radius: 9px !important;
-    color: rgb(237 234 226 / 78%) !important;
-    transition: background-color 160ms ease, color 160ms ease, transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
-  }
-
-  .atelier-preview-mobile-devices button:active {
-    transform: scale(0.96);
-  }
-
-  /* Hit-slop only — the 52px header has no room for a 44px-tall chip without crowding the title, so the
-     visible chip is smaller than the tap target: this pseudo restores it to spec. */
-  .atelier-preview-mobile-devices button::before {
-    position: absolute;
-    inset: -5px -6px;
-    content: "";
-  }
-
-  .atelier-preview-mobile-devices button[aria-pressed="true"] {
-    background: #edeae2 !important;
-    color: #161512 !important;
-    box-shadow: 0 1px 2px rgb(0 0 0 / 30%);
-  }
-
-  /* iOS segmented control: one thumb glides between the two segments instead of each button's fill
-     teleporting. The static per-button fill above stays as the fallback for engines without :has(). */
-  @supports selector(:has(*)) {
-    .atelier-preview-mobile-devices::after {
-      content: "";
-      position: absolute;
-      top: 2px;
-      left: 2px;
-      z-index: 0;
-      width: 38px;
-      height: 34px;
-      border-radius: 9px;
-      background: #edeae2;
-      box-shadow: 0 1px 2px rgb(0 0 0 / 30%);
-      /* 38px segment + 2px gap */
-      transition: transform 240ms cubic-bezier(0.32, 0.72, 0, 1);
-    }
-    .atelier-preview-mobile-devices:has(> button:nth-of-type(2)[aria-pressed="true"])::after {
-      transform: translateX(40px);
-    }
-    .atelier-preview-mobile-devices button {
-      z-index: 1;
-    }
-    .atelier-preview-mobile-devices button[aria-pressed="true"] {
-      background: transparent !important;
-      box-shadow: none;
-    }
   }
 
   /* Matches the app's real DialogClose convention (dialog.tsx): a naked icon, no chip/ring/background —
@@ -3242,7 +3170,7 @@ a.atelier-brand-address:hover {
   .atelier-preview-edge-gesture-margin--left { left: 0; }
   .atelier-preview-edge-gesture-margin--right { right: 0; }
 
-  /* Re-arming (device toggle) must be instant — only the lift fades. */
+  /* Re-arming (a width change) must be instant — only the lift fades. */
   .atelier-preview-curtain[data-state="held"] {
     transition: none;
   }
@@ -3250,18 +3178,6 @@ a.atelier-brand-address:hover {
   .atelier-preview-compact-frame[data-curtain] .mc-root,
   .atelier-preview-compact-frame[data-curtain] .mc-root * {
     animation-play-state: paused !important;
-  }
-
-  /* Desktop mock = a LOOK preview: all CSS choreography (menu open/close, entrance reveals, frost eases)
-     jump-cuts — the same freeze the static thumbnails use. On this class of phone GPU (~45MB tile budget)
-     any animation over the 1280px page re-rasterises more than the budget holds and checkerboards; menus
-     still open and close, instantly. JS engines settle via PreviewAtRestContext; this covers the CSS side. */
-  .atelier-preview-at-rest .mc-root,
-  .atelier-preview-at-rest .mc-root * {
-    animation: none !important;
-    transition: none !important;
-    /* Drop layer promotion too: will-change layers rasterise at native size under the mock's scale. */
-    will-change: auto !important;
   }
 
   .atelier-preview-dialog-page {

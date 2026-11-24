@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { useSelector } from "react-redux";
 import {
   getDayAppointments,
+  getCanViewTeamCalendar,
   getDayDisplayBlocks,
   getDayBlocks,
   getDayDataLoading,
@@ -41,7 +42,7 @@ import {
   isTimeRangeOutsideWorkingHours,
   clampBlockToViewDay,
 } from "../../workingHours.ts";
-import { getMinutesInTimezone, formatDateInTimezone, buildZonedDateFromDateKey } from "../../timezone.ts";
+import { getMinutesInTimezone, formatDateInTimezone, buildZonedDateFromDateKey, wallDateKey } from "../../timezone.ts";
 import { isSlimAppointmentSchedulingLocked } from "../../calendarScheduling.ts";
 import {
   evaluateDayTimeSlotDrop,
@@ -102,7 +103,6 @@ export const DayGrid: FC = () => {
   const {
     dispatch,
     pendingDrop,
-    updateConflictOffer,
     activeId,
     setActiveId,
     overId,
@@ -121,8 +121,6 @@ export const DayGrid: FC = () => {
     handleDragOver,
     handleConfirmOverride,
     handleCancelDrop,
-    handleConfirmConflictOverride,
-    handleCancelConflictOverride,
   } = useGridDndState();
 
   const { t } = useTranslation("calendar");
@@ -136,6 +134,7 @@ export const DayGrid: FC = () => {
   const isLoading = useSelector(getDayDataLoading);
   const scrollToNow = useSelector(getScrollToNow);
   const locationStaff = useSelector(getLocationStaff);
+  const canViewTeamCalendar = useSelector(getCanViewTeamCalendar);
   const locationServices = useSelector(getLocationServices);
   const locationBundles = useSelector(getLocationBundles);
   const locationContext = useSelector(getLocationContext);
@@ -148,9 +147,9 @@ export const DayGrid: FC = () => {
 
   const dayWorkingHours = getWorkingHoursForDate(selectedDate, workingHours, open247);
   const isOpen = open247 || (dayWorkingHours?.isOpen ?? false);
-  const isToday = formatDateInTimezone(selectedDate, calendarTimezone) === formatDateInTimezone(new Date(), calendarTimezone);
+  const isToday = wallDateKey(selectedDate) === formatDateInTimezone(new Date(), calendarTimezone);
   const { openHour, closeHour } = getDayOpenCloseHours(dayWorkingHours, open247, 6, 22);
-  const dateKey = formatDateInTimezone(selectedDate, calendarTimezone);
+  const dateKey = wallDateKey(selectedDate);
 
   const slotIntervalMinutes = bookingSettings?.slotIntervalMinutes ?? 15;
   const daySlotMinutes = getSlotStartsInRange(0, 24 * 60, slotIntervalMinutes);
@@ -192,6 +191,7 @@ export const DayGrid: FC = () => {
   // Build visible columns (respect staff filter)
   const columns = useMemo(() => {
     if (locationStaff.length === 0) {
+      if (!canViewTeamCalendar) return [];
       return [{
         id: 0,
         label: locationContext?.location.name ?? t('page.common.location'),
@@ -209,8 +209,12 @@ export const DayGrid: FC = () => {
       ? staffCols.filter(col => staffFilter.includes(col.id))
       : staffCols;
 
+    if (canViewTeamCalendar && staffFilter.length === 0 && dayAppointments.some((appointment) =>
+      appointment.isUnassigned || appointment.staffUserIds.length === 0)) {
+      return [...visibleStaffCols, { id: 0, label: t('page.common.unassigned'), isUnassigned: true }];
+    }
     return visibleStaffCols;
-  }, [locationStaff, staffFilter, locationContext, t]);
+  }, [locationStaff, canViewTeamCalendar, staffFilter, locationContext, dayAppointments, t]);
 
   const isScrollableGrid = columns.length > COLUMN_SCROLL_THRESHOLD;
 
@@ -731,8 +735,8 @@ export const DayGrid: FC = () => {
               >
                 {(() => {
                   const s = locationStaff.find(m => m.id === col.id);
-                  const isOnlyFiltered = !col.isUnassigned && staffFilter.length === 1 && staffFilter[0] === col.id;
-                  const clickable = !col.isUnassigned;
+                  const clickable = canViewTeamCalendar && !col.isUnassigned;
+                  const isOnlyFiltered = clickable && staffFilter.length === 1 && staffFilter[0] === col.id;
                   const headerClass = `flex items-center justify-center gap-1.5 text-xs font-medium truncate px-1 sticky top-0 z-30 bg-white dark:bg-surface shrink-0 border-b border-border w-full ${
                     isOnlyFiltered ? "text-foreground-1 font-semibold" : "text-muted-foreground"
                   } ${
@@ -803,7 +807,7 @@ export const DayGrid: FC = () => {
                   schedulingLockedAppointmentIds={schedulingLockedAppointmentIds}
                   forbiddenSlotIds={activeId ? dayForbiddenSlotIds : EMPTY_FORBIDDEN_SLOT_SET}
                   dndActive={!!activeId}
-                  durationHighlightSlotIds={dayDurationHighlightSlotIds}
+                  durationHighlightSlotIds={overId != null && dayForbiddenSlotIds.has(String(overId)) ? EMPTY_FORBIDDEN_SLOT_SET : dayDurationHighlightSlotIds}
                   onSlotClick={handleSlotClick}
                   day={selectedDate}
                   calendarViewMode={AppointmentViewMode.DAY}
@@ -1000,16 +1004,11 @@ export const DayGrid: FC = () => {
       />
 
       <OverrideDialog
-        open={overrideDialogOpen || (!!updateConflictOffer && updateConflictOffer.conflictType !== 'staff_appointment')}
-        onOpenChange={(open) => {
-          if (!open) {
-            if (updateConflictOffer) handleCancelConflictOverride();
-            else handleCancelDrop();
-          }
-        }}
-        isConflictOverride={!!updateConflictOffer}
-        onConfirm={updateConflictOffer ? handleConfirmConflictOverride : handleConfirmOverride}
-        onCancel={updateConflictOffer ? handleCancelConflictOverride : handleCancelDrop}
+        open={overrideDialogOpen}
+        onOpenChange={(open) => !open && handleCancelDrop()}
+        isConflictOverride={false}
+        onConfirm={handleConfirmOverride}
+        onCancel={handleCancelDrop}
         reasonText={overrideReasonText}
         onReasonChange={setOverrideReasonText}
         inputId="dnd-override-reason"

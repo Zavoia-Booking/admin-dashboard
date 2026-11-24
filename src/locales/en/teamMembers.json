@@ -120,6 +120,7 @@
     "profileInfo": "Profile Information",
     "upcomingAppointments": "Upcoming Appointments",
     "noAppointments": "This team member has no upcoming appointments.",
+    "noCustomer": "No customer data",
     "goToAppointments": "Go to Appointments",
     "assignments": "Assignments",
     "assignmentsDescription": "All assignments for this team member, including services, locations, custom pricing, and custom working hours, are managed in the dedicated Assignments section.",

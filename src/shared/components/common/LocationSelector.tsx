@@ -1,12 +1,13 @@
 import { type FC, useEffect, useCallback, useState, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { Check, ChevronDown, Loader2, MapPin } from "lucide-react";
+import { Check, Loader2, MapPin } from "lucide-react";
 import {
-    Command,
-    CommandGroup,
-    CommandItem,
-    CommandList,
-} from "../ui/command.tsx";
+    PickerDropdownChevron,
+    PickerDropdownItem,
+    PickerDropdownList,
+    pickerDropdownOpenTriggerClass,
+    pickerDropdownPanelClass,
+} from "./PickerDropdown.tsx";
 import { cn } from "../../lib/utils.ts";
 import type { LocationType } from "../../types/location.ts";
 
@@ -124,7 +125,7 @@ export const LocationSelector: FC<LocationSelectorProps> = ({
                     "cursor-pointer",
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
                     showListContainer
-                        ? "!rounded-b-none !rounded-t-[22px] border-x border-t border-b border-border-strong shadow-none dark:border-border-strong"
+                        ? pickerDropdownOpenTriggerClass
                         : cn(
                             mobile
                                 ? "border border-border-strong dark:border-border-strong"
@@ -154,10 +155,7 @@ export const LocationSelector: FC<LocationSelectorProps> = ({
                 {isLoadingContext ? (
                     <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-muted-foreground" aria-hidden />
                 ) : (
-                    <ChevronDown
-                        className={cn("h-4 w-4 shrink-0 text-foreground-3 transition-transform", open && "rotate-180")}
-                        aria-hidden
-                    />
+                    <PickerDropdownChevron open={open} />
                 )}
             </button>
 
@@ -165,40 +163,36 @@ export const LocationSelector: FC<LocationSelectorProps> = ({
                 <div
                     data-state={open ? "open" : "closed"}
                     className={cn(
-                        "add-appointment-popover-expand absolute left-0 right-0 top-full z-[85] -mt-px box-border max-h-[min(320px,50vh)] w-full overflow-hidden rounded-b-[22px] rounded-t-none border border-t-0 border-border-strong bg-surface p-0 shadow-md dark:border-border-strong dark:bg-neutral-900",
+                        pickerDropdownPanelClass,
+                        "absolute left-0 right-0 top-full z-[85] -mt-px w-full",
                     )}
                 >
-                    <Command shouldFilter={false} className="w-full min-w-0 max-w-full">
-                        <CommandList className="max-h-[min(260px,40vh)] w-full min-w-0 max-w-full overflow-x-hidden overflow-y-auto">
-                            <CommandGroup heading={resolvedGroupHeading}>
-                                {locations.map((location, index) => {
-                                    const isSelected = location.id === selectedLocationId;
-                                    return (
-                                        <CommandItem
-                                            key={location.id}
-                                            value={`loc-${location.id}`}
-                                            onSelect={() => handleSelect(location.id)}
-                                            className={cn(
-                                                "flex cursor-pointer items-center gap-2 p-3",
-                                                isSelected && "bg-muted/50",
-                                                index === lastIdx && "rounded-b-[18px]",
-                                                mobile && "data-[selected=true]:bg-transparent",
-                                            )}
-                                        >
-                                            <span className="flex h-4 w-5 shrink-0 items-center justify-center" aria-hidden>
-                                                {isSelected ? (
-                                                    <Check className="h-4 w-4 text-green-600 dark:text-green-400" strokeWidth={2.75} />
-                                                ) : null}
-                                            </span>
-                                            <span className="min-w-0 flex-1 text-sm font-medium text-foreground-1">
-                                                {location.name}
-                                            </span>
-                                        </CommandItem>
-                                    );
-                                })}
-                            </CommandGroup>
-                        </CommandList>
-                    </Command>
+                    <PickerDropdownList heading={resolvedGroupHeading}>
+                        {locations.map((location, index) => {
+                            const isSelected = location.id === selectedLocationId;
+                            return (
+                                <PickerDropdownItem
+                                    key={location.id}
+                                    value={`loc-${location.id}`}
+                                    last={index === lastIdx}
+                                    onSelect={() => handleSelect(location.id)}
+                                    className={cn(
+                                        isSelected && "bg-muted/50",
+                                        mobile && "data-[selected=true]:bg-transparent",
+                                    )}
+                                >
+                                    <span className="flex h-4 w-5 shrink-0 items-center justify-center" aria-hidden>
+                                        {isSelected ? (
+                                            <Check className="h-4 w-4 text-green-600 dark:text-green-400" strokeWidth={2.75} />
+                                        ) : null}
+                                    </span>
+                                    <span className="min-w-0 flex-1 text-sm font-medium text-foreground-1">
+                                        {location.name}
+                                    </span>
+                                </PickerDropdownItem>
+                            );
+                        })}
+                    </PickerDropdownList>
                 </div>
             ) : null}
         </div>

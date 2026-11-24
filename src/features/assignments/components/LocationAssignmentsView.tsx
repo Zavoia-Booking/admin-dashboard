@@ -16,7 +16,10 @@ import { LocationServicesSection } from "./common/LocationServicesSection";
 import { LocationBundlesSection } from "./common/LocationBundlesSection";
 import { LocationTeamMembersSection } from "./common/LocationTeamMembersSection";
 import { ManageTeamMemberDrawer } from "./common/ManageTeamMemberDrawer";
+import { AppointmentsInUseDialog } from "./AppointmentsInUseDialog";
+import { StaffServiceRemovalDialog, type StaffServiceRemovalTarget } from "./StaffServiceRemovalDialog";
 import { DashedDivider } from "../../../shared/components/common/DashedDivider";
+import { toast } from "sonner";
 import {
   selectLocationAction,
   fetchLocationFullAssignmentAction,
@@ -25,6 +28,7 @@ import {
   updateStaffServicesAction,
   fetchStaffServicesAtLocationAction,
   updateLocationAssignmentsAction,
+  setAppointmentsInUseAction,
 } from "../actions";
 import {
   getIsLoadingSelector,
@@ -34,6 +38,7 @@ import {
   getSelectedLocationFullSelector,
   getStaffServicesSelector,
   getStaffServicesLoadingSelector,
+  getAppointmentsInUseSelector,
 } from "../selectors";
 import { ErrorState } from "../../../shared/components/common/ErrorState";
 import { scrollAppContentToElement } from "../../../shared/utils/scroll";
@@ -49,6 +54,7 @@ import { selectCurrentUser } from "../../auth/selectors";
 import { fetchCurrentUserAction } from "../../auth/actions";
 import { getLocationUnassignPreviewApi } from "../../teamMembers/api";
 import { openReconciliationAction } from "../../reconciliation/actions";
+import { buildCalendarLink } from "../../calendar/calendarLinks";
 import type { LocationType } from "../../../shared/types/location";
 import type { StaffService } from "../types";
 import {
@@ -89,6 +95,7 @@ export function LocationAssignmentsView() {
   const selectedLocation = useSelector(getSelectedLocationFullSelector);
   const staffServices = useSelector(getStaffServicesSelector);
   const isStaffServicesLoading = useSelector(getStaffServicesLoadingSelector);
+  const appointmentsInUse = useSelector(getAppointmentsInUseSelector);
   const currentUser = useSelector(selectCurrentUser);
   const businessCurrency = currentUser?.business?.businessCurrency || "eur";
   const marketplaceLocation =
@@ -100,6 +107,7 @@ export function LocationAssignmentsView() {
 
   // Local state
   const [managingMemberId, setManagingMemberId] = useState<number | null>(null);
+  const [staffServiceRemoval, setStaffServiceRemoval] = useState<StaffServiceRemovalTarget | null>(null);
   const [saveOperation, setSaveOperation] = useState<
     "staff" | "services" | "teamMembers" | null
   >(null);
@@ -232,6 +240,13 @@ export function LocationAssignmentsView() {
       teamMembersWhenSavingStartedRef.current = null;
     }
   }, [selectedLocation, savingTeamMemberIds.size, saveOperation]);
+
+  // A refused team-member toggle changes nothing, so release the switch that was waiting for it.
+  useEffect(() => {
+    if (!appointmentsInUse) return;
+    setSavingTeamMemberIds(new Set());
+    teamMembersWhenSavingStartedRef.current = null;
+  }, [appointmentsInUse]);
 
   // Clear forceLoading when location fetch completes (even if no saveOperation was set)
   useEffect(() => {
@@ -461,7 +476,28 @@ export function LocationAssignmentsView() {
 
   const handleSaveStaffServices = useCallback(
     (services: StaffService[]) => {
-      if (!selectedLocationId || !managingMemberId) return;
+      if (!selectedLocationId || !managingMemberId || selectedLocation?.id !== selectedLocationId) return;
+
+      const previousServices = new Map(staffServices.map((service) => [service.serviceId, service]));
+      const changes = services.filter((service) => {
+        const previous = previousServices.get(service.serviceId);
+        return service.canPerform !== (previous?.canPerform ?? false) ||
+          (service.canPerform && (
+            service.customPrice !== (previous?.customPrice ?? null) ||
+            service.customDuration !== (previous?.customDuration ?? null)
+          ));
+      });
+      const removedService = changes.length === 1 && !changes[0].canPerform ? changes[0] : null;
+      const member = selectedLocation.teamMembers.find((entry) => entry.userId === managingMemberId);
+      // The decision sheet commits one removal. Keep multi-change saves on their original path.
+      setStaffServiceRemoval(removedService && member ? {
+        locationId: selectedLocationId,
+        locationName: selectedLocation.name,
+        userId: managingMemberId,
+        memberName: [member.firstName, member.lastName].filter(Boolean).join(" ") || member.email,
+        serviceId: removedService.serviceId,
+        serviceName: removedService.serviceName,
+      } : null);
 
       // Mark that we're saving staff services - drawer will close when save completes
       setSaveOperation("staff");
@@ -480,7 +516,7 @@ export function LocationAssignmentsView() {
       );
       // Note: Drawer closes via useEffect when isSaving becomes false
     },
-    [dispatch, selectedLocationId, managingMemberId],
+    [dispatch, selectedLocationId, selectedLocation, managingMemberId, staffServices],
   );
 
   // Handler for when staff overrides modal starts saving - show skeleton immediately
@@ -495,6 +531,21 @@ export function LocationAssignmentsView() {
       (m) => m.userId === managingMemberId,
     );
   }, [managingMemberId, selectedLocation]);
+
+  const staffRemovalOffer = staffServiceRemoval &&
+    appointmentsInUse?.reason === "staff_service_removed" &&
+    appointmentsInUse.locationId === staffServiceRemoval.locationId &&
+    appointmentsInUse.userId === staffServiceRemoval.userId &&
+    appointmentsInUse.serviceId === staffServiceRemoval.serviceId
+    ? staffServiceRemoval
+    : null;
+  const staffById = useMemo(() => new Map(
+    (selectedLocation?.allTeamMembers ?? []).map((member) => [member.userId, member]),
+  ), [selectedLocation?.allTeamMembers]);
+  const closeAppointmentsInUse = () => {
+    setStaffServiceRemoval(null);
+    dispatch(setAppointmentsInUseAction(null));
+  };
 
   // No locations at all: the picker has nothing to offer, so the page says so
   // once, full width, and points at where locations are created.
@@ -838,6 +889,36 @@ export function LocationAssignmentsView() {
           </>
         )}
       </div>
+
+      <AppointmentsInUseDialog
+        offer={staffRemovalOffer ? null : appointmentsInUse}
+        teamMembers={selectedLocation?.allTeamMembers ?? []}
+        onClose={closeAppointmentsInUse}
+      />
+      {staffRemovalOffer && (
+        <StaffServiceRemovalDialog
+          target={staffRemovalOffer}
+          staffById={staffById}
+          onClose={closeAppointmentsInUse}
+          onRemoved={() => {
+            closeAppointmentsInUse();
+            dispatch(fetchLocationFullAssignmentAction.request({
+              locationId: staffRemovalOffer.locationId,
+              skipLoading: true,
+            }));
+            toast.success(t("page.toasts.staffServicesUpdated"));
+          }}
+          onOpenCalendar={(scheduledAt) => {
+            closeAppointmentsInUse();
+            navigate(buildCalendarLink({
+              date: scheduledAt,
+              locationId: staffRemovalOffer.locationId,
+              staffEmail: staffById.get(staffRemovalOffer.userId)?.email,
+              serviceId: staffRemovalOffer.serviceId,
+            }));
+          }}
+        />
+      )}
 
       {/* Manage Team Member Drawer */}
       <ManageTeamMemberDrawer

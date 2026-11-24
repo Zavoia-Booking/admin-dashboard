@@ -7,7 +7,7 @@ import { getSelectedLocationId, getLocationContextLoading } from "../selectors.t
 import { setSelectedLocationAction } from "../actions.ts";
 import type { LocationType } from "../../../shared/types/location.ts";
 
-const STORAGE_KEY = "zavoia_calendar_selected_location";
+export const STORAGE_KEY = "zavoia_calendar_selected_location";
 
 /**
  * Persistent location selector for the calendar.

@@ -213,7 +213,7 @@ interface DroppableSlotProps {
   minute?: number;
   isOutsideHours: boolean;
   slotHeight?: number;
-  /** When true, dnd-kit ignores this target (no visual change vs a normal slot). */
+  /** When true, the slot refuses the drop. It stays a dnd-kit target so hovering shows the refusal and dropping says why. */
   dropDisabled?: boolean;
   /** While a grid drag is active: valid targets get a muted info tint (see `--info` / `bg-info-*`). */
   dndActive?: boolean;
@@ -244,7 +244,6 @@ export const DroppableSlot: FC<DroppableSlotProps> = memo(({
   const { setNodeRef, isOver } = useDroppable({
     id,
     data: { type: "time-slot", columnId, dateKey, hour, minute } satisfies TimeSlotDropData,
-    disabled: dropDisabled,
   });
   const isHourBoundary = minute === 0;
   const validDropHighlight = Boolean(dndActive && !dropDisabled);

@@ -112,6 +112,8 @@ export interface WorkingHours {
 }
 
 export interface DashboardData {
+  /** False when the user may not mark Completed / No-show (team member without cancel-without-approval). */
+  canMarkOutcome?: boolean;
   // Location Info
   locationId: string;
   locationName: string;

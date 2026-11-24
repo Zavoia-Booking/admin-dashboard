@@ -20,11 +20,10 @@ export function Drift(props: HeroVariantProps) {
   const nameLen = name.trim().length;
   const titleSize = nameLen > 22 ? " is-xlong" : nameLen > 14 ? " is-long" : "";
   const reducedMotion = useReducedMotion();
-  const atRest = props.atRest ?? false;
 
   useEffect(() => {
     const el = driftRef.current;
-    if (!el || reducedMotion || atRest) return;
+    if (!el || reducedMotion) return;
     const pars = Array.from(el.querySelectorAll<HTMLElement>(".mc-herodr-par"));
     if (!pars.length) return;
     // A real mouse (fine pointer + hover) on a desktop-WIDTH surface gets cursor repulsion; a tablet/phone
@@ -317,10 +316,10 @@ export function Drift(props: HeroVariantProps) {
       controller?.destroy();
       ambient.forEach((node, index) => { node.style.animationPlayState = previousPlayStates[index]; });
     };
-  }, [reducedMotion, atRest]);
+  }, [reducedMotion]);
 
   return (
-    <header ref={driftRef} className={atRest ? "mc-herodr is-rest" : "mc-herodr"}>
+    <header ref={driftRef} className="mc-herodr">
       <div className="mc-herodr-sky" aria-hidden>
         <div className="mc-herodr-par mc-herodr-par1"><div className="mc-herodr-aurora mc-herodr-a1" /></div>
         <div className="mc-herodr-par mc-herodr-par2"><div className="mc-herodr-aurora mc-herodr-a2" /></div>

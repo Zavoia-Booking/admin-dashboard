@@ -4,10 +4,11 @@
  */
 
 import type { TFunction } from "i18next";
-import type { AppointmentBookingSource } from '../../../shared/types/calendar';
+import type { AppointmentBookingSource, BookedItemEdit, LocationContextBundle } from '../../../shared/types/calendar';
 import { buildZonedDateFromDateKey } from '../timezone';
 import { toLocalDateString } from '../utils';
 import type { AddFormPrefill } from '../types';
+import type { BookedItem } from '../bookedItems';
 import { getNoCustomerDisplayLabel } from './utils.tsx';
 
 // ─────────────────────────────────────────────────────────────
@@ -171,6 +172,62 @@ export function getItemAllowedStaffIds(
   return null;
 }
 
+/** People who can do every item (a bundle's booked services) of a fixed booking, plus the person currently assigned; null when it cannot be worked out. */
+export function getFixedBookingAllowedStaffIds(
+  items: BookedItem[],
+  services: Array<{ serviceId: number; staffIds?: number[] }>,
+  bundles: Array<{ bundleId: number; staffIds?: number[] }>,
+  currentStaffUserId: number | null,
+): number[] | null {
+  let allowed: number[] | null = null;
+  for (const item of items) {
+    for (const ids of getBookedItemStaffLookups(item, services, bundles)) {
+      if (ids == null) return null;
+      allowed = allowed == null ? [...ids] : allowed.filter((id) => ids.includes(id));
+    }
+  }
+  if (allowed == null) return null;
+  if (currentStaffUserId != null && !allowed.includes(currentStaffUserId)) allowed.push(currentStaffUserId);
+  return allowed;
+}
+
+function getBookedItemStaffLookups(
+  item: BookedItem,
+  services: Array<{ serviceId: number; staffIds?: number[] }>,
+  bundles: Array<{ bundleId: number; staffIds?: number[] }>,
+): Array<number[] | null> {
+  if (item.includedServiceIds.length > 0) {
+    return item.includedServiceIds.map((serviceId) => getItemAllowedStaffIds({ serviceId, bundleId: null }, services, bundles));
+  }
+  return [getItemAllowedStaffIds(item, services, bundles)];
+}
+
+export function hasBookedItemChanges(edits: BookedItemEdit[], originalItems: BookedItem[]): boolean {
+  return edits.length !== originalItems.length || edits.some((edit, index) => !('bookedIndex' in edit) || edit.bookedIndex !== index);
+}
+
+export function getEditedBookingAllowedStaffIds(
+  edits: BookedItemEdit[],
+  originalItems: BookedItem[],
+  services: Array<{ serviceId: number; staffIds?: number[] }>,
+  bundles: Array<{ bundleId: number; staffIds?: number[] }>,
+): number[] | null {
+  let allowed: number[] | null = null;
+  for (const edit of edits) {
+    const lookups = 'bookedIndex' in edit
+      ? getBookedItemStaffLookups(originalItems[edit.bookedIndex], services, bundles)
+      : [getItemAllowedStaffIds({
+          serviceId: 'serviceId' in edit ? edit.serviceId : null,
+          bundleId: 'bundleId' in edit ? edit.bundleId : null,
+        }, services, bundles) ?? []];
+    for (const ids of lookups) {
+      if (ids == null) continue;
+      allowed = allowed == null ? [...ids] : allowed.filter((id) => ids.includes(id));
+    }
+  }
+  return allowed;
+}
+
 /** Team members that can perform an item; empty when the item has no assignments. */
 export function getEligibleTeamMembers<T extends { userId: number }>(
   allowedStaffIds: number[] | null,
@@ -222,6 +279,59 @@ function getEffectiveServicePriceMinor(
     if (override?.customPrice != null) return override.customPrice;
   }
   return base;
+}
+
+export function getEditedBookingDisplayItems(
+  edits: BookedItemEdit[],
+  originalItems: BookedItem[],
+  services: Array<ServiceForDuration & { serviceName: string }>,
+  bundles: LocationContextBundle[],
+  staffUserId: number | null,
+): BookedItem[] {
+  return edits.map((edit) => {
+    if ('bookedIndex' in edit) return originalItems[edit.bookedIndex];
+    if ('serviceId' in edit) {
+      const service = services.find((entry) => entry.serviceId === edit.serviceId);
+      return {
+        type: 'service',
+        serviceId: edit.serviceId,
+        bundleId: null,
+        name: service?.serviceName ?? '',
+        durationMinutes: service ? getEffectiveServiceDuration(service, staffUserId) : 0,
+        priceMinor: service ? getEffectiveServicePriceMinor(service, staffUserId) : 0,
+        includedServices: [],
+        includedServiceIds: [],
+      };
+    }
+    const bundle = bundles.find((entry) => entry.bundleId === edit.bundleId);
+    const includedServiceIds = bundle?.serviceIds ?? [];
+    const includedServices = includedServiceIds.flatMap((id) => {
+      const service = services.find((entry) => entry.serviceId === id);
+      return service ? [service.serviceName] : [];
+    });
+    return {
+      type: 'bundle',
+      serviceId: null,
+      bundleId: edit.bundleId,
+      name: bundle?.bundleName ?? '',
+      durationMinutes: bundle?.durationMinutes ?? 0,
+      priceMinor: bundle?.calculatedPriceAmountMinor ?? 0,
+      includedServices,
+      includedServiceIds,
+    };
+  });
+}
+
+export function getEditedBookingTotals(
+  items: BookedItem[],
+): { durationMinutes: number; priceMajor: number } {
+  let durationMinutes = 0;
+  let priceMinor = 0;
+  for (const item of items) {
+    durationMinutes += item.durationMinutes;
+    priceMinor += item.priceMinor;
+  }
+  return { durationMinutes, priceMajor: priceMinor / 100 };
 }
 
 export function getGroupTotalDurationMinutes(
@@ -291,6 +401,8 @@ export type EditFormSnapshot = {
 /** Partial body for PUT /appointments/:id (and pieces stored in pending override confirm). */
 export type EditAppointmentPayload = {
   serviceId?: number;
+  items?: BookedItemEdit[];
+  expectedUpdatedAt?: string;
   locationId?: number;
   staffUserIds?: number[];
   scheduledAt?: string;
@@ -302,6 +414,10 @@ export type EditAppointmentPayload = {
 
 export function getPrefillAppointmentItems(prefill: AddFormPrefill | null | undefined): AppointmentItem[] {
   if (!prefill) return [];
+  // One row stands for the whole bundle or multi-item booking.
+  if (prefill.fixedBooking) {
+    return [{ appointmentId: prefill.appointmentId ?? null, serviceId: null, bundleId: null, staffUserId: prefill.staffUserId ?? null }];
+  }
   const prefillServiceId = prefill.serviceId ?? null;
   const prefillStaffId = prefill.staffUserId ?? null;
   const prefillBundleId = prefill.bundleId ?? null;
@@ -329,7 +445,7 @@ export function buildEditSnapshotFromPrefill(
     time: prefill.time ?? '',
     notes: prefill.notes ?? '',
     serviceId: editRow?.serviceId ?? null,
-    staffUserId: editRow?.staffUserId ?? null,
+    staffUserId: prefill.editableBooking && prefill.editableBooking.staffCount !== 1 ? null : prefill.staffUserId ?? null,
     locationId,
     itemStaffMap: items.map((i) => ({
       appointmentId: i.appointmentId ?? null,
@@ -356,24 +472,37 @@ export function buildMinimalEditAppointmentPayload(params: {
   appointmentItems: AppointmentItem[];
   selectedLocationId: number | null;
   scheduledDate: Date;
+  /** Bundle or multi-item booking: never sends a service. */
+  contentFixed?: boolean;
+  bookedItemEdit?: {
+    items: BookedItemEdit[];
+    expectedUpdatedAt: string;
+    staffUserId: number | null;
+  };
 }): EditAppointmentPayload {
-  const { snapshot, form, appointmentItems, selectedLocationId, scheduledDate } = params;
+  const { snapshot, form, appointmentItems, selectedLocationId, scheduledDate, contentFixed, bookedItemEdit } = params;
   const payload: EditAppointmentPayload = {};
   const editItem = appointmentItems.find((item) => item.serviceId != null);
-  if (!editItem?.serviceId) return payload;
+  if (!editItem?.serviceId && !contentFixed && !bookedItemEdit) return payload;
 
   const notesTrim = form.notes.trim();
   const snapNotesTrim = snapshot.notes.trim();
   if (notesTrim !== snapNotesTrim) {
     payload.notes = notesTrim;
   }
-  if (editItem.serviceId !== snapshot.serviceId) {
+  if (bookedItemEdit) {
+    payload.items = bookedItemEdit.items;
+    payload.expectedUpdatedAt = bookedItemEdit.expectedUpdatedAt;
+  } else if (editItem?.serviceId != null && editItem.serviceId !== snapshot.serviceId) {
     payload.serviceId = editItem.serviceId;
   }
   if (selectedLocationId != null && selectedLocationId !== snapshot.locationId) {
     payload.locationId = selectedLocationId;
   }
-  if (hasItemStaffChanged(appointmentItems, snapshot)) {
+  if (bookedItemEdit) {
+    const { staffUserId } = bookedItemEdit;
+    if (staffUserId != null && staffUserId !== snapshot.staffUserId) payload.staffUserIds = [staffUserId];
+  } else if (hasItemStaffChanged(appointmentItems, snapshot)) {
     payload.staffUserIds = appointmentItems
       .filter((i) => i.staffUserId != null)
       .map((i) => i.staffUserId as number);
@@ -397,6 +526,7 @@ export function getEditMutationDispatchCount(
     payload.scheduledAt !== undefined ||
     payload.notes !== undefined ||
     payload.serviceId !== undefined ||
+    payload.items !== undefined ||
     payload.locationId !== undefined ||
     payload.staffUserIds !== undefined ||
     payload.allowOutOfHours !== undefined ||
@@ -412,6 +542,8 @@ export function pickUpdateAppointmentRequestBody(
 ): Record<string, unknown> {
   const keys = [
     'serviceId',
+    'items',
+    'expectedUpdatedAt',
     'locationId',
     'staffUserIds',
     'scheduledAt',

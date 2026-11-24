@@ -1,14 +1,21 @@
-import React from 'react';
+import React, { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { ArrowRight, ChevronDown, Lock, XCircle } from 'lucide-react';
 import { PersonAvatar } from '../../../../shared/components/common/PersonAvatar';
+import {
+  PickerDropdownChevron,
+  PickerDropdownItem,
+  PickerDropdownList,
+  pickerDropdownOpenTriggerClass,
+  pickerDropdownPanelClass,
+} from '../../../../shared/components/common/PickerDropdown';
 import { Button } from '../../../../shared/components/ui/button';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from '../../../../shared/components/ui/popover';
-import { Command, CommandItem, CommandList } from '../../../../shared/components/ui/command';
 import { cn } from '../../../../shared/lib/utils';
 import type { OffboardPreviewAppointment, EligibleStaffMember } from '../../api';
 import type { Decision } from './useDecisions';
@@ -32,13 +39,22 @@ interface AppointmentRowProps {
   onPick: (decision: Decision | null) => void;
   /** Phones: "Reassign" opens the shared picker sheet instead of a popover. */
   onOpenPicker?: () => void;
+  bundleContextOnly?: boolean;
 }
 
-export const formatApptTime = (iso: string) =>
+export const formatApptTime = (iso: string, timeZone?: string) =>
   new Date(iso).toLocaleTimeString(undefined, {
+    timeZone,
     hour: 'numeric',
     minute: '2-digit',
+    hourCycle: 'h23',
   });
+
+export function bookedItemContext(appt: OffboardPreviewAppointment, bundleContextOnly: boolean, t: TFunction): string {
+  if (!bundleContextOnly) return appt.bookedItemName?.trim() || appt.service?.name || '';
+  const bundles = appt.containingBundleNames?.join(', ');
+  return bundles ? t('assignments:page.staffServiceRemoval.bundleContext', { bundles }) : '';
+}
 
 const computeDurationMin = (startIso: string, endIso?: string) => {
   if (!endIso) return null;
@@ -57,8 +73,11 @@ export const AppointmentRow: React.FC<AppointmentRowProps> = ({
   onPopoverChange,
   onPick,
   onOpenPicker,
+  bundleContextOnly = false,
 }) => {
   const { t } = useTranslation();
+  const [popoverMounted, setPopoverMounted] = useState(false);
+  const trackPopover = useCallback((element: HTMLDivElement | null) => setPopoverMounted(element !== null), []);
   const hasNoEligibleStaff = eligibleStaff.length === 0;
   const isCancelled = !isOrphan && decision?.kind === 'cancel';
   const reassignedTo =
@@ -66,25 +85,37 @@ export const AppointmentRow: React.FC<AppointmentRowProps> = ({
       ? eligibleStaff.find((s) => s.userId === decision.toUserId) ?? null
       : null;
 
-  const time = formatApptTime(appt.scheduledAt);
+  const time = formatApptTime(appt.scheduledAt, appt.timezone);
   const durationMin = computeDurationMin(appt.scheduledAt, appt.endsAt);
   const customerName = appt.customer
     ? `${appt.customer.firstName ?? ''} ${appt.customer.lastName ?? ''}`.trim()
     : '';
-  const serviceName = appt.service?.name ?? '';
+  const itemContext = bookedItemContext(appt, bundleContextOnly, t);
+  const title = customerName || (bundleContextOnly
+    ? t('teamMembers:profileSlider.noCustomer')
+    : itemContext || t('teamMembers:seatOverflow.unknownService'));
 
   const reassignButton = (
     <Button
+      type="button"
       variant="outline"
       size="sm"
       rounded="full"
       disabled={hasNoEligibleStaff}
       title={hasNoEligibleStaff ? t('teamMembers:seatOverflow.noEligibleStaff') : undefined}
       onClick={onOpenPicker}
-      className="!h-10 !min-h-0 w-full px-3 text-[13px] leading-none sm:!h-8 sm:w-auto sm:text-xs"
+      className={cn(
+        '!h-10 !min-h-0 w-full px-3 text-[13px] leading-none sm:!h-8 sm:text-xs',
+        onOpenPicker
+          ? 'sm:w-auto'
+          : 'justify-between bg-surface hover:border-border-strong dark:bg-neutral-900 sm:w-40',
+        !onOpenPicker && (popoverOpen || popoverMounted) && pickerDropdownOpenTriggerClass,
+      )}
     >
       {t('teamMembers:seatOverflow.reassignAction')}
-      <ChevronDown className="ml-1 size-3.5 opacity-70" aria-hidden />
+      {onOpenPicker
+        ? <ChevronDown className="ml-1 size-3.5 opacity-70" aria-hidden />
+        : <PickerDropdownChevron open={popoverOpen} />}
     </Button>
   );
 
@@ -144,31 +175,43 @@ export const AppointmentRow: React.FC<AppointmentRowProps> = ({
         ) : (
           <Popover open={popoverOpen} onOpenChange={onPopoverChange} modal>
             <PopoverTrigger asChild>{reassignButton}</PopoverTrigger>
-            <PopoverContent className="z-[230] w-[260px] p-0" side="bottom" align="end" sideOffset={4}>
-              <Command shouldFilter={false}>
-                <CommandList>
-                  {eligibleStaff.map((staff) => (
-                    <CommandItem
-                      key={staff.userId}
-                      value={String(staff.userId)}
-                      onSelect={() => onPick({ kind: 'reassign', toUserId: staff.userId })}
-                      className="h-9 cursor-pointer gap-2"
-                    >
-                      <PersonAvatar
-                        id={staff.userId}
-                        firstName={staff.firstName}
-                        lastName={staff.lastName}
-                        profileImage={staff.profileImage}
-                        className="size-6"
-                        initialsClassName="text-[9px] font-semibold"
-                      />
-                      <span className="truncate">
-                        {staff.firstName} {staff.lastName}
-                      </span>
-                    </CommandItem>
-                  ))}
-                </CommandList>
-              </Command>
+            <PopoverContent
+              ref={trackPopover}
+              className={cn(
+                pickerDropdownPanelClass,
+                'z-[230] -mt-px w-[var(--radix-popover-trigger-width)] md:w-[var(--radix-popover-trigger-width)]',
+              )}
+              side="bottom"
+              align="start"
+              sideOffset={0}
+              avoidCollisions={false}
+              collisionPadding={8}
+            >
+              <PickerDropdownList
+                label={t('teamMembers:seatOverflow.reassignAction')}
+                className="max-h-[min(260px,40vh,var(--radix-popover-content-available-height))]"
+              >
+                {eligibleStaff.map((staff, index) => (
+                  <PickerDropdownItem
+                    key={staff.userId}
+                    value={String(staff.userId)}
+                    last={index === eligibleStaff.length - 1}
+                    onSelect={() => onPick({ kind: 'reassign', toUserId: staff.userId })}
+                  >
+                    <PersonAvatar
+                      id={staff.userId}
+                      firstName={staff.firstName}
+                      lastName={staff.lastName}
+                      profileImage={staff.profileImage}
+                      className="size-6 shrink-0"
+                      initialsClassName="text-[9px] font-semibold"
+                    />
+                    <span className="min-w-0 flex-1 break-words text-sm font-medium text-foreground-1">
+                      {staff.firstName} {staff.lastName}
+                    </span>
+                  </PickerDropdownItem>
+                ))}
+              </PickerDropdownList>
             </PopoverContent>
           </Popover>
         )}
@@ -188,21 +231,23 @@ export const AppointmentRow: React.FC<AppointmentRowProps> = ({
   return (
     <div className="rounded-xl border border-border bg-surface px-3.5 py-3 sm:flex sm:items-center sm:gap-4 sm:px-4">
       {/* When and who */}
-      <div className="flex min-w-0 items-start gap-3 sm:flex-1 sm:items-center">
+      <div className="flex min-w-0 items-start gap-3 sm:flex-1">
         <div className="w-12 shrink-0 tabular-nums">
-          <div className="text-[15px] font-semibold leading-tight text-foreground-1">{time}</div>
+          <div className="text-[15px] font-semibold leading-5 text-foreground-1">{time}</div>
           {durationMin != null && (
-            <div className="mt-0.5 text-[11px] leading-tight text-foreground-3">
+            <div className="text-[11px] leading-4 text-foreground-3">
               {t('teamMembers:seatOverflow.durationShort', { minutes: durationMin })}
             </div>
           )}
         </div>
         <div className="min-w-0 flex-1">
-          <div className="truncate text-sm font-semibold text-foreground-1">
-            {customerName || serviceName || t('teamMembers:seatOverflow.unknownService')}
+          <div className="truncate text-sm font-semibold leading-5 text-foreground-1">
+            {title}
           </div>
-          {customerName && serviceName && (
-            <div className="truncate text-xs text-foreground-3">{serviceName}</div>
+          {itemContext && (customerName || bundleContextOnly) && (
+            <div className={cn('text-xs leading-4 text-foreground-3', bundleContextOnly ? 'break-words' : 'truncate')}>
+              {itemContext}
+            </div>
           )}
         </div>
         {isOrphan && (

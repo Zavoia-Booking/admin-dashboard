@@ -20,22 +20,14 @@ export function useReducedMotionPreference(): boolean {
  *  thumbnails). Those render the page scaled-down and non-interactive, so nothing in them should move. */
 export const StaticPreviewContext = createContext(false);
 
-/** True when the full-page preview renders its choreography settled while staying scrollable — the phone's
- *  scaled-down desktop mock. Self-running JS motion (marquees, physics, scroll-jacks) parks on its end
- *  state there: a ~27%-scale page can't afford promoted layers (Chrome rasterises them at native size and
- *  evicts tiles — the checkerboard flashes), and motion can't be judged at that size anyway. */
-export const PreviewAtRestContext = createContext(false);
-
-/** Reduced-motion for the preview tree: the OS preference, a static preview scope, or an at-rest full-page
- *  preview. Every effect that settles under reduced motion (parallax, scroll-jacks, reveals, marquees,
- *  count-ups) reads this so those surfaces land on the settled state instead of replaying — or
- *  scroll-driving — the choreography. */
+/** Reduced-motion for the preview tree: the OS preference or a static preview scope. Every effect that
+ *  settles under reduced motion (parallax, scroll-jacks, reveals, marquees, count-ups) reads this so those
+ *  surfaces land on the settled state instead of replaying — or scroll-driving — the choreography. */
 export function useReducedMotion(): boolean {
   const staticPreview = useContext(StaticPreviewContext);
-  const atRest = useContext(PreviewAtRestContext);
   // Reuse the server value during hydration, then subscribe to the actual OS preference.
   const reduced = useReducedMotionPreference();
-  return staticPreview || atRest || reduced;
+  return staticPreview || reduced;
 }
 
 /** IntersectionObserver gate (F5): tracks whether `ref` is in view (continuously, so callers can pause motion

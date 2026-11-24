@@ -9,7 +9,7 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import { ArrowRight } from "lucide-react";
-import { PreviewAtRestContext, StaticPreviewContext, useInView, useReducedMotion } from "../../../shared/hooks";
+import { StaticPreviewContext, useInView, useReducedMotion } from "../../../shared/hooks";
 import { GalleryImage } from "../parts/GalleryImage";
 import { useGalleryFan } from "../parts/useGalleryFan";
 import type { GalleryVariantProps } from "../types";
@@ -31,7 +31,7 @@ const pagePositionKey = (pos: number, pages: number) => {
 };
 
 function useReducedMotionPreference() {
-  // Shared hook: OS preference + static thumbnails + the at-rest desktop mock (PreviewAtRestContext).
+  // Shared hook: OS preference + static thumbnails.
   return useReducedMotion();
 }
 
@@ -43,10 +43,9 @@ export function Mosaic({ images, t }: GalleryVariantProps) {
   const previousPageRef = useRef(0);
   const reducedMotion = useReducedMotionPreference();
   const staticPreview = useContext(StaticPreviewContext);
-  const atRestPreview = useContext(PreviewAtRestContext);
   const onScreen = useInView(stageRef, { threshold: 0, once: true });
   // Once the wall is on screen, the neighbouring pages stay mounted and load early, so a page change never waits for photos.
-  const loadAhead = onScreen && !staticPreview && !atRestPreview;
+  const loadAhead = onScreen && !staticPreview;
   const [rootWidth, setRootWidth] = useState(1000);
   const [paneWidth, setPaneWidth] = useState(0);
   const [focused, setFocused] = useState(0);

@@ -7,6 +7,8 @@ import { ArrowUpRight, User } from 'lucide-react';
 import type { AppointmentDistribution, UpcomingAppointment } from '../actions';
 import { useFormatPrice } from '../../../shared/hooks/useFormatPrice';
 import { PersonAvatar } from '../../../shared/components/common/PersonAvatar';
+import { buildCalendarLink } from '../../calendar/calendarLinks';
+import { appointmentDayDifference, formatAppointmentTime } from './appointmentDates';
 
 const EYEBROW =
   'text-[11px] font-semibold uppercase tracking-[0.12em] text-primary-700 dark:text-primary-500';
@@ -18,6 +20,8 @@ interface AppointmentBreakdownWidgetProps {
   monthlyDistribution: AppointmentDistribution;
   upcomingAppointments: UpcomingAppointment[];
   businessCurrency: string;
+  locationId?: number;
+  timeZone: string;
 }
 
 type TabKey = 'today' | 'week' | 'month';
@@ -125,6 +129,8 @@ export function AppointmentBreakdownWidget({
   monthlyDistribution,
   upcomingAppointments,
   businessCurrency,
+  locationId,
+  timeZone,
 }: AppointmentBreakdownWidgetProps) {
   const { t, i18n } = useTranslation('dashboard');
   const navigate = useNavigate();
@@ -173,22 +179,17 @@ export function AppointmentBreakdownWidget({
 
   const dateLocale = locale === 'ro' ? 'ro-RO' : 'en-US';
 
-  const formatTime = (isoString: string) =>
-    new Date(isoString).toLocaleTimeString(dateLocale, {
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+  const formatTime = (isoString: string) => formatAppointmentTime(isoString, dateLocale, timeZone);
 
   // The next few appointments can sit days apart, so an hour on its own is ambiguous.
   // Relative wording covers the common case; anything further out gets a short
   // "12 Aug" that stays unambiguous without eating column width.
-  const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
   const formatDay = (isoString: string) => {
     const date = new Date(isoString);
-    const dayDiff = Math.round((startOfDay(date) - startOfDay(new Date())) / 86_400_000);
+    const dayDiff = appointmentDayDifference(date, new Date(), timeZone);
     if (dayDiff === 0) return t('upcomingAppointments.today');
     if (dayDiff === 1) return t('upcomingAppointments.tomorrow');
-    return date.toLocaleDateString(dateLocale, { day: 'numeric', month: 'short' });
+    return date.toLocaleDateString(dateLocale, { timeZone, day: 'numeric', month: 'short' });
   };
 
   const { formatPrice } = useFormatPrice();
@@ -353,7 +354,7 @@ export function AppointmentBreakdownWidget({
                       // resolves. If that request fails you still get the correct day.
                       onClick={() =>
                         navigate(
-                          `/calendar?date=${encodeURIComponent(appt.scheduledAt)}&appointmentUuid=${appt.uuid}`,
+                          buildCalendarLink({ date: appt.scheduledAt, locationId, appointmentUuid: appt.uuid }),
                         )
                       }
                       className={`cursor-pointer hover:bg-surface-active/40 active:bg-surface-active/60 active:scale-[0.995] rounded transition-[background-color,transform] duration-150 ${IOS_EASE}`}

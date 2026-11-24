@@ -4,7 +4,7 @@ import { cn } from "../../../shared/lib/utils.ts";
 import { useDispatch, useSelector } from "react-redux";
 import { Card, CardContent } from "../../../shared/components/ui/card.tsx";
 import { buildMonthCalendarGridCells, getTranslatedDayNames } from "../utils.ts";
-import { formatDateInTimezone, getCalendarLocale } from "../timezone.ts";
+import { getCalendarLocale, minSelectableCalendarDateForTimezone, wallDateKey } from "../timezone.ts";
 import { AppointmentViewMode, AppointmentViewType } from "../types.ts";
 import { CalendarTimeGrid } from "./CalendarTimeGrid.tsx";
 import { AppointmentList } from "./AppointmentList.tsx";
@@ -108,7 +108,7 @@ const SummaryGrid: FC = () => {
       setPreviewLoading(true);
       setPreviewDay({ day, appointments: [], blocks: [] });
       try {
-        const dateKey = formatDateInTimezone(day, calendarTimezone);
+        const dateKey = wallDateKey(day);
         const data = await getDayDataRequest(selectedLocationId!, dateKey, dayFilters);
         setPreviewDay({ day, appointments: data.appointments, blocks: data.blocks });
       } catch {
@@ -129,7 +129,7 @@ const SummaryGrid: FC = () => {
   const monthHasNoMatchingAppointments = useMemo(() => {
     for (const { date, isCurrentMonth } of dayCells) {
       if (!isCurrentMonth) continue;
-      const ds = summary[formatDateInTimezone(date, calendarTimezone)];
+      const ds = summary[wallDateKey(date)];
       if (ds && ds.appointmentCount > 0) return false;
     }
     return true;
@@ -139,7 +139,7 @@ const SummaryGrid: FC = () => {
     return <MonthGridSkeleton />;
   }
 
-  const todayStr = new Date().toDateString();
+  const todayStr = minSelectableCalendarDateForTimezone(new Date(), calendarTimezone).toDateString();
 
   return (
     <div className="p-4 pb-0">
@@ -170,7 +170,7 @@ const SummaryGrid: FC = () => {
             }}
           >
             {dayCells.map(({ date, isCurrentMonth }) => {
-              const dateKey = formatDateInTimezone(date, calendarTimezone);
+              const dateKey = wallDateKey(date);
               const daySummary: DaySummary | undefined = summary[dateKey];
               const isToday = date.toDateString() === todayStr;
               const isSelected = date.toDateString() === selectedDate.toDateString();

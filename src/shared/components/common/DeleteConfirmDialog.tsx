@@ -8,6 +8,7 @@ import type {
   DeleteResponse,
 } from "../../types/delete-response";
 import { cn } from "../../lib/utils";
+import { AppointmentConflictPreview } from "../../../features/calendar/components/AppointmentConflictPreview";
 import { useTranslation } from "react-i18next";
 import {
   modalScrim,
@@ -18,6 +19,7 @@ import {
   modalHelperSmall,
   modalFooterRowRight,
   modalCancel,
+  modalSecondary,
   modalPrimary,
   modalDestructive,
 } from "../ui/modal-tokens";
@@ -37,6 +39,8 @@ export function DeleteConfirmDialog({
   onConfirm,
   isLoading = false,
   secondaryActions,
+  onGoToCalendar,
+  fallbackTimezone,
   className,
   overlayClassName,
 }: DeleteConfirmDialogProps) {
@@ -92,6 +96,10 @@ export function DeleteConfirmDialog({
     usersCount,
     servicesCount,
     appointmentsCount,
+    upcomingAppointmentsCount,
+    bundlesCount,
+    bundleNames,
+    firstAppointment,
     locationsCount,
     teamMembersCount,
     activeUsersCount,
@@ -154,6 +162,22 @@ export function DeleteConfirmDialog({
       ),
     });
   }
+  if (upcomingAppointmentsCount && upcomingAppointmentsCount > 0) {
+    dependencies.push({
+      count: upcomingAppointmentsCount,
+      label: t(
+        `deleteConfirmDialog.dependencies.${
+          upcomingAppointmentsCount === 1 ? "upcomingAppointment" : "upcomingAppointments"
+        }`
+      ),
+    });
+  }
+  if (bundlesCount && bundlesCount > 0) {
+    dependencies.push({
+      count: bundlesCount,
+      label: t(`deleteConfirmDialog.dependencies.${bundlesCount === 1 ? "bundle" : "bundles"}`),
+    });
+  }
   if (locationsCount && locationsCount > 0) {
     dependencies.push({
       count: locationsCount,
@@ -193,6 +217,9 @@ export function DeleteConfirmDialog({
   // Secondary actions (blocked state): "Go to Assignments" gets a localized label; others pass through.
   const goToAssignments = secondaryActions?.find((a) => a.label === "Go to Assignments");
   const otherActions = secondaryActions?.filter((a) => a.label !== "Go to Assignments");
+  const hasUpcomingAppointments = !!upcomingAppointmentsCount && upcomingAppointmentsCount > 0;
+  const showGoToCalendar = hasUpcomingAppointments && !!firstAppointment && !!onGoToCalendar;
+  const otherActionClass = showGoToCalendar ? modalSecondary : modalPrimary;
 
   const closeButton = (
     <button
@@ -354,29 +381,52 @@ export function DeleteConfirmDialog({
                         ))}
                     </div>
                   )}
+                  {bundleNames && bundleNames.length > 0 && (
+                    <p className={cn(modalHelperSmall, "mt-3")}>
+                      {t("deleteConfirmDialog.dependencies.bundleNames", {
+                        count: bundleNames.length,
+                        names: bundleNames.join(", "),
+                      })}
+                    </p>
+                  )}
+                  {hasUpcomingAppointments && firstAppointment && (
+                    <AppointmentConflictPreview
+                      appointment={firstAppointment}
+                      total={upcomingAppointmentsCount}
+                      fallbackTimezone={fallbackTimezone ?? firstAppointment.timezone}
+                      currentLocationId={null}
+                    />
+                  )}
                   <p className={cn(modalHelperSmall, "mt-3")}>
-                    {t("deleteConfirmDialog.cannotDelete.footer", {
-                      resourceType: resourceLabelSingular,
-                    })}
+                    {t(
+                      hasUpcomingAppointments
+                        ? dependencies.length > 1
+                          ? "deleteConfirmDialog.cannotDelete.footerAppointmentsAndMore"
+                          : "deleteConfirmDialog.cannotDelete.footerAppointments"
+                        : "deleteConfirmDialog.cannotDelete.footer",
+                      { resourceType: resourceLabelSingular },
+                    )}
                   </p>
                 </div>
               )}
 
-              <div className={cn("mt-6", modalFooterRowRight)}>
-                <button
-                  type="button"
-                  onClick={() => onOpenChange(false)}
-                  disabled={isLoading}
-                  className={modalCancel}
-                >
-                  {t("deleteConfirmDialog.cannotDelete.cancel")}
-                </button>
+              <div className={cn("mt-6 empty:hidden", modalFooterRowRight)}>
+                {resourceType !== "service" && (
+                  <button
+                    type="button"
+                    onClick={() => onOpenChange(false)}
+                    disabled={isLoading}
+                    className={modalCancel}
+                  >
+                    {t("deleteConfirmDialog.cannotDelete.cancel")}
+                  </button>
+                )}
                 {goToAssignments && (
                   <button
                     type="button"
                     onClick={goToAssignments.onClick}
                     disabled={isLoading}
-                    className={modalPrimary}
+                    className={otherActionClass}
                   >
                     {t("deleteConfirmDialog.cannotDelete.manageAssignments")}
                   </button>
@@ -387,11 +437,21 @@ export function DeleteConfirmDialog({
                     type="button"
                     onClick={action.onClick}
                     disabled={isLoading}
-                    className={modalPrimary}
+                    className={otherActionClass}
                   >
                     {action.label}
                   </button>
                 ))}
+                {showGoToCalendar && onGoToCalendar && firstAppointment && (
+                  <button
+                    type="button"
+                    onClick={() => onGoToCalendar(firstAppointment)}
+                    disabled={isLoading}
+                    className={modalPrimary}
+                  >
+                    {t("deleteConfirmDialog.cannotDelete.goToCalendar")}
+                  </button>
+                )}
               </div>
             </>
           )}

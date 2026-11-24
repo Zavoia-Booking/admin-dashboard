@@ -25,23 +25,25 @@ export interface TeamMemberService {
 
 export interface TeamMemberAppointment {
   id: number;
+  timezone?: string;
   scheduledAt: string;
   endsAt: string;
   status: 'confirmed' | 'pending' | 'cancelled' | 'completed';
+  bookedItemName?: string;
   customer: {
     id: number;
     firstName: string;
     lastName: string;
     email: string;
-  };
+  } | null;
   service: {
     id: number;
     name: string;
-  };
+  } | null;
   location: {
     id: number;
     name: string;
-  };
+  } | null;
 }
 
 export interface TeamMember {

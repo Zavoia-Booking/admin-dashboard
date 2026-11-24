@@ -1,5 +1,6 @@
 import type { CreateBundlePayload, UpdateBundlePayload, Bundle } from "./types.ts";
 import { apiClient } from "../../shared/lib/http";
+import type { BlockConflictAppointment } from "../../shared/types/calendar";
 
 export const listBundlesRequest = () => {
   return apiClient().get<{ bundles: Bundle[] }>("/bundles/list");
@@ -18,7 +19,8 @@ export type DeleteBundleResponse = {
   canDelete: boolean;
   message?: string;
   locationsCount?: number;
-  appointmentsCount?: number;
+  upcomingAppointmentsCount?: number;
+  firstAppointment?: BlockConflictAppointment | null;
 };
 
 export const deleteBundleRequest = (id: number) => {

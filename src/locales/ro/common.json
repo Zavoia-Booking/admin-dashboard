@@ -229,9 +229,12 @@
     "cannotDelete": {
       "title": "{{resourceType}} este folosit",
       "descriptionPrefix": "Nu poți șterge",
-      "descriptionSuffix": "deoarece este asociat cu:",
-      "footer": "Elimină mai întâi aceste asocieri, apoi încearcă din nou.",
-      "manageAssignments": "Vezi asocierile",
+      "descriptionSuffix": "deoarece este încă folosit de:",
+      "footer": "Elimină mai întâi aceste alocări, apoi încearcă din nou.",
+      "footerAppointments": "Mută sau anulează programările viitoare, apoi încearcă din nou.",
+      "footerAppointmentsAndMore": "Mută sau anulează programările viitoare și elimină restul, apoi încearcă din nou.",
+      "manageAssignments": "Vezi alocările",
+      "goToCalendar": "Vezi în calendar",
       "cancel": "Am înțeles"
     },
     "dependencies": {
@@ -245,13 +248,20 @@
       "services": "servicii",
       "appointment": "programare",
       "appointments": "programări",
+      "upcomingAppointment": "programare viitoare",
+      "upcomingAppointments": "programări viitoare",
+      "bundle": "pachet",
+      "bundles": "pachete",
       "location": "locație",
       "locations": "locații",
       "teamMember": "membru al echipei",
       "teamMembers": "membri ai echipei",
       "websiteGalleryPhoto": "fotografie folosită pe site-ul publicat",
       "websiteGalleryPhotos": "fotografii folosite pe site-ul publicat",
-      "cancelInvitationHint": "Anulează invitația{{plural}} înainte de a elimina acest {{resourceType}}"
+      "cancelInvitationHint": "Anulează invitația{{plural}} înainte de a elimina acest {{resourceType}}",
+      "bundleNames_one": "Folosit în pachetul {{names}}.",
+      "bundleNames_few": "Folosit în pachetele {{names}}.",
+      "bundleNames_other": "Folosit în pachetele {{names}}."
     },
     "resourceTypes": {
       "location": "locație",

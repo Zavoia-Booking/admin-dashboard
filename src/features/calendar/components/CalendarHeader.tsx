@@ -1,8 +1,8 @@
 import { type FC, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { useDispatch, useSelector } from "react-redux";
-import { getDisplayedMonthStart, getDisplayedWeekStart, getSelectedDate, getSidebarOpen, getViewModeSelector, getViewTypeSelector } from "../selectors.ts";
-import { getCalendarLocale } from "../timezone.ts";
+import { getDisplayedMonthStart, getDisplayedWeekStart, getSelectedDate, getSidebarOpen, getViewModeSelector, getViewTypeSelector, getCalendarTimezone } from "../selectors.ts";
+import { getCalendarLocale, minSelectableCalendarDateForTimezone } from "../timezone.ts";
 import { setDisplayedMonthAction, setDisplayedWeekAction, setSelectedDateAction, setViewModeAction, setViewTypeAction, setBlockFormEditingAction, toggleAddForm, toggleBlockFormAction, toggleCalendarSidebar, setScrollToNow, setSidebarMiniCalendarMonthAction } from "../actions.ts";
 import { AppointmentViewMode, AppointmentViewType } from "../types.ts";
 import { Button } from "../../../shared/components/ui/button.tsx";
@@ -22,6 +22,7 @@ interface CalendarHeaderProps {
 export const CalendarHeader: FC<CalendarHeaderProps> = ({ onOpenSettings }) => {
   const { t } = useTranslation("calendar");
   const dispatch = useDispatch();
+  const calendarTimezone = useSelector(getCalendarTimezone);
   const selectedDate = useSelector(getSelectedDate);
   const displayedMonthStart = useSelector(getDisplayedMonthStart);
   const displayedWeekStart = useSelector(getDisplayedWeekStart);
@@ -103,7 +104,7 @@ export const CalendarHeader: FC<CalendarHeaderProps> = ({ onOpenSettings }) => {
   })();
 
   const isOnCurrentPeriod = (() => {
-    const today = new Date();
+    const today = minSelectableCalendarDateForTimezone(new Date(), calendarTimezone);
     if (viewMode === AppointmentViewMode.DAY) {
       return isSameDay(selectedDate, today);
     }
@@ -120,8 +121,8 @@ export const CalendarHeader: FC<CalendarHeaderProps> = ({ onOpenSettings }) => {
   const handleToday = useCallback(() => {
     if (isOnCurrentPeriod) return;
     dispatch(setScrollToNow(true));
-    dispatch(setSelectedDateAction(new Date()));
-  }, [dispatch, isOnCurrentPeriod]);
+    dispatch(setSelectedDateAction(minSelectableCalendarDateForTimezone(new Date(), calendarTimezone)));
+  }, [dispatch, isOnCurrentPeriod, calendarTimezone]);
 
   const handleSetMode = useCallback((mode: AppointmentViewMode) => {
     if (mode === viewMode) return;

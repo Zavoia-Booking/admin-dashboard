@@ -1,9 +1,9 @@
 import { type FC, useCallback, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { getSelectedDate, getWeekViewDisplayStart, getViewModeSelector } from "../selectors.ts";
+import { getSelectedDate, getWeekViewDisplayStart, getViewModeSelector, getCalendarTimezone } from "../selectors.ts";
 import { getWeekStart } from "../utils.ts";
 import { dispatchSelectDateAndDayView } from "../selectDateAndDayViewDispatch.ts";
-import { getCalendarLocale } from "../timezone.ts";
+import { getCalendarLocale, minSelectableCalendarDateForTimezone } from "../timezone.ts";
 
 interface WeekDayStripProps {
   /** Width of the time gutter on the left (px) — must match the grid's gutter */
@@ -12,6 +12,7 @@ interface WeekDayStripProps {
 
 export const WeekDayStrip: FC<WeekDayStripProps> = ({ gutterWidth }) => {
   const dispatch = useDispatch();
+  const calendarTimezone = useSelector(getCalendarTimezone);
   const selectedDate = useSelector(getSelectedDate);
   const weekDisplayStart = useSelector(getWeekViewDisplayStart);
   const viewMode = useSelector(getViewModeSelector);
@@ -33,7 +34,7 @@ export const WeekDayStrip: FC<WeekDayStripProps> = ({ gutterWidth }) => {
   );
 
   const selectedStr = selectedDate.toDateString();
-  const todayStr = new Date().toDateString();
+  const todayStr = minSelectableCalendarDateForTimezone(new Date(), calendarTimezone).toDateString();
 
   return (
     <div className="flex flex-shrink-0 pb-2 pt-0 sticky top-0 z-30 bg-white dark:bg-surface" style={{ minWidth: 7 * 100 + gutterWidth }}>

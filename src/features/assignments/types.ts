@@ -1,3 +1,5 @@
+import type { BlockConflictAppointment } from "../../shared/types/calendar";
+
 // Service assigned to a location
 export type LocationService = {
   serviceId: number;
@@ -216,6 +218,17 @@ export type UpdateLocationAssignmentsPayload = {
 };
 
 // Redux state
+/** A save refused because upcoming appointments still use what it removes. */
+export interface AppointmentsInUseOffer {
+  reason: 'service_off' | 'bundle_off' | 'staff_service_removed' | 'staff_removed';
+  locationId: number;
+  serviceId?: number;
+  bundleId?: number;
+  userId?: number;
+  total: number;
+  firstAppointment: BlockConflictAppointment | null;
+}
+
 export type AssignmentsState = {
   selectedLocationId: number | null;
   selectedLocationFullAssignment: LocationFullAssignment | null;
@@ -224,4 +237,5 @@ export type AssignmentsState = {
   isSaving: boolean;
   isStaffServicesLoading: boolean;
   loadError: string | null;
+  appointmentsInUse: AppointmentsInUseOffer | null;
 };

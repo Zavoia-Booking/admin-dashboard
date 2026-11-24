@@ -101,7 +101,7 @@ import {
   type WebsiteReadinessSectionType,
 } from "./sectionReadiness";
 import type { WebsiteSectionFocusRequest } from "../../hooks/useWebsiteWorkspaceController";
-import { LivePreview, marqueeItems, MARQUEE_MIN_ITEMS, PreviewAtRestContext, type PreviewReview, type RatingBars } from "./LivePreview";
+import { LivePreview, marqueeItems, MARQUEE_MIN_ITEMS, type PreviewReview, type RatingBars } from "./LivePreview";
 import { ScaledPreview } from "./preview/ScaledPreview";
 import type { PreviewData } from "./preview/shared/types";
 import { useAtelierCompactLayout } from "../atelier/useAtelierCompactLayout";
@@ -538,10 +538,6 @@ export function SectionBuilder(props: SectionBuilderProps) {
     const saved = window.localStorage.getItem(PREVIEW_DEVICE_PREF_KEY);
     return saved === "desktop" || saved === "tablet" || saved === "mobile" ? saved : "desktop";
   });
-  // The compact, full-screen preview has its own two-device control. It intentionally
-  // starts on phone every time the builder mounts and never inherits a persisted tablet
-  // choice from the desktop workspace.
-  const [compactPreviewDevice, setCompactPreviewDevice] = useState<PreviewDevice>("mobile");
   const previewScrollRef = useRef<HTMLDivElement | null>(null);
   const workspacePreviewStageRef = useRef<HTMLDivElement | null>(null);
   const workspacePreviewScrollRef = useRef<HTMLDivElement | null>(null);
@@ -868,7 +864,6 @@ export function SectionBuilder(props: SectionBuilderProps) {
       previewReturnDrawerTypeRef.current = null;
       setPreviewScope("page");
       setPreviewFocusType(null);
-      setCompactPreviewDevice("mobile");
     }
     previousShellPreviewOpenRef.current = requested;
   }, [props.shellPreviewOpen]);
@@ -2480,7 +2475,8 @@ export function SectionBuilder(props: SectionBuilderProps) {
                     data={previewData}
                     selectedLocationId={previewSelectedLocationId}
                     onSelectedLocationChange={setPreviewSelectedLocationId}
-                    virtualWidth={1280}
+                    // Phone layout: the 1280px desktop page scaled into this card crashes the app on iPhone.
+                    virtualWidth={390}
                     className="atelier-mobile-preview-canvas"
                   />
                 ) : (
@@ -2970,13 +2966,9 @@ export function SectionBuilder(props: SectionBuilderProps) {
             <DialogDescription className="sr-only">
               {t("businessPage.builder.previewDialogDescription")}
             </DialogDescription>
-            <div
-              className={cn(
-                "atelier-preview-dialog-controls flex flex-wrap items-center justify-between gap-2 text-[12px] md:shrink-0 md:justify-end",
-                isAtelierCompact && "atelier-preview-dialog-controls--mobile",
-              )}
-            >
-              {!isAtelierCompact ? (
+            {/* Phones get no device switch: a 1280px page scaled onto a phone crashes the tab on iPhone. */}
+            {!isAtelierCompact ? (
+              <div className="atelier-preview-dialog-controls flex flex-wrap items-center justify-between gap-2 text-[12px] md:shrink-0 md:justify-end">
                 <div
                   className="inline-flex min-h-10 rounded-lg border border-border bg-surface-hover p-0.5 md:min-h-0"
                   role="group"
@@ -3016,21 +3008,14 @@ export function SectionBuilder(props: SectionBuilderProps) {
                     {t("businessPage.builder.currentSection")}
                   </Button>
                 </div>
-              ) : null}
-              <DeviceToggle
-                device={isAtelierCompact ? compactPreviewDevice : device}
-                setDevice={isAtelierCompact ? setCompactPreviewDevice : setPreviewDevice}
-                t={t}
-                compact={isAtelierCompact}
-                className={isAtelierCompact ? "atelier-preview-mobile-devices" : undefined}
-              />
-            </div>
+                <DeviceToggle device={device} setDevice={setPreviewDevice} t={t} />
+              </div>
+            ) : null}
           </DialogHeader>
           {isAtelierCompact ? (
             <CompactFullPreview
               scrollRef={previewScrollRef}
               active={resolvedPreviewOpen}
-              device={compactPreviewDevice === "desktop" ? "desktop" : "mobile"}
               layout={modalLayout}
               data={previewData}
               chrome={modalChrome}
@@ -3230,16 +3215,14 @@ function LogicalFullPreviewCanvas({
 // ---------------------------------------------------------------------------
 
 /**
- * Full-screen compact preview geometry from the Atelier reference. Phone mode renders
- * 1:1 at the real available width (scale 1); desktop mode is a true 1280px page scaled
- * to the available width. The logical scroll viewport is transformed with the page,
- * matching an iframe so sticky site chrome and scroll distance share one coordinate
- * system. Unsafe links and booking submissions remain intercepted.
+ * Full-screen compact preview geometry from the Atelier reference: the phone page renders
+ * 1:1 at the real available width inside its own logical scroll viewport, matching an
+ * iframe so sticky site chrome and scroll distance share one coordinate system. Unsafe
+ * links and booking submissions remain intercepted.
  */
 function CompactFullPreview({
   scrollRef,
   active,
-  device,
   layout,
   data,
   chrome,
@@ -3251,7 +3234,6 @@ function CompactFullPreview({
 }: {
   scrollRef: RefObject<HTMLDivElement | null>;
   active: boolean;
-  device: "desktop" | "mobile";
   layout: SectionEntry[];
   data: PreviewData;
   chrome: boolean;
@@ -3323,49 +3305,15 @@ function CompactFullPreview({
   // bottom padding already removed. Keep the reference's remaining 4px breathing room.
   const availableWidth = Math.max(1, stage.width);
   const availableHeight = Math.max(1, stage.height - 4);
-  // Phone: 1:1 at the real width, so the preview is what visitors actually see; desktop still scales down.
-  const virtualWidth = device === "mobile" ? Math.max(1, Math.round(availableWidth)) : 1280;
-  const scale = device === "mobile" ? 1 : availableWidth / 1280;
-  const frameWidth = Math.max(1, Math.round(virtualWidth * scale));
-  const virtualViewportHeight = Math.max(1, Math.round(availableHeight / Math.max(scale, 0.001)));
-  const previewReady = stage.width > 0 && stage.height > 0 && scale > 0;
+  // 1:1 at the real width, so the preview is what visitors actually see. No transform: even scale(1)
+  // promotes the whole ~8600px page into a single ~42MB texture this GPU cannot hold.
+  const virtualWidth = Math.max(1, Math.round(availableWidth));
+  const virtualViewportHeight = Math.max(1, Math.round(availableHeight));
+  const previewReady = stage.width > 0 && stage.height > 0;
   const focusKey = previewFocusRenderKey(layout, focusType);
 
-  // Relative reading position, kept fresh by a passive listener — a device toggle restores it
-  // instead of snapping back to the focused section, so the user keeps their place.
-  const scrollRatioRef = useRef(0);
   useEffect(() => {
-    const node = scrollRef.current;
-    if (!node || !contentArmed) return;
-    const onScroll = () => {
-      const max = node.scrollHeight - node.clientHeight;
-      scrollRatioRef.current = max > 0 ? node.scrollTop / max : 0;
-    };
-    node.addEventListener("scroll", onScroll, { passive: true });
-    return () => node.removeEventListener("scroll", onScroll);
-  }, [contentArmed, scrollRef]);
-
-  const prevDeviceRef = useRef(device);
-  useEffect(() => {
-    const deviceChanged = prevDeviceRef.current !== device;
-    prevDeviceRef.current = device;
     if (!active || !previewReady || !contentArmed) return;
-    if (deviceChanged) {
-      // Restore the relative position under the re-armed curtain (two frames for the relayout).
-      const ratio = scrollRatioRef.current;
-      let raf2 = 0;
-      const raf1 = window.requestAnimationFrame(() => {
-        raf2 = window.requestAnimationFrame(() => {
-          const node = scrollRef.current;
-          if (!node) return;
-          node.scrollTop = ratio * Math.max(0, node.scrollHeight - node.clientHeight);
-        });
-      });
-      return () => {
-        window.cancelAnimationFrame(raf1);
-        window.cancelAnimationFrame(raf2);
-      };
-    }
     // Instant, so the curtain lifts already positioned on the section — an animated scroll through a
     // freshly-mounting page is the single laggiest thing a low-end phone can be asked to do.
     return schedulePreviewSectionFocus(
@@ -3374,14 +3322,14 @@ function CompactFullPreview({
       focusType ?? "top",
       "auto",
     );
-  }, [active, contentArmed, device, focusKey, focusType, previewReady, scrollRef]);
+  }, [active, contentArmed, focusKey, focusType, previewReady, scrollRef]);
 
-  // Curtain: held until the page's tiles are ready, keyed by device+width so a device
-  // toggle re-arms it. Derived from render, not set in an effect. Covers from frame zero
+  // Curtain: held until the page's tiles are ready, keyed by width so a resize re-arms it.
+  // Derived from render, not set in an effect. Covers from frame zero
   // on purpose: this hardware needs ~½s to rasterise the page, so any "reveal early"
   // shortcut (probe delay, skeleton, view-transition crossfade) exposes checkerboard
   // frames — one deliberate cover with a single soft lift is the premium-feeling option.
-  const curtainKey = `${device}:${virtualWidth}`;
+  const curtainKey = String(virtualWidth);
   const curtainHeld = liftedFor !== curtainKey;
 
   useEffect(() => {
@@ -3417,11 +3365,11 @@ function CompactFullPreview({
         <div
           className="atelier-preview-compact-frame"
           data-curtain={curtainHeld ? "" : undefined}
-          style={{ width: frameWidth, height: availableHeight }}
+          style={{ width: virtualWidth, height: availableHeight }}
         >
           <div
             className="atelier-preview-compact-clip"
-            style={{ width: frameWidth, height: availableHeight }}
+            style={{ width: virtualWidth, height: availableHeight }}
           >
             <div
               ref={scrollRef}
@@ -3429,18 +3377,12 @@ function CompactFullPreview({
               style={{
                 width: virtualWidth,
                 height: virtualViewportHeight,
-                // Phone view renders 1:1, and even scale(1) promotes the whole ~8600px page into a
-                // single ~42MB texture this GPU cannot hold. No transform ⇒ Chrome tiles normally.
-                ...(scale === 1 ? null : { transform: `scale(${scale})` }),
                 "--mc-vph": `${virtualViewportHeight}px`,
               } as CSSProperties}
             >
               <div
                 ref={pageRef}
-                className={cn(
-                  "atelier-preview-virtual-page",
-                  device === "desktop" && "atelier-preview-at-rest",
-                )}
+                className="atelier-preview-virtual-page"
                 style={{
                   minHeight: virtualViewportHeight,
                 }}
@@ -3449,21 +3391,17 @@ function CompactFullPreview({
                 onContextMenuCapture={blockUnsafePreviewActivation}
                 onSubmitCapture={blockPreviewSubmit}
               >
-                {/* Desktop mock = settled page: heavy self-running motion parks (PreviewAtRestContext);
-                    scrolling, links, and menus stay interactive. Mobile is 1:1 and fully live. */}
                 {contentArmed ? (
-                  <PreviewAtRestContext.Provider value={device === "desktop"}>
-                    <LivePreview
-                      layout={layout}
-                      data={data}
-                      chrome={chrome}
-                      startNumber={startNumber}
-                      focusType={focusType}
-                      selectedLocationId={localSelectedLocationId}
-                      onSelectedLocationChange={handleSelectLocation}
-                      locationScope={locationScope}
-                    />
-                  </PreviewAtRestContext.Provider>
+                  <LivePreview
+                    layout={layout}
+                    data={data}
+                    chrome={chrome}
+                    startNumber={startNumber}
+                    focusType={focusType}
+                    selectedLocationId={localSelectedLocationId}
+                    onSelectedLocationChange={handleSelectLocation}
+                    locationScope={locationScope}
+                  />
                 ) : null}
               </div>
             </div>
@@ -3663,14 +3601,10 @@ function DeviceToggle({
   device,
   setDevice,
   t,
-  compact = false,
-  className,
 }: {
   device: PreviewDevice;
   setDevice: (v: PreviewDevice) => void;
   t: WebsiteT;
-  compact?: boolean;
-  className?: string;
 }) {
   const options: Array<{ id: PreviewDevice; label: string; Icon: typeof Monitor }> = [
     { id: "desktop", label: t("businessPage.builder.deviceDesktop"), Icon: Monitor },
@@ -3678,15 +3612,13 @@ function DeviceToggle({
     { id: "mobile", label: t("businessPage.builder.deviceMobile"), Icon: Smartphone },
   ];
 
-  const visibleOptions = compact ? [options[2], options[0]] : options;
-
   return (
     <span
-      className={cn("inline-flex items-center gap-0.5 rounded-lg border border-border bg-surface p-0.5", className)}
+      className="inline-flex items-center gap-0.5 rounded-lg border border-border bg-surface p-0.5"
       role="group"
       aria-label={t("businessPage.builder.deviceGroup")}
     >
-      {visibleOptions.map(({ id, label, Icon }) => (
+      {options.map(({ id, label, Icon }) => (
         <Button
           key={id}
           type="button"

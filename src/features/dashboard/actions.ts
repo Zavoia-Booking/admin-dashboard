@@ -81,6 +81,7 @@ export interface DashboardApiResponse {
   locationWidget: {
     name: string;
     id: number;
+    timezone?: string;
     isCurrentlyOpen: boolean;
     staff: LocationStaffMember[] | null;
     appointmentsToday: number;

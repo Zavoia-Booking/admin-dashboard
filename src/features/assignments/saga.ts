@@ -7,6 +7,7 @@ import {
   updateStaffServicesAction,
   updateLocationTeamMembersAction,
   updateLocationAssignmentsAction,
+  setAppointmentsInUseAction,
 } from "./actions";
 import {
   fetchLocationFullAssignmentRequest,
@@ -17,11 +18,31 @@ import {
   updateLocationTeamMembersRequest,
   updateLocationAssignmentsRequest,
 } from "./api";
-import type { LocationFullAssignment, StaffServicesAtLocation } from "./types";
+import type {
+  AppointmentsInUseOffer,
+  LocationFullAssignment,
+  StaffServicesAtLocation,
+} from "./types";
 import { toast } from "sonner";
 import i18n from "../../shared/lib/i18n";
 import { getErrorMessage } from "../../shared/utils/error";
 import type { RootState } from "../../app/providers/store";
+
+/** 409 from an assignments save refused because upcoming appointments still use what it removes. */
+function appointmentsInUseFromError(error: any): AppointmentsInUseOffer | null {
+  const details = error?.response?.data?.details;
+  if (error?.response?.status !== 409 || details?.conflictType !== "appointments") return null;
+  if (typeof details.total !== "number" || typeof details.locationId !== "number") return null;
+  return {
+    reason: details.reason,
+    locationId: details.locationId,
+    serviceId: details.serviceId,
+    bundleId: details.bundleId,
+    userId: details.userId,
+    total: details.total,
+    firstAppointment: details.firstAppointment ?? null,
+  };
+}
 
 function* handleFetchLocationFullAssignment(
   action: ReturnType<typeof fetchLocationFullAssignmentAction.request>,
@@ -75,6 +96,11 @@ function* handleUpdateLocationServices(
         message: getErrorMessage(error),
       }),
     );
+    const inUse = appointmentsInUseFromError(error);
+    if (inUse) {
+      yield put(setAppointmentsInUseAction(inUse));
+      return;
+    }
     toast.error(
       i18n.t("assignments:page.toasts.failedToUpdateLocationServices"),
     );
@@ -102,6 +128,11 @@ function* handleUpdateLocationBundles(
         message: getErrorMessage(error),
       }),
     );
+    const inUse = appointmentsInUseFromError(error);
+    if (inUse) {
+      yield put(setAppointmentsInUseAction(inUse));
+      return;
+    }
     toast.error(
       i18n.t("assignments:page.toasts.failedToUpdateLocationBundles"),
     );
@@ -150,6 +181,11 @@ function* handleUpdateStaffServices(
         message: getErrorMessage(error),
       }),
     );
+    const inUse = appointmentsInUseFromError(error);
+    if (inUse) {
+      yield put(setAppointmentsInUseAction(inUse));
+      return;
+    }
     toast.error(i18n.t("assignments:page.toasts.failedToUpdateStaffServices"));
   }
 }
@@ -221,6 +257,12 @@ function* handleUpdateLocationAssignments(
         message: getErrorMessage(error),
       }),
     );
+
+    const inUse = appointmentsInUseFromError(error);
+    if (inUse) {
+      yield put(setAppointmentsInUseAction(inUse));
+      return;
+    }
 
     // Show personalized error message for team member toggle
     if (action.payload.teamMemberToggle) {

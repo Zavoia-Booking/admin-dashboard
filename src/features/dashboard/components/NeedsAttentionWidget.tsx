@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import {
   CalendarClock,
   MessageSquare,
@@ -23,6 +24,7 @@ import { toast } from 'sonner';
 import { isNativeApp } from '../../../app/config/env';
 import { listNotificationsRequest } from '../../notifications/api';
 import { updateAppointmentRequest, bulkUpdateAppointmentStatusRequest } from '../../calendar/api';
+import { buildCalendarLink } from '../../calendar/calendarLinks';
 import {
   Dialog,
   DialogPortal,
@@ -45,10 +47,12 @@ import { BaseSlider } from '../../../shared/components/common/BaseSlider';
 import { SearchInput } from '../../../shared/components/common/SearchInput';
 import { Popover, PopoverContent, PopoverTrigger } from '../../../shared/components/ui/popover';
 import { cn } from '../../../shared/lib/utils';
+import { selectIsTeamMember } from '../../auth/selectors';
 import { useIsMobile } from '../../../shared/hooks/use-mobile';
 import type { NeedsAttentionItem, UnresolvedAppointment } from '../actions';
 import { PersonAvatar } from '../../../shared/components/common/PersonAvatar';
 import { DateRangeField, type DatePreset } from '../../reviews/components/DateRangeField';
+import { appointmentDayDifference, formatAppointmentTime } from './appointmentDates';
 
 const EYEBROW =
   'text-[11px] font-semibold uppercase tracking-[0.12em] text-primary-700 dark:text-primary-500';
@@ -58,6 +62,9 @@ interface NeedsAttentionWidgetProps {
   pendingAppointments: number;
   needsAttentionItems: NeedsAttentionItem[];
   onAppointmentUpdated?: () => void;
+  locationId?: number;
+  timeZone: string;
+  canMarkOutcome?: boolean;
 }
 
 interface AttentionItem {
@@ -77,6 +84,7 @@ interface AttentionItem {
 // times in quick succession. Cache the SMS-low check module-wide with a short
 // TTL so those remounts share one request instead of refiring it each time.
 const SMS_LOW_CHECK_TTL_MS = 60_000;
+const BULK_STATUS_BATCH_SIZE = 100;
 let smsLowCheck: { at: number; promise: Promise<boolean> } | null = null;
 
 function checkSmsLowNotification(): Promise<boolean> {
@@ -95,6 +103,9 @@ export function NeedsAttentionWidget({
   pendingAppointments,
   needsAttentionItems,
   onAppointmentUpdated,
+  locationId,
+  timeZone,
+  canMarkOutcome = true,
 }: NeedsAttentionWidgetProps) {
   const { t, i18n } = useTranslation('dashboard');
   const navigate = useNavigate();
@@ -102,6 +113,16 @@ export function NeedsAttentionWidget({
   const [seeAllOpen, setSeeAllOpen] = useState(false);
 
   const locale = i18n.language === 'ro' ? 'ro-RO' : 'en-US';
+
+  const formatDateLabel = (iso: string) => {
+    const date = new Date(iso);
+    const daysAgo = -appointmentDayDifference(date, new Date(), timeZone);
+    if (daysAgo === 0) return t('needsAttention.today');
+    if (daysAgo === 1) return t('needsAttention.yesterday');
+    if (daysAgo > 1 && daysAgo < 7) return t('needsAttention.daysAgo', { count: daysAgo });
+    return date.toLocaleDateString(locale, { timeZone, month: 'short', day: 'numeric' });
+  };
+  const formatTimeLabel = (iso: string) => formatAppointmentTime(iso, locale, timeZone);
 
   useEffect(() => {
     let cancelled = false;
@@ -126,8 +147,8 @@ export function NeedsAttentionWidget({
   const firstPending = pendingList[0];
   const pendingActionPath = firstPending
     ? pendingList.length === 1
-      ? `/calendar?date=${encodeURIComponent(firstPending.scheduledAt)}&appointmentUuid=${firstPending.uuid}`
-      : `/calendar?date=${encodeURIComponent(firstPending.scheduledAt)}`
+      ? buildCalendarLink({ date: firstPending.scheduledAt, locationId, appointmentUuid: firstPending.uuid })
+      : buildCalendarLink({ date: firstPending.scheduledAt, locationId })
     : '/calendar';
 
   const items: AttentionItem[] = [];
@@ -185,32 +206,6 @@ export function NeedsAttentionWidget({
   const dotColor = {
     warning: 'bg-warning',
     error: 'bg-error',
-  };
-
-  const formatDateTime = (isoString: string) => {
-    const date = new Date(isoString);
-    const now = new Date();
-    const isToday = date.toDateString() === now.toDateString();
-    const yesterday = new Date(now);
-    yesterday.setDate(yesterday.getDate() - 1);
-    const isYesterday = date.toDateString() === yesterday.toDateString();
-
-    const time = date.toLocaleTimeString(locale, {
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-
-    if (isToday) return time;
-    if (isYesterday) {
-      const dayLabel = t('needsAttention.yesterday');
-      return `${dayLabel}, ${time}`;
-    }
-    return date.toLocaleDateString(locale, {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
   };
 
   const hasUrgentItems = items.length > 0;
@@ -293,9 +288,10 @@ export function NeedsAttentionWidget({
             <UnresolvedAppointmentsList
               appointments={unresolvedAppointments.slice(0, 4)}
               totalCount={unresolvedCount}
-              formatDateTime={formatDateTime}
-              locale={locale}
+              formatDateLabel={formatDateLabel}
+              formatTimeLabel={formatTimeLabel}
               onAppointmentUpdated={onAppointmentUpdated}
+              canMarkOutcome={canMarkOutcome}
             />
           )}
         </div>
@@ -306,9 +302,10 @@ export function NeedsAttentionWidget({
         open={seeAllOpen}
         onOpenChange={setSeeAllOpen}
         appointments={unresolvedAppointments}
-        formatDateTime={formatDateTime}
-        locale={locale}
+        formatDateLabel={formatDateLabel}
+        formatTimeLabel={formatTimeLabel}
         onAppointmentUpdated={onAppointmentUpdated}
+        canMarkOutcome={canMarkOutcome}
       />
     </div>
   );
@@ -321,16 +318,18 @@ export function NeedsAttentionWidget({
 interface UnresolvedAppointmentsListProps {
   appointments: UnresolvedAppointment[];
   totalCount: number;
-  formatDateTime: (iso: string) => string;
-  locale: string;
+  formatDateLabel: (iso: string) => string;
+  formatTimeLabel: (iso: string) => string;
   onAppointmentUpdated?: () => void;
+  canMarkOutcome: boolean;
 }
 
 function UnresolvedAppointmentsList({
   appointments,
-  formatDateTime,
-  locale,
+  formatDateLabel,
+  formatTimeLabel,
   onAppointmentUpdated,
+  canMarkOutcome,
 }: UnresolvedAppointmentsListProps) {
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
@@ -363,11 +362,12 @@ function UnresolvedAppointmentsList({
         <UnresolvedAppointmentRow
           key={appt.uuid}
           appointment={appt}
-          formatDateTime={formatDateTime}
-          locale={locale}
+          formatDateLabel={formatDateLabel}
+          formatTimeLabel={formatTimeLabel}
           isExpanded={expandedId === appt.id}
           onToggleExpand={() => handleToggleExpand(appt.id)}
           onUpdated={onAppointmentUpdated}
+          canMarkOutcome={canMarkOutcome}
         />
       ))}
     </div>
@@ -380,22 +380,24 @@ function UnresolvedAppointmentsList({
 
 interface UnresolvedAppointmentRowProps {
   appointment: UnresolvedAppointment;
-  formatDateTime: (iso: string) => string;
-  locale: string;
+  formatDateLabel: (iso: string) => string;
+  formatTimeLabel: (iso: string) => string;
   compact?: boolean;
   isExpanded?: boolean;
   onToggleExpand?: () => void;
   onUpdated?: () => void;
+  canMarkOutcome?: boolean;
 }
 
 function UnresolvedAppointmentRow({
   appointment,
-  formatDateTime: _formatDateTime,
-  locale,
+  formatDateLabel,
+  formatTimeLabel,
   compact = false,
   isExpanded = false,
   onToggleExpand,
   onUpdated,
+  canMarkOutcome = true,
 }: UnresolvedAppointmentRowProps) {
   const { t } = useTranslation('dashboard');
   const [loading, setLoading] = useState<'completed' | 'no_show' | null>(null);
@@ -427,28 +429,8 @@ function UnresolvedAppointmentRow({
         : 'text-foreground-3';
 
   // Date split: "YESTERDAY" / "21:30" — small caps label + tabular time
-  const { dateLabel, timeLabel } = useMemo(() => {
-    const date = new Date(appointment.scheduledAt);
-    const now = new Date();
-    const time = date.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
-    const isToday = date.toDateString() === now.toDateString();
-    const yesterday = new Date(now);
-    yesterday.setDate(yesterday.getDate() - 1);
-    const isYesterday = date.toDateString() === yesterday.toDateString();
-    let label: string;
-    if (isToday) {
-      label = t('needsAttention.today');
-    } else if (isYesterday) {
-      label = t('needsAttention.yesterday');
-    } else {
-      const daysAgo = Math.floor((now.getTime() - date.getTime()) / 86_400_000);
-      label =
-        daysAgo > 0 && daysAgo < 7
-          ? t('needsAttention.daysAgo', { count: daysAgo })
-          : date.toLocaleDateString(locale, { month: 'short', day: 'numeric' });
-    }
-    return { dateLabel: label, timeLabel: time };
-  }, [appointment.scheduledAt, locale, t]);
+  const dateLabel = formatDateLabel(appointment.scheduledAt);
+  const timeLabel = formatTimeLabel(appointment.scheduledAt);
 
   const handleAction = useCallback(async (status: 'completed' | 'no_show') => {
     setLoading(status);
@@ -605,7 +587,7 @@ function UnresolvedAppointmentRow({
                 <div
                   className={cn(
                     'flex flex-col items-end leading-tight transition-opacity duration-150',
-                    'md:group-hover/unresolved:opacity-0',
+                    canMarkOutcome && 'md:group-hover/unresolved:opacity-0',
                     IOS_EASE,
                   )}
                 >
@@ -629,6 +611,7 @@ function UnresolvedAppointmentRow({
                 />
 
                 {/* DESKTOP actions overlay — absolute-positioned over time block on hover */}
+                {canMarkOutcome && (
                 <div
                   className={cn(
                     'hidden md:flex absolute inset-y-0 right-0 items-center gap-0.5',
@@ -665,6 +648,7 @@ function UnresolvedAppointmentRow({
                     {loading === 'no_show' ? '…' : t('needsAttention.noShow')}
                   </button>
                 </div>
+                )}
               </div>
             )}
           </div>
@@ -688,6 +672,7 @@ function UnresolvedAppointmentRow({
                     </p>
                   )}
                   {/* No-show on the left (ghost) ⇄ Completed pill on the right (primary) */}
+                  {canMarkOutcome && (
                   <div className="flex items-center justify-between">
                     <button
                       type="button"
@@ -716,6 +701,7 @@ function UnresolvedAppointmentRow({
                       {loading === 'completed' ? '…' : t('needsAttention.completed')}
                     </button>
                   </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -734,20 +720,25 @@ interface UnresolvedAppointmentsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   appointments: UnresolvedAppointment[];
-  formatDateTime: (iso: string) => string;
-  locale: string;
+  formatDateLabel: (iso: string) => string;
+  formatTimeLabel: (iso: string) => string;
   onAppointmentUpdated?: () => void;
+  canMarkOutcome: boolean;
 }
 
 function UnresolvedAppointmentsDialog({
   open,
   onOpenChange,
   appointments,
-  formatDateTime,
-  locale,
+  formatDateLabel,
+  formatTimeLabel,
   onAppointmentUpdated,
+  canMarkOutcome,
 }: UnresolvedAppointmentsDialogProps) {
   const { t, i18n } = useTranslation('dashboard');
+  const isTeamMember = useSelector(selectIsTeamMember);
+  // The bulk endpoint is owner-only, so team members get no selection.
+  const selectable = canMarkOutcome && !isTeamMember;
   // Reviews namespace handles the date-preset labels (DateRangeField pulls
   // from it internally). We borrow the same keys here so summary + footer
   // copy stays consistent across both filter UIs.
@@ -907,31 +898,40 @@ function UnresolvedAppointmentsDialog({
     setBulkLoading(status);
 
     const ids = Array.from(selected);
+    const successIds: number[] = [];
+    let requestFailed = false;
 
-    try {
-      const res = await bulkUpdateAppointmentStatusRequest(ids, status);
-      const successIds = (res.results as { id: number; success: boolean }[])
-        .filter(r => r.success)
-        .map(r => r.id);
-      const failCount = ids.length - successIds.length;
-
-      if (successIds.length > 0) {
-        setDismissedIds(prev => {
-          const next = new Set(prev);
-          successIds.forEach(id => next.add(id));
-          return next;
-        });
-        setSelected(new Set());
-        setPendingConfirm(null);
-        toast.success(t('needsAttention.bulkSuccess', { count: successIds.length }));
-        onAppointmentUpdated?.();
+    // The server takes at most 100 appointments per request.
+    for (let i = 0; i < ids.length; i += BULK_STATUS_BATCH_SIZE) {
+      try {
+        const res = await bulkUpdateAppointmentStatusRequest(ids.slice(i, i + BULK_STATUS_BATCH_SIZE), status);
+        (res.results as { id: number; success: boolean }[])
+          .filter(r => r.success)
+          .forEach(r => successIds.push(r.id));
+      } catch {
+        requestFailed = true;
       }
+    }
+    const failCount = ids.length - successIds.length;
 
-      if (failCount > 0) {
-        toast.error(t('needsAttention.bulkUpdateFailed', { count: failCount }));
-      }
-    } catch {
-      toast.error(t('needsAttention.updateFailed'));
+    if (successIds.length > 0) {
+      setDismissedIds(prev => {
+        const next = new Set(prev);
+        successIds.forEach(id => next.add(id));
+        return next;
+      });
+      setSelected(new Set());
+      setPendingConfirm(null);
+      toast.success(t('needsAttention.bulkSuccess', { count: successIds.length }));
+      onAppointmentUpdated?.();
+    }
+
+    if (failCount > 0) {
+      toast.error(
+        successIds.length === 0 && requestFailed
+          ? t('needsAttention.updateFailed')
+          : t('needsAttention.bulkUpdateFailed', { count: failCount }),
+      );
     }
 
     setBulkLoading(null);
@@ -1229,7 +1229,7 @@ function UnresolvedAppointmentsDialog({
 
   const appointmentList = (
     <div className="relative flex-1 overflow-y-auto min-h-0 bg-muted/20 dark:bg-background/50">
-      {isMobile ? (
+      {isMobile && !selectable ? null : isMobile ? (
         // Tap-anywhere row → toggles select-all. When some are selected, the
         // count tucks to the right in primary color so it reads as "what
         // state am I in" without inflating the row.
@@ -1258,8 +1258,8 @@ function UnresolvedAppointmentsDialog({
           )}
         </button>
       ) : (
-        <div className="grid grid-cols-[32px_1fr_1fr_120px] gap-3 items-center px-6 md:px-8 py-2.5 border-b border-border sticky top-0 z-10 bg-muted/40 dark:bg-background/70 backdrop-blur-sm">
-          <Checkbox checked={allSelected} onCheckedChange={toggleSelectAll} />
+        <div className={cn('grid gap-3 items-center px-6 md:px-8 py-2.5 border-b border-border sticky top-0 z-10 bg-muted/40 dark:bg-background/70 backdrop-blur-sm', selectable ? 'grid-cols-[32px_1fr_1fr_120px]' : 'grid-cols-[1fr_1fr_120px]')}>
+          {selectable && <Checkbox checked={allSelected} onCheckedChange={toggleSelectAll} />}
           <span className="text-xs font-medium text-foreground-3 uppercase tracking-wider">{t('needsAttention.customer')}</span>
           <span className="text-xs font-medium text-foreground-3 uppercase tracking-wider">{t('needsAttention.service')} / {t('needsAttention.staff')}</span>
           <span className="text-xs font-medium text-foreground-3 uppercase tracking-wider text-right">{t('needsAttention.time')}</span>
@@ -1279,9 +1279,10 @@ function UnresolvedAppointmentsDialog({
               isSelected={selected.has(appt.id)}
               onToggleSelect={() => toggleSelect(appt.id)}
               resolved={null}
-              formatDateTime={formatDateTime}
-              locale={locale}
+              formatDateLabel={formatDateLabel}
+              formatTimeLabel={formatTimeLabel}
               compact={isMobile}
+              selectable={selectable}
             />
           ))}
         </div>
@@ -1347,7 +1348,7 @@ function UnresolvedAppointmentsDialog({
     // text — the top SELECT ALL bar already shows that. Just render the action
     // cluster (or the confirm strip). When neither is actionable, the footer
     // prop is undefined so BaseSlider doesn't render the footer wrapper at all.
-    const isActionable = someSelected || pendingConfirm !== null;
+    const isActionable = selectable && (someSelected || pendingConfirm !== null);
     const mobileFooter = !isActionable ? undefined : pendingConfirm ? (
       // Confirm strip — same content as desktop, slightly tighter spacing
       <div className={cn('flex w-full items-center justify-between gap-3', exitingConfirm ? 'pointer-events-none animate-out fade-out-0 slide-out-to-bottom-2 duration-200 fill-mode-forwards' : 'animate-in fade-in-0 slide-in-from-bottom-2 duration-200', 'motion-reduce:animate-none motion-reduce:translate-y-0 motion-reduce:opacity-100')}>
@@ -1506,7 +1507,7 @@ function UnresolvedAppointmentsDialog({
           </div>
 
           {appointmentList}
-          {actionBar}
+          {selectable && actionBar}
         </DialogPrimitive.Content>
       </DialogPortal>
     </Dialog>
@@ -1522,9 +1523,10 @@ interface DialogAppointmentRowProps {
   isSelected: boolean;
   onToggleSelect: () => void;
   resolved: 'completed' | 'no_show' | null;
-  formatDateTime: (iso: string) => string;
-  locale: string;
+  formatDateLabel: (iso: string) => string;
+  formatTimeLabel: (iso: string) => string;
   compact?: boolean;
+  selectable?: boolean;
 }
 
 function DialogAppointmentRow({
@@ -1532,9 +1534,10 @@ function DialogAppointmentRow({
   isSelected,
   onToggleSelect,
   resolved,
-  formatDateTime: _formatDateTime,
-  locale,
+  formatDateLabel,
+  formatTimeLabel,
   compact = false,
+  selectable = true,
 }: DialogAppointmentRowProps) {
   const { t } = useTranslation('dashboard');
 
@@ -1563,29 +1566,10 @@ function DialogAppointmentRow({
         : 'text-foreground-3';
 
   // Date label + clean time range
-  const { dateLabel, timeRange } = useMemo(() => {
-    const date = new Date(appointment.scheduledAt);
-    const now = new Date();
-    const isToday = date.toDateString() === now.toDateString();
-    const yesterday = new Date(now);
-    yesterday.setDate(yesterday.getDate() - 1);
-    const isYesterday = date.toDateString() === yesterday.toDateString();
-    let label: string;
-    if (isToday) {
-      label = t('needsAttention.today');
-    } else if (isYesterday) {
-      label = t('needsAttention.yesterday');
-    } else {
-      const daysAgo = Math.floor((now.getTime() - date.getTime()) / 86_400_000);
-      label =
-        daysAgo > 0 && daysAgo < 7
-          ? t('needsAttention.daysAgo', { count: daysAgo })
-          : date.toLocaleDateString(locale, { month: 'short', day: 'numeric' });
-    }
-    const start = new Date(appointment.scheduledAt).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
-    const end = new Date(appointment.endsAt).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
-    return { dateLabel: label, timeRange: `${start} – ${end}` };
-  }, [appointment.scheduledAt, appointment.endsAt, locale, t]);
+  const dateLabel = formatDateLabel(appointment.scheduledAt);
+  const start = formatTimeLabel(appointment.scheduledAt);
+  const end = formatTimeLabel(appointment.endsAt);
+  const timeRange = `${start} – ${end}`;
 
   if (resolved) {
     return (
@@ -1613,17 +1597,19 @@ function DialogAppointmentRow({
     return (
       <div
         className={cn(
-          'flex items-center gap-3 px-4 py-3.5 transition-all duration-150 cursor-pointer',
-          'hover:bg-primary/5 dark:hover:bg-primary/10',
+          'flex items-center gap-3 px-4 py-3.5 transition-all duration-150',
+          selectable && 'cursor-pointer hover:bg-primary/5 dark:hover:bg-primary/10',
           isSelected && 'bg-primary/5 dark:bg-primary/10',
         )}
-        onClick={onToggleSelect}
+        onClick={selectable ? onToggleSelect : undefined}
       >
-        <Checkbox
-          checked={isSelected}
-          onCheckedChange={onToggleSelect}
-          onClick={(e) => e.stopPropagation()}
-        />
+        {selectable && (
+          <Checkbox
+            checked={isSelected}
+            onCheckedChange={onToggleSelect}
+            onClick={(e) => e.stopPropagation()}
+          />
+        )}
         <div className="flex items-center gap-3 min-w-0 flex-1">
           <div className="relative shrink-0">
             <PersonAvatar
@@ -1663,18 +1649,20 @@ function DialogAppointmentRow({
   return (
     <div
       className={cn(
-        'grid grid-cols-[32px_1fr_1fr_140px] gap-3 items-center px-6 md:px-8 py-3.5 transition-all duration-150 cursor-pointer',
-        'hover:bg-primary/5 dark:hover:bg-primary/10',
+        'grid gap-3 items-center px-6 md:px-8 py-3.5 transition-all duration-150',
+        selectable ? 'grid-cols-[32px_1fr_1fr_140px] cursor-pointer hover:bg-primary/5 dark:hover:bg-primary/10' : 'grid-cols-[1fr_1fr_140px]',
         isSelected && 'bg-primary/5 dark:bg-primary/10',
       )}
-      onClick={onToggleSelect}
+      onClick={selectable ? onToggleSelect : undefined}
     >
       {/* Checkbox */}
-      <Checkbox
-        checked={isSelected}
-        onCheckedChange={onToggleSelect}
-        onClick={(e) => e.stopPropagation()}
-      />
+      {selectable && (
+        <Checkbox
+          checked={isSelected}
+          onCheckedChange={onToggleSelect}
+          onClick={(e) => e.stopPropagation()}
+        />
+      )}
 
       {/* Customer */}
       <div className="flex items-center gap-3 min-w-0">

@@ -16,6 +16,7 @@ const initialState: AssignmentsState = {
   isSaving: false,
   isStaffServicesLoading: false,
   loadError: null,
+  appointmentsInUse: null,
 };
 
 export const AssignmentsReducer: Reducer<AssignmentsState, any> = (
@@ -36,6 +37,9 @@ export const AssignmentsReducer: Reducer<AssignmentsState, any> = (
           action.payload === null ? null : state.selectedLocationFullAssignment,
         staffServices: action.payload === null ? [] : state.staffServices,
       };
+
+    case getType(actions.setAppointmentsInUseAction):
+      return { ...state, appointmentsInUse: action.payload };
 
     // Fetch full location assignment
     case getType(actions.fetchLocationFullAssignmentAction.request): {

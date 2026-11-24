@@ -300,6 +300,36 @@
         "noCustom": "Niciun serviciu nu are prețuri personalizate."
       }
     },
+    "staffServiceRemoval": {
+      "title": "Elimină {{service}}",
+      "description": "Rezolvă programările afectate pentru {{name}} la {{location}}. Deciziile se aplică atunci când confirmi eliminarea serviciului.",
+      "confirm": "Elimină serviciul",
+      "removing": "Se elimină serviciul…",
+      "noAffectedAppointments": "Nicio programare viitoare nu folosește această alocare.",
+      "bundleContext": "Face parte din {{bundles}}",
+      "previewError": "Nu am putut încărca programările afectate.",
+      "removeError": "Nu am putut elimina serviciul. Actualizează programările și încearcă din nou.",
+      "refresh": "Actualizează programările"
+    },
+    "appointmentsInUse": {
+      "serviceOff_one": "{{count}} programare viitoare de aici include acest serviciu",
+      "serviceOff_few": "{{count}} programări viitoare de aici includ acest serviciu",
+      "serviceOff_other": "{{count}} de programări viitoare de aici includ acest serviciu",
+      "bundleOff_one": "{{count}} programare viitoare de aici include acest pachet",
+      "bundleOff_few": "{{count}} programări viitoare de aici includ acest pachet",
+      "bundleOff_other": "{{count}} de programări viitoare de aici includ acest pachet",
+      "staffServiceRemoved_one": "Acest membru are {{count}} programare viitoare aici cu acest serviciu",
+      "staffServiceRemoved_few": "Acest membru are {{count}} programări viitoare aici cu acest serviciu",
+      "staffServiceRemoved_other": "Acest membru are {{count}} de programări viitoare aici cu acest serviciu",
+      "staffRemoved_one": "Acest membru are {{count}} programare viitoare aici",
+      "staffRemoved_few": "Acest membru are {{count}} programări viitoare aici",
+      "staffRemoved_other": "Acest membru are {{count}} de programări viitoare aici",
+      "description_one": "Mai întâi trebuie mutată, realocată sau anulată. Apoi încearcă din nou.",
+      "description_few": "Mai întâi trebuie mutate, realocate sau anulate. Apoi încearcă din nou.",
+      "description_other": "Mai întâi trebuie mutate, realocate sau anulate. Apoi încearcă din nou.",
+      "goToCalendar": "Vezi în calendar",
+      "close": "Închide"
+    },
     "toasts": {
       "teamMemberAssigned": "{{memberName}} a fost adăugat la această locație",
       "teamMemberRemoved": "Alocarea pentru {{memberName}} la această locație a fost anulată",

@@ -4,7 +4,7 @@ import { SlidersHorizontal, Plus } from "lucide-react";
 import { EmptyState } from "../../../shared/components/common/EmptyState.tsx";
 import { useDispatch, useSelector } from "react-redux";
 import { Card, CardContent } from "../../../shared/components/ui/card.tsx";
-import { formatDateInTimezone, getCalendarLocale } from "../timezone.ts";
+import { getCalendarLocale, wallDateKey } from "../timezone.ts";
 import type { SlimAppointment, CalendarBlockDto, Appointment } from "../../../shared/types/calendar.ts";
 import {
   getWeekData,
@@ -72,7 +72,7 @@ export const WeekAppointmentList: FC = () => {
     if (!weekData) return [];
     const out: SlimAppointment[] = [];
     for (const day of weekDays) {
-      const dateKey = formatDateInTimezone(day, timezone);
+      const dateKey = wallDateKey(day);
       const raw = weekData[dateKey]?.appointments ?? [];
       const visible =
         staffFilter.length > 0
@@ -133,7 +133,7 @@ export const WeekAppointmentList: FC = () => {
 
   // Check if entire week is empty
   const weekHasNoItems = weekDays.every((day) => {
-    const dateKey = formatDateInTimezone(day, timezone);
+    const dateKey = wallDateKey(day);
     const dayData = weekData?.[dateKey];
     const rawAppts = dayData?.appointments ?? [];
     const visAppts = staffFilter.length > 0
@@ -169,7 +169,7 @@ export const WeekAppointmentList: FC = () => {
   return (
     <div className="p-4 pt-0 space-y-6">
       {weekDays.map((day) => {
-        const dateKey = formatDateInTimezone(day, timezone);
+        const dateKey = wallDateKey(day);
         const dayData = weekData?.[dateKey];
         const rawAppointments: SlimAppointment[] = dayData?.appointments ?? [];
         const serverBlocks: CalendarBlockDto[] = dayData?.blocks ?? [];

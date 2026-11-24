@@ -14,9 +14,11 @@ import {
   setStaffFilter,
   setDayFiltersAction,
   setSelectedDateAction,
+  setSelectedLocationAction,
   setDisplayedWeekAction,
   setDisplayedMonthAction,
   fetchLocationContext,
+  refreshVisibleDay,
 } from "../actions";
 import { getAppointmentDetailRequest } from "../api";
 import {
@@ -43,7 +45,7 @@ import {
   getWeekData,
 } from "../selectors.ts";
 import { getWeekStart, getWeekEnd } from "../utils.ts";
-import { formatDateInTimezone, getCalendarLocale } from "../timezone.ts";
+import { formatDateInTimezone, getCalendarLocale, localCalendarDateFromDateKey, minSelectableCalendarDateForTimezone, wallDateKey } from "../timezone.ts";
 import { NotificationBell } from "../../../shared/components/common/NotificationBell";
 import { AppointmentViewMode, AppointmentViewType } from "../types.ts";
 import { calendarPreferences } from "../calendarPreferences.ts";
@@ -56,6 +58,8 @@ import {
   getAllLocationsSelector,
   getLocationListErrorSelector,
 } from "../../locations/selectors.ts";
+import { AppointmentBlockOverrideDialog } from "../components/AppointmentBlockOverrideDialog";
+import { CustomerOverlapDialog } from "../components/CustomerOverlapDialog";
 import { CreateBlockDrawer } from "../components/CreateBlockDrawer.tsx";
 import { BlockConflictDialog } from "../components/BlockConflictDialog.tsx";
 import { CalendarSidebar } from "../components/CalendarSidebar.tsx";
@@ -65,6 +69,13 @@ import { Card } from "../../../shared/components/ui/card.tsx";
 import { useIsMobile } from "../../../shared/hooks/use-mobile.ts";
 import { MobileCalendarLayout } from "../components/mobile/MobileCalendarLayout.tsx";
 import { ErrorState } from "../../../shared/components/common/ErrorState.tsx";
+import { STORAGE_KEY as CALENDAR_LOCATION_STORAGE_KEY } from "../components/LocationSelector.tsx";
+
+/** A link's instant as the calendar day in the venue's timezone (wall date). */
+const venueWallDay = (moment: Date): Date =>
+  localCalendarDateFromDateKey(formatDateInTimezone(moment, getCalendarTimezone(store.getState())));
+
+const DAY_REFRESH_INTERVAL_MS = 15_000;
 
 const Calendar = () => {
   const dispatch = useDispatch();
@@ -146,7 +157,7 @@ const Calendar = () => {
   /* ── "Today" chip for mobile breadcrumb header ──
    * Track whether the selected day and displayed period are already current. */
   const isOnToday = useMemo(() => {
-    const today = new Date();
+    const today = minSelectableCalendarDateForTimezone(new Date(), calendarTimezone);
     const selectedIsToday = selectedDate.toDateString() === today.toDateString();
     if (viewMode === AppointmentViewMode.DAY) {
       return selectedIsToday;
@@ -170,21 +181,22 @@ const Calendar = () => {
       );
     }
     return true;
-  }, [viewMode, selectedDate, displayedWeekStart, displayedMonthStart]);
+  }, [viewMode, selectedDate, displayedWeekStart, displayedMonthStart, calendarTimezone]);
 
   const handleToday = useCallback(() => {
     const now = new Date();
     const isDayGrid = viewMode !== AppointmentViewMode.MONTH && viewType === AppointmentViewType.GRID;
     const alreadyToday = isDayGrid
-      ? formatDateInTimezone(selectedDate, calendarTimezone) === formatDateInTimezone(now, calendarTimezone)
+      ? wallDateKey(selectedDate) === formatDateInTimezone(now, calendarTimezone)
       : isOnToday;
     if (alreadyToday) {
       // No date change to trigger the normal pulse on the visible day pill.
       window.dispatchEvent(new CustomEvent("calendar:today-pulse"));
     } else {
-      dispatch(setSelectedDateAction(now));
-      dispatch(setDisplayedWeekAction(getWeekStart(now)));
-      dispatch(setDisplayedMonthAction(new Date(now.getFullYear(), now.getMonth(), 1)));
+      const today = minSelectableCalendarDateForTimezone(now, calendarTimezone);
+      dispatch(setSelectedDateAction(today));
+      dispatch(setDisplayedWeekAction(getWeekStart(today)));
+      dispatch(setDisplayedMonthAction(new Date(today.getFullYear(), today.getMonth(), 1)));
     }
     if (isDayGrid) window.dispatchEvent(new Event("calendar:scroll-to-now"));
   }, [dispatch, isOnToday, viewMode, viewType, selectedDate, calendarTimezone]);
@@ -289,6 +301,18 @@ const Calendar = () => {
     );
   }, [dispatch, isMobile]);
 
+  const calendarLinkSequence = useRef(0);
+  useEffect(() => () => { calendarLinkSequence.current += 1; }, []);
+
+  // Link filters waiting for their location's context (see the apply effect below).
+  const pendingCalendarLink = useRef<{
+    locationId: number | null;
+    date: Date | null;
+    serviceId: number | null;
+    bundleId: number | null;
+    staffEmail: string | null;
+  } | null>(null);
+
   // Deep links into the calendar: `date` and `appointmentUuid` from the dashboard's
   // upcoming list, `appointmentId` from notifications. Handled in one effect and consumed
   // with a surgical delete — two effects each clearing the whole query string would race,
@@ -298,68 +322,147 @@ const Calendar = () => {
     // uuid preferred; the numeric form stays supported for links already in the wild.
     const appointmentRef =
       searchParams.get("appointmentUuid") ?? searchParams.get("appointmentId");
-    if (!dateParam && !appointmentRef) return;
+    const hasLinkKeys = ["locationId", "serviceId", "bundleId", "staffEmail"].some((k) =>
+      searchParams.has(k),
+    );
+    if (!dateParam && !appointmentRef && !hasLinkKeys) return;
 
+    const linkSequence = ++calendarLinkSequence.current;
+    pendingCalendarLink.current = null;
     const next = new URLSearchParams(searchParams);
     next.delete("date");
     next.delete("appointmentUuid");
     next.delete("appointmentId");
+    next.delete("locationId");
+    next.delete("serviceId");
+    next.delete("bundleId");
+    next.delete("staffEmail");
     setSearchParams(next, { replace: true });
+
+    const positiveId = (raw: string | null) => {
+      const n = Number(raw);
+      return raw && Number.isInteger(n) && n > 0 ? n : null;
+    };
+    const linkLocationId = positiveId(searchParams.get("locationId"));
+    const serviceId = positiveId(searchParams.get("serviceId"));
+    const bundleId = positiveId(searchParams.get("bundleId"));
+    const staffEmail = searchParams.get("staffEmail");
+    const currentLocationId = store.getState().calendarView.selectedLocationId;
+    const switchesLocation = linkLocationId !== null && linkLocationId !== currentLocationId;
+
+    // Switching location wipes the context, day data and filters (the date survives), so the
+    // location goes first and the day and filters wait for its context in the effect below.
+    if (switchesLocation) {
+      try {
+        localStorage.setItem(CALENDAR_LOCATION_STORAGE_KEY, String(linkLocationId));
+      } catch {
+        // storage unavailable: the selection still applies for this session
+      }
+      dispatch(setSelectedLocationAction(linkLocationId));
+    }
 
     // Select the day first — it needs no network, and selecting it is what fetches it
     // (handleSetSelectedDate → refetchCalendarForCurrentView). So the day is right even
     // if the detail request below fails.
     const date = dateParam ? new Date(dateParam) : null;
-    if (date && !Number.isNaN(date.getTime())) {
+    const validDate = date && !Number.isNaN(date.getTime()) ? date : null;
+    const shownContext = store.getState().calendarView.locationContext;
+    const waitsForVenue = switchesLocation || shownContext?.location.id !== currentLocationId;
+    if (validDate && !waitsForVenue) {
       dispatchSelectDateAndDayView(
         dispatch,
-        date,
+        venueWallDay(validDate),
         store.getState().calendarView.viewMode,
         store.getState().calendarView.selectedDate,
       );
+    }
+
+    const hasProductFilter = serviceId !== null || bundleId !== null;
+    if ((waitsForVenue && validDate) || hasProductFilter || staffEmail) {
+      pendingCalendarLink.current = {
+        locationId: linkLocationId ?? (hasProductFilter ? currentLocationId : null),
+        date: waitsForVenue ? validDate : null,
+        serviceId,
+        bundleId,
+        staffEmail,
+      };
     }
 
     if (!appointmentRef) return;
 
     getAppointmentDetailRequest(appointmentRef)
       .then((appointment) => {
-        if (!appointment) return;
-        // A no-op when `date` already moved us here (same-day guard inside); still does the
-        // work for id-only links, which have no date to go on.
-        dispatchSelectDateAndDayView(
-          dispatch,
-          new Date(appointment.scheduledAt),
-          store.getState().calendarView.viewMode,
-          store.getState().calendarView.selectedDate,
-        );
+        if (!appointment || calendarLinkSequence.current !== linkSequence) return;
+        const day = new Date(appointment.scheduledAt);
+        const { selectedLocationId: shownLocationId, viewMode, selectedDate } = store.getState().calendarView;
+        const appointmentLocationId = appointment.location?.id || null;
+        const waiting = pendingCalendarLink.current;
+        if (appointmentLocationId != null && appointmentLocationId !== shownLocationId) {
+          // Edit works with the calendar's location, so show the appointment at its own one.
+          try {
+            localStorage.setItem(CALENDAR_LOCATION_STORAGE_KEY, String(appointmentLocationId));
+          } catch {
+            // storage unavailable: the selection still applies for this session
+          }
+          dispatch(setSelectedLocationAction(appointmentLocationId));
+          pendingCalendarLink.current = {
+            serviceId: null,
+            bundleId: null,
+            staffEmail: null,
+            ...(waiting ?? {}),
+            locationId: appointmentLocationId,
+            date: day,
+          };
+        } else if (shownLocationId != null && store.getState().calendarView.locationContext?.location.id !== shownLocationId) {
+          pendingCalendarLink.current = {
+            serviceId: null,
+            bundleId: null,
+            staffEmail: null,
+            ...waiting,
+            locationId: shownLocationId,
+            date: day,
+          };
+        } else {
+          // A no-op when `date` already moved us here (same-day guard inside); still does the
+          // work for id-only links, which have no date to go on.
+          dispatchSelectDateAndDayView(dispatch, venueWallDay(day), viewMode, selectedDate);
+        }
         dispatch(toggleEditFormAction({ open: true, item: appointment }));
       })
       .catch(() => {});
   }, [searchParams, setSearchParams, dispatch]);
 
-  const pendingStaffEmail = useRef<string | null>(null);
-
   useEffect(() => {
-    const staffEmailParam = searchParams.get("staffEmail");
-    if (!staffEmailParam) return;
+    const link = pendingCalendarLink.current;
+    if (!link || selectedLocationId == null) return;
+    if (link.locationId != null && link.locationId !== selectedLocationId) return;
+    if (locationContext?.location.id !== selectedLocationId) return;
 
-    // Consume only this key, for the same reason as the deep-link effect above: clearing
-    // the whole query string here would stomp a param another effect hasn't read yet.
-    const next = new URLSearchParams(searchParams);
-    next.delete("staffEmail");
-    setSearchParams(next, { replace: true });
-    pendingStaffEmail.current = staffEmailParam;
-  }, [searchParams, setSearchParams]);
+    const match = link.staffEmail
+      ? locationTeamMembers.find((m) => m.email === link.staffEmail)
+      : undefined;
+    const hasProductFilter = link.serviceId !== null || link.bundleId !== null;
+    // A staffEmail-only link waits until the selected location has that member.
+    if (link.staffEmail && !match && !hasProductFilter && link.locationId == null) return;
 
-  useEffect(() => {
-    if (!pendingStaffEmail.current || locationTeamMembers.length === 0) return;
-
-    const match = locationTeamMembers.find((m) => m.email === pendingStaffEmail.current);
-    if (match) {
-      dispatch(setStaffFilter([match.userId]));
-      pendingStaffEmail.current = null;
+    pendingCalendarLink.current = null;
+    // null current date: always refetch the day against the new location's context.
+    if (link.date) {
+      dispatchSelectDateAndDayView(dispatch, venueWallDay(link.date), store.getState().calendarView.viewMode, null);
     }
-  }, [locationTeamMembers, dispatch]);
+    if (match || hasProductFilter) {
+      const selectedFilters = hasProductFilter ? {} : store.getState().calendarView.dayFilters;
+      dispatch(setStaffFilter(match ? [match.userId] : []));
+      dispatch(
+        setDayFiltersAction({
+          ...selectedFilters,
+          ...(match ? { staffUserIds: [match.userId], staffUserId: undefined, unassignedOnly: undefined } : {}),
+          ...(link.serviceId !== null ? { serviceIds: [link.serviceId] } : {}),
+          ...(link.bundleId !== null ? { bundleIds: [link.bundleId] } : {}),
+        }),
+      );
+    }
+  }, [searchParams, selectedLocationId, locationContext, locationTeamMembers, dispatch]);
 
   useEffect(() => {
     // Locations needed for LocationSelector. Services and team are loaded per-location via assignments/full when a location is selected.
@@ -413,19 +516,37 @@ const Calendar = () => {
   // So returning to a previously selected date requested the wrong day and rendered "nothing
   // scheduled" until you nudged the date, which refetched with the context intact.
   useEffect(() => {
-    if (
-      selectedLocationId != null &&
-      locationContext != null &&
-      !hasRefetchedOnEnter.current
-    ) {
-      hasRefetchedOnEnter.current = true;
-      // Refreshes working hours/staff without clearing the cached context...
-      dispatch(fetchLocationContext.request(selectedLocationId));
-      // ...and re-runs the view-aware fetch for the current date, keeping filters. Same
-      // trick handleRetryCalendarLoad uses.
-      dispatch(setDayFiltersAction(dayFilters));
-    }
-  }, [dispatch, selectedLocationId, locationContext, dayFilters]);
+    if (hasRefetchedOnEnter.current) return;
+    // Read the store, not this render: a link handled above may have just switched the location
+    // or set filters, and this render's values would undo it.
+    const { selectedLocationId: id, locationContext: context, dayFilters: filters } = store.getState().calendarView;
+    if (id == null) return;
+    hasRefetchedOnEnter.current = true;
+    // No cached context for this location: a location switch is already loading fresh data.
+    if (context?.location.id !== id) return;
+    // Refreshes working hours/staff without clearing the cached context...
+    dispatch(fetchLocationContext.request(id));
+    // ...and re-runs the view-aware fetch for the current date, keeping filters. Same
+    // trick handleRetryCalendarLoad uses.
+    dispatch(setDayFiltersAction(filters));
+  }, [dispatch, selectedLocationId]);
+
+  useEffect(() => {
+    if (!selectedLocationId || viewMode !== AppointmentViewMode.DAY) return;
+
+    const refresh = () => {
+      if (document.visibilityState === 'visible') {
+        dispatch(refreshVisibleDay());
+      }
+    };
+    const timer = window.setInterval(refresh, DAY_REFRESH_INTERVAL_MS);
+    document.addEventListener('visibilitychange', refresh);
+
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', refresh);
+    };
+  }, [dispatch, selectedLocationId, viewMode]);
 
   const handleCloseAddForm = useCallback(() => {
     dispatch(toggleAddForm({ open: false }))
@@ -503,6 +624,8 @@ const Calendar = () => {
           />
           <CreateBlockDrawer />
           <BlockConflictDialog />
+          <AppointmentBlockOverrideDialog />
+          <CustomerOverlapDialog />
           <CalendarSettingsSheet
             open={settingsOpen}
             onClose={() => setSettingsOpen(false)}

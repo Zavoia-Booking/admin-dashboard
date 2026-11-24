@@ -1,4 +1,5 @@
 import { apiClient } from "../../shared/lib/http";
+import type { AppointmentActionItem, OffboardPreviewResponse } from "../teamMembers/api";
 import type {
   LocationFullAssignment,
   StaffServicesAtLocation,
@@ -71,6 +72,37 @@ export const updateStaffServicesRequest = async (
     `/assignments/locations/${locationId}/staff/${userId}/services`,
     { services },
   );
+};
+
+export interface StaffServiceRemovalScope {
+  locationId: number;
+  userId: number;
+  serviceId: number;
+}
+
+const staffServicePath = ({ locationId, userId, serviceId }: StaffServiceRemovalScope) =>
+  `/assignments/locations/${locationId}/staff/${userId}/services/${serviceId}`;
+
+export const getStaffServiceRemovalPreviewRequest = async (
+  scope: StaffServiceRemovalScope,
+  signal: AbortSignal,
+): Promise<OffboardPreviewResponse> => {
+  const { data } = await apiClient().get<OffboardPreviewResponse>(
+    `${staffServicePath(scope)}/removal-preview`,
+    { signal },
+  );
+  return data;
+};
+
+export const removeStaffServiceRequest = async (
+  scope: StaffServiceRemovalScope,
+  appointmentActions: AppointmentActionItem[],
+): Promise<{ message: string }> => {
+  const { data } = await apiClient().post<{ message: string }>(
+    `${staffServicePath(scope)}/remove`,
+    { appointmentActions },
+  );
+  return data;
 };
 
 // Unified update for location assignments (services, bundles, and team members)

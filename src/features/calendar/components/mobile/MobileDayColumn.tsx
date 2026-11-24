@@ -1,5 +1,6 @@
 import { memo, type FC, useMemo, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
+import { cn } from "../../../../shared/lib/utils";
 import type {
   SlimAppointment,
   CalendarStaffMember,
@@ -37,7 +38,7 @@ interface MobileDayColumnProps {
   timezone?: string;
   colorMap?: Map<string, AppointmentBlockColorPair> | null;
   staffColorMap?: Map<string, AppointmentBlockColorPair> | null;
-  onFilter: () => void;
+  onFilter?: () => void;
   onAppointmentTap: (appt: SlimAppointment) => void;
   onBlockTap: (block: CalendarBlockDto) => void;
   /** Empty-slot tap → create an appointment at that time. */
@@ -50,7 +51,7 @@ interface MobileDayColumnProps {
   gridSlotStarts?: GridSlot[];
   dndActive?: boolean;
   forbiddenSlotIds?: ReadonlySet<string>;
-  dropPreview?: { top: number; height: number };
+  dropPreview?: { top: number; height: number; forbidden: boolean };
   schedulingLockedAppointmentIds?: ReadonlySet<number>;
   /** Date and time context for past-slot styling. */
   isToday?: boolean;
@@ -232,8 +233,13 @@ export const MobileDayColumn: FC<MobileDayColumnProps> = memo(({
         })}
         {dropPreview && (
           <div
-            className="pointer-events-none absolute inset-x-0 z-10 rounded-sm border-2 border-primary/80 bg-primary/12 dark:bg-primary/18"
-            style={dropPreview}
+            className={cn(
+              "pointer-events-none absolute inset-x-0 z-10 rounded-sm border-2",
+              dropPreview.forbidden
+                ? "border-destructive/80 bg-destructive/12 dark:bg-destructive/18"
+                : "border-primary/80 bg-primary/12 dark:bg-primary/18",
+            )}
+            style={{ top: dropPreview.top, height: dropPreview.height }}
             aria-hidden
           />
         )}

@@ -64,6 +64,10 @@
       "title": "Programare mutată de un membru al echipei",
       "body": "Programarea pentru {{service}} ({{customer}}) a fost mutată de pe {{from}} pe {{to}}."
     },
+    "appointment_service_changed_by_team_member": {
+      "title": "Serviciu schimbat de un membru al echipei",
+      "body": "Programarea din {{date}} ({{customer}}) a fost schimbată din {{previous}} în {{service}}."
+    },
     "appointment_assigned": {
       "title": "Programare nouă alocată",
       "body": "Programarea pentru {{service}} ({{customer}}) din {{date}} ți-a fost alocată."
@@ -84,9 +88,9 @@
       "title_one": "{{count}} programare necesită actualizarea statusului",
       "title_few": "{{count}} programări necesită actualizarea statusului",
       "title_other": "{{count}} de programări necesită actualizarea statusului",
-      "body_one": "Ai o programare de azi încă marcată ca Confirmată. Te rugăm să o actualizezi la Finalizată sau Neprezentare.",
-      "body_few": "Ai {{count}} programări de azi încă marcate ca Confirmate. Te rugăm să le actualizezi la Finalizate sau Neprezentare.",
-      "body_other": "Ai {{count}} de programări de azi încă marcate ca Confirmate. Te rugăm să le actualizezi la Finalizate sau Neprezentare.",
+      "body_one": "Ai o programare de azi care încă necesită actualizarea statusului. Te rugăm să o marchezi ca Finalizată sau Neprezentare.",
+      "body_few": "Ai {{count}} programări de azi care încă necesită actualizarea statusului. Te rugăm să le marchezi ca Finalizate sau Neprezentare.",
+      "body_other": "Ai {{count}} de programări de azi care încă necesită actualizarea statusului. Te rugăm să le marchezi ca Finalizate sau Neprezentare.",
       "line": "{{time}} - {{customer}} ({{service}})"
     },
     "sms_credits_low": {
