@@ -304,6 +304,7 @@ function renderWidget(
   widgetId: string,
   data: any,
   locationId: number,
+  timeZone: string,
   onRefresh: () => void,
   businessCurrency: string
 ) {
@@ -322,6 +323,7 @@ function renderWidget(
     locationCapacity: (
       <LocationCapacityWidget
         locationId={locationId}
+        timeZone={timeZone}
         locationName={locationWidget.name}
         isCurrentlyOpen={locationWidget.isCurrentlyOpen}
         staff={locationWidget.staff}
@@ -343,6 +345,8 @@ function renderWidget(
         monthlyDistribution={appointmentWidget.month}
         upcomingAppointments={appointmentWidget.upcoming}
         businessCurrency={businessCurrency}
+        locationId={locationId}
+        timeZone={timeZone}
       />
     ),
     reviews: (
@@ -357,6 +361,9 @@ function renderWidget(
         pendingAppointments={pendingTotal}
         needsAttentionItems={needsAttentionWidget ?? []}
         onAppointmentUpdated={onRefresh}
+        locationId={locationId}
+        timeZone={timeZone}
+        canMarkOutcome={data.canMarkOutcome !== false}
       />
     ),
   };
@@ -480,6 +487,10 @@ export default function DashboardPage() {
       );
     }
 
+    const locationId = data.locationWidget.id;
+    const venue = locations.find((location) => location.id === locationId);
+    const timeZone = data.locationWidget.timezone || venue?.timezone?.trim() || "UTC";
+
     // Show grid layout with default widget order
     const rows = groupWidgetsIntoRows(defaultWidgetOrder);
 
@@ -506,7 +517,7 @@ export default function DashboardPage() {
                     ${colSpanUtil}
                     ${widgetId === "needsAttention" ? "max-md:order-first" : ""}
                   `}>
-                    {renderWidget(widgetId, data, selectedLocationId!, handleRefreshDashboard, businessCurrency)}
+                    {renderWidget(widgetId, data, locationId, timeZone, handleRefreshDashboard, businessCurrency)}
                   </div>
                 );
               })}

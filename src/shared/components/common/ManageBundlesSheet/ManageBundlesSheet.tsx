@@ -40,6 +40,7 @@ interface ManageBundlesSheetProps {
   initialSelectedIds: number[];
   onSave?: (bundleIds: number[]) => void;
   onApply?: (bundleIds: number[]) => void;
+  mode?: "single" | "multi";
   title?: string;
   subtitle?: string;
   titleLocationName?: string;
@@ -55,6 +56,7 @@ export function ManageBundlesSheet({
   initialSelectedIds,
   onSave,
   onApply,
+  mode = "multi",
   title,
   subtitle,
   titleLocationName,
@@ -86,11 +88,10 @@ export function ManageBundlesSheet({
   }, [isOpen, initialSelectedIds]);
 
   const toggleBundle = (bundleId: number) => {
-    setSelectedBundleIds((prev) =>
-      prev.includes(bundleId)
-        ? prev.filter((id) => id !== bundleId)
-        : [...prev, bundleId],
-    );
+    setSelectedBundleIds((prev) => {
+      if (prev.includes(bundleId)) return prev.filter((id) => id !== bundleId);
+      return mode === "single" ? [bundleId] : [...prev, bundleId];
+    });
   };
 
   const handleClear = () => setSelectedBundleIds(initialSelectedIds);
@@ -355,7 +356,7 @@ export function ManageBundlesSheet({
             type="button"
             rounded="full"
             onClick={handleApply}
-            disabled={!hasChanges}
+            disabled={!hasChanges || (mode === "single" && selectedBundleIds.length !== 1)}
             className={`group gap-2 h-11 cursor-pointer ${isMobileFooter ? "flex-1" : "w-72"}`}
           >
             {onSave
@@ -388,7 +389,7 @@ export function ManageBundlesSheet({
             placeholder={t("page.locationBundles.sort.trigger")}
             className="flex-1 md:flex-none"
           />
-          {renderSelectAllButton()}
+          {mode === "multi" && renderSelectAllButton()}
         </div>
       </div>
 
@@ -521,7 +522,7 @@ export function ManageBundlesSheet({
                       placeholder={t("page.locationBundles.sort.trigger")}
                       className="flex-1 md:flex-none"
                     />
-                    {renderSelectAllButton()}
+                    {mode === "multi" && renderSelectAllButton()}
                   </div>
                 </div>
               </div>

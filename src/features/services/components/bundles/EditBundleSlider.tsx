@@ -37,6 +37,8 @@ import { getServicesListSelector } from "../../selectors";
 import { getServicesAction } from "../../actions";
 import { toast } from "sonner";
 import { selectCurrentUser } from "../../../auth/selectors";
+import { getCurrentBusinessSelector } from "../../../business/selectors";
+import { buildCalendarLink } from "../../../calendar/calendarLinks";
 import type { Service } from "../../../../shared/types/service";
 import type { DeleteResponse } from "../../../../shared/types/delete-response";
 import { Badge } from "../../../../shared/components/ui/badge";
@@ -75,6 +77,7 @@ const EditBundleSlider: React.FC<EditBundleSliderProps> = ({
   const navigate = useNavigate();
   const allServices = useSelector(getServicesListSelector);
   const currentUser = useSelector(selectCurrentUser);
+  const businessTimezone = useSelector(getCurrentBusinessSelector)?.timezone;
   const businessCurrency = currentUser?.business?.businessCurrency || "eur";
   const bundlesError = useSelector(getBundlesErrorSelector);
   const isBundlesLoading = useSelector(getBundlesLoadingSelector);
@@ -1138,6 +1141,11 @@ const EditBundleSlider: React.FC<EditBundleSliderProps> = ({
           isLoading={isDeleting}
           className="z-[80]"
           overlayClassName="z-[80]"
+          fallbackTimezone={businessTimezone || undefined}
+          onGoToCalendar={(apt) => {
+            handleCloseDeleteDialog(false);
+            navigate(buildCalendarLink({ date: apt.scheduledAt, locationId: apt.location?.id, bundleId: effectiveBundle.id }));
+          }}
           secondaryActions={[
             {
               label: text("bundles.editBundle.goToAssignments"),

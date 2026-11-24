@@ -64,6 +64,10 @@
       "title": "Appointment rescheduled by team member",
       "body": "{{customer}}'s appointment for {{service}} was rescheduled from {{from}} to {{to}}."
     },
+    "appointment_service_changed_by_team_member": {
+      "title": "Service changed by team member",
+      "body": "{{customer}}'s appointment on {{date}} was changed from {{previous}} to {{service}}."
+    },
     "appointment_assigned": {
       "title": "New appointment assigned",
       "body": "{{customer}}'s appointment for {{service}} on {{date}} has been assigned to you."
@@ -83,8 +87,8 @@
     "appointment_status_review": {
       "title_one": "{{count}} appointment needs a status update",
       "title_other": "{{count}} appointments need a status update",
-      "body_one": "You have 1 appointment from today still marked as Confirmed. Please update it to Completed or No Show.",
-      "body_other": "You have {{count}} appointments from today still marked as Confirmed. Please update them to Completed or No Show.",
+      "body_one": "You have 1 appointment from today that still needs a status update. Please update it to Completed or No Show.",
+      "body_other": "You have {{count}} appointments from today that still need a status update. Please update them to Completed or No Show.",
       "line": "{{time}} - {{customer}} ({{service}})"
     },
     "sms_credits_low": {

@@ -16,6 +16,7 @@ import { openReconciliationAction } from '../../reconciliation/actions';
 import { DeleteConfirmDialog } from '../../../shared/components/common/DeleteConfirmDialog';
 import { AssignmentsCard } from '../../../shared/components/common/AssignmentsCard';
 import type { DeleteResponse } from '../../../shared/types/delete-response';
+import { buildCalendarLink } from '../../calendar/calendarLinks';
 
 interface TeamMemberProfileSliderProps {
   isOpen: boolean;
@@ -120,13 +121,13 @@ const TeamMemberProfileSlider: React.FC<TeamMemberProfileSliderProps> = ({
     );
   };
 
-  const formatAppointmentTime = (scheduledAt: string, endsAt: string) => {
+  const formatAppointmentTime = (scheduledAt: string, endsAt: string, timeZone?: string) => {
     const start = new Date(scheduledAt);
     const end = new Date(endsAt);
     const locale = i18n.language === 'ro' ? 'ro-RO' : 'en-US';
-    const dateStr = start.toLocaleDateString(locale, { month: 'short', day: 'numeric', year: 'numeric' });
-    const startTime = start.toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit', hour12: true });
-    const endTime = end.toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit', hour12: true });
+    const dateStr = start.toLocaleDateString(locale, { timeZone, month: 'short', day: 'numeric', year: 'numeric' });
+    const startTime = start.toLocaleTimeString(locale, { timeZone, hour: 'numeric', minute: '2-digit', hourCycle: 'h23' });
+    const endTime = end.toLocaleTimeString(locale, { timeZone, hour: 'numeric', minute: '2-digit', hourCycle: 'h23' });
     return `${dateStr} · ${startTime} - ${endTime}`;
   };
 
@@ -184,6 +185,18 @@ const TeamMemberProfileSlider: React.FC<TeamMemberProfileSliderProps> = ({
 
   // Use localTeamMember (from fetched data) or fallback to prop
   const displayTeamMember = localTeamMember || teamMember;
+
+  // Opens the calendar on this person, at the first upcoming appointment's location and day.
+  const goToCalendar = () => {
+    const first = displayTeamMember.upcomingAppointments?.[0];
+    navigate(
+      buildCalendarLink({
+        staffEmail: displayTeamMember.email,
+        locationId: first?.location?.id,
+        date: first?.scheduledAt,
+      }),
+    );
+  };
 
   // Check if we have valid data
   const hasValidData = displayTeamMember && displayTeamMember.firstName && displayTeamMember.lastName;
@@ -275,7 +288,7 @@ const TeamMemberProfileSlider: React.FC<TeamMemberProfileSliderProps> = ({
                           {/* Header with service and status */}
                           <div className="flex items-start justify-between gap-2">
                             <h4 className="font-medium text-foreground-1">
-                              {appointment.service.name}
+                              {appointment.bookedItemName || appointment.service?.name}
                             </h4>
                             {getAppointmentStatusBadge(appointment.status)}
                           </div>
@@ -284,16 +297,18 @@ const TeamMemberProfileSlider: React.FC<TeamMemberProfileSliderProps> = ({
                           <div className="space-y-2">
                             <div className="flex items-center gap-2 text-sm text-foreground-2">
                               <Calendar className="h-4 w-4 flex-shrink-0" />
-                              <span>{formatAppointmentTime(appointment.scheduledAt, appointment.endsAt)}</span>
+                              <span>{formatAppointmentTime(appointment.scheduledAt, appointment.endsAt, appointment.timezone)}</span>
                             </div>
                             <div className="flex items-center gap-2 text-sm text-foreground-2">
                               <User className="h-4 w-4 flex-shrink-0" />
-                              <span>{appointment.customer.firstName} {appointment.customer.lastName}</span>
+                              <span>{appointment.customer ? <>{appointment.customer.firstName} {appointment.customer.lastName}</> : t('profileSlider.noCustomer')}</span>
                             </div>
-                            <div className="flex items-center gap-2 text-sm text-foreground-2">
-                              <MapPin className="h-4 w-4 flex-shrink-0" />
-                              <span>{appointment.location.name}</span>
-                            </div>
+                            {appointment.location && (
+                              <div className="flex items-center gap-2 text-sm text-foreground-2">
+                                <MapPin className="h-4 w-4 flex-shrink-0" />
+                                <span>{appointment.location.name}</span>
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -301,9 +316,7 @@ const TeamMemberProfileSlider: React.FC<TeamMemberProfileSliderProps> = ({
                     <Button
                       variant="outline"
                       rounded="full"
-                      onClick={() => {
-                        navigate(`/appointments?teamMemberId=${displayTeamMember.id}`);
-                      }}
+                      onClick={goToCalendar}
                       className="w-full sm:w-auto"
                     >
                       {t('profileSlider.goToAppointments')}
@@ -324,9 +337,7 @@ const TeamMemberProfileSlider: React.FC<TeamMemberProfileSliderProps> = ({
                     <Button
                       variant="outline"
                       rounded="full"
-                      onClick={() => {
-                        navigate(`/appointments?teamMemberId=${displayTeamMember.id}`);
-                      }}
+                      onClick={goToCalendar}
                       className="w-full sm:w-auto"
                     >
                       {t('profileSlider.goToAppointments')}

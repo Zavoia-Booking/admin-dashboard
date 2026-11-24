@@ -26,17 +26,26 @@ function dateLocale(language: string): string {
   return language.toLowerCase().startsWith("ro") ? "ro-RO" : "en-GB";
 }
 
-function formatDateTime(iso: unknown, language: string): string | null {
+function formatDateTime(iso: unknown, language: string, timezone?: unknown): string | null {
   const value = str(iso);
   if (!value) return null;
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return null;
-  return date.toLocaleString(dateLocale(language), {
+  const options: Intl.DateTimeFormatOptions = {
     day: "numeric",
     month: "short",
     hour: "2-digit",
     minute: "2-digit",
-  });
+  };
+  const venueTimezone = str(timezone)?.trim();
+  if (venueTimezone) {
+    try {
+      return date.toLocaleString(dateLocale(language), { ...options, timeZone: venueTimezone });
+    } catch (error) {
+      if (!(error instanceof RangeError)) throw error;
+    }
+  }
+  return date.toLocaleString(dateLocale(language), options);
 }
 
 export function localizeNotification(
@@ -59,7 +68,7 @@ export function localizeNotification(
     case "appointment_assigned":
     case "appointment_unassigned":
     case "appointment_cancelled": {
-      const date = formatDateTime(data.scheduledAt, language);
+      const date = formatDateTime(data.scheduledAt, language, data.timezone);
       if (!date || !("customerName" in data)) return stored;
       return {
         title: t(`${key}.title`),
@@ -70,12 +79,22 @@ export function localizeNotification(
     case "appointment_rescheduled_by_customer":
     case "appointment_rescheduled_by_team_member":
     case "appointment_rescheduled": {
-      const from = formatDateTime(data.originalScheduledAt, language);
-      const to = formatDateTime(data.newScheduledAt, language);
+      const from = formatDateTime(data.originalScheduledAt, language, data.timezone);
+      const to = formatDateTime(data.newScheduledAt, language, data.timezone);
       if (!from || !to || !("customerName" in data)) return stored;
       return {
         title: t(`${key}.title`),
         body: t(`${key}.body`, { customer: customer(data.customerName), service, from, to }),
+      };
+    }
+
+    case "appointment_service_changed_by_team_member": {
+      const date = formatDateTime(data.scheduledAt, language, data.timezone);
+      const previous = str(data.previousServiceName);
+      if (!date || !previous || !("customerName" in data)) return stored;
+      return {
+        title: t(`${key}.title`),
+        body: t(`${key}.body`, { customer: customer(data.customerName), previous, service, date }),
       };
     }
 

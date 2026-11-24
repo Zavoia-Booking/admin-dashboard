@@ -38,7 +38,7 @@ import {
   getTimePositionForGrid,
   isTimeRangeOutsideWorkingHours,
 } from "../../workingHours.ts";
-import { getMinutesInTimezone, formatDateInTimezone, buildZonedDateFromDateKey } from "../../timezone.ts";
+import { getMinutesInTimezone, formatDateInTimezone, buildZonedDateFromDateKey, wallDateKey } from "../../timezone.ts";
 import { isSlimAppointmentSchedulingLocked } from "../../calendarScheduling.ts";
 import {
   evaluateWeekTimeSlotDrop,
@@ -79,7 +79,6 @@ export const WeekGrid: FC = () => {
   const {
     dispatch,
     pendingDrop,
-    updateConflictOffer,
     activeId,
     setActiveId,
     overId,
@@ -98,8 +97,6 @@ export const WeekGrid: FC = () => {
     handleDragOver,
     handleConfirmOverride,
     handleCancelDrop,
-    handleConfirmConflictOverride,
-    handleCancelConflictOverride,
   } = useGridDndState();
 
   const collisionDetection: CollisionDetection = useCallback((args) => pointerWithin(args), []);
@@ -132,7 +129,7 @@ export const WeekGrid: FC = () => {
     });
   }, [weekDisplayStart, selectedDate]);
 
-  /** Stable slot-click handler for the single-staff week view (avoids inline closures per day). */
+  /** Prefill from the clicked slot in either week view. */
   const weekDaysRef = useRef(weekDays);
   weekDaysRef.current = weekDays;
   const handleWeekSlotClick = useCallback((hour: number, minute?: number, columnId?: number) => {
@@ -178,7 +175,7 @@ export const WeekGrid: FC = () => {
   const weekNowGutterTop = ((weekNowMinutes - weekGridStartMinutes) / weekSlotIntervalMinutes) * weekSlotHeight;
   const is24h = calendarPreferences.getTimeFormat() === '24h';
   const weekNowLabel = formatNowLabel(weekNowMinutes, is24h);
-  const weekHasToday = weekDays.some((d) => formatDateInTimezone(d, calendarTimezone) === todayStr);
+  const weekHasToday = weekDays.some((d) => wallDateKey(d) === todayStr);
   useNowTick(weekHasToday);
 
   // Scroll to "now" line only when the scrollToNow flag is set (Today button / initial load).
@@ -195,7 +192,7 @@ export const WeekGrid: FC = () => {
   // Get appointments and blocks for each day, filtered by staff
   const columnData = useMemo(() => {
     return weekDays.map(day => {
-      const dateKey = formatDateInTimezone(day, calendarTimezone);
+      const dateKey = wallDateKey(day);
       const dayData: DayDataResponse | undefined = weekData?.[dateKey];
 
       let appointments = dayData?.appointments ?? [];
@@ -214,10 +211,13 @@ export const WeekGrid: FC = () => {
     });
   }, [weekDays, weekData, staffFilter, optimisticBlocks, calendarTimezone]);
 
-  // Convert to display blocks then to SlimAppointment for rendering
+  // Filter visible blocks while keeping all blocks available for drop validation.
   const columnDisplayData = useMemo(() => {
     return columnData.map((col) => ({
-      ...col,
+      blocks: staffFilter.length > 0
+        ? col.blocks.filter((block) =>
+          block.blockScope !== "staff" || (block.userId != null && staffFilter.includes(block.userId)))
+        : col.blocks,
       appointments: appointmentsToDisplayBlocks(col.appointments).map((block): SlimAppointment => ({
         id: block.id,
         scheduledAt: block.start,
@@ -233,7 +233,7 @@ export const WeekGrid: FC = () => {
         notes: block.notes ?? undefined,
       })),
     }));
-  }, [columnData]);
+  }, [columnData, staffFilter]);
 
   // Merge pending drop preview into column data
   const columnDataWithPreview = useMemo(() => {
@@ -255,7 +255,7 @@ export const WeekGrid: FC = () => {
       endsAt: previewEndsAt.toISOString(),
     };
     return columnDisplayData.map((col, i) => {
-      const dateKey = formatDateInTimezone(weekDays[i], calendarTimezone);
+      const dateKey = wallDateKey(weekDays[i]);
       if (dateKey === pd.dateKey) {
         const without = col.appointments.filter((a) => a.id !== appointmentId);
         return { ...col, appointments: [...without, preview] };
@@ -353,7 +353,7 @@ export const WeekGrid: FC = () => {
     const useSlots = weekGridSlotStarts.length > 0;
     const forbidden = new Set<string>();
     for (let i = 0; i < weekDays.length; i++) {
-      const dayDateKey = formatDateInTimezone(weekDays[i], calendarTimezone);
+      const dayDateKey = wallDateKey(weekDays[i]);
       for (const slot of weekSlotRowsForForbidden) {
         const slotId = useSlots
           ? `slot-${i}-${dayDateKey}-${slot.hour}-${slot.minute}`
@@ -448,7 +448,7 @@ export const WeekGrid: FC = () => {
     const toConfirm = pendingDrop;
     const { appointment, dateKey: dKey, hour } = toConfirm;
     const minute = toConfirm.minute ?? 0;
-    const dayIndex = weekDays.findIndex((d) => formatDateInTimezone(d, calendarTimezone) === dKey);
+    const dayIndex = weekDays.findIndex((d) => wallDateKey(d) === dKey);
     const targetDayWorkingHours = dayIndex >= 0 ? getWorkingHoursForDate(weekDays[dayIndex], workingHours, open247) : null;
     const newScheduledAt = buildZonedDateFromDateKey(
       dKey,
@@ -548,8 +548,8 @@ export const WeekGrid: FC = () => {
           ? weekDays.map((day, i) => {
             const { appointments, blocks } = columnDataWithPreview[i];
             const { openHour, closeHour } = dayWorkingHours[i];
-            const isToday = formatDateInTimezone(day, calendarTimezone) === todayStr;
-            const dateKey = formatDateInTimezone(day, calendarTimezone);
+            const isToday = wallDateKey(day) === todayStr;
+            const dateKey = wallDateKey(day);
             return (
               <div
                 key={day.toDateString()}
@@ -579,7 +579,7 @@ export const WeekGrid: FC = () => {
                     schedulingLockedAppointmentIds={weekSchedulingLockedIds}
                     forbiddenSlotIds={activeId ? weekForbiddenSlotIds : EMPTY_FORBIDDEN_SLOT_SET}
                     dndActive={!!activeId}
-                    durationHighlightSlotIds={weekDurationHighlightSlotIds}
+                    durationHighlightSlotIds={overId != null && weekForbiddenSlotIds.has(String(overId)) ? EMPTY_FORBIDDEN_SLOT_SET : weekDurationHighlightSlotIds}
                     onSlotClick={handleWeekSlotClick}
                     day={day}
                     calendarViewMode={AppointmentViewMode.WEEK}
@@ -591,8 +591,8 @@ export const WeekGrid: FC = () => {
           : weekDays.map((day, i) => {
             const { appointments, blocks } = columnDataWithPreview[i];
             const { openHour, closeHour } = dayWorkingHours[i];
-            const isToday = formatDateInTimezone(day, calendarTimezone) === todayStr;
-            const dateKey = formatDateInTimezone(day, calendarTimezone);
+            const isToday = wallDateKey(day) === todayStr;
+            const dateKey = wallDateKey(day);
             return (
               <div
                 key={day.toDateString()}
@@ -619,16 +619,7 @@ export const WeekGrid: FC = () => {
                     gridStartMinutes={weekGridSlotStarts.length > 0 ? weekGridStartMinutes : undefined}
                     intervalMinutes={weekGridSlotStarts.length > 0 ? weekSlotIntervalMinutes : undefined}
                     colorMap={weekColorMap}
-                    onSlotClick={(hour) => {
-                      const hh = String(hour).padStart(2, '0');
-                      dispatch(toggleAddForm({
-                        open: true,
-                        prefill: {
-                          date: day,
-                          time: `${hh}:00`,
-                        },
-                      }));
-                    }}
+                    onSlotClick={(hour, minute) => handleWeekSlotClick(hour, minute, i)}
                   />
                 </div>
               </div>
@@ -702,16 +693,11 @@ export const WeekGrid: FC = () => {
       />
 
       <OverrideDialog
-        open={overrideDialogOpen || (!!updateConflictOffer && updateConflictOffer.conflictType !== 'staff_appointment')}
-        onOpenChange={(open) => {
-          if (!open) {
-            if (updateConflictOffer) handleCancelConflictOverride();
-            else handleCancelDrop();
-          }
-        }}
-        isConflictOverride={!!updateConflictOffer}
-        onConfirm={updateConflictOffer ? handleConfirmConflictOverride : handleConfirmOverride}
-        onCancel={updateConflictOffer ? handleCancelConflictOverride : handleCancelDrop}
+        open={overrideDialogOpen}
+        onOpenChange={(open) => !open && handleCancelDrop()}
+        isConflictOverride={false}
+        onConfirm={handleConfirmOverride}
+        onCancel={handleCancelDrop}
         reasonText={overrideReasonText}
         onReasonChange={setOverrideReasonText}
         inputId="week-dnd-override-reason"

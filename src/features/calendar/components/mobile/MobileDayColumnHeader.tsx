@@ -12,7 +12,7 @@ import { cn } from "../../../../shared/lib/utils";
 interface MobileDayColumnHeaderProps {
   staff: CalendarStaffMember | null; // null when this is the "Unassigned" column
   isFiltered: boolean; // true when this is the only visible column via staff filter
-  onTap: () => void;
+  onTap?: () => void;
   staffColorMap?: Map<string, AppointmentBlockColorPair> | null;
   unassignedLabel: string;
 }
@@ -38,22 +38,23 @@ export const MobileDayColumnHeader: FC<MobileDayColumnHeaderProps> = ({
       )
     : undefined;
   const shortName = staff ? staff.firstName?.trim() || staff.lastName?.trim() || "—" : unassignedLabel;
+  const Header = onTap ? "button" : "div";
 
   return (
-    <button
-      type="button"
-      onClick={onTap}
-      aria-pressed={isFiltered}
-      aria-label={
-        isFiltered
+    <Header
+      {...(onTap && {
+        type: "button" as const,
+        onClick: onTap,
+        "aria-pressed": isFiltered,
+        "aria-label": isFiltered
           ? t('page.aria.tapToShowAllStaff', { shortName })
-          : t('page.aria.showOnlyStaff', { shortName })
-      }
+          : t('page.aria.showOnlyStaff', { shortName }),
+      })}
       className={cn(
         "flex items-center gap-1.5 w-full h-11 px-2",
         "border-b border-border bg-white dark:bg-surface",
-        "text-left active:scale-[0.98]",
-        "transition-transform duration-200 ease-out",
+        "text-left",
+        onTap && "active:scale-[0.98] transition-transform duration-200 ease-out",
       )}
     >
       {isUnassigned ? (
@@ -90,6 +91,6 @@ export const MobileDayColumnHeader: FC<MobileDayColumnHeaderProps> = ({
           <X className="h-3 w-3 text-foreground-2" strokeWidth={2.5} />
         </span>
       )}
-    </button>
+    </Header>
   );
 };

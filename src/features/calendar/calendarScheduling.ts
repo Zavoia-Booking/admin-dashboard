@@ -1,14 +1,16 @@
 import type { SlimAppointment } from "../../shared/types/calendar.ts";
-import { isAppointmentEndInPast } from "./timezone.ts";
 
-/**
- * True when reschedule/reassign via grid should be blocked (aligned with EditAppointmentSlider:
- * booking end ≤ now).
- */
+/** The grid locks moving/reassigning once the appointment has started or is closed (the server refuses the same). */
 export function isSlimAppointmentSchedulingLocked(
   appointment: SlimAppointment,
   _samePayloadAppointments: SlimAppointment[],
   now: Date = new Date(),
 ): boolean {
-  return isAppointmentEndInPast(appointment.endsAt, now);
+  const start = new Date(appointment.scheduledAt);
+  if (!Number.isNaN(start.getTime()) && start.getTime() <= now.getTime()) return true;
+  return (
+    appointment.status === "cancelled" ||
+    appointment.status === "completed" ||
+    appointment.status === "no_show"
+  );
 }

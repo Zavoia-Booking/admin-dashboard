@@ -193,6 +193,7 @@ export function displayBlockToSlim(block: CalendarDisplayBlock): SlimAppointment
     status: block.status,
     bookedItemName: block.label,
     duration: block.duration,
+    bookedRequirements: block.bookedRequirements,
     staffUserIds: block.staffUserIds,
     customerName: block.customerName,
     bookingSource: block.bookingSource,

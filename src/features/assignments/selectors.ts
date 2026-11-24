@@ -5,6 +5,8 @@ export const getIsLoadingSelector = (state: RootState) => state.assignments.isLo
 export const getLoadErrorSelector = (state: RootState) => state.assignments.loadError;
 export const getIsSavingSelector = (state: RootState) => state.assignments.isSaving;
 
+export const getAppointmentsInUseSelector = (state: RootState) => state.assignments.appointmentsInUse;
+
 // Location selectors
 export const getSelectedLocationIdSelector = (state: RootState) => state.assignments.selectedLocationId;
 export const getSelectedLocationFullSelector = (state: RootState) => state.assignments.selectedLocationFullAssignment;

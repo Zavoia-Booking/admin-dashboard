@@ -123,7 +123,11 @@
     "E03": "Couldn’t load location assignments. Try again",
     "E04": "Couldn’t update team assignments. Try again",
     "E05": "Couldn’t update service assignments. Try again",
-    "E06": "Couldn’t update location assignments. Try again"
+    "E06": "Couldn’t update location assignments. Try again",
+    "E07": "This service can’t be turned off here while upcoming appointments include it",
+    "E08": "This bundle can’t be turned off here while upcoming appointments include it",
+    "E09": "This service can’t be taken from this team member while their upcoming appointments here include it",
+    "E10": "This team member can’t leave this location while they have upcoming appointments here"
   },
   "MARKETPLACE_LISTING": {
     "E01": "Business not found",
@@ -233,6 +237,11 @@
     "E08": "Enter a discount percentage",
     "E09": "Discount must be between 0 and 100",
     "E10": "This bundle can’t be deleted because it’s still in use"
+  },
+  "APPOINTMENT": {
+    "E01": "This appointment has already started. Its time, team member and services can’t be changed anymore",
+    "E02": "This appointment is cancelled, completed or marked as no-show. Its time, team member and services can’t be changed anymore",
+    "E03": "An appointment can’t be moved to a time in the past"
   },
   "TEAM_MEMBER_ACCOUNT": {
     "E01": "Account not found",

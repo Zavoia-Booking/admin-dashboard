@@ -20,7 +20,7 @@ type FanProps = GalleryVariantProps & {
 const formatCount = (value: number) => String(value).padStart(2, "0");
 
 function useReducedMotionPreference() {
-  // Shared hook: OS preference + static thumbnails + the at-rest desktop mock (PreviewAtRestContext).
+  // Shared hook: OS preference + static thumbnails.
   return useReducedMotion();
 }
 

@@ -5,7 +5,9 @@ import { getWeekStart } from "./utils.ts";
 import { areCalendarFiltersActive, countActiveCalendarFilters } from "./calendarFilters.ts";
 import type { CalendarBlockDto, SlimAppointment, CalendarDisplayBlock } from "../../shared/types/calendar.ts";
 import { getCurrentBusinessSelector } from "../business/selectors.ts";
-import { buildZonedDateFromDateKey, formatDateInTimezone } from "./timezone.ts";
+import { selectCurrentUser, selectCurrentUserId } from "../auth/selectors.ts";
+import { hasPermission, Permission } from "../../shared/lib/permissions.ts";
+import { buildZonedDateFromDateKey, wallDateKey } from "./timezone.ts";
 
 /** True if block's time range overlaps the given wall date (YYYY-MM-DD) in the given timezone. */
 export function blockOverlapsDate(block: CalendarBlockDto, dateKey: string, timezone: string): boolean {
@@ -78,10 +80,19 @@ export const getLocationContextError = createSelector(getCalendarViewStateSelect
     return state.locationContextError;
 })
 
-/** Staff members assigned to the selected location */
-export const getLocationStaff = createSelector(getLocationContext, (context) => {
-    return context?.staff ?? [];
-})
+export const getCanViewTeamCalendar = createSelector(
+    selectCurrentUser,
+    (user) => hasPermission(user, Permission.VIEW_ALL_APPOINTMENTS),
+);
+
+/** Staff whose columns can be displayed in the current calendar. */
+export const getLocationStaff = createSelector(
+    getLocationContext, getCanViewTeamCalendar, selectCurrentUserId,
+    (context, canViewTeam, userId) => {
+        const staff = context?.staff ?? [];
+        return canViewTeam ? staff : staff.filter((member) => member.id === userId);
+    },
+);
 
 /** Working hours for the selected location */
 export const getLocationWorkingHours = createSelector(getLocationContext, (context) => {
@@ -98,15 +109,24 @@ export const getBookingSettings = createSelector(getLocationContext, (context) =
     return context?.bookingSettings ?? null;
 })
 
+/** Whether the business can send SMS (switch on and credits left) */
+export const getSmsAvailable = createSelector(getLocationContext, (context) => {
+    return context?.smsAvailable === true;
+})
+
 /** Services enabled at the selected location (from GET /calendar/location-context). */
 export const getLocationServices = createSelector(getCalendarViewStateSelector, (state) => {
     return state.locationServices ?? [];
 })
 
 /** Team members assigned to the selected location (from GET /calendar/location-context). */
-export const getLocationTeamMembers = createSelector(getCalendarViewStateSelector, (state) => {
-    return state.locationTeamMembers ?? [];
-})
+export const getLocationTeamMembers = createSelector(
+    getCalendarViewStateSelector, getCanViewTeamCalendar, selectCurrentUserId,
+    (state, canViewTeam, userId) => {
+        const members = state.locationTeamMembers ?? [];
+        return canViewTeam ? members : members.filter((member) => member.userId === userId);
+    },
+);
 
 /** Bundles enabled at the selected location (from GET /calendar/location-context). */
 export const getLocationBundles = createSelector(getCalendarViewStateSelector, (state) => {
@@ -168,6 +188,7 @@ export function appointmentsToDisplayBlocks(appointments: SlimAppointment[]): Ca
         status: a.status,
         label: a.bookedItemName,
         duration: a.duration,
+        bookedRequirements: a.bookedRequirements,
         staffUserIds: a.staffUserIds || [],
         customerName: a.customerName,
         bookingSource: a.bookingSource,
@@ -195,7 +216,7 @@ export const getDayBlocks = createSelector(
     getOptimisticBlocks,
     getCalendarTimezone,
     (dayData, selectedDate, optimisticBlocks, timezone) => {
-        const key = formatDateInTimezone(selectedDate, timezone);
+        const key = wallDateKey(selectedDate);
         const server = dayData?.blocks ?? [];
         const forDay = optimisticBlocks.filter((b) => blockOverlapsDate(b, key, timezone));
         return [...server, ...forDay];
@@ -206,7 +227,7 @@ export const getDayBlocks = createSelector(
 export function getBlocksForDateKey(state: unknown, dateKey: string): CalendarBlockDto[] {
     const cal = getCalendarViewStateSelector(state as any);
     const timezone = getCalendarTimezone(state as any);
-    const selectedKey = formatDateInTimezone(cal.selectedDate, timezone);
+    const selectedKey = wallDateKey(cal.selectedDate);
     const serverBlocks = (dateKey === selectedKey ? cal.dayData?.blocks : cal.weekData?.[dateKey]?.blocks) ?? [];
     const forDay = (cal.optimisticBlocks ?? []).filter((b) => blockOverlapsDate(b, dateKey, timezone));
     return [...serverBlocks, ...forDay];
@@ -304,11 +325,14 @@ export const getStaffFilter = createSelector(getCalendarViewStateSelector, (stat
     return state.staffFilter;
 })
 
-/** Staff IDs for column/list narrowing: prefer API filter `staffUserIds` when set, else Redux `staffFilter`. */
+/** Members see their own schedule. Owners can narrow the team calendar by staff. */
 export const getEffectiveStaffFilterIds = createSelector(
     getStaffFilter,
     getDayFilters,
-    (staffFilter, dayFilters) => {
+    getCanViewTeamCalendar,
+    selectCurrentUserId,
+    (staffFilter, dayFilters, canViewTeam, userId) => {
+        if (!canViewTeam) return userId == null ? [] : [userId];
         if (dayFilters.staffUserIds != null && dayFilters.staffUserIds.length > 0) {
             return dayFilters.staffUserIds;
         }
@@ -344,6 +368,11 @@ export const getActiveCalendarFiltersCount = createSelector(
 export const getUpdateConflictOffer = createSelector(
     getCalendarViewStateSelector,
     (state: CalendarViewState): CalendarViewState['updateConflictOffer'] => state.updateConflictOffer,
+)
+
+export const getCustomerOverlapOffer = createSelector(
+    getCalendarViewStateSelector,
+    (state: CalendarViewState) => state.customerOverlapOffer,
 )
 
 /** Pending working-hours confirmation for a staff-only edit. */

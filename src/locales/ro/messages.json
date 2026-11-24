@@ -123,7 +123,11 @@
     "E03": "Nu am putut încărca alocările locației. Încearcă din nou",
     "E04": "Nu am putut actualiza alocările membrului. Încearcă din nou",
     "E05": "Nu am putut actualiza alocările serviciului. Încearcă din nou",
-    "E06": "Nu am putut actualiza alocările locației. Încearcă din nou"
+    "E06": "Nu am putut actualiza alocările locației. Încearcă din nou",
+    "E07": "Serviciul nu poate fi dezactivat aici cât timp programări viitoare îl includ",
+    "E08": "Pachetul nu poate fi dezactivat aici cât timp programări viitoare îl includ",
+    "E09": "Serviciul nu poate fi retras de la acest membru cât timp programările lui viitoare de aici îl includ",
+    "E10": "Membrul nu poate fi scos din această locație cât timp are programări viitoare aici"
   },
   "MARKETPLACE_LISTING": {
     "E01": "Businessul nu a fost găsit",
@@ -233,6 +237,11 @@
     "E08": "Introdu un procent de reducere",
     "E09": "Reducerea trebuie să fie între 0 și 100",
     "E10": "Acest pachet nu poate fi șters pentru că este în uz"
+  },
+  "APPOINTMENT": {
+    "E01": "Programarea a început deja. Ora, membrul echipei și serviciile nu mai pot fi schimbate",
+    "E02": "Programarea este anulată, finalizată sau marcată ca neprezentare. Ora, membrul echipei și serviciile nu mai pot fi schimbate",
+    "E03": "O programare nu poate fi mutată în trecut"
   },
   "TEAM_MEMBER_ACCOUNT": {
     "E01": "Contul nu a fost găsit",

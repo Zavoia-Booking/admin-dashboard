@@ -1,4 +1,5 @@
 import { type FC } from "react";
+import { useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
 import type { SlimAppointment, CalendarStaffMember } from "../../../shared/types/calendar.ts";
 import {
@@ -13,6 +14,7 @@ import { ShieldAlert, User } from "lucide-react";
 import { PersonAvatar, getPersonColorKey } from "../../../shared/components/common/PersonAvatar.tsx";
 import { cn } from "../../../shared/lib/utils";
 import { calendarPreferences } from "../calendarPreferences.ts";
+import { getCalendarTimezone } from "../selectors.ts";
 import {
   getAppointmentBlockColors,
   type AppointmentBlockColorPair,
@@ -86,7 +88,8 @@ export const SlimAppointmentCard: FC<SlimAppointmentCardProps> = ({
   colorMap,
 }) => {
   const { t } = useTranslation("calendar");
-  const timeRange = formatTimeRange(appointment.scheduledAt, appointment.endsAt);
+  const timezone = useSelector(getCalendarTimezone);
+  const timeRange = formatTimeRange(appointment.scheduledAt, appointment.endsAt, timezone);
   const colorCoding = calendarPreferences.getColorCoding();
   const { backgroundColor } = getAppointmentBlockColors(appointment, colorCoding, colorMap);
 

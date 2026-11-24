@@ -47,9 +47,12 @@ export const offboardTeamMemberApi = async (id: number, appointmentActions: Appo
 
 export interface OffboardPreviewAppointment {
   id: number;
+  timezone?: string;
   scheduledAt: string;
   endsAt: string;
   status: string;
+  bookedItemName?: string | null;
+  containingBundleNames?: string[];
   customer: { firstName: string; lastName: string; email: string } | null;
   service: { id: number; name: string } | null;
   location: { id: number; name: string } | null;

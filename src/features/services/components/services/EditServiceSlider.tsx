@@ -28,6 +28,8 @@ import {
   priceToStorage,
 } from "../../../../shared/utils/currency";
 import { selectCurrentUser } from "../../../auth/selectors";
+import { getCurrentBusinessSelector } from "../../../business/selectors";
+import { buildCalendarLink } from "../../../calendar/calendarLinks";
 import { editServicesAction, deleteServicesAction } from "../../actions.ts";
 import { SERVICE_NAME_MAX_LENGTH } from "../../utils.ts";
 import type { EditServicePayload } from "../../types.ts";
@@ -73,6 +75,7 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const currentUser = useSelector(selectCurrentUser);
+  const businessTimezone = useSelector(getCurrentBusinessSelector)?.timezone;
   const businessCurrency = currentUser?.business?.businessCurrency || "eur";
   const editForm = useSelector(getEditFormSelector);
   const servicesError = useSelector(getServicesErrorSelector);
@@ -860,6 +863,11 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
           isLoading={isDeleting}
           className="z-[80]"
           overlayClassName="z-[80]"
+          fallbackTimezone={businessTimezone || undefined}
+          onGoToCalendar={(apt) => {
+            handleCloseDeleteDialog(false);
+            navigate(buildCalendarLink({ date: apt.scheduledAt, locationId: apt.location?.id, serviceId: service.id }));
+          }}
           secondaryActions={[
             {
               label: text("editService.assignments.goToAssignments"),

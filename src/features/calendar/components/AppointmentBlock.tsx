@@ -1,8 +1,9 @@
 import { type FC, memo, useCallback } from "react";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
 import type { SlimAppointment, Appointment } from "../../../shared/types/calendar.ts";
 import { toggleEditFormAction } from "../actions.ts";
+import { getCalendarTimezone } from "../selectors.ts";
 import { formatTimeRange } from "./utils.tsx";
 import { ShieldAlert } from "lucide-react";
 import { calendarPreferences } from "../calendarPreferences.ts";
@@ -48,6 +49,7 @@ export const AppointmentBlock: FC<AppointmentBlockProps> = memo(({
   colorMap,
 }) => {
   const dispatch = useDispatch();
+  const timezone = useSelector(getCalendarTimezone);
   const { t } = useTranslation("calendar");
   const colorCoding = calendarPreferences.getColorCoding();
   const { backgroundColor, color } = getAppointmentBlockColors(appointment, colorCoding, colorMap);
@@ -127,7 +129,7 @@ export const AppointmentBlock: FC<AppointmentBlockProps> = memo(({
           {/* Row 2: Time range */}
           {height > 44 && (
             <span className="text-[10px] leading-none opacity-80 tabular-nums block mt-1.5">
-              {formatTimeRange(appointment.scheduledAt, appointment.endsAt)}
+              {formatTimeRange(appointment.scheduledAt, appointment.endsAt, timezone)}
             </span>
           )}
 

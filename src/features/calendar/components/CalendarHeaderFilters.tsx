@@ -19,6 +19,7 @@ import {
 import { Button } from "../../../shared/components/ui/button.tsx";
 import {
   getActiveCalendarFiltersCount,
+  getCanViewTeamCalendar,
   getDayFilters,
   getLocationStaff,
   getStaffFilter,
@@ -76,6 +77,7 @@ export const CalendarHeaderFilters: FC<CalendarHeaderFiltersProps> = ({ slim, ex
   // Native keyboard covers the sticky footer instead of pushing it up.
   const keyboardVisible = useKeyboardVisible();
   const activeCount = useSelector(getActiveCalendarFiltersCount);
+  const canViewTeamCalendar = useSelector(getCanViewTeamCalendar);
   const appliedDayFilters = useSelector(getDayFilters);
   const appliedStaffFilter = useSelector(getStaffFilter);
   const staffList = useSelector(getLocationStaff);
@@ -228,7 +230,7 @@ export const CalendarHeaderFilters: FC<CalendarHeaderFiltersProps> = ({ slim, ex
     <div className="min-h-0 flex-1 flex flex-col overflow-hidden">
       <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide relative">
         <div className="space-y-4 px-4 pb-20 pt-4">
-        {staffList.length > 0 ? (
+        {canViewTeamCalendar && staffList.length > 0 ? (
           <>
             <CalendarStaffFilter
               showLabel

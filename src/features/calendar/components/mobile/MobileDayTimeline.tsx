@@ -23,6 +23,7 @@ import type {
 } from "../../../../shared/types/calendar";
 import { CalendarBlockScope } from "../../../../shared/types/calendar";
 import {
+  getCanViewTeamCalendar,
   getLocationContext,
   getLocationStaff,
   getSelectedDate,
@@ -117,6 +118,7 @@ export const MobileDayTimeline: FC = () => {
   const { t } = useTranslation("calendar");
   const [scrollToNowRequest, setScrollToNowRequest] = useState(0);
   const locationStaff = useSelector(getLocationStaff);
+  const canViewTeamCalendar = useSelector(getCanViewTeamCalendar);
   const locationContext = useSelector(getLocationContext);
   const selectedLocationId = useSelector(getSelectedLocationId);
   const selectedDate = useSelector(getSelectedDate);
@@ -143,7 +145,6 @@ export const MobileDayTimeline: FC = () => {
   const {
     dispatch: dndDispatch,
     pendingDrop,
-    updateConflictOffer,
     activeId,
     setActiveId,
     setOverId,
@@ -161,8 +162,6 @@ export const MobileDayTimeline: FC = () => {
     handleDragOver,
     handleConfirmOverride,
     handleCancelDrop,
-    handleConfirmConflictOverride,
-    handleCancelConflictOverride,
   } = useGridDndState();
 
   const collisionDetection: CollisionDetection = useCallback((args) => pointerWithin(args), []);
@@ -315,14 +314,14 @@ export const MobileDayTimeline: FC = () => {
       label: `${s.firstName} ${s.lastName}`,
       isUnassigned: false,
     }));
-    const hasUnassigned = dayAppointments.some(
+    const hasUnassigned = canViewTeamCalendar && dayAppointments.some(
       (a) => a.isUnassigned || a.staffUserIds.length === 0,
     );
     if (hasUnassigned) {
       staffCols.push({ id: 0, label: t("page.common.unassigned"), isUnassigned: true });
     }
     return staffCols;
-  }, [locationStaff, dayAppointments, t]);
+  }, [locationStaff, canViewTeamCalendar, dayAppointments, t]);
 
   const dndAppointmentsByColumn = useMemo(() => {
     const map = new Map<number, SlimAppointment[]>();
@@ -621,7 +620,7 @@ export const MobileDayTimeline: FC = () => {
     const displayedStaff: CalendarStaffMember[] = staffFilterIds.length > 0
       ? locationStaff.filter((s) => staffFilterIds.includes(s.id))
       : locationStaff;
-    const hasUnassignedAppt = appointments.some(
+    const hasUnassignedAppt = canViewTeamCalendar && appointments.some(
       (a) => a.isUnassigned || a.staffUserIds.length === 0,
     );
     const columns: MobileColumnDef[] = [
@@ -713,6 +712,7 @@ export const MobileDayTimeline: FC = () => {
     return { appointments, blocks, columns, appointmentsByColumn, staffBlocksByColumn, wrapperBlocks };
   }, [
     list.sortedItems,
+    canViewTeamCalendar,
     staffFilterIds,
     locationStaff,
     pendingDrop,
@@ -753,18 +753,17 @@ export const MobileDayTimeline: FC = () => {
     ? `slot-${dragSource.dragData.columnId}-${dateKey}-${dropPreviewSlot.hour}-${dropPreviewSlot.minute}`
     : null;
   const validPreviewSlotId = previewSlotId && !dayForbiddenSlotIds.has(previewSlotId) ? previewSlotId : null;
-  const previewTop = validPreviewSlotId && dropPreviewSlot
-    ? ((dropPreviewSlot.hour * 60 + dropPreviewSlot.minute - timeline.dayGridStartMinutes) / slotIntervalMinutes) * timeline.daySlotHeight
-    : 0;
-  const dropPreview = validPreviewSlotId && activeAppointment
-    ? {
-        top: previewTop,
-        height: Math.min(gridHeight - previewTop, (activeAppointment.duration / slotIntervalMinutes) * timeline.daySlotHeight),
-      }
+  const dropPreview = previewSlotId && dropPreviewSlot && activeAppointment
+    ? (() => {
+        const top = ((dropPreviewSlot.hour * 60 + dropPreviewSlot.minute - timeline.dayGridStartMinutes) / slotIntervalMinutes) * timeline.daySlotHeight;
+        const forbidden = dayForbiddenSlotIds.has(previewSlotId);
+        const height = timeline.daySlotHeight * (forbidden ? 1 : activeAppointment.duration / slotIntervalMinutes);
+        return { top, height: Math.min(gridHeight - top, height), forbidden };
+      })()
     : undefined;
 
   // Sticky staff-column indicator on the filter state.
-  const filteredStaffId = staffFilterIds.length === 1 ? staffFilterIds[0] : null;
+  const filteredStaffId = canViewTeamCalendar && staffFilterIds.length === 1 ? staffFilterIds[0] : null;
   const unassignedLabel = t("page.common.unassigned");
 
   // Staff color map for avatars (By Staff coding).
@@ -846,7 +845,7 @@ export const MobileDayTimeline: FC = () => {
                 <MobileDayColumnHeader
                   staff={col.staff}
                   isFiltered={col.staff != null && filteredStaffId === col.staff.id}
-                  onTap={() => col.staff && handleColumnFilter(col.staff.id)}
+                  onTap={canViewTeamCalendar ? () => col.staff && handleColumnFilter(col.staff.id) : undefined}
                   staffColorMap={staffColorMap}
                   unassignedLabel={unassignedLabel}
                 />
@@ -922,7 +921,7 @@ export const MobileDayTimeline: FC = () => {
                     timezone={timeline.calendarTimezone ?? undefined}
                     colorMap={list.appointmentColorMap}
                     staffColorMap={staffColorMap}
-                    onFilter={() => col.staff && handleColumnFilter(col.staff.id)}
+                    onFilter={canViewTeamCalendar ? () => col.staff && handleColumnFilter(col.staff.id) : undefined}
                     onAppointmentTap={handleAppointmentTap}
                     onBlockTap={handleBlockTap}
                     onSlotClick={handleSlotClick}
@@ -987,16 +986,11 @@ export const MobileDayTimeline: FC = () => {
         description={confirmDescription}
       />
       <OverrideDialog
-        open={overrideDialogOpen || (!!updateConflictOffer && updateConflictOffer.conflictType !== "staff_appointment")}
-        onOpenChange={(open) => {
-          if (!open) {
-            if (updateConflictOffer) handleCancelConflictOverride();
-            else handleCancelDrop();
-          }
-        }}
-        isConflictOverride={!!updateConflictOffer}
-        onConfirm={updateConflictOffer ? handleConfirmConflictOverride : handleConfirmOverride}
-        onCancel={updateConflictOffer ? handleCancelConflictOverride : handleCancelDrop}
+        open={overrideDialogOpen}
+        onOpenChange={(open) => !open && handleCancelDrop()}
+        isConflictOverride={false}
+        onConfirm={handleConfirmOverride}
+        onCancel={handleCancelDrop}
         reasonText={overrideReasonText}
         onReasonChange={setOverrideReasonText}
         inputId="mobile-dnd-override-reason"

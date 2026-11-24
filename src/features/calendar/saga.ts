@@ -1,11 +1,15 @@
 import { maybeShowPushPrimer } from "../push-notifications/primer";
-import { all, call, put, select, takeLatest } from "redux-saga/effects";
+import { all, call, put, race, select, take, takeLatest, takeLeading } from "redux-saga/effects";
 import type { ActionType } from "typesafe-actions";
+import { logoutRequestAction, selectBusinessAction } from "../auth/actions";
+import { getCalendarViewStateSelector } from "../../app/providers/selectors.ts";
 import {
     setSelectedLocationAction,
     fetchLocationContext,
     fetchCalendarSummary,
     fetchDayData,
+    refreshVisibleDay,
+    refreshVisibleDaySuccess,
     fetchWeekData,
     setDayFiltersAction,
     setSelectedDateAction,
@@ -18,7 +22,9 @@ import {
     updateAppointmentStatus,
     updateAppointment,
     setUpdateConflictOffer,
+    setCustomerOverlapOffer,
     setReassignmentHoursOverrideOffer,
+    setCalendarPendingDrop,
     cancelAppointment,
     createCalendarBlock,
     deleteCalendarBlock,
@@ -38,7 +44,7 @@ import {
     deleteCalendarBlockRequest,
     updateCalendarBlockRequest,
 } from "./api.ts";
-import { AppointmentViewMode } from "./types.ts";
+import { AppointmentViewMode, type AddFormPrefill, type CalendarViewState } from "./types.ts";
 import {
     getAddFormSelector,
     getAddFormPrefill,
@@ -52,7 +58,7 @@ import {
     getCalendarTimezone,
 } from "./selectors.ts";
 import { getDateRangeForMode } from "./utils.ts";
-import { formatDateInTimezone } from "./timezone.ts";
+import { wallDateKey } from "./timezone.ts";
 import type { CalendarDayFilters, DayDataResponse, LocationContextData, CalendarSummaryResponse, BlockConflictAppointment } from "../../shared/types/calendar.ts";
 import { toast } from "sonner";
 import i18n from "../../shared/lib/i18n";
@@ -162,35 +168,10 @@ function* handleSetSelectedLocation(action: ActionType<typeof setSelectedLocatio
     const locationId = action.payload;
     if (!locationId) return;
 
-    // 1. Fetch location context
     yield put(fetchLocationContext.request(locationId));
-
-    // 2. Fetch only the data for the current view
-    const selectedDate: Date = yield select(getSelectedDate);
-    const viewMode: AppointmentViewMode = yield select(getViewModeSelector);
-    const monthViewStart: Date | null = yield select(getMonthViewDisplayStart);
-    const weekViewStart: Date | null = yield select(getWeekViewDisplayStart);
-    const dayFilters: CalendarDayFilters = yield select(getDayFilters);
-    const tz: string = yield select(getCalendarTimezone);
-    const { startDate, endDate } = getDateRangeForMode(selectedDate, viewMode, monthViewStart, weekViewStart, tz);
-
-    if (viewMode === AppointmentViewMode.DAY) {
-        yield put(fetchDayData.request({
-            locationId,
-            date: startDate,
-            filters: dayFilters,
-        }));
-    } else if (viewMode === AppointmentViewMode.WEEK && weekViewStart) {
-        const weekStartStr = formatDateInTimezone(weekViewStart, tz);
-        yield put(fetchWeekData.request({ locationId, weekStart: weekStartStr, filters: dayFilters }));
-    } else if (viewMode === AppointmentViewMode.MONTH) {
-        yield put(fetchCalendarSummary.request({
-            locationId,
-            startDate,
-            endDate,
-            includePreview: false,
-            filters: dayFilters,
-        }));
+    const state = yield select(getCalendarViewStateSelector);
+    if (!state.selectedDateIsStartup) {
+        yield call(refetchCalendarForCurrentView);
     }
 }
 
@@ -201,7 +182,12 @@ function* handleSetSelectedLocation(action: ActionType<typeof setSelectedLocatio
 function* handleFetchLocationContext(action: ActionType<typeof fetchLocationContext.request>): Generator<any, void, any> {
     try {
         const data: LocationContextData = yield call(getLocationContextRequest, action.payload);
+        const state = yield select(getCalendarViewStateSelector);
+        if (state.selectedLocationId !== action.payload) return;
         yield put(fetchLocationContext.success(data));
+        if (state.selectedDateIsStartup) {
+            yield call(refetchCalendarForCurrentView);
+        }
     } catch (error: unknown) {
         yield put(fetchLocationContext.failure({ message: getErrorMessage(error) }));
     }
@@ -242,6 +228,32 @@ function* handleFetchDayData(action: ActionType<typeof fetchDayData.request>): G
     }
 }
 
+function* handleRefreshVisibleDay(): Generator<any, void, any> {
+    const before: CalendarViewState = yield select(getCalendarViewStateSelector);
+    if (before.viewMode !== AppointmentViewMode.DAY || !before.selectedLocationId ||
+        !before.dayData || before.dayDataLoading || before.pendingDrop || before.optimisticBlocks.length) return;
+
+    try {
+        const data: DayDataResponse = yield call(
+            getDayDataRequest,
+            before.selectedLocationId,
+            wallDateKey(before.selectedDate),
+            before.dayFilters,
+        );
+        // Navigation, a new foreground load, or a pending local change takes precedence.
+        const current: CalendarViewState = yield select(getCalendarViewStateSelector);
+        if (current.viewMode !== AppointmentViewMode.DAY ||
+            current.selectedLocationId !== before.selectedLocationId ||
+            current.selectedDate !== before.selectedDate ||
+            current.dayFilters !== before.dayFilters ||
+            current.dayData !== before.dayData ||
+            current.pendingDrop || current.optimisticBlocks.length) return;
+        yield put(refreshVisibleDaySuccess(data));
+    } catch {
+        // Keep the displayed calendar available during a transient refresh failure.
+    }
+}
+
 /**
  * Refetch calendar data for the current Redux view mode + selected date (single request).
  * Used after date navigation, batched navigate-to-date, view mode change, filter change, and mutations.
@@ -265,7 +277,7 @@ function* refetchCalendarForCurrentView(): Generator<any, void, any> {
             filters: dayFilters,
         }));
     } else if (viewMode === AppointmentViewMode.WEEK && weekViewStart) {
-        const weekStartStr = formatDateInTimezone(weekViewStart, tz);
+        const weekStartStr = wallDateKey(weekViewStart);
         yield put(fetchWeekData.request({ locationId, weekStart: weekStartStr, filters: dayFilters }));
     } else if (viewMode === AppointmentViewMode.MONTH) {
         yield put(fetchCalendarSummary.request({
@@ -337,8 +349,7 @@ function* handleSetDisplayedWeek(): Generator<any, void, any> {
     if (!weekViewStart) return;
 
     const dayFilters: CalendarDayFilters = yield select(getDayFilters);
-    const tz: string = yield select(getCalendarTimezone);
-    const weekStartStr = formatDateInTimezone(weekViewStart, tz);
+    const weekStartStr = wallDateKey(weekViewStart);
     yield put(fetchWeekData.request({ locationId, weekStart: weekStartStr, filters: dayFilters }));
 }
 
@@ -380,10 +391,21 @@ function* handleSetDayFilters(): Generator<any, void, any> {
 // New sagas: Admin appointment CRUD
 // ─────────────────────────────────────────────────────────────
 
+function* isCurrentCreateDraft(locationId: number, prefill: AddFormPrefill | null): Generator<any, boolean, any> {
+    const calendar: CalendarViewState = yield select(getCalendarViewStateSelector);
+    return calendar.selectedLocationId === locationId &&
+        calendar.addFormOpen && calendar.addFormPrefill === prefill &&
+        calendar.addFormCloseAfterMutationsRemaining > 0;
+}
+
 function* handleAdminCreateAppointmentGroup(action: ActionType<typeof adminCreateAppointmentGroup.request>): Generator<any, void, any> {
+    const { payload } = action;
+    const prefill: AddFormPrefill | null = yield select(getAddFormPrefill);
     try {
-        const result: any = yield call(adminCreateAppointmentGroupRequest, action.payload);
-        yield put(adminCreateAppointmentGroup.success(result));
+        const result: any = yield call(adminCreateAppointmentGroupRequest, payload);
+        if (yield call(isCurrentCreateDraft, payload.locationId, prefill)) {
+            yield put(adminCreateAppointmentGroup.success(result));
+        }
         yield call(refetchCalendarForCurrentView);
         const count = result?.appointments?.length ?? 1;
         toast.success(count > 1 ? i18n.t("calendar:page.toasts.bookingGroupCreated", { count }) : i18n.t("calendar:page.toasts.bookingCreated"));
@@ -391,10 +413,19 @@ function* handleAdminCreateAppointmentGroup(action: ActionType<typeof adminCreat
         // when ineligible).
         void maybeShowPushPrimer("appointment-created");
     } catch (error: any) {
-        yield put(adminCreateAppointmentGroup.failure(error));
         const status = error?.response?.status;
         const message = error?.response?.data?.message;
         const details = error?.response?.data?.details;
+        const draftIsCurrent: boolean = yield call(isCurrentCreateDraft, payload.locationId, prefill);
+        if (draftIsCurrent) {
+            yield put(adminCreateAppointmentGroup.failure(error));
+        }
+        if (status === 409 && details?.conflictType === 'customer_overlap' && payload.allowCustomerOverlap !== true) {
+            if (draftIsCurrent) {
+                yield put(setCustomerOverlapOffer({ kind: 'create', payload }));
+            }
+            return;
+        }
         if (status === 409) {
             console.error('[APPOINTMENT] create-group:conflict', {
                 payload: action.payload,
@@ -413,7 +444,9 @@ function* handleUpdateAppointmentStatus(action: ActionType<typeof updateAppointm
         const result: any = yield call(updateAppointmentRequest, appointmentId, { status });
         yield put(updateAppointmentStatus.success(result));
         yield call(refetchCalendarForCurrentView);
-        const toastKey = status === 'completed'
+        const toastKey = status === 'confirmed'
+            ? "calendar:page.toasts.appointmentStatusConfirmed"
+            : status === 'completed'
             ? "calendar:page.toasts.appointmentStatusCompleted"
             : status === 'no_show'
                 ? "calendar:page.toasts.appointmentStatusNoShow"
@@ -427,11 +460,12 @@ function* handleUpdateAppointmentStatus(action: ActionType<typeof updateAppointm
 
 function* handleUpdateAppointment(action: ActionType<typeof updateAppointment.request>): Generator<any, void, any> {
     const { appointmentId, data, source } = action.payload;
+    const locationId: number | null = yield select(getSelectedLocationId);
     const isEditorReassignment = source === 'editor' &&
         Array.isArray(data.staffUserIds) && data.staffUserIds.length > 0 &&
-        data.scheduledAt === undefined && data.serviceId === undefined &&
+        data.scheduledAt === undefined && data.serviceId === undefined && data.items === undefined &&
         data.locationId === undefined && data.status === undefined;
-    const editorPrefill = isEditorReassignment ? yield select(getAddFormPrefill) : null;
+    const editorPrefill = source === 'editor' ? yield select(getAddFormPrefill) : null;
 
     try {
         const result: any = yield call(updateAppointmentRequest, appointmentId, data);
@@ -442,9 +476,25 @@ function* handleUpdateAppointment(action: ActionType<typeof updateAppointment.re
     } catch (error: any) {
         yield put(updateAppointment.failure(error));
         const status = error?.response?.status;
+        const code = error?.response?.data?.code;
+        if (source === 'editor' && status === 409 && code === 'appointment_items_changed') {
+            toast.error(i18n.t("calendar:page.toasts.appointmentItemsChanged"));
+            return;
+        }
+        if (
+            source === 'editor' && data.items !== undefined && data.allowOutOfHours !== true &&
+            status === 400 && code === 'appointment_items_out_of_hours'
+        ) {
+            const editorOpen = yield select(getAddFormSelector);
+            const currentPrefill = yield select(getAddFormPrefill);
+            if (editorOpen && currentPrefill === editorPrefill && currentPrefill?.appointmentId === appointmentId) {
+                yield put(setUpdateConflictOffer({ appointmentId, data, source, kind: 'working-hours' }));
+            }
+            return;
+        }
         if (
             isEditorReassignment && status === 400 &&
-            error?.response?.data?.code === 'appointment_reassignment_out_of_hours' &&
+            code === 'appointment_reassignment_out_of_hours' &&
             data.allowOutOfHours !== true && data.overrideConflicts !== true
         ) {
             const editorOpen = yield select(getAddFormSelector);
@@ -459,28 +509,41 @@ function* handleUpdateAppointment(action: ActionType<typeof updateAppointment.re
             }
         }
         if (status === 409) {
-            const raw = error?.response?.data?.message;
-            const firstRaw = Array.isArray(raw) ? (raw[0] ?? raw?.join?.(' ') ?? '') : (raw ?? '');
-            const message = translateMessageCode(firstRaw) || i18n.t("calendar:page.toasts.timeSlotNotAvailable");
-            const conflictType = error?.response?.data?.details?.conflictType as 'staff_appointment' | 'block' | undefined;
-            // Confirming working hours in the editor must not offer a separate bypass for conflicts.
-            if (isEditorReassignment && data.allowOutOfHours === true) {
-                if (conflictType === 'staff_appointment') {
-                    toast.error(i18n.t("calendar:page.toasts.staffConflict"));
-                } else {
-                    toastCalendarError(error, i18n.t("calendar:page.toasts.timeSlotNotAvailable"));
+            const conflictType = error?.response?.data?.details?.conflictType;
+            if (conflictType === 'customer_overlap' && data.allowCustomerOverlap !== true) {
+                const calendar: CalendarViewState = yield select(getCalendarViewStateSelector);
+                if (calendar.selectedLocationId !== locationId) return;
+                if (source === 'editor' &&
+                    (!calendar.addFormOpen || calendar.addFormPrefill !== editorPrefill ||
+                        calendar.addFormPrefill?.appointmentId !== appointmentId)) {
+                    return;
                 }
+                yield put(setCalendarPendingDrop(null));
+                yield put(setCustomerOverlapOffer({ kind: 'update', appointmentId, data, source }));
                 return;
             }
-            yield put(setUpdateConflictOffer({ appointmentId, data, message, conflictType }));
             if (conflictType === 'staff_appointment') {
                 toast.error(i18n.t("calendar:page.toasts.staffConflict"));
-            } else {
-                toast.info(i18n.t("calendar:page.toasts.slotUnavailable"), { description: i18n.t("calendar:page.toasts.slotUnavailableDesc") });
+                yield put(setCalendarPendingDrop(null));
+                return;
             }
-        } else {
-            toastCalendarError(error, i18n.t("calendar:page.toasts.appointmentUpdateFailed"));
+            if (conflictType === 'block' && data.overrideConflicts !== true &&
+                !(isEditorReassignment && data.allowOutOfHours === true)) {
+                const currentLocationId = yield select(getSelectedLocationId);
+                if (currentLocationId !== locationId) return;
+                if (source === 'editor') {
+                    const currentPrefill = yield select(getAddFormPrefill);
+                    const editorOpen = yield select(getAddFormSelector);
+                    if (!editorOpen || currentPrefill !== editorPrefill || currentPrefill?.appointmentId !== appointmentId) {
+                        return;
+                    }
+                }
+                yield put(setUpdateConflictOffer({ appointmentId, data, source }));
+                return;
+            }
         }
+        toastCalendarError(error, i18n.t("calendar:page.toasts.appointmentUpdateFailed"));
+        yield put(setCalendarPendingDrop(null));
     }
 }
 
@@ -576,13 +639,14 @@ function* handleUpdateCalendarBlock(action: ActionType<typeof updateCalendarBloc
 // Root calendar saga
 // ─────────────────────────────────────────────────────────────
 
-export function* calendarSaga(): Generator<any, void, any> {
+function* watchCalendar(): Generator<any, void, any> {
     yield all([
         // Location-first flow
         takeLatest(setSelectedLocationAction, handleSetSelectedLocation),
         takeLatest(fetchLocationContext.request, handleFetchLocationContext),
         takeLatest(fetchCalendarSummary.request, handleFetchCalendarSummary),
         takeLatest(fetchDayData.request, handleFetchDayData),
+        takeLeading(refreshVisibleDay, handleRefreshVisibleDay),
         takeLatest(fetchWeekData.request, handleFetchWeekData),
         takeLatest(setSelectedDateAction, handleSetSelectedDate),
         takeLatest(navigateToCalendarDateAction, handleNavigateToCalendarDate),
@@ -603,4 +667,14 @@ export function* calendarSaga(): Generator<any, void, any> {
         takeLatest(deleteCalendarBlock.request, handleDeleteCalendarBlock),
         takeLatest(updateCalendarBlock.request, handleUpdateCalendarBlock),
     ]);
+}
+
+export function* calendarSaga(): Generator<any, void, any> {
+    // Discard outstanding requests when the calendar reducer clears the previous session.
+    while (true) {
+        yield race({
+            calendar: call(watchCalendar),
+            sessionChanged: take([logoutRequestAction.success, selectBusinessAction.request]),
+        });
+    }
 }

@@ -17,8 +17,6 @@ import "./underlay.css";
 /** Underlay — a restrained top bar; opening reveals a paper navigation behind the translated page. */
 export function Underlay(props: NavVariantViewProps) {
   const motionFrameRef = useRef(0);
-  // The shared hook, not the bare OS preference: the at-rest desktop mock must also jump-cut this slide —
-  // easing the whole page sideways there re-rasterises past the phone's tile budget and checkerboards.
   const reducedMotion = useReducedMotion();
   const chrome = navChromeStyle({ ...props, opaqueOnScroll: true });
   const menuLabel = props.t(

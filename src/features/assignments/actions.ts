@@ -7,6 +7,7 @@ import type {
   UpdateStaffServicesPayload,
   UpdateLocationTeamMembersPayload,
   UpdateLocationAssignmentsPayload,
+  AppointmentsInUseOffer,
 } from "./types";
 
 // Location selection
@@ -83,3 +84,8 @@ export const updateTeamMemberStatsAction = createAction(
   servicesEnabled: number;
   overridesCount: number;
 }>();
+
+// Refused removal: upcoming appointments still use it (null clears the dialog)
+export const setAppointmentsInUseAction = createAction(
+  "ASSIGNMENTS/SET_APPOINTMENTS_IN_USE",
+)<AppointmentsInUseOffer | null>();

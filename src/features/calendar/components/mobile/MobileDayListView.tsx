@@ -25,7 +25,7 @@ import { MobileDaySummaryStrip } from "./MobileDaySummaryStrip";
 import { MobileDayEmptyState } from "./MobileDayEmptyState";
 import { MobileQuietDayNudge } from "./MobileQuietDayNudge";
 import { getSelectedDate, getCalendarTimezone } from "../../selectors";
-import { formatDateInTimezone } from "../../timezone";
+import { formatDateInTimezone, wallDateKey } from "../../timezone";
 
 /**
  * Mobile day list — consumes the shared `useDayAppointmentList` hook so
@@ -83,7 +83,7 @@ export const MobileDayListView: FC<MobileDayListViewProps> = ({ data }) => {
     ? formatDateInTimezone(new Date(), tz)
     : new Date().toISOString().slice(0, 10);
   const selectedKey = selectedDate
-    ? (tz ? formatDateInTimezone(selectedDate, tz) : selectedDate.toISOString().slice(0, 10))
+    ? wallDateKey(selectedDate)
     : null;
   const isDayInPast = selectedKey != null && selectedKey < todayKey;
   const showQuietDayNudge = !isDayInPast && !isDayLoading && !hasActiveFilters && apptCount > 0 && apptCount <= 2;

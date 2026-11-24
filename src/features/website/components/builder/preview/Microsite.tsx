@@ -9,7 +9,7 @@ import { cn } from "../../../../../shared/lib/utils";
 import "./shared/animations.css";
 import { UNNUMBERED } from "./shared/constants";
 import { findScrollParent, navScrollProgress } from "./shared/util";
-import { PreviewAtRestContext, StaticPreviewContext, useFooterReveal } from "./shared/hooks";
+import { StaticPreviewContext, useFooterReveal } from "./shared/hooks";
 import {
   AnnouncementBar,
   normalizeAnnouncementLayout,
@@ -149,9 +149,6 @@ function LivePreviewImpl({
   const [scrollProgress, setScrollProgress] = useState(0);
   // Static snapshot (ScaledPreview): page at rest — nav un-frosted over the hero, no scroll-jack/parallax.
   const staticPreview = useContext(StaticPreviewContext);
-  // Settled-but-scrollable (the phone's scaled-down desktop mock): heavy self-running motion parks; the
-  // leaf hooks read the same context through useReducedMotion, this flag only drives the hero props below.
-  const atRest = useContext(PreviewAtRestContext);
   // Surface changes follow scroll even with reduced motion; each variant handles its geometry separately.
   const progress = !chrome || !overHero || staticPreview ? 0 : scrollProgress;
   const editorialFooterReveal = chrome && footerOn && stacked.length > 0 && footerVariant === "editorial";
@@ -274,7 +271,6 @@ function LivePreviewImpl({
                   no={no}
                   chrome={chrome}
                   motion={!staticPreview}
-                  atRest={atRest}
                   layout={layout}
                   locations={preferredLocations}
                   // Only the location-aware sections receive the live id: a location page-turn must
@@ -323,7 +319,6 @@ const SectionView = memo(function SectionView({
   no,
   chrome,
   motion,
-  atRest,
   layout,
   locations,
   selectedLocationId,
@@ -336,8 +331,6 @@ const SectionView = memo(function SectionView({
   chrome: boolean;
   /** False inside a static snapshot: hero scroll-jack/parallax stay at rest even with full-page chrome. */
   motion: boolean;
-  /** Settled-but-scrollable page (PreviewAtRestContext) — drives the hero props; leaves read the context. */
-  atRest: boolean;
   layout: SectionEntry[];
   locations: WebsiteBuilderLocation[];
   selectedLocationId: number | null;
@@ -348,7 +341,7 @@ const SectionView = memo(function SectionView({
     case "hero":
       // Parallax only in the full-page preview; the scoped one-section preview has no hero-scroll, so a
       // page-scroll-driven shift would lift the cover off its buffer and bare the bottom edge.
-      return <Hero entry={entry} data={data} t={t} parallax={chrome && motion && !atRest} atRest={atRest} />;
+      return <Hero entry={entry} data={data} t={t} parallax={chrome && motion} />;
     case "nav":
       // Only reached in the scoped one-section preview (the full page renders the nav as sticky chrome).
       return <ScopedNav data={data} layout={layout} t={t} variant={entry.variant} />;

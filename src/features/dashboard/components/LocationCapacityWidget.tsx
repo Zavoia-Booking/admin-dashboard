@@ -8,9 +8,12 @@ import { usePermissions } from '../../../shared/hooks/usePermissions';
 import { Permission } from '../../../shared/lib/permissions';
 import { DashedDivider } from '../../../shared/components/common/DashedDivider';
 import { PersonAvatar } from '../../../shared/components/common/PersonAvatar';
+import { buildCalendarLink } from '../../calendar/calendarLinks';
+import { formatAppointmentTime } from './appointmentDates';
 
 interface LocationCapacityWidgetProps {
   locationId: number;
+  timeZone: string;
   locationName: string;
   isCurrentlyOpen: boolean;
   staff: LocationStaffMember[] | null;
@@ -133,6 +136,7 @@ function StatusPill({ open }: { open: boolean }) {
 
 export function LocationCapacityWidget({
   locationId,
+  timeZone,
   locationName,
   isCurrentlyOpen,
   staff,
@@ -154,10 +158,7 @@ export function LocationCapacityWidget({
   const { formatPrice } = useFormatPrice();
   const formatCurrency = (cents: number) => formatPrice(cents, businessCurrency);
   const formatTime = (isoString: string) =>
-    new Date(isoString).toLocaleTimeString(i18n.language === 'ro' ? 'ro-RO' : 'en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    formatAppointmentTime(isoString, i18n.language === 'ro' ? 'ro-RO' : 'en-US', timeZone);
   const nextCustomerName =
     (nextAppointment?.customerSnapshot
       ? [nextAppointment.customerSnapshot.firstName, nextAppointment.customerSnapshot.lastName]
@@ -473,7 +474,7 @@ export function LocationCapacityWidget({
                     navigate(
                       isPending
                         ? '/team-members'
-                        : `/calendar?staffEmail=${encodeURIComponent(member.email)}`,
+                        : buildCalendarLink({ staffEmail: member.email, locationId }),
                     )
                   }
                   className={`group/row flex w-full items-center gap-3 py-2.5 cursor-pointer rounded transition-all hover:bg-surface-active/40 active:scale-[0.995] ${IOS_EASE}`}

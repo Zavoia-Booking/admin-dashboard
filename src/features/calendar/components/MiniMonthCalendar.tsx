@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useDispatch, useSelector } from "react-redux";
 import { getSelectedDate, getCalendarSummary, getViewModeSelector, getSidebarMiniCalendarMonthStart, getCalendarTimezone, getSummaryLoading } from "../selectors.ts";
 import { Skeleton } from "../../../shared/components/ui/skeleton.tsx";
-import { formatDateInTimezone, getCalendarLocale } from "../timezone.ts";
+import { getCalendarLocale, minSelectableCalendarDateForTimezone, wallDateKey } from "../timezone.ts";
 import { dispatchSelectDateAndDayView } from "../selectDateAndDayViewDispatch.ts";
 import { setSidebarMiniCalendarMonthAction, setDisplayedMonthAction } from "../actions.ts";
 import { AppointmentViewMode } from "../types.ts";
@@ -158,7 +158,7 @@ export const MiniMonthCalendar: FC = () => {
     return result;
   }, [displayMonth]);
 
-  const todayStr = new Date().toDateString();
+  const todayStr = minSelectableCalendarDateForTimezone(new Date(), calendarTimezone).toDateString();
   const selectedStr = selectedDate.toDateString();
 
   const monthLabel = displayMonth.toLocaleDateString(getCalendarLocale(), { month: 'long', year: 'numeric' });
@@ -215,7 +215,7 @@ export const MiniMonthCalendar: FC = () => {
               const isToday = date.toDateString() === todayStr;
               const isSelected = date.toDateString() === selectedStr;
 
-              const dateKey = formatDateInTimezone(date, calendarTimezone);
+              const dateKey = wallDateKey(date);
               const daySummary = summary[dateKey];
               const { kind: marker, tone: markerTone } = dayMarkerFromSummary(daySummary);
               const hasMarker = marker !== "none";

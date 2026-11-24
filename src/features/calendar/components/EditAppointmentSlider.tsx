@@ -70,11 +70,14 @@ import {
 } from "../actions";
 import {
   getLocationStaff,
+  getLocationContext,
   getBookingSettings,
+  getSmsAvailable,
   getCalendarTimezone,
   getAddFormSelector,
 } from "../selectors";
 import { getAppointmentDetailRequest } from "../api";
+import { useNowTick } from "./timeGrid/useNowTick";
 import {
   formatTimeKey,
   formatTimeRange,
@@ -90,9 +93,11 @@ import {
 import type { Appointment } from "../../../shared/types/calendar";
 import { selectIsTeamMember, selectCurrentUser } from "../../auth/selectors";
 import { PriceDisplay } from "../../../shared/components/common/PriceDisplay";
+import { BookedItemsList } from "./BookedItemsList";
+import { getBookedItems, getBookedMinutes, isContentFixed } from "../bookedItems";
 import {
-  buildZonedDateFromDateKey,
   formatDateInTimezone,
+  localCalendarDateFromDateKey,
   formatActivityTimelineDateTime,
   formatDetailOverviewDate,
   isAppointmentEndInPast,
@@ -238,7 +243,9 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
   const keyboardVisible = useKeyboardVisible();
   const dispatch = useDispatch();
   const locationStaff = useSelector(getLocationStaff);
+  const locationContext = useSelector(getLocationContext);
   const bookingSettings = useSelector(getBookingSettings);
+  const smsAvailable = useSelector(getSmsAvailable);
   const calendarTimezone = useSelector(getCalendarTimezone);
   const isTeamMember = useSelector(selectIsTeamMember);
   const currentUser = useSelector(selectCurrentUser);
@@ -246,31 +253,6 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
   const businessCurrency = currentUser?.business?.businessCurrency ?? "eur";
   const auditTimezone =
     (calendarTimezone && String(calendarTimezone).trim()) || "UTC";
-
-  const activityTimelineItems = useMemo(() => {
-    if (!appointment)
-      return [] as Array<{ id: string; title: string; meta: string }>;
-    const rows: Array<{ id: string; title: string; meta: string }> = [
-      {
-        id: "created",
-        title: t("page.appointments.edit.appointmentCreated"),
-        meta: `${getBookingSourceLabel(appointment.bookingSource, t)} · ${formatActivityTimelineDateTime(appointment.createdAt, auditTimezone)}`,
-      },
-    ];
-    if (appointment.overrideReason && appointment.overrideUsedAt) {
-      rows.push({
-        id: "override",
-        title: t("page.appointments.edit.adminOverrideApplied"),
-        meta: `${t("page.appointments.edit.system")} · ${formatActivityTimelineDateTime(appointment.overrideUsedAt, auditTimezone)}`,
-      });
-    }
-    rows.push({
-      id: "updated",
-      title: t("page.appointments.edit.lastUpdated"),
-      meta: `${t("page.appointments.edit.system")} · ${formatActivityTimelineDateTime(appointment.updatedAt, auditTimezone)}`,
-    });
-    return rows;
-  }, [appointment, auditTimezone, t]);
 
   // Cancel dialog state
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
@@ -280,9 +262,9 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
     "email" | "sms" | "both"
   >("both");
 
-  // Inline confirmation for complete / no-show (no modal)
+  // Inline confirmation for confirm / complete / no-show (no modal)
   const [pendingConfirm, setPendingConfirm] = useState<
-    "complete" | "no_show" | null
+    "confirm" | "complete" | "no_show" | null
   >(null);
   const [exitingConfirm, setExitingConfirm] = useState(false);
 
@@ -322,17 +304,57 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
     }
     if (!isPlaceholder) {
       setFullAppointment(null);
+      setDetailLoading(false);
       return;
     }
+    let cancelled = false;
     setDetailLoading(true);
     getAppointmentDetailRequest(appointment.id)
-      .then((full) => setFullAppointment(full))
+      .then((full) => {
+        if (!cancelled) setFullAppointment(full);
+      })
       .catch(() => {})
-      .finally(() => setDetailLoading(false));
+      .finally(() => {
+        if (!cancelled) setDetailLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [isOpen, appointment?.id, isPlaceholder]);
 
   // Use full data when available, fall back to placeholder
-  const displayAppointment = fullAppointment ?? appointment;
+  const displayAppointment = fullAppointment && fullAppointment.id === appointment?.id
+    ? fullAppointment
+    : appointment;
+  const appointmentCurrency = displayAppointment?.currency ?? businessCurrency;
+  const canOpenEditor = locationContext != null &&
+    locationContext.location.id === displayAppointment?.location?.id;
+  useNowTick(isOpen);
+
+  const activityTimelineItems = useMemo(() => {
+    if (!displayAppointment)
+      return [] as Array<{ id: string; title: string; meta: string }>;
+    const rows: Array<{ id: string; title: string; meta: string }> = [
+      {
+        id: "created",
+        title: t("page.appointments.edit.appointmentCreated"),
+        meta: `${getBookingSourceLabel(displayAppointment.bookingSource, t)} · ${formatActivityTimelineDateTime(displayAppointment.createdAt, auditTimezone)}`,
+      },
+    ];
+    if (displayAppointment.overrideReason && displayAppointment.overrideUsedAt) {
+      rows.push({
+        id: "override",
+        title: t("page.appointments.edit.adminOverrideApplied"),
+        meta: `${t("page.appointments.edit.system")} · ${formatActivityTimelineDateTime(displayAppointment.overrideUsedAt, auditTimezone)}`,
+      });
+    }
+    rows.push({
+      id: "updated",
+      title: t("page.appointments.edit.lastUpdated"),
+      meta: `${t("page.appointments.edit.system")} · ${formatActivityTimelineDateTime(displayAppointment.updatedAt, auditTimezone)}`,
+    });
+    return rows;
+  }, [displayAppointment, auditTimezone, t]);
 
   // Reset state when slider closes
   useEffect(() => {
@@ -370,6 +392,23 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
       setAccServicesOpen(true);
     }
   }, [fullAppointment, detailLoading]);
+
+  // A save closes the edit form: reload the details so this panel does not keep the old values.
+  const wasAddFormOpenRef = useRef(addFormOpen);
+  useEffect(() => {
+    const formClosed = wasAddFormOpenRef.current && !addFormOpen;
+    wasAddFormOpenRef.current = addFormOpen;
+    if (!formClosed || !isOpen || appointment?.id == null) return;
+    let cancelled = false;
+    getAppointmentDetailRequest(appointment.id)
+      .then((full) => {
+        if (!cancelled) setFullAppointment(full);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [addFormOpen, isOpen, appointment?.id]);
 
   // ─────────────────────────────────────────────────────────────
   // Derived data from appointment
@@ -513,34 +552,32 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
     !isTeamMember ||
     (!!bookingSettings?.allowStaffRescheduleWithoutConfirmation &&
       isAssignedToCurrentUser);
+  /** A pending booking can be confirmed until it ends (the server sends the confirmation and schedules the reminder). */
+  const canConfirm =
+    displayAppointment?.status === "pending" &&
+    !isBookingInPast &&
+    (!isTeamMember || isAssignedToCurrentUser);
+  /** Complete and no-show follow the team member cancel setting on the server, like cancelling. */
+  const canMarkOutcome =
+    isBookingInPast &&
+    (!isTeamMember ||
+      (!!bookingSettings?.allowStaffCancelWithoutConfirmation && isAssignedToCurrentUser));
 
-  /** Items to show in Services section: the appointment with name, duration, price, type. */
-  const serviceDetailItems = useMemo(() => {
-    const list = displayAppointment ? [displayAppointment] : [];
-    return list.map((a) => {
-      const start = new Date(a.scheduledAt).getTime();
-      const end = new Date(a.endsAt).getTime();
-      const durationMinutes = Math.round((end - start) / (60 * 1000));
-      const name =
-        a.bookedItemName ?? a.service?.name ?? a.bundle?.name ?? t("page.appointments.add.unknownItem");
-      const isBundle = a.bundle != null && !a.service;
-      const priceMajor = (a.price ?? 0) / 100;
-      return { name, durationMinutes, priceMajor, isBundle };
-    });
-  }, [displayAppointment, t]);
+  useEffect(() => {
+    if (!canConfirm && pendingConfirm === "confirm") setPendingConfirm(null);
+  }, [canConfirm, pendingConfirm]);
 
-  const serviceDetailTotalPrice = useMemo(
-    () => serviceDetailItems.reduce((sum, i) => sum + i.priceMajor, 0),
-    [serviceDetailItems],
-  );
+  const bookedItems = useMemo(() => (displayAppointment ? getBookedItems(displayAppointment) : []), [displayAppointment]);
+
+  const serviceDetailTotalPrice = (displayAppointment?.price ?? 0) / 100;
 
   const appointmentSlotMinutes = useMemo(() => {
-    if (!appointment) return 0;
+    if (!displayAppointment) return 0;
     const ms =
-      new Date(appointment.endsAt).getTime() -
-      new Date(appointment.scheduledAt).getTime();
+      new Date(displayAppointment.endsAt).getTime() -
+      new Date(displayAppointment.scheduledAt).getTime();
     return Math.max(0, Math.round(ms / 60000));
-  }, [appointment]);
+  }, [displayAppointment]);
 
   /**
    * Inline link: AddServiceSlider-style hover + arrow; explicit regular weight (not bold) for this modal.
@@ -571,8 +608,9 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
     setActionLoading("cancelled");
 
     // Convert 'both' to array format expected by backend DTO
-    const methods: string[] =
-      notificationMethod === "both" ? ["email", "sms"] : [notificationMethod];
+    const methods: string[] = !smsAvailable
+      ? ["email"]
+      : notificationMethod === "both" ? ["email", "sms"] : [notificationMethod];
 
     dispatch(
       cancelAppointment.request({
@@ -593,11 +631,20 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
 
   const handleInlineConfirm = () => {
     if (!pendingConfirm) return;
-    const status = pendingConfirm === "complete" ? "completed" : "no_show";
+    if (
+      pendingConfirm === "confirm" &&
+      (!canConfirm || !displayAppointment || isAppointmentEndInPast(displayAppointment.endsAt))
+    ) {
+      setPendingConfirm(null);
+      return;
+    }
+    const status =
+      pendingConfirm === "confirm" ? "confirmed" : pendingConfirm === "complete" ? "completed" : "no_show";
     handleStatusChange(status);
     setPendingConfirm(null);
   };
 
+  const openConfirmBookingDialog = () => setPendingConfirm("confirm");
   const openCompleteDialog = () => setPendingConfirm("complete");
   const openNoShowDialog = () => setPendingConfirm("no_show");
 
@@ -613,7 +660,14 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
   // ─────────────────────────────────────────────────────────────
 
   const handleReschedule = useCallback(() => {
-    if (!displayAppointment) return;
+    if (!displayAppointment || !canOpenEditor) return;
+    const started = new Date(displayAppointment.scheduledAt).getTime() <= Date.now();
+    // A started appointment opens read-only like a bundle, whatever its type.
+    const booked = getBookedItems(displayAppointment);
+    const fixed = started || isContentFixed(displayAppointment) || !displayAppointment.service;
+    const updatedAt = displayAppointment.updatedAt
+      ? new Date(displayAppointment.updatedAt)
+      : null;
     // Keep the detail dialog open behind the edit slider so the user can return to it.
     const cust = displayAppointment.customer;
     const snap = displayAppointment.customerSnapshot;
@@ -639,13 +693,12 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
         open: true,
         prefill: {
           appointmentId: displayAppointment.id,
-          date: buildZonedDateFromDateKey(
+          appointmentCurrency: displayAppointment.currency,
+          date: localCalendarDateFromDateKey(
             formatDateInTimezone(
               new Date(displayAppointment.scheduledAt),
               calendarTimezone,
             ),
-            "00:00",
-            calendarTimezone,
           ),
           time: formatTimeKey(
             new Date(displayAppointment.scheduledAt).toISOString(),
@@ -658,11 +711,20 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
               ? (first as { id?: number }).id
               : first;
           })(),
-          serviceId: displayAppointment.service?.id,
-          bundleId: displayAppointment.bundle?.id,
+          serviceId: fixed ? undefined : displayAppointment.service?.id,
           customerId: displayAppointment.customer?.id,
           customerDisplay: customer,
           notes: displayAppointment.notes ?? "",
+          startedLock: started,
+          fixedBooking: fixed ? { items: booked, durationMinutes: getBookedMinutes(displayAppointment), priceMinor: displayAppointment.price ?? 0 } : undefined,
+          editableBooking: !started && updatedAt && Number.isFinite(updatedAt.getTime()) && booked.length > 0
+            ? {
+                items: booked,
+                expectedUpdatedAt: updatedAt.toISOString(),
+                scheduledAt: new Date(displayAppointment.scheduledAt).toISOString(),
+                staffCount: displayAppointment.teamMembers?.length ?? 0,
+              }
+            : undefined,
         },
       }),
     );
@@ -674,7 +736,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
     if (isMobile) {
       handleDialogClose();
     }
-  }, [displayAppointment, calendarTimezone, dispatch, isMobile, handleDialogClose]);
+  }, [displayAppointment, canOpenEditor, calendarTimezone, dispatch, isMobile, handleDialogClose]);
 
   // ─────────────────────────────────────────────────────────────
   // Render
@@ -735,7 +797,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                       </div>
                     </div>
 
-                    {notifyCustomer && (
+                    {notifyCustomer && smsAvailable && (
                       <div className="space-y-2.5">
                         <Label className="text-[12px] font-semibold uppercase tracking-[0.06em] text-neutral-500 dark:text-foreground-3">
                           {t("page.appointments.edit.notificationMethod")}
@@ -831,7 +893,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                       {t("page.appointments.appointmentDetails")}
                     </DialogTitle>
                     <div className="flex shrink-0 items-center gap-2">
-                      {getStatusBadge(appointment.status, t)}
+                      {getStatusBadge(displayAppointment.status, t)}
                     </div>
                   </div>
                   <DialogDescription asChild>
@@ -866,7 +928,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                     size="sm"
                     rounded="full"
                     onClick={handleReschedule}
-                    disabled={actionLoading !== null}
+                    disabled={actionLoading !== null || !canOpenEditor}
                     className="group h-8 px-3 text-foreground-3 hover:text-foreground-1"
                   >
                     <Pencil
@@ -979,7 +1041,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                   <div>
                     {!isTerminal &&
                       (!isTeamMember || isAssignedToCurrentUser) &&
-                      (isBookingInPast || canCancel) && (
+                      (canMarkOutcome || canCancel || canConfirm) && (
                       <div className="rounded-xl border border-border bg-white p-3 shadow-sm dark:bg-card md:p-4">
                         <Label className="text-sm font-semibold text-foreground-1">
                           {t("page.appointments.updateStatus")}
@@ -995,9 +1057,11 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                             )}
                           >
                             <p className="min-w-0 text-sm text-foreground-2">
-                              {pendingConfirm === "complete"
-                                ? t("page.appointments.markCompleteConfirm")
-                                : t("page.appointments.markNoShowConfirm")}
+                              {pendingConfirm === "confirm"
+                                ? t("page.appointments.confirmAppointmentConfirm")
+                                : pendingConfirm === "complete"
+                                  ? t("page.appointments.markCompleteConfirm")
+                                  : t("page.appointments.markNoShowConfirm")}
                             </p>
                             <div className="flex shrink-0 items-center gap-3">
                               <Button
@@ -1023,7 +1087,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                                 disabled={actionLoading !== null}
                                 className={cn(
                                   "inline-flex !h-8 !min-h-8 px-3.5 text-xs font-medium",
-                                  pendingConfirm === "complete"
+                                  pendingConfirm !== "no_show"
                                     ? "border-green-200 bg-green-50 text-green-800 hover:bg-green-100 hover:border-green-300 focus-visible:ring-focus/60"
                                     : "border-primary/20 bg-primary/5 text-primary hover:bg-primary/10 hover:border-primary/40 focus-visible:ring-focus/60",
                                 )}
@@ -1036,12 +1100,33 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                           <div
                             className={cn(
                               "mt-3 flex flex-wrap items-center gap-2",
-                              isBookingInPast
+                              canMarkOutcome || canConfirm
                                 ? "justify-between"
                                 : "justify-start",
                             )}
                           >
-                            {isBookingInPast && (
+                            {canConfirm && (
+                              <div className="flex flex-wrap items-center gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  rounded="full"
+                                  onClick={openConfirmBookingDialog}
+                                  className="inline-flex !h-8 !min-h-8 items-center gap-1.5 border-green-200 bg-green-50 px-3.5 text-xs font-medium text-green-800 hover:bg-green-100 hover:border-green-300 focus-visible:ring-focus/60"
+                                  disabled={actionLoading !== null}
+                                >
+                                  <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+                                  {t("page.appointments.edit.confirmAppointment")}
+                                </Button>
+                                {canCancel && (
+                                  <span
+                                    className="h-5.5 w-px shrink-0 bg-border"
+                                    aria-hidden
+                                  />
+                                )}
+                              </div>
+                            )}
+                            {canMarkOutcome && (
                               <div className="flex flex-wrap items-center gap-2">
                                 <Button
                                   variant="outline"
@@ -1122,14 +1207,14 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                     <div className="relative p-3 md:p-5">
                       {/* Customer block: avatar, name (capitalize), status, contact rows; booking pill top-right on desktop, own row below on mobile */}
                       <div className="relative border-b border-border-subtle pb-4">
-                        {appointment.bookingSource && !isMobile ? (
+                        {displayAppointment.bookingSource && !isMobile ? (
                           <div className="absolute right-0 top-0 z-[1] pl-2">
                             {(() => {
                               const pill = getBookingSourcePillParts(
-                                appointment.bookingSource,
+                                displayAppointment.bookingSource,
                               );
                               const viaLabel = getBookedViaLabel(
-                                appointment.bookingSource,
+                                displayAppointment.bookingSource,
                                 t,
                               );
                               return (
@@ -1226,14 +1311,14 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                           bookings to CRM (BusinessCustomer) and/or User — picker + API, aligned with
                           duplicate/merge flows in business-customers; avoid overlapping merge semantics.
                         */}
-                        {isMobile && appointment.bookingSource ? (
+                        {isMobile && displayAppointment.bookingSource ? (
                           <div className="mt-3 flex">
                             {(() => {
                               const pill = getBookingSourcePillParts(
-                                appointment.bookingSource,
+                                displayAppointment.bookingSource,
                               );
                               const viaLabel = getBookedViaLabel(
-                                appointment.bookingSource,
+                                displayAppointment.bookingSource,
                                 t,
                               );
                               return (
@@ -1262,7 +1347,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                           </dt>
                           <dd className="min-w-0 font-semibold text-foreground-1">
                             {formatDetailOverviewDate(
-                              appointment.scheduledAt,
+                              displayAppointment.scheduledAt,
                               auditTimezone,
                             )}
                           </dd>
@@ -1273,8 +1358,8 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                           </dt>
                           <dd className="min-w-0 font-semibold text-foreground-1 tabular-nums">
                             {formatTimeRange(
-                              new Date(appointment.scheduledAt).toISOString(),
-                              new Date(appointment.endsAt).toISOString(),
+                              new Date(displayAppointment.scheduledAt).toISOString(),
+                              new Date(displayAppointment.endsAt).toISOString(),
                               auditTimezone,
                             )}
                             {appointmentSlotMinutes > 0
@@ -1370,7 +1455,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                         </div>
                       </dl>
 
-                      {appointment.overrideReason ? (
+                      {displayAppointment.overrideReason ? (
                         <div
                           className={cn(
                             "mt-3 flex items-center gap-2 border-t border-amber-200/70 px-3 py-3 md:px-5 md:py-3.5",
@@ -1386,7 +1471,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                             <span className="font-medium text-foreground-2">
                               {t("page.appointments.edit.overrideReason")}:
                             </span>{" "}
-                            {appointment.overrideReason}
+                            {displayAppointment.overrideReason}
                           </p>
                         </div>
                       ) : null}
@@ -1399,7 +1484,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                     className="scroll-mt-4"
                   >
                     <CollapsibleFormSection
-                      title={t("page.appointments.edit.services", { count: serviceDetailItems.length })}
+                      title={t("page.appointments.edit.services", { count: bookedItems.length })}
                       compact
                       scrollIntoViewOnOpen
                       description={t("page.appointments.edit.bookedServiceDescription")}
@@ -1408,59 +1493,13 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                       className={ADVANCED_SETTINGS_COLLAPSIBLE_OUTER_CLASS}
                     >
                       <div className="space-y-0">
-                        {serviceDetailItems.length === 0 ? (
+                        {bookedItems.length === 0 ? (
                           <p className="py-6 text-center text-sm text-foreground-3">
                             {t("page.appointments.edit.noBookedItems")}
                           </p>
                         ) : (
                           <>
-                            <div className="divide-y divide-border">
-                              {serviceDetailItems.map((item, idx) => (
-                                <div
-                                  key={`${item.name}-${idx}`}
-                                  className="flex flex-nowrap items-center justify-between gap-3 py-3 first:pt-0 last:pb-0"
-                                >
-                                  <div className="min-w-0 flex-1">
-                                    <div className="truncate text-sm font-semibold text-foreground-1">
-                                      {item.name}
-                                    </div>
-                                    <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-foreground-3 dark:text-foreground-2">
-                                      <span className="tabular-nums">
-                                        {item.durationMinutes > 0
-                                          ? formatDurationHuman(
-                                              item.durationMinutes,
-                                              t,
-                                            )
-                                          : "—"}
-                                      </span>
-                                      {item.isBundle ? (
-                                        <Badge
-                                          className={cn(
-                                            "rounded-full border px-2.5 py-0.5 text-[11px] font-medium shadow-none",
-                                            "border-purple-200 bg-purple-50 text-purple-900 hover:bg-purple-100",
-                                          )}
-                                        >
-                                          {t("page.appointments.edit.bundle")}
-                                        </Badge>
-                                      ) : null}
-                                    </div>
-                                  </div>
-                                  <div className="flex shrink-0 items-center justify-end text-right text-sm font-semibold tabular-nums text-foreground-1">
-                                    {item.priceMajor <= 0 ? (
-                                      <span className="text-foreground-2">
-                                        {t("page.appointments.edit.free")}
-                                      </span>
-                                    ) : (
-                                      <PriceDisplay
-                                        amountDecimal={item.priceMajor}
-                                        currency={businessCurrency}
-                                        iconClassName="h-3.5 w-3.5"
-                                      />
-                                    )}
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
+                            <BookedItemsList items={bookedItems} currency={appointmentCurrency} />
 
                             <div
                               className={cn(
@@ -1482,7 +1521,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                                   ) : (
                                     <PriceDisplay
                                       amountDecimal={serviceDetailTotalPrice}
-                                      currency={businessCurrency}
+                                      currency={appointmentCurrency}
                                       iconClassName="h-4 w-4"
                                     />
                                   )}
@@ -1715,7 +1754,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                     </CollapsibleFormSection>
                   ) : null}
 
-                  {isCancelled && appointment.cancellationReason ? (
+                  {isCancelled && displayAppointment.cancellationReason ? (
                     <CollapsibleFormSection
                       title={t("page.appointments.edit.cancellation")}
                       compact
@@ -1726,7 +1765,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                       className={ADVANCED_SETTINGS_COLLAPSIBLE_OUTER_CLASS}
                     >
                       <p className="text-sm leading-relaxed text-foreground-2">
-                        {appointment.cancellationReason}
+                        {displayAppointment.cancellationReason}
                       </p>
                     </CollapsibleFormSection>
                   ) : null}

@@ -12,7 +12,7 @@ import type {
     CalendarBlockDto,
     BlockConflictOffer,
 } from "../../shared/types/calendar.ts";
-import { AppointmentViewMode, AppointmentViewType, type AddFormPrefill, type PendingDrop, type ReassignmentHoursOverrideOffer } from "./types.ts";
+import { AppointmentViewMode, AppointmentViewType, type AddFormPrefill, type PendingDrop, type AppointmentBlockOverrideOffer, type CustomerOverlapOffer, type ReassignmentHoursOverrideOffer } from "./types.ts";
 
 export const toggleAddForm = createAction('CALENDAR/CREATE/TOGGLE')<{ open: boolean; prefill?: AddFormPrefill }>()
 
@@ -75,6 +75,10 @@ export const fetchDayData = createAsyncAction(
 )<{ locationId: number; date: string; filters?: CalendarDayFilters },
     DayDataResponse,
     { message: string }>()
+
+export const refreshVisibleDay = createAction('CALENDAR/VISIBLE_DAY/REFRESH')()
+
+export const refreshVisibleDaySuccess = createAction('CALENDAR/VISIBLE_DAY/REFRESH_SUCCESS')<DayDataResponse>()
 
 /** Set day-level filters (staff, service, status, client name) */
 export const setDayFiltersAction = createAction(
@@ -158,10 +162,14 @@ export const updateAppointmentStatus = createAsyncAction(
     'CALENDAR/UPDATE_STATUS/FAILURE',
 )<{ appointmentId: number; status: string }, any, any>()
 
-/** Offer to retry an update with override after 409 Conflict (set to null to clear). conflictType 'staff_appointment' = do not show override; 'block' or missing = show override. */
+/** Offer to retry an appointment update that the API refused because of a block. */
 export const setUpdateConflictOffer = createAction(
     'CALENDAR/UPDATE_CONFLICT_OFFER/SET',
-)<{ appointmentId: number; data: Record<string, unknown>; message: string; conflictType?: 'staff_appointment' | 'block' } | null>()
+)<AppointmentBlockOverrideOffer | null>()
+
+export const setCustomerOverlapOffer = createAction(
+    'CALENDAR/CUSTOMER_OVERLAP_OFFER/SET',
+)<CustomerOverlapOffer | null>()
 
 export const setReassignmentHoursOverrideOffer = createAction(
     'CALENDAR/REASSIGNMENT_HOURS_OVERRIDE_OFFER/SET',

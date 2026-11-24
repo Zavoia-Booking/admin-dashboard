@@ -229,9 +229,12 @@
     "cannotDelete": {
       "title": "{{resourceType}} is in use",
       "descriptionPrefix": "You can't delete",
-      "descriptionSuffix": "because it's assigned to:",
+      "descriptionSuffix": "because it's still used by:",
       "footer": "Remove these assignments, then try again.",
+      "footerAppointments": "Move or cancel the upcoming appointments, then try again.",
+      "footerAppointmentsAndMore": "Move or cancel the upcoming appointments and remove the rest, then try again.",
       "manageAssignments": "Manage Assignments",
+      "goToCalendar": "Go to calendar",
       "cancel": "Got it"
     },
     "dependencies": {
@@ -245,13 +248,19 @@
       "services": "services",
       "appointment": "appointment",
       "appointments": "appointments",
+      "upcomingAppointment": "upcoming appointment",
+      "upcomingAppointments": "upcoming appointments",
+      "bundle": "bundle",
+      "bundles": "bundles",
       "location": "location",
       "locations": "locations",
       "teamMember": "team member",
       "teamMembers": "team members",
       "websiteGalleryPhoto": "photo used on the published website",
       "websiteGalleryPhotos": "photos used on the published website",
-      "cancelInvitationHint": "Cancel the invitation{{plural}} before removing this {{resourceType}}"
+      "cancelInvitationHint": "Cancel the invitation{{plural}} before removing this {{resourceType}}",
+      "bundleNames_one": "Used in the bundle {{names}}.",
+      "bundleNames_other": "Used in the bundles {{names}}."
     },
     "resourceTypes": {
       "location": "location",

@@ -43,9 +43,15 @@ export function formatDateInTimezone(date: Date, timeZone: string): string {
   return `${parts.year}-${parts.month}-${parts.day}`;
 }
 
+/** `YYYY-MM-DD` of a wall date (local midnight carrying the venue's day), read with local getters. */
+export function wallDateKey(date: Date): string {
+  const y = date.getFullYear(), m = date.getMonth() + 1, d = date.getDate();
+  return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+}
+
 /**
  * Parses `YYYY-MM-DD` as a calendar day at local midnight (browser local).
- * Pairs with {@link formatDateInTimezone} for wall dates and with pickers that compare y/m/d.
+ * Read it back with {@link wallDateKey}; pairs with pickers that compare y/m/d.
  */
 export function localCalendarDateFromDateKey(dateKey: string): Date {
   const [y, m, d] = dateKey.split('-').map(Number);
@@ -119,20 +125,20 @@ export function buildZonedDateFromDateKey(dateKey: string, hhmm: string, timeZon
 
 export function buildZonedDate(date: Date, hhmm: string, timeZone: string): Date {
   const [hour, minute] = hhmm.split(':').map(Number);
-  const dateInTz = formatDateInTimezone(date, timeZone);
+  const dateInTz = wallDateKey(date);
   const [year, month, day] = dateInTz.split('-').map(Number);
   return buildZonedDateFromParts(year, month, day, hour, minute, timeZone);
 }
 
 /** Start of calendar day (00:00) in `timeZone`, as UTC `Date`. */
 export function zonedStartOfDayUtc(wallDate: Date, timeZone: string): Date {
-  const dateKey = formatDateInTimezone(wallDate, timeZone);
+  const dateKey = wallDateKey(wallDate);
   return buildZonedDateFromDateKey(dateKey, '00:00', timeZone);
 }
 
 /** End of calendar day in `timeZone` (last ms of 23:59), as UTC `Date`. */
 export function zonedEndOfDayUtc(wallDate: Date, timeZone: string): Date {
-  const dateKey = formatDateInTimezone(wallDate, timeZone);
+  const dateKey = wallDateKey(wallDate);
   const lastMinute = buildZonedDateFromDateKey(dateKey, '23:59', timeZone);
   return new Date(lastMinute.getTime() + 59_999);
 }

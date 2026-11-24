@@ -10,7 +10,7 @@ import {
   getSummaryLoading,
 } from "../../selectors";
 import { buildMonthCalendarGridCells, getTranslatedDayNames } from "../../utils";
-import { formatDateInTimezone } from "../../timezone";
+import { minSelectableCalendarDateForTimezone, wallDateKey } from "../../timezone";
 import { DayMarkerGlyph } from "../MiniMonthCalendar";
 import { dayMarkerFromSummary } from "../dayMarker";
 import { Skeleton } from "../../../../shared/components/ui/skeleton";
@@ -40,7 +40,7 @@ export const MobileMonthGrid: FC<MobileMonthGridProps> = ({ onDayTap }) => {
     [monthViewDisplayStart, selectedDate],
   );
 
-  const todayStr = new Date().toDateString();
+  const todayStr = minSelectableCalendarDateForTimezone(new Date(), timezone).toDateString();
   const weekCount = Math.ceil(dayCells.length / 7);
 
   /* Direction of the last month change → drives the slide-in animation.
@@ -108,7 +108,7 @@ export const MobileMonthGrid: FC<MobileMonthGridProps> = ({ onDayTap }) => {
         style={{ gridTemplateRows: `repeat(${weekCount}, minmax(0, 1fr))` }}
       >
         {dayCells.map(({ date, isCurrentMonth }) => {
-          const dateKey = formatDateInTimezone(date, timezone);
+          const dateKey = wallDateKey(date);
           const daySummary = summary[dateKey];
           const isToday = date.toDateString() === todayStr;
           const isSelected = !!selectedDate && date.toDateString() === selectedDate.toDateString();

@@ -12,7 +12,7 @@ import {
   getDayOpenCloseMinutes,
   getSlotStartsInRange,
 } from "../workingHours";
-import { getMinutesInTimezone, formatDateInTimezone } from "../timezone";
+import { getMinutesInTimezone, formatDateInTimezone, wallDateKey } from "../timezone";
 import { calendarPreferences } from "../calendarPreferences";
 import { useNowTick } from "../components/timeGrid/useNowTick";
 import {
@@ -74,7 +74,7 @@ export function useDayTimelineData(
   const workingHoursBounds = bounds && bounds.start >= 0 && bounds.start < bounds.end && bounds.end <= 24 * 60
     ? bounds
     : null;
-  const dateKey = formatDateInTimezone(selectedDate, calendarTimezone);
+  const dateKey = wallDateKey(selectedDate);
   const isToday = dateKey === formatDateInTimezone(new Date(), calendarTimezone);
 
   const slotIntervalMinutes = bookingSettings?.slotIntervalMinutes ?? 15;

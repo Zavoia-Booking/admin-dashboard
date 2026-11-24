@@ -358,6 +358,11 @@ export function ManageServicesSheet({
   const handleClear = () => setSelectedServiceIds(initialSelectedIds);
 
   const handleApply = () => {
+    if (isSingleSelect && onSelect) {
+      // Same as closing: the pick reaches the parent in handleClose.
+      handleClose();
+      return;
+    }
     if (onSave) {
       onSave(selectedServiceIds);
       onClose();
@@ -792,7 +797,6 @@ export function ManageServicesSheet({
   );
 
   const renderFooter = (isMobileFooter = false) => {
-    if (isSingleSelect) return null;
     return (
     <div className={cn(isMobileFooter ? "md:hidden bg-surface" : "hidden md:flex flex-col bg-surface shrink-0", isMobileFooter && keyboardVisible && "hidden")}>
       <DashedDivider marginTop="mt-0" className="mb-0" paddingTop={isMobileFooter ? "pt-2" : "pt-4"} dashPattern="1 1" />
@@ -932,7 +936,7 @@ export function ManageServicesSheet({
       <div className={cn(
         "flex-1 space-y-4",
         filteredCategoryGroups.length > 0 ? "overflow-y-auto" : "overflow-hidden flex items-center justify-center",
-        isSingleSelect ? "px-4 pt-4 pb-12" : "p-4"
+        "p-4"
       )}>
         {filteredCategoryGroups.length === 0 ? renderEmptyState() : renderCategoryList()}
       </div>
@@ -1091,10 +1095,9 @@ export function ManageServicesSheet({
               <div className={cn(
                 "flex-1 space-y-4 scrollbar-hide relative",
                 filteredCategoryGroups.length > 0 ? "overflow-y-auto" : "overflow-hidden flex items-center justify-center",
-                isSingleSelect ? "px-4 pt-4 pb-0" : "p-4"
+                "p-4"
               )}>
                 {filteredCategoryGroups.length === 0 ? renderEmptyState() : renderCategoryList()}
-                {isSingleSelect && <div className="h-4 sticky bottom-0 left-0 right-0 w-full bg-surface" />}
               </div>
             </div>
 

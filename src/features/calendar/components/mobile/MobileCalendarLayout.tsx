@@ -15,7 +15,7 @@ import { MobileCalendarHeader } from "./MobileCalendarHeader";
 import { MobileWeekStrip } from "./MobileWeekStrip";
 import { MobileViewRouter } from "./MobileViewRouter";
 import { AppointmentViewMode } from "../../types";
-import { formatDateInTimezone } from "../../timezone";
+import { wallDateKey } from "../../timezone";
 import { usePullToRefresh } from "../../hooks/usePullToRefresh";
 import { MobilePullToRefreshIndicator } from "./MobilePullToRefreshIndicator";
 import { MobileClearFiltersFab } from "./MobileClearFiltersFab";
@@ -143,7 +143,7 @@ export const MobileCalendarLayout: FC<MobileCalendarLayoutProps> = ({
 
   const handleRefresh = useCallback(() => {
     if (!selectedLocationId || !selectedDate) return Promise.resolve();
-    const dateStr = formatDateInTimezone(selectedDate, timezone);
+    const dateStr = wallDateKey(selectedDate);
     dispatch(
       fetchDayData.request({
         locationId: selectedLocationId,

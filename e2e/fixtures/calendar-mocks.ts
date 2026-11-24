@@ -463,7 +463,7 @@ export async function mockUpdateAppointment(
 ): Promise<RouteCapture> {
   const cap: RouteCapture = { requests: [] }
   await page.route('**/api/appointments/*', (route) => {
-    if (route.request().method() !== 'PUT') return route.continue()
+    if (route.request().method() !== 'PUT') return route.fallback()
     cap.requests.push(route.request())
     return json(route, options.status ?? 200, options.body ?? { ok: true })
   })
@@ -487,7 +487,7 @@ export async function mockGetAppointmentDetail(
   appointment: SampleAppointment & { id: number },
 ): Promise<void> {
   await page.route('**/api/appointments/*', (route) => {
-    if (route.request().method() !== 'GET') return route.continue()
+    if (route.request().method() !== 'GET') return route.fallback()
     return json(route, 200, {
       ...appointment,
       // The detail endpoint returns the full Appointment shape — for our test

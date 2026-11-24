@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import DatePicker from '../../../shared/components/ui/date-picker';
+import { useNowTick } from './timeGrid/useNowTick';
 import {
   AlertCircle,
   CalendarClock,
@@ -67,6 +68,7 @@ import {
   laterCalendarWallDate,
   localCalendarDateFromDateKey,
   minSelectableCalendarDateForTimezone,
+  wallDateKey,
   weekdaySun0ForWallDateInTimezone,
   zonedEndOfDayUtc,
   zonedStartOfDayUtc,
@@ -571,10 +573,10 @@ export const CreateBlockDrawer: React.FC = () => {
   const hasStaff = locationStaff.length > 0;
   const canCreateBlocks =
     !isTeamMember || !!bookingSettings?.allowStaffBlockCalendarWithoutConfirmation;
+  const translatedReasonOptions = useMemo(() => getCalendarBlockReasonOptionsTranslated(t), [t]);
   const allowedReasonOptions = useMemo(() => {
-    const translatedOptions = getCalendarBlockReasonOptionsTranslated(t);
     if (!isTeamMember) {
-      return translatedOptions;
+      return translatedReasonOptions;
     }
     const types = bookingSettings?.staffBlockCalendarTypes ?? [];
     const allowedReasons = new Set<CalendarBlockReason>(
@@ -583,21 +585,26 @@ export const CreateBlockDrawer: React.FC = () => {
         .filter((r): r is CalendarBlockReason => r != null),
     );
     if (allowedReasons.size === 0) return [];
-    return translatedOptions.filter((option) => allowedReasons.has(option.value));
-  }, [isTeamMember, bookingSettings, t]);
+    return translatedReasonOptions.filter((option) => allowedReasons.has(option.value));
+  }, [isTeamMember, bookingSettings, translatedReasonOptions]);
+  const savedReasonOption = editingBlock && !allowedReasonOptions.some((option) => option.value === editingBlock.reason)
+    ? translatedReasonOptions.find((option) => option.value === editingBlock.reason)
+    : undefined;
 
   const blockTz = (calendarTimezone && String(calendarTimezone).trim()) || 'UTC';
 
   /** Recurrence matches backend: timed recurring uses one wall day + times; multi-day + repeat is unsupported. */
   const recurrenceAllowed = useMemo(() => {
     if (form.startDate == null || form.endDate == null) return false;
-    return formatDateInTimezone(form.startDate, blockTz) === formatDateInTimezone(form.endDate, blockTz);
+    return wallDateKey(form.startDate) === wallDateKey(form.endDate);
   }, [form.startDate, form.endDate, blockTz]);
 
   /** Earliest selectable calendar day for new blocks: "today" in location TZ (see `timezone.ts`). */
+  useNowTick(isOpen);
+  const todayKey = formatDateInTimezone(new Date(), blockTz);
   const minSelectableWallDate = useMemo(
-    () => minSelectableCalendarDateForTimezone(new Date(), blockTz),
-    [blockTz],
+    () => localCalendarDateFromDateKey(todayKey),
+    [todayKey],
   );
   const startDatePickerMin = isEditMode ? undefined : minSelectableWallDate;
   const endOrRepeatDatePickerMin = useMemo(() => {
@@ -636,7 +643,7 @@ export const CreateBlockDrawer: React.FC = () => {
         isAllDay: editingBlock.isAllDay,
         reason: editingBlock.reason,
         title: editingBlock.title ?? '',
-        notes: '',
+        notes: editingBlock.notes ?? '',
         isRecurring: editingBlock.isRecurring ?? false,
         repeatFrequency: (editingBlock.repeatFrequency as BlockRepeatFrequency | undefined) ?? 'weekly',
         repeatDaysOfWeek: editingBlock.repeatDaysOfWeek ?? [],
@@ -678,13 +685,12 @@ export const CreateBlockDrawer: React.FC = () => {
   }, [isOpen, editingBlock, form.blockScope, soleStaffId]);
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || isEditMode) return;
     if (allowedReasonOptions.length === 0) return;
-    const allowedReasons = new Set(allowedReasonOptions.map((o) => o.value));
-    if (!allowedReasons.has(form.reason)) {
-      setForm((prev) => ({ ...prev, reason: allowedReasonOptions[0].value }));
-    }
-  }, [isOpen, allowedReasonOptions, form.reason]);
+    setForm((prev) => allowedReasonOptions.some((option) => option.value === prev.reason)
+      ? prev
+      : { ...prev, reason: allowedReasonOptions[0].value });
+  }, [isOpen, isEditMode, allowedReasonOptions]);
 
   useEffect(() => {
     if (!isOpen || isEditMode) return;
@@ -874,7 +880,7 @@ export const CreateBlockDrawer: React.FC = () => {
     form.startDate !== null &&
     form.endDate !== null &&
     (isEditMode || selectedLocationId !== null) &&
-    (!isTeamMember || allowedReasonOptions.length > 0) &&
+    (!isTeamMember || form.reason === editingBlock?.reason || allowedReasonOptions.some((option) => option.value === form.reason)) &&
     (isEditMode || form.blockScope !== CalendarBlockScope.STAFF || form.userId !== null) &&
     (form.isAllDay || (form.startTime !== '' && form.endTime !== '')) &&
     (!form.isRecurring || recurrenceAllowed) &&
@@ -918,9 +924,9 @@ export const CreateBlockDrawer: React.FC = () => {
               startsAt,
               endsAt,
               isAllDay: form.isAllDay,
-              reason: form.reason,
-              title: form.title.trim() || undefined,
-              notes: form.notes.trim() ? form.notes.trim() : undefined,
+              ...(form.reason !== editingBlock.reason ? { reason: form.reason } : {}),
+              title: form.title.trim() || null,
+              notes: form.notes.trim() || null,
             },
           }),
         );
@@ -1203,6 +1209,7 @@ export const CreateBlockDrawer: React.FC = () => {
                         value={form.startDate}
                         onChange={handleStartDateChange}
                         minDate={startDatePickerMin}
+                        today={minSelectableWallDate}
                         connectedPopover
                         className={cn(datePickerClass)}
                         placeholder={t("page.blocks.create.selectDate")}
@@ -1215,6 +1222,7 @@ export const CreateBlockDrawer: React.FC = () => {
                         value={form.endDate}
                         onChange={handleEndDateChange}
                         minDate={endOrRepeatDatePickerMin}
+                        today={minSelectableWallDate}
                         connectedPopover
                         className={cn(datePickerClass)}
                         placeholder={t("page.blocks.create.selectDate")}
@@ -1248,8 +1256,8 @@ export const CreateBlockDrawer: React.FC = () => {
                 </div>
 
                 {form.startDate && form.endDate && !form.isAllDay && !form.isRecurring &&
-                  formatDateInTimezone(form.startDate, blockTz) !==
-                    formatDateInTimezone(form.endDate, blockTz) && (
+                  wallDateKey(form.startDate) !==
+                    wallDateKey(form.endDate) && (
                     <p className="text-xs text-muted-foreground">
                       {t("page.blocks.create.multiDayContinuousHelper", {
                         startDate: form.startDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
@@ -1360,6 +1368,7 @@ export const CreateBlockDrawer: React.FC = () => {
                             value={form.repeatEndDate}
                             onChange={handleRepeatEndDateChange}
                             minDate={endOrRepeatDatePickerMin}
+                            today={minSelectableWallDate}
                             connectedPopover
                             calendarDisabled={form.repeatEndDate == null}
                             className={cn(datePickerClass)}
@@ -1402,13 +1411,14 @@ export const CreateBlockDrawer: React.FC = () => {
                 role="group"
                 aria-label={t("page.blocks.create.reasonLabel")}
               >
-                {allowedReasonOptions.map((option) => {
+                {[...allowedReasonOptions, ...(savedReasonOption ? [savedReasonOption] : [])].map((option) => {
                   const isSelected = form.reason === option.value;
                   const Icon = option.Icon;
                   return (
                     <button
                       key={option.value}
                       type="button"
+                      disabled={option === savedReasonOption}
                       onClick={() => handleReasonSelect(option.value)}
                       title={option.label}
                       aria-label={option.label}
@@ -1434,7 +1444,7 @@ export const CreateBlockDrawer: React.FC = () => {
                   );
                 })}
               </div>
-              {canCreateBlocks && allowedReasonOptions.length === 0 && (
+              {!isEditMode && canCreateBlocks && allowedReasonOptions.length === 0 && (
                 <p className="text-xs text-foreground-3 dark:text-foreground-2">
                   No block reasons are allowed for your role. Ask an owner to configure staff block types in booking
                   settings.

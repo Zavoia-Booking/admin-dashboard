@@ -12,6 +12,7 @@ interface DatePickerProps {
   onChange: (date: Date) => void;
   /** Optional trigger semantics for forms that associate labels and validation with the picker. */
   triggerId?: string;
+  disabled?: boolean;
   invalid?: boolean;
   describedBy?: string;
   className?: string;
@@ -47,6 +48,7 @@ const DatePicker: React.FC<DatePickerProps> = ({
   value = null,
   onChange,
   triggerId,
+  disabled = false,
   invalid = false,
   describedBy,
   className,
@@ -80,6 +82,7 @@ const DatePicker: React.FC<DatePickerProps> = ({
 
   const handleOpenChange = useCallback(
     (open: boolean) => {
+      if (open && disabled) return;
       setIsOpen(open);
       if (!connectedPopover) return;
       if (open) {
@@ -96,8 +99,12 @@ const DatePicker: React.FC<DatePickerProps> = ({
         }, 250);
       }
     },
-    [connectedPopover],
+    [connectedPopover, disabled],
   );
+
+  useEffect(() => {
+    if (disabled) setIsOpen(false);
+  }, [disabled]);
 
   useEffect(() => {
     if (!connectedPopover) return;
@@ -108,7 +115,7 @@ const DatePicker: React.FC<DatePickerProps> = ({
 
   // The fused trigger/panel border only makes sense when a panel is actually
   // attached below the trigger — on mobile the calendar is a bottom sheet.
-  const showOpenBorder = connectedPopover && !isMobile && (isOpen || closingAnimation);
+  const showOpenBorder = connectedPopover && !isMobile && !disabled && (isOpen || closingAnimation);
   const [currentMonth, setCurrentMonth] = useState(fallbackDate);
   const [currentYear, setCurrentYear] = useState(fallbackDate.getFullYear());
 
@@ -378,12 +385,13 @@ const DatePicker: React.FC<DatePickerProps> = ({
 
   return (
     <ResponsivePopover
-      open={isOpen}
+      open={isOpen && !disabled}
       onOpenChange={handleOpenChange}
       title={mobileTitle ?? placeholder}
       trigger={
         <Button
           id={triggerId}
+          disabled={disabled}
           aria-invalid={invalid || undefined}
           aria-describedby={describedBy}
           variant="outline"

@@ -1,13 +1,14 @@
 import * as actions from "./actions";
 import { type ActionType, getType } from "typesafe-actions";
-import { logoutRequestAction } from "../auth/actions";
+import { logoutRequestAction, selectBusinessAction } from "../auth/actions";
 import type { Reducer } from "redux";
 import { AppointmentViewMode, AppointmentViewType, type CalendarViewState, type AddFormPrefill, type PendingDrop } from "./types.ts";
 import type { Appointment, LocationContextData, DaySummary, DayDataResponse, CalendarWeekResponse, CalendarDayFilters, CalendarBlockDto } from "../../shared/types/calendar.ts";
 import type { LocationService, LocationTeamMember } from "../assignments/types.ts";
 import { getWeekStart } from "./utils.ts";
+import { minSelectableCalendarDateForTimezone } from "./timezone.ts";
 
-type Actions = ActionType<typeof actions> | ActionType<typeof logoutRequestAction>;
+type Actions = ActionType<typeof actions> | ActionType<typeof logoutRequestAction | typeof selectBusinessAction>;
 
 const initialDayFilters: CalendarDayFilters = {};
 
@@ -65,11 +66,13 @@ const initialState: CalendarViewState = {
 
     // --- Date navigation ---
     selectedDate: new Date(),
+    selectedDateIsStartup: true,
     displayedMonthStart: null,
     displayedWeekStart: null,
     sidebarMiniCalendarMonthStart: null,
 
     updateConflictOffer: null,
+    customerOverlapOffer: null,
     reassignmentHoursOverrideOffer: null,
     blockConflictOffer: null,
     pendingDrop: null as PendingDrop,
@@ -113,6 +116,8 @@ export const handleOpenAddForm = (state: CalendarViewState, payload: { open: boo
         addFormPrefill: payload.open ? (payload.prefill ?? null) : null,
         addFormCloseAfterMutationsRemaining: 0,
         reassignmentHoursOverrideOffer: null,
+        updateConflictOffer: state.updateConflictOffer?.source === 'editor' ? null : state.updateConflictOffer,
+        customerOverlapOffer: null,
     }
 }
 
@@ -179,12 +184,29 @@ const handleSetSelectedLocation = (state: CalendarViewState, payload: number | n
         optimisticBlocks: [],
         sidebarMiniCalendarMonthStart: null,
         pendingDrop: null,
+        updateConflictOffer: null,
+        customerOverlapOffer: null,
+        addFormCloseAfterMutationsRemaining: 0,
     }
 }
 
 const handleSetLocationContext = (state: CalendarViewState, payload: LocationContextData | null): CalendarViewState => {
+    const venueTz = payload?.location.timezone?.trim();
+    let startupDay: Partial<CalendarViewState> = {};
+    if (state.selectedDateIsStartup && venueTz) {
+        const today = minSelectableCalendarDateForTimezone(new Date(), venueTz);
+        const miniMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+        startupDay = {
+            selectedDate: today,
+            selectedDateIsStartup: false,
+            displayedWeekStart: getWeekStart(today),
+            displayedMonthStart: miniMonth,
+            sidebarMiniCalendarMonthStart: miniMonth,
+        };
+    }
     return {
         ...state,
+        ...startupDay,
         locationContext: payload,
         locationContextLoading: false,
         locationContextError: null,
@@ -249,6 +271,7 @@ const handleSetSelectedDate = (state: CalendarViewState, payload: Date): Calenda
     return {
         ...state,
         selectedDate: payload,
+        selectedDateIsStartup: false,
         displayedWeekStart: getWeekStart(payload),
         displayedMonthStart: miniMonth,
         sidebarMiniCalendarMonthStart: miniMonth,
@@ -309,7 +332,7 @@ const handleSetStaffFilter = (state: CalendarViewState, payload: number[]): Cale
     }
 }
 
-const handleSetUpdateConflictOffer = (state: CalendarViewState, payload: { appointmentId: number; data: Record<string, unknown>; message: string; conflictType?: 'staff_appointment' | 'block' } | null): CalendarViewState => {
+const handleSetUpdateConflictOffer = (state: CalendarViewState, payload: CalendarViewState['updateConflictOffer']): CalendarViewState => {
     return { ...state, updateConflictOffer: payload };
 }
 
@@ -343,8 +366,8 @@ const clearAddFormMutationWait = (state: CalendarViewState): CalendarViewState =
 
 export const CalendarReducer: Reducer<CalendarViewState, any> = (state: CalendarViewState = initialState, action: Actions) => {
     switch (action.type) {
-        // Reset state on logout to prevent stale data across accounts
         case getType(logoutRequestAction.success):
+        case getType(selectBusinessAction.request):
             return { ...initialState };
 
         // --- UI actions ---
@@ -410,6 +433,8 @@ export const CalendarReducer: Reducer<CalendarViewState, any> = (state: Calendar
             };
         case getType(actions.fetchDayData.success):
             return { ...handleSetDayData(state, action.payload), pendingDrop: null, optimisticBlocks: [] };
+        case getType(actions.refreshVisibleDaySuccess):
+            return handleSetDayData(state, action.payload);
         case getType(actions.fetchDayData.failure):
             return {
                 ...handleSetDayDataLoading(state, false),
@@ -424,7 +449,7 @@ export const CalendarReducer: Reducer<CalendarViewState, any> = (state: Calendar
             return handleSetSelectedDate(state, action.payload);
         case getType(actions.navigateToCalendarDateAction): {
             const { date, viewMode: vm } = action.payload;
-            const next: CalendarViewState = { ...state, selectedDate: date, viewMode: vm };
+            const next: CalendarViewState = { ...state, selectedDate: date, selectedDateIsStartup: false, viewMode: vm };
             if (vm === AppointmentViewMode.MONTH) {
                 next.displayedMonthStart = new Date(date.getFullYear(), date.getMonth(), 1);
             }
@@ -471,6 +496,8 @@ export const CalendarReducer: Reducer<CalendarViewState, any> = (state: Calendar
         // --- Update conflict offer (409 override flow) ---
         case getType(actions.setUpdateConflictOffer):
             return handleSetUpdateConflictOffer(state, action.payload);
+        case getType(actions.setCustomerOverlapOffer):
+            return { ...state, customerOverlapOffer: action.payload };
         case getType(actions.setReassignmentHoursOverrideOffer): {
             const offer = action.payload;
             if (offer && (!state.addFormOpen || state.addFormPrefill?.appointmentId !== offer.appointmentId)) {
@@ -485,9 +512,11 @@ export const CalendarReducer: Reducer<CalendarViewState, any> = (state: Calendar
         case getType(actions.beginAddFormCloseAfterMutations):
             return { ...state, addFormCloseAfterMutationsRemaining: action.payload };
         case getType(actions.updateAppointment.request):
-            return clearUpdateConflictOffer(
-                state.reassignmentHoursOverrideOffer ? { ...state, reassignmentHoursOverrideOffer: null } : state,
-            );
+            return {
+                ...clearUpdateConflictOffer(state),
+                reassignmentHoursOverrideOffer: null,
+                customerOverlapOffer: null,
+            };
         case getType(actions.updateAppointment.success): {
             const cleared = clearUpdateConflictOffer(state);
             return decrementAddFormCloseAfterMutations(cleared);
@@ -496,8 +525,12 @@ export const CalendarReducer: Reducer<CalendarViewState, any> = (state: Calendar
             return clearAddFormMutationWait(state);
 
         // --- CRUD result handling ---
+        case getType(actions.adminCreateAppointmentGroup.request):
+            return { ...state, customerOverlapOffer: null };
         case getType(actions.adminCreateAppointmentGroup.success):
-            return { ...state, addFormOpen: false, addFormPrefill: null };
+            return decrementAddFormCloseAfterMutations(state);
+        case getType(actions.adminCreateAppointmentGroup.failure):
+            return clearAddFormMutationWait(state);
 
         case getType(actions.createCalendarBlock.success): {
             const createdBlock = action.payload?.block ?? action.payload;

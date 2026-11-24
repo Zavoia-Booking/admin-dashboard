@@ -2,8 +2,10 @@ import React, { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Skeleton } from '../../../../shared/components/ui/skeleton';
 import { AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { formatDateInTimezone } from '../../../calendar/timezone';
 import { useIsMobile } from '../../../../shared/hooks/use-mobile';
-import { AppointmentRow, formatApptTime } from './AppointmentRow';
+import { cn } from '../../../../shared/lib/utils';
+import { AppointmentRow, bookedItemContext, formatApptTime } from './AppointmentRow';
 import { BulkActionsBar } from './BulkActionsBar';
 import { ReassignPickerSheet, type ReassignPickerTarget } from './ReassignPickerSheet';
 import { type EligibleStaffMap } from './eligibility';
@@ -24,25 +26,26 @@ interface AppointmentsPaneProps {
   decisions: DecisionMap;
   onDecide: (appointmentId: number, decision: Decision | null) => void;
   onDecideMany: (ids: number[], decision: Decision) => void;
+  onOpenCalendar?: (scheduledAt: string) => void;
+  emptyMessage?: string;
+  bundleContextOnly?: boolean;
   loading: boolean;
 }
 
-const startOfDay = (d: Date) => {
-  const c = new Date(d);
-  c.setHours(0, 0, 0, 0);
-  return c;
-};
-const dayKey = (iso: string) => new Date(iso).toISOString().slice(0, 10);
+const dayKey = (iso: string, timezone?: string) =>
+  formatDateInTimezone(new Date(iso), timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone);
 
-const formatDayHeader = (iso: string, locale: string | undefined, t: (k: string) => string) => {
-  const today = startOfDay(new Date()).getTime();
-  const target = startOfDay(new Date(iso)).getTime();
-  const diff = Math.round((target - today) / 86400000);
-  if (diff === 0) return t('teamMembers:seatOverflow.today');
-  if (diff === 1) return t('teamMembers:seatOverflow.tomorrow');
-  if (diff === -1) return t('teamMembers:seatOverflow.yesterday');
-  return new Date(iso)
-    .toLocaleDateString(locale, { weekday: 'long', month: 'short', day: 'numeric' });
+const formatDayHeader = (day: string, today: string | undefined, locale: string, t: (k: string) => string) => {
+  const atNoon = (key: string) => new Date(key + 'T12:00:00Z');
+  if (today) {
+    const diff = (atNoon(day).getTime() - atNoon(today).getTime()) / 86_400_000;
+    if (diff === 0) return t('teamMembers:seatOverflow.today');
+    if (diff === 1) return t('teamMembers:seatOverflow.tomorrow');
+    if (diff === -1) return t('teamMembers:seatOverflow.yesterday');
+  }
+  return atNoon(day).toLocaleDateString(locale, {
+    timeZone: 'UTC', weekday: 'long', month: 'short', day: 'numeric',
+  });
 };
 
 export const AppointmentsPane: React.FC<AppointmentsPaneProps> = ({
@@ -54,6 +57,9 @@ export const AppointmentsPane: React.FC<AppointmentsPaneProps> = ({
   decisions,
   onDecide,
   onDecideMany,
+  onOpenCalendar,
+  emptyMessage,
+  bundleContextOnly = false,
   loading,
 }) => {
   const { t, i18n } = useTranslation();
@@ -71,10 +77,13 @@ export const AppointmentsPane: React.FC<AppointmentsPaneProps> = ({
   const total = appointments.length;
   const decided = appointments.filter((a) => decisions.has(a.id)).length;
   const undecided = appointments.filter((a) => !decisions.has(a.id));
+  const calendarStart = (undecided[0] ?? appointments[0])?.scheduledAt;
   const orphanSet = React.useMemo(() => new Set(orphanedAppointmentIds), [orphanedAppointmentIds]);
   // Appointments someone else can take come first; the ones that can only be cancelled follow.
   const actionable = appointments.filter((a) => !orphanSet.has(a.id));
   const orphans = appointments.filter((a) => orphanSet.has(a.id));
+
+  const now = new Date().toISOString();
 
   const openPicker = (apt: OffboardPreviewAppointment, eligibleStaff: EligibleStaffMember[]) => {
     const customer = apt.customer
@@ -82,8 +91,12 @@ export const AppointmentsPane: React.FC<AppointmentsPaneProps> = ({
       : '';
     setPicker({
       appointmentId: apt.id,
-      time: formatApptTime(apt.scheduledAt),
-      summary: [formatDayHeader(apt.scheduledAt, i18n.language, t as any), customer, apt.service?.name ?? '']
+      time: formatApptTime(apt.scheduledAt, apt.timezone),
+      summary: [
+        formatDayHeader(dayKey(apt.scheduledAt, apt.timezone), dayKey(now, apt.timezone), i18n.language, t),
+        customer || (bundleContextOnly ? t('teamMembers:profileSlider.noCustomer') : ''),
+        bookedItemContext(apt, bundleContextOnly, t),
+      ]
         .filter(Boolean)
         .join(' · '),
       eligibleStaff,
@@ -93,7 +106,7 @@ export const AppointmentsPane: React.FC<AppointmentsPaneProps> = ({
   const renderDays = (list: OffboardPreviewAppointment[]) => {
     const grouped = list.reduce<Record<string, OffboardPreviewAppointment[]>>(
       (acc, apt) => {
-        const k = dayKey(apt.scheduledAt);
+        const k = dayKey(apt.scheduledAt, apt.timezone);
         (acc[k] ??= []).push(apt);
         return acc;
       },
@@ -104,7 +117,14 @@ export const AppointmentsPane: React.FC<AppointmentsPaneProps> = ({
         {Object.keys(grouped).sort().map((k) => (
           <div key={k} className="flex flex-col gap-2">
             <div className="text-[10.5px] font-semibold uppercase tracking-wider text-foreground-3">
-              {formatDayHeader(grouped[k][0].scheduledAt, i18n.language, t as any)}
+              {formatDayHeader(
+                k,
+                grouped[k].every((apt) => dayKey(now, apt.timezone) === dayKey(now, grouped[k][0].timezone))
+                  ? dayKey(now, grouped[k][0].timezone)
+                  : undefined,
+                i18n.language,
+                t,
+              )}
               {' · '}
               {t('teamMembers:seatOverflow.dayApptsCount', {
                 count: grouped[k].length,
@@ -123,6 +143,7 @@ export const AppointmentsPane: React.FC<AppointmentsPaneProps> = ({
                     decision={decisions.get(apt.id)}
                     eligibleStaff={eligibleStaff}
                     isOrphan={orphanSet.has(apt.id)}
+                    bundleContextOnly={bundleContextOnly}
                     currentStaff={
                       apt.staffUserIds && apt.staffUserIds[0] != null
                         ? staffById.get(apt.staffUserIds[0]) ?? null
@@ -148,7 +169,7 @@ export const AppointmentsPane: React.FC<AppointmentsPaneProps> = ({
   return (
     <main className="flex min-h-0 flex-1 flex-col overflow-hidden">
       <header className="shrink-0 border-b border-border px-5 pb-3 pt-3 sm:pt-4">
-        <div className="flex items-center justify-between gap-3">
+        <div className={cn('flex items-center justify-between gap-3', onOpenCalendar && 'flex-wrap')}>
           <div className="min-w-0">
             {/* On phones the sheet's own title sits above. */}
             <div className="hidden text-sm font-semibold text-foreground-1 sm:block">
@@ -170,6 +191,7 @@ export const AppointmentsPane: React.FC<AppointmentsPaneProps> = ({
               selectedUserId={selectedUserId}
               eligibleStaffMap={eligibleStaffMap}
               onApplyMany={onDecideMany}
+              onOpenCalendar={onOpenCalendar && calendarStart ? () => onOpenCalendar(calendarStart) : undefined}
             />
           )}
         </div>
@@ -213,7 +235,7 @@ export const AppointmentsPane: React.FC<AppointmentsPaneProps> = ({
           <div className="flex items-center gap-3 rounded-lg bg-success-bg p-4">
             <CheckCircle2 className="h-5 w-5 shrink-0 text-success" />
             <p className="text-sm text-foreground-1">
-              {t('teamMembers:seatOverflow.noAppointments')}
+              {emptyMessage ?? t('teamMembers:seatOverflow.noAppointments')}
             </p>
           </div>
         )}

@@ -5,6 +5,7 @@ import type {
   LocationContextBundle,
 } from "../../shared/types/calendar.ts";
 import { buildZonedDateFromDateKey } from "./timezone.ts";
+import { doesTimeRangeSpanMidnight } from "./workingHours.ts";
 import i18n from "../../shared/lib/i18n";
 
 /** True if two time ranges overlap (startA < endB && endA > startB). */
@@ -69,6 +70,21 @@ export function canStaffPerformBookedItem(
   services: LocationContextService[],
   bundles: LocationContextBundle[],
 ): boolean {
+  if (appointment.bookedRequirements) {
+    const { serviceIds, bundleIds } = appointment.bookedRequirements;
+    // Older booked items may be absent from the current catalog. Let the API
+    // check their assignments when the location context cannot resolve them.
+    const canPerformServices = serviceIds.every((id) => {
+      const service = services.find((item) => item.serviceId === id);
+      return service?.staffIds?.includes(targetStaffUserId) !== false;
+    });
+    const canPerformBundles = bundleIds.every((id) => {
+      const bundle = bundles.find((item) => item.bundleId === id);
+      return bundle?.staffIds.includes(targetStaffUserId) !== false;
+    });
+    return canPerformServices && canPerformBundles;
+  }
+
   const name = appointment.bookedItemName?.trim();
   if (!name) return true;
 
@@ -180,14 +196,8 @@ export function evaluateDayTimeSlotDrop(ctx: DayTimeSlotDropContext): DayTimeSlo
     return { ok: true, action: "noop" };
   }
 
-  // Appointment must not extend past midnight (end of calendar day)
-  {
-    const dropEndMs = droppedSlotStartMs + appointment.duration * 60 * 1000;
-    const dayStart = new Date(droppedSlotStartMs);
-    dayStart.setHours(0, 0, 0, 0);
-    if (dropEndMs > dayStart.getTime() + 24 * 60 * 60 * 1000) {
-      return { ok: false, toastMessage: i18n.t("calendar:page.dnd.pastMidnight") };
-    }
+  if (doesTimeRangeSpanMidnight(new Date(droppedSlotStartMs), appointment.duration, calendarTimezone)) {
+    return { ok: false, toastMessage: i18n.t("calendar:page.dnd.pastMidnight") };
   }
 
   if (droppedSlotStartMs < nowMs) {
@@ -351,14 +361,8 @@ export function evaluateWeekTimeSlotDrop(ctx: WeekTimeSlotDropContext): WeekTime
     return { ok: false, toastMessage: MSG_PAST() };
   }
 
-  // Appointment must not extend past midnight
-  {
-    const dropEndMs = droppedSlotStartMs + appointment.duration * 60 * 1000;
-    const dayStart = new Date(droppedSlotStartMs);
-    dayStart.setHours(0, 0, 0, 0);
-    if (dropEndMs > dayStart.getTime() + 24 * 60 * 60 * 1000) {
-      return { ok: false, toastMessage: i18n.t("calendar:page.dnd.pastMidnight") };
-    }
+  if (doesTimeRangeSpanMidnight(new Date(droppedSlotStartMs), appointment.duration, calendarTimezone)) {
+    return { ok: false, toastMessage: i18n.t("calendar:page.dnd.pastMidnight") };
   }
 
   const columnApps = (columnDataWithPreview[targetColumnId]?.appointments ?? []).filter((a) => a.id !== appointment.id);
@@ -379,6 +383,9 @@ export function evaluateWeekTimeSlotDrop(ctx: WeekTimeSlotDropContext): WeekTime
   const weekBlocksForDay = columnData[targetColumnId]?.blocks ?? [];
   if (
     weekBlocksForDay.some((b) => {
+      if (b.blockScope === "staff" && (b.userId == null || !appointment.staffUserIds.includes(b.userId))) {
+        return false;
+      }
       const bs = new Date(b.startsAt).getTime();
       const be = new Date(b.endsAt).getTime();
       return timeRangesOverlap(droppedSlotStartMs, slotEnd, bs, be);

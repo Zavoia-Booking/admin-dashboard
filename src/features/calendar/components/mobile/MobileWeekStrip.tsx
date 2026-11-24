@@ -8,7 +8,7 @@ import {
 } from "../../selectors";
 import { setSelectedDateAction, setDisplayedWeekAction } from "../../actions";
 import { getWeekStart, getWeekDays, isSameDay } from "../../utils";
-import { formatDateInTimezone, getCalendarLocale } from "../../timezone";
+import { getCalendarLocale, minSelectableCalendarDateForTimezone, wallDateKey } from "../../timezone";
 import { DayMarkerGlyph } from "../MiniMonthCalendar";
 import { dayMarkerFromSummary } from "../dayMarker";
 import { cn } from "../../../../shared/lib/utils";
@@ -40,7 +40,7 @@ export const MobileWeekStrip: FC = () => {
   }, [weekStart]);
 
   const selectedStr = selectedDate.toDateString();
-  const todayStr = useMemo(() => new Date().toDateString(), []);
+  const todayStr = useMemo(() => minSelectableCalendarDateForTimezone(new Date(), timezone).toDateString(), [timezone]);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const isRecentering = useRef(false);
@@ -162,7 +162,7 @@ export const MobileWeekStrip: FC = () => {
   const renderDay = (day: Date, abbreviation: string) => {
     const isSelected = day.toDateString() === selectedStr;
     const isToday = day.toDateString() === todayStr;
-    const dateKey = formatDateInTimezone(day, timezone);
+    const dateKey = wallDateKey(day);
     const marker = dayMarkerFromSummary(summary[dateKey]);
 
     return (

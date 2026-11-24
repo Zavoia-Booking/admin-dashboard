@@ -33,9 +33,9 @@ export function heroMode(hasImage: boolean): HeroMode {
 }
 
 /** Raw OS preference. Section components/hooks must NOT call this directly for gating motion — use
- *  useReducedMotion() (shared/hooks) instead, so static thumbnails AND the phone's at-rest desktop mock
- *  (PreviewAtRestContext) settle the choreography too. Direct use is only for non-React helpers that
- *  already receive the hook's value, or for behavior that must track the OS alone (smooth-scroll calls). */
+ *  useReducedMotion() (shared/hooks) instead, so static thumbnails settle the choreography too. Direct use
+ *  is only for non-React helpers that already receive the hook's value, or for behavior that must track
+ *  the OS alone (smooth-scroll calls). */
 export const prefersReducedMotion = () =>
   typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 

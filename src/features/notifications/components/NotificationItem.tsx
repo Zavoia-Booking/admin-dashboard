@@ -11,6 +11,7 @@ import {
   CalendarPlus,
   CalendarMinus,
   ClipboardCheck,
+  Replace,
   Info,
   Headset,
   UserCheck,
@@ -30,6 +31,7 @@ const NOTIFICATION_ICONS: Record<string, typeof Info> = {
   appointment_cancelled_by_customer: CalendarX2,
   appointment_rescheduled_by_customer: CalendarSync,
   appointment_rescheduled_by_team_member: CalendarSync,
+  appointment_service_changed_by_team_member: Replace,
   appointment_status_review: ClipboardCheck,
   team_member_accepted_invitation: UserCheck,
   team_member_left_organisation: UserMinus,
@@ -49,6 +51,7 @@ const NOTIFICATION_COLORS: Record<string, string> = {
   appointment_cancelled_by_customer: "text-error",
   appointment_rescheduled_by_customer: "text-info",
   appointment_rescheduled_by_team_member: "text-info",
+  appointment_service_changed_by_team_member: "text-info",
   appointment_status_review: "text-warning",
   team_member_accepted_invitation: "text-success",
   team_member_left_organisation: "text-neutral-500 dark:text-neutral-400",
@@ -70,6 +73,7 @@ function getNavigationPath(notification: BusinessNotification): string | null {
     case "appointment_cancelled_by_customer":
     case "appointment_rescheduled_by_customer":
     case "appointment_rescheduled_by_team_member":
+    case "appointment_service_changed_by_team_member":
     case "appointment_assigned":
     case "appointment_unassigned":
     case "appointment_rescheduled":

@@ -17,7 +17,7 @@ import {
   setSelectedDateAction,
   setDisplayedMonthAction,
 } from "../../actions";
-import { formatDateInTimezone } from "../../timezone";
+import { wallDateKey } from "../../timezone";
 import { isSameDay } from "../../utils";
 import { getDayDataRequest } from "../../api";
 import { useDayListFromRaw } from "../../hooks/useDayAppointmentList";
@@ -316,7 +316,7 @@ export const MobileMonthView: FC = () => {
       }
       setIsFetching(true);
       try {
-        const dateKey = formatDateInTimezone(day, timezone);
+        const dateKey = wallDateKey(day);
         const data: DayDataResponse = await getDayDataRequest(
           selectedLocationId,
           dateKey,

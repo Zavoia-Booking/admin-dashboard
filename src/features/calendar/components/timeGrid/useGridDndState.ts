@@ -10,10 +10,9 @@ import {
 } from "@dnd-kit/core";
 import {
   updateAppointment,
-  setUpdateConflictOffer,
   setCalendarPendingDrop,
 } from "../../actions.ts";
-import { getUpdateConflictOffer, getPendingDrop } from "../../selectors.ts";
+import { getPendingDrop } from "../../selectors.ts";
 import type { AppointmentDragData } from "../CalendarDnD.tsx";
 import { CONFIRM_MODAL_DELAY_MS, type PendingReschedulePayload } from "./constants.ts";
 import { dragStartHaptic, slotChangeHaptic } from "../../haptics.ts";
@@ -27,7 +26,6 @@ import { dragStartHaptic, slotChangeHaptic } from "../../haptics.ts";
 export function useGridDndState() {
   const dispatch = useDispatch();
   const pendingDrop = useSelector(getPendingDrop);
-  const updateConflictOffer = useSelector(getUpdateConflictOffer);
 
   const [activeId, setActiveId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
@@ -49,14 +47,6 @@ export function useGridDndState() {
   useEffect(() => {
     setDropConfirmInProgress(false);
   }, [pendingDrop]);
-
-  // Staff double-book conflict: do not allow override; clear pending drop and offer so card snaps back
-  useEffect(() => {
-    if (updateConflictOffer?.conflictType === 'staff_appointment') {
-      dispatch(setCalendarPendingDrop(null));
-      dispatch(setUpdateConflictOffer(null));
-    }
-  }, [updateConflictOffer?.conflictType, dispatch, updateConflictOffer]);
 
   // Short delay before showing confirm modal so the card can finish animating
   useEffect(() => {
@@ -128,10 +118,10 @@ export function useGridDndState() {
   const handleConfirmOverride = useCallback(() => {
     if (!pendingReschedulePayload) return;
     const reason = overrideReasonText.trim() || undefined;
+    // Hours only: the server still checks the person's other appointments; a block comes back as the conflict offer.
     const data: Record<string, unknown> = {
       scheduledAt: pendingReschedulePayload.newScheduledAt.toISOString(),
       allowOutOfHours: true,
-      overrideConflicts: true,
       overrideReason: reason,
     };
     if (pendingReschedulePayload.staffUserIds !== undefined) {
@@ -156,49 +146,18 @@ export function useGridDndState() {
     setOverrideReasonText("");
   }, [dispatch]);
 
-  const handleConfirmConflictOverride = useCallback(() => {
-    if (!updateConflictOffer) return;
-    const reason = overrideReasonText.trim() || undefined;
-    const dataWithOverride = {
-      ...updateConflictOffer.data,
-      overrideConflicts: true,
-      overrideReason: reason,
-    };
-    dispatch(
-      updateAppointment.request({
-        appointmentId: updateConflictOffer.appointmentId,
-        data: dataWithOverride,
-      }),
-    );
-    dispatch(setCalendarPendingDrop(null));
-    dispatch(setUpdateConflictOffer(null));
-    setOverrideReasonText("");
-  }, [updateConflictOffer, overrideReasonText, dispatch]);
-
-  const handleCancelConflictOverride = useCallback(() => {
-    dispatch(setCalendarPendingDrop(null));
-    dispatch(setUpdateConflictOffer(null));
-    setOverrideReasonText("");
-  }, [dispatch]);
-
-  // Wrapped setOverId — cancels any RAF-gated pending update so callers
-  // (e.g. grid handleDragEnd setting overId to null) aren't overridden by a
-  // stale RAF tick scheduled mid-drag.
-  const safeSetOverId = useCallback(
-    (next: string | null) => {
-      cancelOverIdRaf();
-      pendingOverIdRef.current = next;
-      lastOverIdRef.current = next;
-      setOverId(next);
-    },
-    [cancelOverIdRaf],
-  );
+  // Clear queued drag-over work when the grid resets the hovered slot.
+  const safeSetOverId = useCallback((next: string | null) => {
+    cancelOverIdRaf();
+    pendingOverIdRef.current = next;
+    lastOverIdRef.current = next;
+    setOverId(next);
+  }, [cancelOverIdRaf]);
 
   return {
     // Redux state
     dispatch,
     pendingDrop,
-    updateConflictOffer,
     // Local state
     activeId,
     setActiveId,
@@ -222,7 +181,5 @@ export function useGridDndState() {
     // Handlers
     handleConfirmOverride,
     handleCancelDrop,
-    handleConfirmConflictOverride,
-    handleCancelConflictOverride,
   };
 }

@@ -1,13 +1,10 @@
 // Helper functions to get date ranges based on selected date
 import type { TFunction } from "i18next";
 import { AppointmentViewMode } from "./types.ts";
-import { formatDateInTimezone, getCalendarLocale } from "./timezone.ts";
+import { getCalendarLocale, wallDateKey } from "./timezone.ts";
 
 /** Format a Date as YYYY-MM-DD using local date (avoids timezone shifting the calendar day). */
-export const toLocalDateString = (d: Date): string => {
-    const y = d.getFullYear(), m = d.getMonth(), day = d.getDate();
-    return `${y}-${String(m + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-};
+export const toLocalDateString = wallDateKey;
 
 /** True if two dates fall on the same local calendar day. Null-safe. */
 export const isSameDay = (a: Date | null | undefined, b: Date | null | undefined): boolean => {
@@ -295,9 +292,9 @@ export const getDateRangeForMode = (
     viewMode: AppointmentViewMode,
     monthViewStart?: Date | null,
     weekViewStart?: Date | null,
-    timezone?: string,
+    _timezone?: string,
 ): { startDate: string; endDate: string } => {
-    const fmt = (d: Date) => timezone ? formatDateInTimezone(d, timezone) : toLocalDateString(d);
+    const fmt = wallDateKey;
 
     if (viewMode === AppointmentViewMode.DAY) {
         const dateStr = fmt(selectedDate);

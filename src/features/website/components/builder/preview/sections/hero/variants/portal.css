@@ -11,8 +11,8 @@
    compositor-driven — a JS translateY pin lags the touch scroll on phones, where scroll events land after
    the compositor has already moved the page. */
 .mc-heropt.is-live .mc-heropt-pin { position: sticky; top: 0; }
-/* Layer promotion only while the reveal engine runs: at rest (static snapshots, the phone's scaled desktop
-   preview) these must paint into one layer, or Chrome rasterises each at native scale under the will-change. */
+/* Layer promotion only while the reveal engine runs: at rest (e.g. static snapshots) these must paint into
+   one layer, or Chrome rasterises each at native scale under the will-change. */
 .mc-heropt.is-live .mc-heropt-pin,
 .mc-heropt.is-live .mc-heropt-fit,
 .mc-heropt.is-live .mc-heropt-imgmove,

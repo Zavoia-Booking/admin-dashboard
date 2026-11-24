@@ -1,3 +1,5 @@
+import type { BlockConflictAppointment } from './calendar';
+
 // Delete response types for resources that may have dependencies
 export interface DeleteResponse {
   canDelete: boolean;
@@ -5,6 +7,10 @@ export interface DeleteResponse {
   usersCount?: number;
   servicesCount?: number;
   appointmentsCount?: number;
+  upcomingAppointmentsCount?: number;
+  bundlesCount?: number;
+  bundleNames?: string[];
+  firstAppointment?: BlockConflictAppointment | null;
   locationsCount?: number;
   teamMembersCount?: number;
   activeUsersCount?: number;
@@ -26,6 +32,10 @@ export interface DeleteConfirmDialogProps {
     label: string;
     onClick: () => void;
   }[];
+  /** Blocked by upcoming appointments: opens the calendar on the soonest one. */
+  onGoToCalendar?: (appointment: BlockConflictAppointment) => void;
+  /** Timezone for the soonest appointment when it carries none. */
+  fallbackTimezone?: string;
   className?: string;
   overlayClassName?: string;
 }

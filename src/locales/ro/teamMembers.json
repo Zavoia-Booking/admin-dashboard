@@ -121,6 +121,7 @@
     "profileInfo": "Informații profil",
     "upcomingAppointments": "Programări viitoare",
     "noAppointments": "Acest membru al echipei nu are programări viitoare.",
+    "noCustomer": "Nu există date despre client",
     "goToAppointments": "Mergi la programări",
     "assignments": "Alocări",
     "assignmentsDescription": "Toate alocările pentru acest membru al echipei, inclusiv servicii, locații, prețuri personalizate și program personalizat, sunt gestionate în secțiunea Alocări.",

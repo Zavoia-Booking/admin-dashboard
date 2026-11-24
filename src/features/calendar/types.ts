@@ -8,10 +8,23 @@ import type {
     SlimAppointment,
     CalendarBlockDto,
     BlockConflictOffer,
+    AdminCreateGroupAppointmentPayload,
 } from "../../shared/types/calendar.ts";
 import type { LocationService, LocationTeamMember } from "../assignments/types.ts";
+import type { EditableBooking, FixedBooking } from "./bookedItems.ts";
 
 /** Pending drag-drop: show appointment at drop position until user confirms or update succeeds. */
+export interface AppointmentBlockOverrideOffer {
+    appointmentId: number;
+    data: Record<string, unknown>;
+    source?: 'editor';
+    kind?: 'working-hours';
+}
+
+export type CustomerOverlapOffer =
+    | { kind: 'create'; payload: AdminCreateGroupAppointmentPayload }
+    | { kind: 'update'; appointmentId: number; data: Record<string, unknown>; source?: 'editor' };
+
 export type PendingDrop =
     | {
         type: "reschedule";
@@ -66,6 +79,12 @@ export type AddFormPrefill = {
     } | null;
     notes?: string;
     bookingSource?: string;
+    appointmentCurrency?: string;
+    /** The original booked items and totals used by the existing scheduling controls. */
+    fixedBooking?: FixedBooking;
+    editableBooking?: EditableBooking;
+    /** The appointment has started: only the notes can be changed. */
+    startedLock?: boolean;
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -130,6 +149,8 @@ export type CalendarViewState = {
 
     // --- Date navigation ---
     selectedDate: Date;
+    /** True until a day is picked; the first location context then swaps in the venue's today. */
+    selectedDateIsStartup: boolean;
 
     /** When in month view, the first day of the displayed month (prev/next don't change selectedDate). */
     displayedMonthStart: Date | null;
@@ -144,7 +165,9 @@ export type CalendarViewState = {
     sidebarMiniCalendarMonthStart: Date | null;
 
     /** When an update returns 409 Conflict, offer the user to retry with override (overrideConflicts + reason). Only for non–staff conflicts; staff_appointment must not show override. */
-    updateConflictOffer: { appointmentId: number; data: Record<string, unknown>; message: string; conflictType?: 'staff_appointment' | 'block' } | null;
+    updateConflictOffer: AppointmentBlockOverrideOffer | null;
+
+    customerOverlapOffer: CustomerOverlapOffer | null;
 
     reassignmentHoursOverrideOffer: ReassignmentHoursOverrideOffer | null;
 

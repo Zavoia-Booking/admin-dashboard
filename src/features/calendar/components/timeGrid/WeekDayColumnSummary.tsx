@@ -37,7 +37,7 @@ interface WeekDayColumnSummaryProps {
   day: Date;
   dateKey: string;
   calendarViewMode: AppointmentViewMode;
-  onSlotClick?: (hour: number) => void;
+  onSlotClick?: (hour: number, minute: number) => void;
   timezone?: string;
   gridSlotStarts?: GridSlot[];
   slotHeight?: number;
@@ -112,7 +112,7 @@ export const WeekDayColumnSummary: FC<WeekDayColumnSummaryProps> = ({
                 : "cursor-pointer hover:bg-primary/5"
               }`}
             style={{ height: slotHeight, ...(slot.minute === 0 ? { borderTop: '1px solid var(--border)' } : undefined) }}
-            onClick={!isPast && onSlotClick ? () => onSlotClick(slot.hour) : undefined}
+            onClick={!isPast && onSlotClick ? () => onSlotClick(slot.hour, slot.minute) : undefined}
           />
         );
       })}
