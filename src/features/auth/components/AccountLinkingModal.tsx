@@ -101,7 +101,8 @@ export default function AccountLinkingModal() {
         }}
         defaultEmail={pendingLinkEmail ?? undefined}
         emailReadOnly={!!pendingLinkEmail}
-        autoFocusField={pendingLinkEmail ? 'password' : 'email'}
+        // Phones: no autofocus, so the keyboard opens only when the user taps a field.
+        autoFocusField={isMobile ? 'none' : pendingLinkEmail ? 'password' : 'email'}
         submitLabel={t('accountLinking.submitLabel')}
         isLoading={!!isLinking || sessionExpired}
       />
@@ -125,7 +126,6 @@ export default function AccountLinkingModal() {
         open
         onOpenChange={(isOpen) => { if (!isOpen && !isLinking) handleCancel(); }}
         dismissible={!isLinking}
-        autoFocus
       >
         <DrawerContent className={drawerSheet} overlayClassName={drawerScrim}>
           <div className={drawerFormBody}>

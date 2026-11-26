@@ -371,6 +371,17 @@ function* handleGoogleRegister(action: ReturnType<typeof googleRegisterAction.re
       ? yield call(googleNativeRegisterApi, action.payload)
       : yield call(googleRegisterApi, action.payload);
 
+    // Mark the registration BEFORE any token/user action flips isAuthenticated:
+    // PublicRoute redirects on the first authenticated render, and without the
+    // flag it sends a brand-new owner to /dashboard instead of /welcome (the
+    // /me call below gives that render plenty of time to happen).
+    yield put(googleRegisterAction.success({
+      accessToken: response.accessToken,
+      csrfToken: response.csrfToken ?? null,
+      user: response.user,
+      isNewUser: response.isNewUser ?? true
+    } as any));
+
     // Store access token in Redux (memory) + optional CSRF token + refresh token for native apps
     yield put(setTokensAction({ accessToken: response.accessToken, csrfToken: response.csrfToken ?? null, refreshToken: response.refreshToken ?? null }));
     
@@ -388,31 +399,12 @@ function* handleGoogleRegister(action: ReturnType<typeof googleRegisterAction.re
       yield put(setCsrfToken({ csrfToken: response.csrfToken }));
     }
 
-    // Store user from register response first
-    yield put(setAuthUserAction({ user: response.user }));
-
-    // Fetch fresh user data (with full entitlements) before completing registration
-    // so write-affordance gating is correct on first render after redirect.
-    let userForSuccess = response.user;
-    let freshUserMissing = false;
+    // Replace the register-response user (no entitlements) with fresh /me data;
+    // if /me fails, refetch it with retries.
     try {
       const freshUser: AuthUser = (yield call(getCurrentUserApi)) as AuthUser;
       yield put(setAuthUserAction({ user: freshUser }));
-      userForSuccess = freshUser;
     } catch {
-      // Fall back to register response user data (already set above)
-      freshUserMissing = true;
-    }
-
-    // Use isNewUser from backend response to determine if this is a registration
-    yield put(googleRegisterAction.success({
-      accessToken: response.accessToken,
-      csrfToken: response.csrfToken ?? null,
-      user: userForSuccess,
-      isNewUser: response.isNewUser ?? true
-    } as any));
-    // See handleGoogleLogin: refetch the missing entitlements after the success.
-    if (freshUserMissing) {
       yield put(fetchCurrentUserAction.request());
     }
   } catch (error: any) {
