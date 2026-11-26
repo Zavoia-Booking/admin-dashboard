@@ -1,7 +1,7 @@
 import { type ReactElement } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
-import { selectIsAuthenticated } from "../selectors";
+import { selectIsAuthenticated, selectIsLoggingOut } from "../selectors";
 import { logoutRequestAction } from "../actions";
 import AuthGate from "./AuthGate";
 import { Navigate, useLocation } from "react-router-dom";
@@ -13,13 +13,14 @@ import { Button } from "../../../shared/components/ui/button";
 function AccessRecoveryScreen() {
   const dispatch = useDispatch();
   const { t } = useTranslation();
+  const isLoggingOut = useSelector(selectIsLoggingOut);
   return (
     <div className="min-h-[100svh] bg-background flex items-center justify-center px-6">
       <div className="w-full max-w-sm text-center">
         <p className="text-sm text-foreground-3">
           {t("auth:page.errors.sessionExpired")}
         </p>
-        <Button rounded="full" className="mt-5" onClick={() => dispatch(logoutRequestAction.request())}>
+        <Button rounded="full" className="mt-5" loading={isLoggingOut} onClick={() => dispatch(logoutRequestAction.request())}>
           {t("navigation:sidebar.logOut")}
         </Button>
       </div>

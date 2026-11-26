@@ -18,7 +18,7 @@ import { useIsMobile } from '../../../shared/hooks/use-mobile';
 import { usePlatform } from '../../../shared/hooks/usePlatform';
 import { cn } from '../../../shared/lib/utils';
 
-import { selectCurrentUser } from '../../auth/selectors';
+import { selectCurrentUser, selectIsLoggingOut } from '../../auth/selectors';
 import { fetchCurrentUserAction, logoutRequestAction } from '../../auth/actions';
 import { UserRole } from '../../../shared/types/auth';
 import { selectSubscriptionSummary } from '../../settings/selectors';
@@ -71,6 +71,7 @@ export const SeatOverflowGate: React.FC = () => {
   // navigation, and Stripe confirmation branch are web-only.
   const { isNative } = usePlatform();
   const currentUser = useSelector(selectCurrentUser);
+  const isLoggingOut = useSelector(selectIsLoggingOut);
   const subscriptionSummary = useSelector(selectSubscriptionSummary);
   const teamMembers = useSelector(selectTeamMembers);
   const isOffboarding = useSelector(selectIsOffboarding);
@@ -602,6 +603,7 @@ export const SeatOverflowGate: React.FC = () => {
                     size="sm"
                     rounded="full"
                     onClick={handleLogout}
+                    loading={isLoggingOut}
                     className="!h-8 !min-h-0 text-foreground-3 hover:text-foreground-1"
                   >
                     <LogOut className="mr-1.5 h-3.5 w-3.5" />
@@ -807,6 +809,7 @@ export const SeatOverflowGate: React.FC = () => {
                 size="sm"
                 rounded="full"
                 onClick={handleLogout}
+                loading={isLoggingOut}
                 className="text-foreground-3 hover:text-foreground-1"
               >
                 <LogOut className="mr-1.5 h-3.5 w-3.5" />

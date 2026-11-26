@@ -16,8 +16,9 @@ import {
   modalPrimary,
   ModalArrow,
 } from '../../ui/modal-tokens';
+import { Spinner } from '../../ui/spinner';
 import { usePlatform } from '../../../hooks/usePlatform';
-import { selectCurrentUser } from '../../../../features/auth/selectors';
+import { selectCurrentUser, selectIsLoggingOut } from '../../../../features/auth/selectors';
 import { logoutRequestAction } from '../../../../features/auth/actions';
 import { UserRole } from '../../../types/auth';
 
@@ -49,6 +50,7 @@ export const SubscriptionBlocker: React.FC = () => {
   const { t } = useTranslation('common');
   const { isNative } = usePlatform();
   const currentUser = useSelector(selectCurrentUser);
+  const isLoggingOut = useSelector(selectIsLoggingOut);
   // Wait until /me has populated entitlements before deciding to block.
   // During the brief window between session refresh (which seeds a partial
   // user from JWT claims) and the /me response, `entitlements` is undefined —
@@ -136,8 +138,15 @@ export const SubscriptionBlocker: React.FC = () => {
               Mobile: stack with primary on top, then secondary, then sign-out. */}
           <div className={modalFooterRow}>
             <div className="order-2 flex justify-center sm:order-1 sm:justify-start">
-              <button type="button" onClick={handleSignOut} className={`${modalGhost} whitespace-nowrap`}>
-                {t('limitedUsage.blockerSignOut')}
+              <button
+                type="button"
+                onClick={handleSignOut}
+                disabled={isLoggingOut}
+                aria-busy={isLoggingOut || undefined}
+                className={`${modalGhost} whitespace-nowrap`}
+              >
+                {/* h-5 = the label's line height, so the footer keeps its size. */}
+                {isLoggingOut ? <Spinner size="sm" className="h-5" /> : t('limitedUsage.blockerSignOut')}
               </button>
             </div>
 
