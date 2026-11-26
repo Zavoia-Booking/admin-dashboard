@@ -51,6 +51,12 @@
   "addService": {
     "title": "Adaugă Serviciu Nou",
     "subtitle": "Creați un serviciu nou pentru businessul dvs. Completați detaliile de mai jos pentru a începe",
+    "discard": {
+      "title": "Renunți la modificări?",
+      "description": "Modificările nesalvate ale acestui serviciu se vor pierde.",
+      "keepEditing": "Continuă editarea",
+      "confirm": "Renunță la modificări"
+    },
     "sections": {
       "serviceInfo": "Informații Serviciu",
       "serviceInfoDescription": "Furnizați informațiile esențiale care identifică și descriu serviciul dvs",

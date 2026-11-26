@@ -1,6 +1,11 @@
 import React, { memo } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Industry } from '../../../shared/types/industry'
+import { Skeleton } from '../../../shared/components/ui/skeleton'
+
+const industryGridClassName = 'grid grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3'
+const industryOptionShapeClassName = 'min-h-14 rounded-lg'
+const industryPlaceholderCount = 14
 
 type IndustrySelectorProps = {
   industries: Industry[]
@@ -33,7 +38,7 @@ const IndustryOption = memo(function IndustryOption({ id, name, selected, onSele
       aria-checked={selected}
       tabIndex={0}
       className={`
-        group relative flex items-center justify-center min-h-14 px-3 py-2 rounded-lg border text-sm font-medium transition-colors cursor-pointer
+        group relative flex items-center justify-center ${industryOptionShapeClassName} px-3 py-2 border text-sm font-medium transition-colors cursor-pointer
         ${selected
           ? 'border-neutral-500 bg-info-100 text-neutral-900 dark:text-neutral-900 shadow-xs'
           : 'border-border bg-surface hover:border-border-strong hover:bg-surface-hover'
@@ -56,7 +61,7 @@ const IndustrySelector = ({ industries, selectedId, onSelect }: IndustrySelector
   const { t } = useTranslation('setupWizard')
   const { t: tIndustry } = useTranslation('industries')
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3" role="radiogroup" aria-label={t('industrySelector.ariaSelectIndustry')}>
+    <div className={industryGridClassName} role="radiogroup" aria-label={t('industrySelector.ariaSelectIndustry')}>
       {industries.map((industry) => (
         <IndustryOption
           key={industry.id}
@@ -65,6 +70,16 @@ const IndustrySelector = ({ industries, selectedId, onSelect }: IndustrySelector
           selected={selectedId === industry.id}
           onSelect={() => onSelect(industry.id)}
         />
+      ))}
+    </div>
+  )
+}
+
+export function IndustrySelectorSkeleton() {
+  return (
+    <div className={industryGridClassName} aria-hidden="true">
+      {Array.from({ length: industryPlaceholderCount }, (_, index) => (
+        <Skeleton key={index} className={industryOptionShapeClassName} />
       ))}
     </div>
   )

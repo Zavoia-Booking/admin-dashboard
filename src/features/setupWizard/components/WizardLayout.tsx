@@ -2,7 +2,7 @@ import React, { useLayoutEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Progress } from "../../../shared/components/ui/progress";
 import { Button } from "../../../shared/components/ui/button";
-import { Save, ArrowLeft, ArrowRight, X, Check } from "lucide-react";
+import { Save, ArrowLeft, ArrowRight, X, Check, Loader2 } from "lucide-react";
 import { Spinner } from "../../../shared/components/ui/spinner";
 import { Skeleton } from "../../../shared/components/ui/skeleton";
 import type { WizardLayoutProps } from "../types";
@@ -94,15 +94,14 @@ const WizardLayout: React.FC<WizardLayoutProps> = ({
                     const stepNum = idx + 1;
                     const isActive = stepNum === currentStep;
                     const isDone = stepNum < currentStep;
+                    const canGoToStep = isDone && onGoToStep && !isBusy;
                     return (
                       <li
                         key={idx}
                         className={`flex items-center gap-2 rounded-md px-2 py-2 ${isActive ? "bg-surface border" : ""} ${
-                          isDone && onGoToStep ? "group cursor-pointer hover:bg-surface-hover" : "cursor-default"
+                          canGoToStep ? "group cursor-pointer hover:bg-surface-hover" : "cursor-default"
                         }`}
-                        onClick={() => {
-                          if (isDone && onGoToStep) onGoToStep(stepNum);
-                        }}
+                        onClick={canGoToStep ? () => onGoToStep?.(stepNum) : undefined}
                       >
                         {isDone ? (
                           <Check className="h-4 w-4 text-green-400" />
@@ -121,7 +120,7 @@ const WizardLayout: React.FC<WizardLayoutProps> = ({
                           className={`text-sm ${
                             isActive
                               ? "font-medium text-foreground-1"
-                              : isDone && onGoToStep
+                              : canGoToStep
                               ? "text-foreground-3 dark:group-hover:text-foreground-2"
                               : "text-foreground-3"
                           }`}
@@ -152,7 +151,7 @@ const WizardLayout: React.FC<WizardLayoutProps> = ({
                         size="sm"
                         rounded="full"
                         onClick={onSave}
-                        disabled={isBusy}
+                        disabled={isBusy || isLoadingDraft}
                         className="relative gap-2 h-8 w-28"
                       >
                         {isLoading ? (
@@ -196,7 +195,7 @@ const WizardLayout: React.FC<WizardLayoutProps> = ({
                       size="sm"
                       rounded="full"
                       onClick={onSave}
-                      disabled={isBusy}
+                      disabled={isBusy || isLoadingDraft}
                       className="relative gap-2 cursor-pointer w-34"
                     >
                       {isLoading ? (
@@ -233,25 +232,19 @@ const WizardLayout: React.FC<WizardLayoutProps> = ({
 
                 {/* Mobile: second row (progress + text) */}
                 <div className="md:hidden pb-2">
-                  {isLoadingDraft ? (
-                    <>
-                      <div className="flex items-center justify-between mb-3">
-                        <Skeleton className="h-3.5 w-24" />
-                      </div>
-                      <Skeleton className="h-1.5 w-full" />
-                    </>
-                  ) : (
-                    <>
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-sm text-foreground-3">
-                      {t("layout.completed", { value: Math.round(progress) })}
-                    </span>
+                  <div className="mb-3 flex min-h-5 items-center">
+                    {isLoadingDraft ? (
+                      <Skeleton className="h-3.5 w-24" />
+                    ) : (
+                      <span className="text-sm text-foreground-3">
+                        {t("layout.completed", { value: Math.round(progress) })}
+                      </span>
+                    )}
                   </div>
-                  <Progress
-                    value={progress}
-                    className="h-1.5 [&>div]:bg-primary"
-                  />
-                    </>
+                  {isLoadingDraft ? (
+                    <Skeleton className="h-1.5 w-full" />
+                  ) : (
+                    <Progress value={progress} className="h-1.5 [&>div]:bg-primary" />
                   )}
                 </div>
               </div>
@@ -269,7 +262,11 @@ const WizardLayout: React.FC<WizardLayoutProps> = ({
                   <p className="text-sm text-foreground-3 dark:text-foreground-2">{subtitle}</p>
                 )}
               </div>
-              <div className="rounded-lg md:border bg-surface p-0 md:p-4 pt-4 flex-1 md:min-h-[500px] !pb-8">
+              <div
+                className="rounded-lg md:border bg-surface p-0 md:p-4 pt-4 flex-1 md:min-h-[500px] !pb-8"
+                aria-busy={isLoadingDraft || isBusy}
+                inert={isBusy}
+              >
                 {children}
               </div>
 
@@ -289,11 +286,16 @@ const WizardLayout: React.FC<WizardLayoutProps> = ({
                   <Button
                     rounded="full"
                     onClick={onNext}
-                    disabled={!canProceed || isBusy}
+                    disabled={!canProceed || isBusy || isLoadingDraft}
+                    aria-busy={isCompleting}
                     className={`gap-2 h-11 ${currentStep === 3 ? 'w-48' : 'w-40'} cursor-pointer`}
                   >
                     {resolvedNextLabel}
-                    <ArrowRight className="h-4 w-4" />
+                    {isCompleting ? (
+                      <Loader2 className="h-4 w-4 motion-safe:animate-spin" aria-hidden />
+                    ) : (
+                      <ArrowRight className="h-4 w-4" />
+                    )}
                   </Button>
                 )}
               </div>
@@ -321,11 +323,16 @@ const WizardLayout: React.FC<WizardLayoutProps> = ({
                     <Button
                       rounded="full"
                       onClick={onNext}
-                      disabled={!canProceed || isBusy}
+                      disabled={!canProceed || isBusy || isLoadingDraft}
+                      aria-busy={isCompleting}
                       className="h-11 cursor-pointer flex-2"
                     >
                       {resolvedNextLabel}
-                      <ArrowRight className="h-4 w-4" />
+                      {isCompleting ? (
+                        <Loader2 className="h-4 w-4 motion-safe:animate-spin" aria-hidden />
+                      ) : (
+                        <ArrowRight className="h-4 w-4" />
+                      )}
                     </Button>
                   )}
                 </div>

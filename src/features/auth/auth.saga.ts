@@ -104,8 +104,10 @@ function* handleLogout(): Generator<any, void, any> {
     // Still clear the token even if API call fails
     yield call([tokenStorage, 'clearRefreshToken']);
     
-    const message = getErrorMessage(error) || i18n.t('auth:page.errors.logoutFailed');
+    const message = getErrorMessage(error, i18n.t('auth:page.errors.logoutFailed'));
     yield put(logoutRequestAction.failure({ message }));
+    const { toast } = yield import('sonner');
+    toast.error(message, { id: 'logout-failed' });
   }
 }
 

@@ -3,12 +3,14 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 import { UserCircle, Mail, Phone, Loader2, GitMerge } from 'lucide-react';
 import { BaseSlider } from '../../../shared/components/common/BaseSlider';
+import ConfirmDialog from '../../../shared/components/common/ConfirmDialog';
 import { FormFooter } from '../../../shared/components/forms/FormFooter';
 import { TextField } from '../../../shared/components/forms/fields/TextField';
 import { TextareaField } from '../../../shared/components/forms/fields/TextareaField';
 import { Label } from '../../../shared/components/ui/label';
 import { Input } from '../../../shared/components/ui/input';
 import { Button } from '../../../shared/components/ui/button';
+import { useDiscardChanges } from '../../../shared/hooks/useDiscardChanges';
 import { fetchCustomerByIdAction, updateCustomerAction } from '../actions';
 import type { EditCustomerPayload } from '../types';
 import { useForm, useController } from 'react-hook-form';
@@ -63,6 +65,12 @@ const EditCustomerSlider: React.FC<EditCustomerSliderProps> = ({
       notes: '',
     },
     mode: "onChange",
+  });
+  const { canClose, requestClose, dialogProps } = useDiscardChanges({
+    isOpen,
+    isDirty: formState.isDirty && customer?.id === customerId && customer?.status !== 'merged',
+    isSaving: isSubmitting,
+    onClose,
   });
 
   // Controlled fields with validation
@@ -215,14 +223,12 @@ const EditCustomerSlider: React.FC<EditCustomerSliderProps> = ({
     // Don't close form here - wait for success/error response
   };
 
-  const handleCancel = () => {
-    onClose();
-  };
-
   return (
+    <>
       <BaseSlider
         isOpen={isOpen}
         onClose={onClose}
+        onBeforeClose={canClose}
         title={customer ? t("editCustomer.title") : t("editCustomer.loading")}
         subtitle={t("editCustomer.subtitle")}
         icon={UserCircle}
@@ -234,7 +240,7 @@ const EditCustomerSlider: React.FC<EditCustomerSliderProps> = ({
         })}
         footer={
           <FormFooter
-            onCancel={handleCancel}
+            onCancel={requestClose}
             formId="edit-customer-form"
             cancelLabel={t("editCustomer.buttons.cancel")}
             submitLabel={t("editCustomer.buttons.update")}
@@ -405,6 +411,8 @@ const EditCustomerSlider: React.FC<EditCustomerSliderProps> = ({
           </div>
         </form>
       </BaseSlider>
+      <ConfirmDialog {...dialogProps} />
+    </>
   );
 };
 

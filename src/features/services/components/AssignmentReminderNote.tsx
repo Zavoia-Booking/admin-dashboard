@@ -7,8 +7,8 @@ interface AssignmentReminderNoteProps {
   text: string;
   /** Label of the Assignments action row (e.g. "Go to Assignments"). */
   linkLabel: string;
-  /** Runs before navigating so the host slider can close itself first. */
-  onNavigate?: () => void;
+  /** Runs before navigating. Return false to defer navigation. */
+  onNavigate?: (to: string) => void | false;
   /** Assignments destination; pass `?locationId=` to land on the right location. */
   to?: string;
   /** `warning` for the blocking case (already created, still unbookable). */
@@ -61,7 +61,7 @@ export const AssignmentReminderNote: React.FC<AssignmentReminderNoteProps> = ({
             <button
               type="button"
               onClick={() => {
-                onNavigate?.();
+                if (onNavigate?.(to) === false) return;
                 navigate(to);
               }}
               // Opt out of the global 44px button floor; py keeps a comfortable

@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "../../../../../../../../shared/components/ui/collapsible";
-import { AutoHeight } from "../../../../AutoHeight";
+import { AutoHeight } from "../../../../../../../../shared/components/common/AutoHeight";
 import { mapHref, telHref } from "../../../shared/contact";
 import { FootSocials } from "../parts/FootSocials";
 import { FooterLegal } from "../parts/FooterLegal";

@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
-import { Building2, Mail, Phone, Globe, Instagram, Facebook, Camera, Loader2, Lock, Info, FileText, ChevronRight, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Building2, Mail, Phone, Globe, Instagram, Facebook, Camera, Loader2, Lock, Info, FileText, ChevronRight, ChevronDown, CheckCircle, AlertTriangle } from 'lucide-react';
 import { Button } from '../../../shared/components/ui/button';
 import { Label } from '../../../shared/components/ui/label';
 import { toast } from 'sonner';
+import { ImageCropDialog } from '../../../shared/components/common/ImageCropDialog';
 import CurrencySelect from '../../../shared/components/common/CurrencySelect';
 import TextField from '../../../shared/components/forms/fields/TextField';
 import TextareaField from '../../../shared/components/forms/fields/TextareaField';
@@ -23,6 +24,7 @@ import { Skeleton } from '../../../shared/components/ui/skeleton';
 import { fetchCurrentUserAction } from '../../auth/actions';
 import { setPasswordApi, changeOwnerPasswordApi, changeAccountEmailApi, resendVerificationEmailApi } from '../../auth/api';
 import { getErrorMessage } from '../../../shared/utils/error';
+import { useIsMobile } from '../../../shared/hooks/use-mobile';
 import type { RootState } from '../../../app/providers/store';
 import { industryApi } from '../../../shared/api/industry.api';
 import type { Industry } from '../../../shared/types/industry';
@@ -108,6 +110,7 @@ interface BusinessProfileProps {
 const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange, onSavingChange }) => {
   const { t } = useTranslation('settings');
   const { t: tIndustry } = useTranslation('industries');
+  const isMobile = useIsMobile();
   const dispatch = useDispatch();
   const currentBusiness = useSelector(getCurrentBusinessSelector);
   const isBusinessLoading = useSelector(getBusinessLoadingSelector);
@@ -119,6 +122,7 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange, onSavi
   const isOwnerWithoutBusiness = user?.role === 'owner' && !user?.wizardCompleted;
   const fileInputRef = useRef<HTMLInputElement>(null);
   const passwordInputRef = useRef<HTMLInputElement>(null);
+  const emailVerificationRef = useRef<HTMLDivElement>(null);
   const personalRef = useRef<PersonalInformationSectionRef>(null);
   const personalSavingRef = useRef(false);
   const [personalDirty, setPersonalDirty] = useState(false);
@@ -127,6 +131,7 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange, onSavi
   const [originalSnapshot, setOriginalSnapshot] = useState<ReturnType<typeof getUpdatePayloadSnapshot> | null>(null);
   const [industries, setIndustries] = useState<Industry[]>([]);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+  const [pendingLogo, setPendingLogo] = useState<File | null>(null);
   
   // Password state
   const [currentPassword, setCurrentPassword] = useState('');
@@ -256,8 +261,9 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange, onSavi
     return found ? tIndustry(found.slug, toTitleCase(found.name)) : null;
   }, [formData.industryId, industries, tIndustry]);
 
-  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.currentTarget.files?.[0];
+    event.currentTarget.value = '';
     if (!file) return;
 
     // Validate file type
@@ -274,6 +280,11 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange, onSavi
       return;
     }
 
+    setPendingLogo(file);
+  };
+
+  const uploadSelectedLogo = async (file: File) => {
+    setPendingLogo(null);
     try {
       setIsUploadingLogo(true);
       const response = await uploadBusinessLogo(file);
@@ -293,10 +304,6 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange, onSavi
       toast.error(getErrorMessage(error, t('profile.toast.logoUploadFailed')));
     } finally {
       setIsUploadingLogo(false);
-      // Reset file input
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
     }
   };
 
@@ -428,6 +435,15 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange, onSavi
     newEmailInput.trim().length > 0 &&
     !isSavingEmail;
 
+  const handleGoToEmailVerification = () => {
+    const target = emailVerificationRef.current;
+    if (!target) return;
+
+    target.focus({ preventScroll: true });
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    target.scrollIntoView({ behavior: reduceMotion ? 'instant' : 'smooth', block: 'center' });
+  };
+
   const handleResendVerification = async () => {
     setIsResendingVerification(true);
     try {
@@ -497,7 +513,7 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange, onSavi
       <div className="w-full space-y-4">
         <div className="rounded-xl border border-border bg-surface p-5">
           <div className="flex items-center gap-4">
-            <Skeleton className="h-16 w-16 rounded-full" />
+            <Skeleton className="h-16 w-16 rounded-lg" />
             <div className="space-y-2">
               <Skeleton className="h-3 w-28" />
               <Skeleton className="h-6 w-44" />
@@ -526,13 +542,38 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange, onSavi
     );
   }
 
+  const logoCrest = (
+    <div className="profile-hero-crest">
+      <div className="profile-hero-crest-frame">
+        {formData.logo ? (
+          <img src={formData.logo} alt="" />
+        ) : (
+          <Building2 aria-hidden />
+        )}
+      </div>
+      <button
+        type="button"
+        onClick={() => !isUploadingLogo && fileInputRef.current?.click()}
+        disabled={isUploadingLogo}
+        className="profile-hero-crest-edit"
+        aria-label={isUploadingLogo ? t('profile.basicInfo.uploading') : t('profile.basicInfo.edit')}
+      >
+        {isUploadingLogo ? (
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+        ) : (
+          <Camera className="h-3.5 w-3.5" />
+        )}
+      </button>
+    </div>
+  );
+
   return (
     <form id="business-info-form" onSubmit={handleSubmit} className="w-full">
       <div className="profile-grid">
         <div className="profile-col">
           {/* Business sections are hidden until the setup wizard is completed */}
           {!isOwnerWithoutBusiness && (<>
-          {/* Hidden file input for logo upload (triggered from hero edit button) */}
+          {/* Hidden file input triggered by the logo edit button */}
           <input
             ref={fileInputRef}
             type="file"
@@ -540,32 +581,19 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange, onSavi
             onChange={handleFileSelect}
             className="hidden"
           />
+          {pendingLogo && (
+            <ImageCropDialog
+              file={pendingLogo}
+              variant="logo"
+              onCancel={() => setPendingLogo(null)}
+              onConfirm={uploadSelectedLogo}
+            />
+          )}
 
           {/* Hero band */}
-          <header className="profile-hero profile-tone-neutral">
+          <header className={`profile-hero profile-tone-neutral${isMobile ? ' profile-hero-business-mobile' : ''}`}>
             <div className="profile-hero-left">
-              <div className="profile-hero-crest">
-                <div className="profile-hero-crest-frame">
-                  {formData.logo ? (
-                    <img src={formData.logo} alt="" />
-                  ) : (
-                    <Building2 aria-hidden />
-                  )}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => !isUploadingLogo && fileInputRef.current?.click()}
-                  disabled={isUploadingLogo}
-                  className="profile-hero-crest-edit"
-                  aria-label={isUploadingLogo ? t('profile.basicInfo.uploading') : t('profile.basicInfo.edit')}
-                >
-                  {isUploadingLogo ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  ) : (
-                    <Camera className="h-3.5 w-3.5" />
-                  )}
-                </button>
-              </div>
+              {logoCrest}
               <div className="profile-hero-meta">
                 <div className="profile-eyebrow">{t('profile.hero.eyebrow')}</div>
                 <h2>{formData.businessName || t('profile.hero.placeholderName')}</h2>
@@ -578,12 +606,22 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange, onSavi
             </div>
             <div className="profile-hero-right">
               {user && !user.emailVerified && (
-                <span className="profile-pill profile-pill-warn">
-                  <AlertTriangle className="h-3 w-3" />
-                  {t('profile.hero.emailNotVerified')}
-                </span>
+                <div className="profile-hero-email-status flex">
+                  <button
+                    type="button"
+                    className="profile-hero-email-button"
+                    aria-controls="profile-email-verification"
+                    onClick={handleGoToEmailVerification}
+                  >
+                    <span className="profile-pill profile-pill-warn">
+                      <AlertTriangle className="h-3 w-3" aria-hidden />
+                      {t('profile.hero.emailNotVerified')}
+                      <ChevronDown className="h-3 w-3" aria-hidden />
+                    </span>
+                  </button>
+                </div>
               )}
-              <span className="profile-pill profile-pill-good">
+              <span className="profile-pill profile-pill-good profile-hero-owner">
                 <span className="profile-pill-dot" />
                 {t('profile.hero.ownerBadge')}
               </span>
@@ -814,10 +852,17 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange, onSavi
 
               {/* Email verification status */}
               <div className="profile-subgroup">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3">
+                <div
+                  ref={emailVerificationRef}
+                  id="profile-email-verification"
+                  role="group"
+                  aria-labelledby="profile-email-verification-title"
+                  tabIndex={-1}
+                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3"
+                >
                   <div className="profile-subgroup-head flex-1 min-w-0">
                     <div className="profile-subgroup-title flex items-center gap-2 flex-wrap">
-                      <span>{t('profile.emailVerification.title')}</span>
+                      <span id="profile-email-verification-title">{t('profile.emailVerification.title')}</span>
                       {user && (user.emailVerified ? (
                         <span className="profile-pill profile-pill-verified">
                           <CheckCircle className="h-3 w-3" />

@@ -17,6 +17,7 @@ import {
 import { BaseSlider } from "../../../../shared/components/common/BaseSlider";
 import { sanitizeDecimalInput } from "../../../../shared/utils/decimalInput";
 import { FormFooter } from "../../../../shared/components/forms/FormFooter";
+import ConfirmDialog from "../../../../shared/components/common/ConfirmDialog";
 import { DeleteConfirmDialog } from "../../../../shared/components/common/DeleteConfirmDialog";
 import { TextField } from "../../../../shared/components/forms/fields/TextField";
 import { TextareaField } from "../../../../shared/components/forms/fields/TextareaField";
@@ -50,6 +51,7 @@ import {
   getCurrencyDisplay,
 } from "../../../../shared/utils/currency";
 import { useFormatPrice } from "../../../../shared/hooks/useFormatPrice";
+import { useDiscardChanges } from "../../../../shared/hooks/useDiscardChanges";
 import { PriceDisplay } from "../../../../shared/components/common/PriceDisplay";
 
 interface EditBundleSliderProps {
@@ -357,6 +359,13 @@ const EditBundleSlider: React.FC<EditBundleSliderProps> = ({
     serviceIds.length < 2 ||
     !!serviceIdsError;
 
+  const { canClose, requestAction, dialogProps } = useDiscardChanges({
+    isOpen,
+    isDirty: formState.isDirty,
+    isSaving: isSubmitting || isDeleting,
+    onClose,
+  });
+
   const onSubmit = () => {
     // Prevent double submission
     if (isSubmitting || isBundlesLoading || !effectiveBundle) {
@@ -404,8 +413,10 @@ const EditBundleSlider: React.FC<EditBundleSliderProps> = ({
   };
 
   const handleCancel = () => {
-    onClose();
-    reset(getInitialFormData());
+    requestAction(() => {
+      onClose();
+      reset(getInitialFormData());
+    });
   };
 
   // Focus a price field only after an explicit pricing-option choice, not when
@@ -476,6 +487,7 @@ const EditBundleSlider: React.FC<EditBundleSliderProps> = ({
       <BaseSlider
         isOpen={isOpen}
         onClose={onClose}
+        onBeforeClose={canClose}
         title={text("bundles.editBundle.title")}
         subtitle={text("bundles.editBundle.subtitle")}
         icon={Package}
@@ -1144,19 +1156,21 @@ const EditBundleSlider: React.FC<EditBundleSliderProps> = ({
           fallbackTimezone={businessTimezone || undefined}
           onGoToCalendar={(apt) => {
             handleCloseDeleteDialog(false);
-            navigate(buildCalendarLink({ date: apt.scheduledAt, locationId: apt.location?.id, bundleId: effectiveBundle.id }));
+            const destination = buildCalendarLink({ date: apt.scheduledAt, locationId: apt.location?.id, bundleId: effectiveBundle.id });
+            requestAction(() => navigate(destination));
           }}
           secondaryActions={[
             {
               label: text("bundles.editBundle.goToAssignments"),
               onClick: () => {
                 handleCloseDeleteDialog(false);
-                navigate("/assignments");
+                requestAction(() => navigate("/assignments"));
               },
             },
           ]}
         />
       )}
+      <ConfirmDialog {...dialogProps} />
     </>
   );
 };

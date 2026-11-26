@@ -36,8 +36,12 @@
     "searchPlaceholder": "Caută adresa corectă...",
     "mobileHint": "Mută harta până când pinul este exact pe locația ta. Clienții te găsesc după pin.",
     "mobileSearchFirst": "Caută adresa sau atinge harta ca să plasezi pinul.",
-    "addressWarningTitle": "Confirmă poziția pinului",
-    "addressWarningDescription": "Am plasat pinul pe baza adresei tale. Dacă este corect, dă click pe \"Confirmă locația\". Dacă nu, poți căuta adresa corectă, da click pe hartă sau trage pinul pentru a ajusta. Clienții îți vor găsi businessul pe baza poziției pinului."
+    "streetOnlyDescription": "Harta nu are numărul clădirii tale, așa că pinul este pe stradă. Trage pinul pe clădirea ta, apoi dă click pe \"Confirmă locația\". Clienții te găsesc după acest pin.",
+    "streetOnlyMobileHint": "Am găsit strada, dar nu și clădirea. Mută harta până când pinul este pe clădirea ta.",
+    "townOnlyDescription": "Pinul este în centrul localității. Trage-l pe locația ta exactă sau caută din nou, apoi dă click pe \"Confirmă locația\".",
+    "townOnlyMobileHint": "Nu am găsit strada. Mută harta până când pinul este exact pe locația ta.",
+    "viewMap": "Hartă",
+    "viewSatellite": "Satelit"
   },
   "addLocation": {
     "title": "Adaugă locație nouă",
@@ -53,6 +57,7 @@
       "inheritedLabel": "businessul tău",
       "helperTextOn": "Informațiile de contact ale businessului tău vor fi folosite pentru această locație.",
       "helperTextOff": "Furnizează detalii de contact diferite pentru această locație.",
+      "useBusinessContact": "Folosește datele de contact ale businessului",
       "descriptionPlaceholder": "Descrie această locație (ex. Birou principal cu parcare)",
       "workingHoursLabel": "Program",
       "teamMembersTitle": "Membri echipă",
@@ -124,6 +129,7 @@
       "inheritedLabel": "businessul tău",
       "helperTextOn": "Informațiile de contact ale businessului tău vor fi folosite pentru această locație.",
       "helperTextOff": "Furnizează detalii de contact diferite pentru această locație.",
+      "useBusinessContact": "Folosește datele de contact ale businessului",
       "descriptionLabel": "Descriere",
       "descriptionPlaceholder": "Descrie această locație (ex. Birou principal cu parcare)",
       "workingHoursLabel": "Program"

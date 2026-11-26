@@ -11,6 +11,9 @@ import { useKeyboardVisible } from "../../hooks/useKeyboardVisible";
 import { insetForKeyboard } from "../../lib/keyboardDrawerFollow";
 import appConfig from "../../../app/config/env";
 
+const TOUCH_SWIPE_SLOP = 8;
+const TOUCH_SWIPE_DIRECTION_RATIO = 1.2;
+
 /**
  * Slide-in panel built on Vaul (right-direction drawer).
  *
@@ -27,6 +30,8 @@ import appConfig from "../../../app/config/env";
 interface BaseSliderProps {
   isOpen: boolean;
   onClose: () => void;
+  /** Return false to keep the slider open after a dismissal attempt. */
+  onBeforeClose?: () => boolean;
   title: string;
   subtitle?: string;
   icon?: LucideIcon;
@@ -50,6 +55,7 @@ interface BaseSliderProps {
 export const BaseSlider: React.FC<BaseSliderProps> = ({
   isOpen,
   onClose,
+  onBeforeClose,
   title,
   subtitle,
   icon: Icon,
@@ -66,10 +72,18 @@ export const BaseSlider: React.FC<BaseSliderProps> = ({
   footer,
 }) => {
   const panelRef = useRef<HTMLDivElement>(null);
+  const overlayRef = useRef<HTMLDivElement>(null);
+  const touchSwipeRef = useRef<{
+    pointerId: number;
+    startX: number;
+    startY: number;
+    direction: "pending" | "right" | "blocked";
+  } | null>(null);
   // State as well as the ref: the panel mounts inside a Portal one commit later.
   const [panelEl, setPanelEl] = useState<HTMLDivElement | null>(null);
   const setPanelRef = useCallback((node: HTMLDivElement | null) => {
     panelRef.current = node;
+    if (!node) touchSwipeRef.current = null;
     setPanelEl(node);
   }, []);
   // Native keyboard covers the footer (like the bottom nav) instead of pushing it up.
@@ -81,11 +95,62 @@ export const BaseSlider: React.FC<BaseSliderProps> = ({
   // keyboard starts closing and rides down with it (shared/lib/keyboardDrawerFollow.ts).
   useEffect(() => (panelEl ? insetForKeyboard(panelEl) : undefined), [panelEl]);
 
+  const startTouchSwipe = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (
+      event.pointerType !== "touch" ||
+      !(event.target instanceof Element) ||
+      event.target.closest("[data-vaul-drawer], [data-vaul-no-drag]") !== event.currentTarget
+    ) {
+      return;
+    }
+
+    touchSwipeRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      direction: "pending",
+    };
+  };
+
+  const filterTouchSwipe = (event: React.PointerEvent<HTMLDivElement>) => {
+    const swipe = touchSwipeRef.current;
+    if (!swipe || swipe.pointerId !== event.pointerId) return;
+
+    if (swipe.direction === "pending") {
+      const deltaX = event.clientX - swipe.startX;
+      const deltaY = Math.abs(event.clientY - swipe.startY);
+      if (Math.max(Math.abs(deltaX), deltaY) >= TOUCH_SWIPE_SLOP) {
+        swipe.direction = deltaX >= deltaY * TOUCH_SWIPE_DIRECTION_RATIO ? "right" : "blocked";
+      }
+    }
+
+    // Filter after child handlers run and leave the browser free to scroll.
+    if (swipe.direction !== "right") event.stopPropagation();
+  };
+
+  const endTouchSwipe = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (touchSwipeRef.current?.pointerId === event.pointerId) touchSwipeRef.current = null;
+  };
+
+  const requestClose = () => {
+    if (onBeforeClose?.() === false) return false;
+    onClose();
+    return true;
+  };
+
   return (
     <VaulDrawer.Root
       open={isOpen}
       onOpenChange={(open) => {
-        if (!open) onClose();
+        if (open || requestClose()) return;
+
+        // Vaul leaves its inline drag styles in place after a controlled close is vetoed.
+        const overlayStyle = overlayRef.current?.style;
+        if (overlayStyle?.transition !== "none") return;
+        panelRef.current?.style.removeProperty("transition");
+        panelRef.current?.style.removeProperty("transform");
+        overlayStyle.removeProperty("transition");
+        overlayStyle.removeProperty("opacity");
       }}
       direction="right"
       // Move focus into the slider on open. Without it, Vaul leaves focus on
@@ -104,6 +169,7 @@ export const BaseSlider: React.FC<BaseSliderProps> = ({
       <VaulDrawer.Portal>
         {/* Backdrop */}
         <VaulDrawer.Overlay
+          ref={overlayRef}
           className={cn(
             "fixed inset-0 z-[75] bg-black/30",
             "data-[state=open]:animate-in data-[state=closed]:animate-out",
@@ -116,6 +182,10 @@ export const BaseSlider: React.FC<BaseSliderProps> = ({
         <VaulDrawer.Content
           ref={setPanelRef}
           onPointerDownOutside={ignoreToastPointerDown()}
+          onPointerDown={startTouchSwipe}
+          onPointerUpCapture={endTouchSwipe}
+          onPointerCancelCapture={endTouchSwipe}
+          onLostPointerCaptureCapture={endTouchSwipe}
           className={cn(
             "fixed z-[80] bg-surface outline-none",
             // Mobile: full width, flush to the right edge, full height.
@@ -132,6 +202,7 @@ export const BaseSlider: React.FC<BaseSliderProps> = ({
           <PortalContainerContext.Provider value={panelRef}>
             {/* Header — mobile: back button; desktop: close button */}
             <div
+              onPointerMove={filterTouchSwipe}
               className={cn(
                 "relative flex flex-col bg-surface",
                 // Mobile panel is edge-to-edge (top-0), so the status bar inset
@@ -148,7 +219,7 @@ export const BaseSlider: React.FC<BaseSliderProps> = ({
                         variant="ghost"
                         size="icon"
                         rounded="full"
-                        onClick={onClose}
+                        onClick={requestClose}
                         className="h-8 !w-8"
                       >
                         <ChevronLeft />
@@ -157,7 +228,7 @@ export const BaseSlider: React.FC<BaseSliderProps> = ({
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={onClose}
+                      onClick={requestClose}
                       className="hidden md:flex absolute right-4 top-4 h-8 w-8 rounded-md hover:bg-surface-hover active:bg-surface-active"
                     >
                       <XIcon className="h-4 w-4" />
@@ -202,6 +273,7 @@ export const BaseSlider: React.FC<BaseSliderProps> = ({
             {/* Scrollable body */}
             <div
               data-android-slider-body={isNativeAndroid ? "" : undefined}
+              onPointerMove={filterTouchSwipe}
               className={cn(
                 "flex flex-col overflow-y-auto",
                 "flex-1 p-3",
@@ -217,6 +289,7 @@ export const BaseSlider: React.FC<BaseSliderProps> = ({
              *  compact on mobile; desktop keeps the original px-6 / pb-2. */}
             {footer && (
               <div
+                onPointerMove={filterTouchSwipe}
                 className={cn(
                   "flex flex-col bg-surface shrink-0 z-100",
                   keyboardVisible && "hidden",

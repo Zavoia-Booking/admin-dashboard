@@ -20,6 +20,7 @@ export interface LocationType {
   address: string;
   email: string;
   phone: string;
+  useBusinessContact?: boolean;
   description: string;
   workingHours: WorkingHours;
   createdAt: string;

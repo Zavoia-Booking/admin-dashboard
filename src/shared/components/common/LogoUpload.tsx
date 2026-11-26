@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Upload, X, Image as ImageIcon } from "lucide-react";
 import { Button } from "../ui/button";
 import { Spinner } from "../ui/spinner";
+import { ImageCropDialog } from "./ImageCropDialog";
 import { toast } from "sonner";
 import { cn } from "../../lib/utils";
 
@@ -44,6 +45,8 @@ const LogoUpload: React.FC<LogoUploadProps> = ({
   const imgRef = useRef<HTMLImageElement | null>(null);
   const dragCounterRef = useRef(0);
   const [dragActive, setDragActive] = useState(false);
+  const [pendingLogo, setPendingLogo] = useState<File | null>(null);
+  const selectionRef = useRef(0);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isImageLoading, setIsImageLoading] = useState(false);
 
@@ -221,22 +224,16 @@ const LogoUpload: React.FC<LogoUploadProps> = ({
   };
 
   const handleFile = async (file: File) => {
-    // Validate FIRST before showing preview
-    const isValid = await validateFile(file);
-    if (!isValid) {
-      // If validation fails, clear the file input and don't show preview
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
-      return;
+    if (uploading) return;
+    const selection = ++selectionRef.current;
+    if (await validateFile(file) && selection === selectionRef.current) {
+      setPendingLogo(file);
     }
-
-    // Only show preview if validation passes
-    onChange(file);
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+    const file = e.currentTarget.files?.[0];
+    e.currentTarget.value = "";
     if (file) {
       handleFile(file);
     }
@@ -273,6 +270,7 @@ const LogoUpload: React.FC<LogoUploadProps> = ({
 
   const handleRemove = (e: React.MouseEvent) => {
     e.stopPropagation();
+    selectionRef.current++;
     onChange(null);
     if (onLogoUrlChange) {
       onLogoUrlChange(null, null);
@@ -298,6 +296,18 @@ const LogoUpload: React.FC<LogoUploadProps> = ({
         className="hidden"
         disabled={uploading}
       />
+
+      {pendingLogo && (
+        <ImageCropDialog
+          file={pendingLogo}
+          variant="logo"
+          onCancel={() => setPendingLogo(null)}
+          onConfirm={(file) => {
+            setPendingLogo(null);
+            onChange(file);
+          }}
+        />
+      )}
 
       <div
         onClick={!uploading ? handleClick : undefined}

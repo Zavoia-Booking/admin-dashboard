@@ -6,22 +6,21 @@ import { useSetupWizard } from "../../../shared/hooks/useSetupWizard";
 import { useDispatch, useSelector } from "react-redux";
 import { wizardCompleteAction } from "../actions";
 import WizardLayout from "../components/WizardLayout";
-import { Skeleton } from "../../../shared/components/ui/skeleton";
+import BusinessInfoSkeleton from "../components/BusinessInfoSkeleton";
 import StepBusinessInfo from "../components/StepBusinessInfo";
 import StepTeam from "../components/StepTeam";
 import StepLocation from "../components/StepLocation";
 import StepLaunch from "../components/StepLaunch";
 import { selectCurrentUser } from "../../auth/selectors";
 import { getHomeRouteForRole } from "../../../shared/lib/permissions";
-import { getCurrentBusinessSelector, getBusinessLoadingSelector } from "../../business/selectors";
-import { getAllLocationsSelector, getLocationLoadingSelector } from "../../locations/selectors";
+import { getCurrentBusinessSelector } from "../../business/selectors";
+import { getAllLocationsSelector } from "../../locations/selectors";
 import { fetchCurrentBusinessAction } from "../../business/actions";
 import { listLocationsAction } from "../../locations/actions";
 import { listTeamMembersAction } from "../../teamMembers/actions";
 import { selectTeamMembers } from "../../teamMembers/selectors";
 import type { TeamMember } from "../../../shared/types/team-member";
 import type { StepHandle } from "../types";
-import LaunchPageSkeleton from "../components/LaunchPageSkeleton";
 
 // Split to avoid calling wizard hooks when wizard is completed (prevents flicker)
 const WizardRunner: React.FC = () => {
@@ -31,7 +30,6 @@ const WizardRunner: React.FC = () => {
   const stepRef = useRef<StepHandle>(null);
   const [canProceedToNext, setCanProceedToNext] = useState(false);
   const [completeRequested, setCompleteRequested] = useState(false);
-  const hasInitializedRef = useRef(false);
 
   const stepConfig = [
     {
@@ -72,13 +70,7 @@ const WizardRunner: React.FC = () => {
   ];
   const isLastStep = currentStep === totalSteps;
   const { component: CurrentStepComponent, title: effectiveTitle, subtitle: effectiveSubtitle } = stepConfig[currentStep - 1];
-
-  // Mark as initialized once hydration completes
-  useEffect(() => {
-    if (hydratedFromDraft) {
-      hasInitializedRef.current = true;
-    }
-  }, [hydratedFromDraft]);
+  const isLoadingDraft = !hydratedFromDraft;
 
   const handleSave = async () => {
     // Belt and braces: the button is disabled while completing, but a click
@@ -98,7 +90,6 @@ const WizardRunner: React.FC = () => {
 
   useEffect(() => { if (isLastStep) setCanProceedToNext(true); }, [isLastStep]);
 
-  const isWizardLoading = useSelector((state: any) => state.setupWizard.isLoading);
   const wizardError = useSelector((state: any) => state.setupWizard.error);
   const user = useSelector(selectCurrentUser);
   
@@ -106,13 +97,6 @@ const WizardRunner: React.FC = () => {
   // user comes back flagged as completed -- including the gap after the API call
   // where the wizard is no longer "loading" but the redirect hasn't happened.
   const isCompleting = completeRequested && !user?.wizardCompleted;
-
-  // Show skeleton while loading OR before initial hydration completes
-  // Also show skeleton during completion transition (when completeRequested is true
-  // but user.wizardCompleted is still false, meaning we're waiting for user state update)
-  const showSkeleton = isWizardLoading || 
-  (!hasInitializedRef.current && !hydratedFromDraft) ||
-  isCompleting;
 
   // Handle completion flow: reset completeRequested when user state updates
   useEffect(() => {
@@ -134,7 +118,7 @@ const WizardRunner: React.FC = () => {
     
     // If wizard loading finished but user is not yet completed, keep waiting
     // (This handles the gap between API completion and user state update)
-  }, [completeRequested, isWizardLoading, wizardError, user?.wizardCompleted]);
+  }, [completeRequested, wizardError, user?.wizardCompleted]);
 
   const handleNext = async () => {
     // A second "finish" click must not fire a second submission
@@ -180,70 +164,10 @@ const WizardRunner: React.FC = () => {
       isCompleting={isCompleting}
       showNext={true}
       nextLabel={currentStep === totalSteps ? t("layout.finishSetup") : t("layout.continue")}
-      isLoadingDraft={showSkeleton }
+      isLoadingDraft={isLoadingDraft}
     >
-      {showSkeleton ? (
-        <div className="space-y-6 cursor-default">
-          <div className="grid gap-2">
-            {/* Business Name */}
-            <div className="space-y-2">
-              <Skeleton className="h-3.5 w-32" />
-              <Skeleton className="h-10 w-full" />
-              <div className="h-5" />
-            </div>
-            
-            {/* Contact Information Toggle + Business Phone */}
-            <div className="grid grid-cols-1 gap-4">
-              {/* Contact Information Toggle */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Skeleton className="h-3.5 w-40" />
-                  <Skeleton className="h-6 w-12" />
-                </div>
-                <Skeleton className="h-20 w-full rounded-lg" />
-              </div>
-              
-              {/* Business Phone */}
-              <div className="space-y-2">
-                <Skeleton className="h-3.5 w-32" />
-                <Skeleton className="h-10 w-full" />
-                <div className="h-5" />
-              </div>
-            </div>
-            
-            {/* Business Description */}
-            <div className="space-y-2">
-              <Skeleton className="h-3.5 w-40" />
-              <Skeleton className="h-24 w-full" />
-              <div className="h-5" />
-            </div>
-            
-            {/* Industry Selector */}
-            <div className="space-y-3 pt-4">
-              <Skeleton className="h-3.5 w-24" />
-              <Skeleton className="h-3 w-64" />
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {[...Array(6)].map((_, i) => (
-                  <Skeleton key={i} className="h-24 w-full rounded-lg" />
-                ))}
-              </div>
-            </div>
-            
-            {/* Currency Select */}
-            <div className="space-y-2 pt-4">
-              <Skeleton className="h-3.5 w-28" />
-              <Skeleton className="h-3 w-96" />
-              <Skeleton className="h-10 w-full" />
-              <div className="h-5" />
-            </div>
-            
-            {/* Logo Upload */}
-            <div className="space-y-2 pt-4">
-              <Skeleton className="h-3.5 w-48" />
-              <Skeleton className="h-32 w-full rounded-lg" />
-            </div>
-          </div>
-        </div>
+      {isLoadingDraft ? (
+        <BusinessInfoSkeleton useAccountEmail={data.useAccountEmail} />
       ) : (
         <CurrentStepComponent ref={stepRef} data={data} onValidityChange={handleValidityChange} updateData={updateData} />
       )}
@@ -282,10 +206,6 @@ const SetupWizardPage: React.FC = () => {
     (member: TeamMember) => member.roleStatus === 'pending_acceptance'
   );
 
-  const isBusinessLoading = useSelector(getBusinessLoadingSelector);
-  const isLocationsLoading = useSelector(getLocationLoadingSelector);
-  const isLoadingLaunchData = isBusinessLoading || isLocationsLoading;
-
   // AuthGate handles spinner when user is null
   if (!user) {
     return null;
@@ -294,23 +214,6 @@ const SetupWizardPage: React.FC = () => {
   // Don't render wizard for non-owners (redirect is in progress)
   if (user.role !== 'owner') {
     return null;
-  }
-
-  // Show LaunchPageSkeleton while data is loading for completed users
-  if (user?.wizardCompleted && isLoadingLaunchData) {
-    return (
-      <div className="min-h-[100svh] bg-background cursor-default">
-        <div className="container mx-auto pt-0 md:pt-8 pb-0 md:pb-8 min-h-[100svh] flex flex-col">
-          <div className="mx-auto max-w-[960px] w-full rounded-none md:rounded-2xl md:border bg-card shadow-md flex-1 flex flex-col">
-            <div className="md:px-6 pt-0 md:pb-4 flex flex-col min-h-0 pb-0">
-              <div className="rounded-lg bg-surface dark:bg-neutral-900 p-0 pt-4 flex-1 md:min-h-[500px] md:pb-4">
-                <LaunchPageSkeleton />
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
   }
 
   if (user?.wizardCompleted) {

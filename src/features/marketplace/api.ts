@@ -69,6 +69,22 @@ export const getMarketplaceListingApi = async (): Promise<MarketplaceListingResp
   };
 };
 
+export const changeMarketplaceBrandPhotoApi = async (
+  businessId: number,
+  file: File | null,
+): Promise<{ brandPhotoUrl: string | null }> => {
+  const url = `/marketplace-listing/businesses/${businessId}/brand-photo`;
+  if (file === null) {
+    const { data } = await apiClient().delete<{ brandPhotoUrl: string | null }>(url);
+    return data;
+  }
+
+  const formData = new FormData();
+  formData.append('file', file);
+  const { data } = await apiClient().post<{ brandPhotoUrl: string | null }>(url, formData);
+  return data;
+};
+
 export const uploadMarketplaceImageApi = async (
   locationId: number,
   file: File,

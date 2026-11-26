@@ -34,6 +34,7 @@ export interface CategorySectionProps {
   onNewCategoryCreated?: (category: Category) => void; // Callback when new category is created inline
   onCategoryRemoved?: (categoryId: number) => void; // Callback when a newly created category is removed
   onNewlyCreatedCategoriesChange?: (categories: Category[]) => void; // Callback when newly created categories change
+  onCreateDraftChange?: (hasDraft: boolean) => void;
   customTitle?: string;
   customSubtitle?: string;
   customHelperText?: string;
@@ -55,6 +56,7 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
   onNewCategoryCreated,
   onCategoryRemoved,
   onNewlyCreatedCategoriesChange,
+  onCreateDraftChange,
   customTitle,
   customSubtitle,
   customHelperText,
@@ -86,6 +88,11 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
   const editInputRef = useRef<HTMLInputElement>(null);
   const sectionRef = useRef<HTMLDivElement>(null);
   const prevNewlyCreatedIdsRef = useRef<string>("");
+
+  const hasCreateDraft = isCreating && createInputValue.trim().length > 0;
+  useEffect(() => {
+    onCreateDraftChange?.(hasCreateDraft);
+  }, [hasCreateDraft, onCreateDraftChange]);
 
   // Sync local categories when existingCategories prop changes
   useEffect(() => {

@@ -1,6 +1,6 @@
 import type { RegisterOwnerPayload, AuthResponse, AuthUser, CheckTeamInvitationResponse, CompleteTeamInvitationPayload, CompleteTeamInvitationResponse, AccountActionResponse } from "./types";
 import type { AppleAccountResponse, AppleAuthRequestPayload, AppleCredential } from "./types";
-import { apiClient } from "../../shared/lib/http";
+import { apiClient, READ_REQUEST_TIMEOUT_MS } from "../../shared/lib/http";
 import i18n from "../../shared/lib/i18n";
 
 // Send the current dashboard locale on auth flows that produce transactional
@@ -23,8 +23,9 @@ export const ownerUpgradeApi = async (payload: { email: string; password: string
     return data;
 }
 
+// Bounded like /auth/refresh, so a hung request ends as a failure instead of "logging out" forever.
 export const logoutApi = async (): Promise<void> => {
-    await apiClient().post(`/auth/logout`);
+    await apiClient().post(`/auth/logout`, undefined, { timeout: READ_REQUEST_TIMEOUT_MS });
 }
 
 export const loginApi = async (payload: { email: string, password: string }): Promise<AuthResponse> => {

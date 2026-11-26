@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
-import { maptilerAutocomplete } from '../../lib/maptiler';
+import { maptilerAutocomplete, MaptilerUnavailableError } from '../../lib/maptiler';
 import type { AddressAutocompleteChange, AddressSuggestion } from '../../types/geo';
 import { Input } from '../ui/input';
 
@@ -44,6 +44,7 @@ export default function AddressAutocomplete({
   const [query, setQuery] = useState<string>(value ?? '');
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [failed, setFailed] = useState(false);
   const [suggestions, setSuggestions] = useState<AddressSuggestion[]>([]);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
@@ -90,8 +91,9 @@ export default function AddressAutocomplete({
     let cancelled = false;
     const t = setTimeout(async () => {
       try {
-        const raw = await maptilerAutocomplete({ query, limit, countryCodes });
+        const raw = await maptilerAutocomplete({ query, limit, countryCodes, signal: ctrl.signal });
         if (cancelled) return;
+        setFailed(false);
         const seen = new Set<string>();
         const mapped: AddressSuggestion[] = [];
         (raw || []).forEach((r: any) => {
@@ -129,12 +131,19 @@ export default function AddressAutocomplete({
             city: r.address?.city || r.address?.town || r.address?.village,
             postalCode: r.address?.postcode,
             country: r.address?.country,
+            county: r.county || undefined,
+            precision: r.precision,
           });
         });
         setSuggestions(mapped);
         setOpen(true);
-      } catch {
-        // ignore
+      } catch (err) {
+        // An older query's rows must not stay on screen; only a refusal says "unavailable"
+        if (!cancelled) {
+          setSuggestions([]);
+          setFailed(err instanceof MaptilerUnavailableError);
+          setOpen(true);
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -163,24 +172,27 @@ export default function AddressAutocomplete({
       )}
       {!loading && suggestions.length === 0 && query.trim().length >= 3 && (
         <div className="p-3 text-sm text-foreground-3 dark:text-foreground-2">
-          {t('address.noAddressesFound')}
+          {failed ? t('address.searchUnavailable') : t('address.noAddressesFound')}
         </div>
       )}
-      {!loading && suggestions.length > 0 && suggestions.map((s, idx) => (
-        <button
-          key={`${s.id}-${idx}`}
-          type="button"
-          className={`w-full text-left hover:bg-surface-hover focus:bg-surface-hover focus:outline-none cursor-pointer ${
-            listContainer ? 'px-4 py-3 border-b border-border-subtle' : 'px-3 py-2'
-          }`}
-          onClick={() => handleSelect(s)}
-        >
-          <div className="text-sm text-foreground-1 leading-snug">{s.displayName}</div>
-          {s.city && (
-            <div className="text-xs text-foreground-3 dark:text-foreground-2">{s.city}{s.postalCode ? `, ${s.postalCode}` : ''}</div>
-          )}
-        </button>
-      ))}
+      {!loading && suggestions.length > 0 && suggestions.map((s, idx) => {
+        const detail = [s.city, s.county && s.county !== s.city ? s.county : '', s.postalCode].filter(Boolean).join(', ');
+        return (
+          <button
+            key={`${s.id}-${idx}`}
+            type="button"
+            className={`w-full text-left hover:bg-surface-hover focus:bg-surface-hover focus:outline-none cursor-pointer ${
+              listContainer ? 'px-4 py-3 border-b border-border-subtle' : 'px-3 py-2'
+            }`}
+            onClick={() => handleSelect(s)}
+          >
+            <div className="text-sm text-foreground-1 leading-snug">{s.displayName}</div>
+            {detail && (
+              <div className="text-xs text-foreground-3 dark:text-foreground-2">{detail}</div>
+            )}
+          </button>
+        );
+      })}
     </>
   );
 

@@ -38,6 +38,7 @@ export type AuthUser = {
     businessCurrency?: string;
     countryCode?: string | null; // ISO 3166-1 alpha-2 country code (e.g., "ro", "de")
     phone?: string;
+    email?: string | null;
   };
   subscription?: {
     status: string | null;
@@ -121,6 +122,8 @@ export interface AuthState {
   user: AuthUser | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  /** True from the logout request until it succeeds or fails. */
+  isLoggingOut?: boolean;
   status: AuthStatusEnum;
   error: string | null;
   lastRefreshAt: number | null;

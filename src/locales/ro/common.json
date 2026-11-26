@@ -23,7 +23,13 @@
     "ownerCta": "Finalizează configurarea"
   },
   "confirmDialog": {
-    "defaultTitle": "Ești sigur?"
+    "defaultTitle": "Ești sigur?",
+    "discardChanges": {
+      "title": "Renunți la modificări?",
+      "description": "Modificările nesalvate se vor pierde.",
+      "keepEditing": "Continuă editarea",
+      "confirm": "Renunță la modificări"
+    }
   },
   "errorState": {
     "title": "Ceva nu a funcționat",
@@ -65,6 +71,35 @@
     "title": "Alege fusul orar",
     "noResults": "Niciun fus orar găsit.",
     "showingCount": "Se afișează {{shown}} din {{total}} fusuri orare..."
+  },
+  "imageCrop": {
+    "title": {
+      "brand": "Încadrează fotografia brandului",
+      "logo": "Încadrează logoul",
+      "profile": "Încadrează fotografia de profil"
+    },
+    "description": {
+      "brand": "Mărește și trage pentru a încadra. Previzualizările arată ce rămâne vizibil în fiecare loc.",
+      "logo": "Încadrează logoul în cerc. Trage pentru a-l poziționa, mărește sau micșorează.",
+      "profile": "Trage pentru a poziționa. Micșorează pentru a încadra toată fotografia."
+    },
+    "cropArea": "Poziția imaginii. Folosește tastele săgeată pentru a muta imaginea.",
+    "zoom": "Zoom",
+    "zoomIn": "Mărește",
+    "zoomOut": "Micșorează",
+    "reset": "Resetează",
+    "preview": {
+      "brandPage": "Pagina brandului",
+      "app": "Aplicație",
+      "cards": "Carduri",
+      "avatar": "Avatar",
+      "website": "Site"
+    },
+    "cancel": "Anulează",
+    "apply": "Folosește imaginea",
+    "useOriginal": "Folosește originalul",
+    "previewError": "Imaginea nu poate fi previzualizată pe acest dispozitiv. Poți folosi fișierul original.",
+    "exportError": "Imaginea nu a putut fi pregătită. Poți folosi fișierul original sau poți alege altă imagine."
   },
   "logoUpload": {
     "altPreview": "Previzualizare logo business",
@@ -133,6 +168,7 @@
     "placeholder": "Începe să scrii o adresă...",
     "searching": "Se caută...",
     "noAddressesFound": "Nu s-au găsit adrese. Încearcă altă căutare sau folosește modul Manual.",
+    "searchUnavailable": "Căutarea adreselor nu este disponibilă acum. Încearcă din nou mai târziu.",
     "selectedAddress": "Adresa selectată",
     "street": "Stradă *",
     "changeAddress": "Schimbă adresa",
@@ -153,8 +189,14 @@
     "buildingHelpExample2": "\"Clădirea 3, Etaj 2\"",
     "buildingHelpExample3": "\"Birou 205\""
   },
+  "inheritedEdit": {
+    "edit": "Editează",
+    "done": "Gata"
+  },
   "contactToggle": {
     "customBadge": "Personalizat",
+    "emailPlaceholder": "ex. contact@businessultau.ro",
+    "phonePlaceholder": "+40 712 345 678",
     "previousStep": "pasul anterior",
     "helperOn": {
       "emailAndPhone": "Vom folosi emailul și numărul de telefon de la {{source}}",

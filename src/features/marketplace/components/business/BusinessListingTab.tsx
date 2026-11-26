@@ -1,5 +1,6 @@
 import type { Business, Industry, IndustryTag } from "../../types";
 import type { useMarketplaceForm } from "../../hooks/useMarketplaceForm";
+import { MarketplaceBrandPhoto } from "../MarketplaceBrandPhoto";
 import { MarketplaceDetailsSection } from "../profile/MarketplaceDetailsSection";
 import IndustrySection from "../profile/IndustrySection";
 import { OwnerProfessionalProfileSection } from "../profile/OwnerProfessionalProfileSection";
@@ -11,6 +12,7 @@ interface BusinessListingTabProps {
   industryTags: IndustryTag[];
   form: ReturnType<typeof useMarketplaceForm>;
   onOwnerProfileSetupNeededChange?: (needed: boolean) => void;
+  brandPhotoAttention?: number;
 }
 
 export function BusinessListingTab({
@@ -20,6 +22,7 @@ export function BusinessListingTab({
   industryTags,
   form,
   onOwnerProfileSetupNeededChange,
+  brandPhotoAttention,
 }: BusinessListingTabProps) {
   return (
     <div className="max-w-5xl mb-0 md:mb-8">
@@ -70,6 +73,14 @@ export function BusinessListingTab({
             emailError={form.emailError || undefined}
             phoneError={form.phoneError || undefined}
             descriptionError={form.descriptionError || undefined}
+            brandPhoto={
+              <div
+                id="marketplace-brand-photo-section"
+                className="scroll-mt-24 rounded-2xl"
+              >
+                <MarketplaceBrandPhoto key={business?.id} canWrite={canWrite} attentionRequest={brandPhotoAttention} />
+              </div>
+            }
           />
           </div>
           <OwnerProfessionalProfileSection

@@ -10,7 +10,6 @@ import { useTranslation } from "react-i18next";
 import { Label } from "../../../shared/components/ui/label";
 import { Input } from "../../../shared/components/ui/input";
 import { Phone, AlertCircle, Building2 } from "lucide-react";
-import { Skeleton } from "../../../shared/components/ui/skeleton";
 import TextField from "../../../shared/components/forms/fields/TextField";
 import TextareaField from "../../../shared/components/forms/fields/TextareaField";
 import LogoUpload from "../../../shared/components/common/LogoUpload";
@@ -32,7 +31,7 @@ import {
   validateDescription,
 } from "../../../shared/utils/validation";
 import { industryApi } from "../../../shared/api/industry.api";
-import IndustrySelector from "./IndustrySelector";
+import IndustrySelector, { IndustrySelectorSkeleton } from "./IndustrySelector";
 import type { Industry } from "../../../shared/types/industry";
 import { selectCurrentUser } from "../../auth/selectors";
 import ContactInformationToggle from "../../../shared/components/common/ContactInformationToggle";
@@ -62,6 +61,8 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
       // If draft has explicit state, use it; otherwise default to true
       return typeof draftToggleState === 'boolean' ? draftToggleState : true;
     });
+    // The email validator reads this ref: react-hook-form keeps the rules from the step's first render.
+    const useAccountEmailRef = useRef(useAccountEmail);
 
     const {
       control,
@@ -110,7 +111,7 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
           ? {}
           : {
               validate: (value) => {
-                if (useAccountEmail) return true; // When toggle is ON, validation is skipped
+                if (useAccountEmailRef.current) return true; // When toggle is ON, validation is skipped
                 const error = requiredEmailError('businessEmail', value, t);
                 return error === null ? true : error;
               },
@@ -298,18 +299,13 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
       }
     }, [useAccountEmail, accountEmail, isWizardLoading, watch, setValue]);
 
-    // Handle toggle changes: when ON, mirror the account email into the form; when OFF, clear it
+    // Toggle ON mirrors the account email into the form; OFF means the owner started editing, so keep the typed value.
     const handleUseAccountEmailChange = useCallback((checked: boolean) => {
+      useAccountEmailRef.current = checked;
       setUseAccountEmail(checked);
       if (checked) {
         setValue("businessInfo.email" satisfies WizardFieldPath, accountEmail, {
           shouldDirty: false,  // Don't mark as dirty - this prevents isDirty reset
-          shouldValidate: true,
-        });
-      } else {
-        // Clear the email field when toggling OFF
-        setValue("businessInfo.email" satisfies WizardFieldPath, "", {
-          shouldDirty: false,
           shouldValidate: true,
         });
       }
@@ -563,6 +559,7 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
               emailLabel=""
               helperTextOn={tw('stepBusinessInfo.useAccountEmailOn')}
               helperTextOff={tw('stepBusinessInfo.useAccountEmailOff')}
+              revertLabel={tw('stepBusinessInfo.useAccountEmailAction')}
             />
             <div className="space-y-2">
               <Label
@@ -626,11 +623,7 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
               {tw('stepBusinessInfo.industryHelper')}
             </p>
             {isLoadingIndustries ? (
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {[...Array(6)].map((_, i) => (
-                  <Skeleton key={i} className="h-24 w-full rounded-lg" />
-                ))}
-              </div>
+              <IndustrySelectorSkeleton />
             ) : (
               <IndustrySelector
                 industries={industries}

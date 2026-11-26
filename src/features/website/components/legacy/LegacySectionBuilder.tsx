@@ -56,7 +56,7 @@ import { variantPriceLabel } from "../builder/pricing";
 import { SectionStylePicker, VariantPickerSkeleton, EASE, type WebsiteT, type SectionStyleOption } from "../builder/SectionStylePicker";
 import { SettingsPanel } from "../builder/SettingsPanel";
 import { LivePreview, marqueeItems, MARQUEE_MIN_ITEMS, UNNUMBERED, type PreviewData, type PreviewReview, type RatingBars } from "../builder/LivePreview";
-import { AutoHeight } from "../builder/AutoHeight";
+import { AutoHeight } from "../../../../shared/components/common/AutoHeight";
 import { useLocationTagDictionaries } from "../../../marketplace/hooks/useLocationTagDictionaries";
 import { isGallerySelectionIncomplete } from "../builder/gallerySelection";
 import {

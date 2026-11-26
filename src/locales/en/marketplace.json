@@ -75,7 +75,8 @@
       "customDescription": "Create a unique brand name for this listing. Use it to stand out in the marketplace and separate it from your main business profile.",
       "customLabel": "Public listing name",
       "placeholder": "e.g. Sarah's Salon & Spa",
-      "custom": "Custom"
+      "custom": "Custom",
+      "useBusiness": "Use business name"
     },
     "contact": {
       "title": "Public contact information",
@@ -83,16 +84,17 @@
       "phoneLabel": "Public phone",
       "helperTextOn": "Use your main contact details so customers can reach you. All inquiries will go to your primary channels.",
       "helperTextOff": "Add contact info just for marketplace leads. Helps you track inquiries separately from your main business.",
-      "inheritedLabel": "your business profile"
+      "inheritedLabel": "your business profile",
+      "useBusinessEmail": "Use business email",
+      "useBusinessPhone": "Use business phone"
     },
     "description": {
       "label": "Description",
-      "placement": "Appears on your public page in the marketplace, where clients read about you before booking.",
-      "useBusinessDescription": "Taken automatically from your business profile and shown on your public page in the marketplace.",
-      "customDescription": "A short introduction for your public page in the marketplace — what you offer and why clients should choose you. Keep it to a sentence or two.",
+      "useBusinessDescription": "Shown on your marketplace page. Synced from <settingsLink>your business profile</settingsLink>.",
+      "customDescription": "Shown on your marketplace page. Written just for the marketplace.",
       "placeholder": "What do you offer, and why should people choose you?",
-      "noDescription": "No profile description found. To keep your branding consistent, update your business settings—or switch to custom mode to write a tailored version for the marketplace.",
-      "custom": "Custom"
+      "custom": "Custom",
+      "useBusiness": "Use business description"
     }
   },
   "industry": {
@@ -123,6 +125,8 @@
     "checklist": {
       "industryTag": "At least one industry tag",
       "detailsValid": "Business details valid",
+      "brandPhotoDone": "Brand photo added",
+      "brandPhotoNeeded": "Add a brand photo",
       "websiteBuilder": "Web Studio valid",
       "locationPhotosDone": "Required location photos added",
       "locationPhotoNeeded": "Add a photo to at least one location",
@@ -191,6 +195,21 @@
     "teamMember_one": "Team member",
     "teamMember_other": "Team members",
     "noTeamMembers": "No team members yet"
+  },
+  "brandPhoto": {
+    "title": "Brand photo",
+    "description": "Shown on your public Marketplace brand page and cards.",
+    "required": "Add a brand photo before publishing.",
+    "preview": "Marketplace brand photo preview",
+    "upload": "Upload photo",
+    "replace": "Replace photo",
+    "fileHint": "JPG, PNG, WebP or AVIF up to {{size}} MB.",
+    "toast": {
+      "uploaded": "Brand photo saved.",
+      "removed": "Brand photo removed.",
+      "uploadFailed": "Could not save your brand photo.",
+      "removeFailed": "Could not remove your brand photo."
+    }
   },
   "portfolio": {
     "visualIdentity": {

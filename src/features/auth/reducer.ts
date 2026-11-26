@@ -16,6 +16,7 @@ const initialState: AuthState = {
   user: null,
   isAuthenticated: false,
   isLoading: false,
+  isLoggingOut: false,
   status: AuthStatusEnum.IDLE,
   error: null,
   lastRefreshAt: null,
@@ -200,6 +201,10 @@ export const AuthReducer: Reducer<AuthState, any> = (state: AuthState = initialS
       };
     }
 
+    case getType(logoutRequestAction.request): {
+      return { ...state, isLoggingOut: true };
+    }
+
     case getType(logoutRequestAction.success): {
       // Preserve account linking modal state during logout (user might be in linking flow)
       const preserveModalState = state.isAccountLinkingModalOpen;
@@ -212,7 +217,7 @@ export const AuthReducer: Reducer<AuthState, any> = (state: AuthState = initialS
     }
 
     case getType(logoutRequestAction.failure): {
-      return { ...state, error: action.payload.message };
+      return { ...state, isLoggingOut: false, error: action.payload.message };
     }
 
     case getType(clearAuthErrorAction): {

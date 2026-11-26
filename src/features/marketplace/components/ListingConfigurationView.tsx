@@ -68,6 +68,8 @@ interface ListingConfigurationViewProps {
   useBusinessEmail?: boolean;
   useBusinessPhone?: boolean;
   useBusinessDescription?: boolean;
+  /** Required to publish; uploads save immediately, outside the form. */
+  hasBrandPhoto: boolean;
   industries: any[];
   industryTags: any[];
   selectedIndustryTags: any[];
@@ -76,6 +78,7 @@ interface ListingConfigurationViewProps {
 
 export function ListingConfigurationView(props: ListingConfigurationViewProps) {
   const { business, locationsWithAssignments, isPublishing, isListed, isRefreshing = false } = props;
+  const brandPhotoOk = props.hasBrandPhoto;
   const { t } = useTranslation("marketplace");
   const { t: tReviews } = useTranslation("reviews");
 
@@ -100,6 +103,7 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
   // State for unsaved changes confirmation dialog
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
   const [ownerProfileSetupNeeded, setOwnerProfileSetupNeeded] = useState(false);
+  const [brandPhotoAttention, setBrandPhotoAttention] = useState(0);
   // The strip renders once per tab. Only override the default for the tab
   // where the user explicitly toggled the checklist.
   const [checklistDisclosure, setChecklistDisclosure] = useState<{
@@ -401,7 +405,7 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
   const mobileChecklistOpen =
     checklistDisclosure?.tab === activeTab
       ? checklistDisclosure.open
-      : !industryTagOk || !businessDetailsOk || photosBlocked;
+      : !industryTagOk || !businessDetailsOk || !brandPhotoOk || photosBlocked;
   // Gates the header action's visibility rather than its disabled state: a
   // permanently dead button says nothing the checklist in the strip does not
   // already say. isPublishing is excluded on purpose so the button stays put
@@ -457,7 +461,8 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
     ) {
       focused.blur();
     }
-    if (photosBlocked) handlePhotosNeeded();
+    if (!brandPhotoOk) handleBrandPhotoNeeded();
+    else if (photosBlocked) handlePhotosNeeded();
     else handleCombinedSave();
   };
   // Persistent business-level go-live status strip. Rendered at the top of every
@@ -485,6 +490,11 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
       });
     };
     requestAnimationFrame(() => tryScroll(0));
+  };
+  // The brand photo is required too; a blocked publish lands on its card (the card scrolls itself).
+  const handleBrandPhotoNeeded = () => {
+    if (activeTab !== "business") handleTabChange("business");
+    setBrandPhotoAttention((n) => n + 1);
   };
 
   const handleLocationSummaryAction = (
@@ -521,6 +531,8 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
         hasValidationErrors={form.hasValidationErrors}
         industryTagOk={industryTagOk}
         businessDetailsOk={businessDetailsOk}
+        brandPhotoOk={brandPhotoOk}
+        onBrandPhotoNeeded={handleBrandPhotoNeeded}
         locationImagesOk={locationImagesOk}
         hasLocationPhoto={hasLocationPhoto}
         onPhotosNeeded={handlePhotosNeeded}
@@ -569,7 +581,7 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
     {
       id: "business",
       label: t("configuration.tabs.business"),
-      showBadge: !businessDetailsOk || !industryTagOk,
+      showBadge: !businessDetailsOk || !industryTagOk || !brandPhotoOk,
       content: (
         <>
           {/* The limited-access banner leads every tab, right under the tab bar. */}
@@ -582,6 +594,7 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
             industryTags={props.industryTags}
             form={form}
             onOwnerProfileSetupNeededChange={setOwnerProfileSetupNeeded}
+            brandPhotoAttention={brandPhotoAttention}
           />
         </>
       ),

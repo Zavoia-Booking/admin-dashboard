@@ -1,10 +1,11 @@
 import { useCallback, useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import AddressAutocomplete from './AddressAutocomplete';
-import { composeFullAddress } from '../../utils/address';
 import { useAddressManualFields } from '../../hooks/useAddressManualFields';
 import AddressManualFields from './AddressManualFields';
 import SegmentedControl from '../common/SegmentedControl';
+import { validateBuildingNumber, validateCity, validatePostcode, validateCountry } from '../../utils/validation';
+import type { AddressSuggestion } from '../../types/geo';
 
 type Props = {
   value: string;
@@ -33,18 +34,17 @@ type Props = {
   onValidityChange?: (isValid: boolean) => void;
   manualMode?: boolean; // External control of manual vs search mode
   onManualModeChange?: (isManual: boolean) => void; // Callback to persist mode changes
-  preserveInitialData?: boolean; // If true, original server data is preserved and not updated by user actions
-  alwaysClearOnSwitch?: boolean; // If true, always clear everything when switching modes (for Add Location)
   countryCodes?: string[]; // ISO country codes to restrict address search (e.g., ['ro', 'de'])
+  onSuggestionPicked?: (s: AddressSuggestion) => void; // a search pick, incl. how precisely the map knows it
 };
 
-export default function AddressComposer({ value, onChange, className, addressComponents, onAddressComponentsChange, onValidityChange, manualMode: externalManualMode, onManualModeChange, preserveInitialData = false, alwaysClearOnSwitch = false, countryCodes }: Props) {
+type TabDraft = { address: string; components: NonNullable<Props['addressComponents']> };
+
+export default function AddressComposer({ value, onChange, className, addressComponents, onAddressComponentsChange, onValidityChange, manualMode: externalManualMode, onManualModeChange, countryCodes, onSuggestionPicked }: Props) {
   const { t } = useTranslation('common');
+  const postcodeNumeric = countryCodes?.length === 1 && countryCodes[0].toLowerCase() === 'ro';
   const [addressSelected, setAddressSelected] = useState(false);
-  const lastSelectedRef = useRef<{ s: string; n: string; c: string; p: string; co: string; display: string } | null>(null);
-  const [manualEdited, setManualEdited] = useState(false);
-  const draftMode = useRef<boolean | null>(null); // Track which mode the draft was saved in (null = no draft, false = search, true = manual)
-  const originalDraftData = useRef<{ components: any; address: string; mode: boolean } | null>(null); // Preserve original draft data
+  const drafts = useRef<{ search: TabDraft | null; manual: TabDraft | null }>({ search: null, manual: null });
   const {
     streetBase,
     actualStreet,
@@ -63,12 +63,14 @@ export default function AddressComposer({ value, onChange, className, addressCom
     onPostalChange,
     onCountryChange,
     hydrateFromComponents,
+    restoreFromComponents,
   } = useAddressManualFields({
     components: addressComponents,
     fullAddressDisplay: value, // pass the saved full address for display in locked street input
     onChange: (next) => onChange(next),
     onComponentsChange: (c) => onAddressComponentsChange?.(c),
     onValidityChange,
+    postcodeDigitsOnly: postcodeNumeric,
   });
   // Use external manualMode if provided, otherwise maintain internal state
   const [internalManualMode, setInternalManualMode] = useState(false);
@@ -77,33 +79,24 @@ export default function AddressComposer({ value, onChange, className, addressCom
   const [shouldAutoFocus, setShouldAutoFocus] = useState(false);
   const [hasLoadedFromDraft, setHasLoadedFromDraft] = useState(false);
 
-  // full composed address is derived on demand via composeFullAddress
-
-  // When addressComponents prop changes (from saved draft), populate all fields and track draft mode
+  // A saved address (draft or location) shows its filled fields on first load
   useEffect(() => {
     if (!hasLoadedFromDraft && addressComponents && (addressComponents.street || addressComponents.city)) {
       setAddressSelected(true);
       setHasLoadedFromDraft(true);
-      // Remember which mode the draft was saved in and preserve the original data
-      draftMode.current = externalManualMode ?? false;
-      originalDraftData.current = {
-        components: { ...addressComponents },
-        address: value || '',
-        mode: externalManualMode ?? false
-      };
     }
-  }, [addressComponents, hasLoadedFromDraft, externalManualMode, value]);
+  }, [addressComponents, hasLoadedFromDraft]);
 
   // Bubble validity to parent (e.g., to disable Continue button)
   useEffect(() => {
     const editorActive = manualMode || addressSelected;
     const hasErrors = Boolean(streetError || numberError || cityError || postalError || countryError);
-    // Any required field empty => invalid (even if untouched), for both manual and search-selected modes
-    const requiredEmpty = [streetBase, streetNumber, city, postalCode, country].some(v => !(v && v.trim().length > 0));
+    // Any required field empty => invalid (even if untouched); Manual checks the Street box itself (streetBase holds the whole line there)
+    const requiredEmpty = [manualMode ? actualStreet : streetBase, streetNumber, city, postalCode, country].some(v => !(v && v.trim().length > 0));
     // In search mode with no selection, mark invalid (Step handles remote bypass)
     const isValid = editorActive ? (!hasErrors && !requiredEmpty) : false;
     onValidityChange?.(isValid);
-  }, [manualMode, addressSelected, streetError, numberError, cityError, postalError, countryError, streetBase, streetNumber, city, postalCode, country, onValidityChange]);
+  }, [manualMode, addressSelected, streetError, numberError, cityError, postalError, countryError, streetBase, actualStreet, streetNumber, city, postalCode, country, onValidityChange]);
 
   const handleAutocompleteChange = useCallback((c: { address: string; suggestion?: any | null }) => {
     setShouldAutoFocus(false);
@@ -116,29 +109,8 @@ export default function AddressComposer({ value, onChange, className, addressCom
       // Hydrate exact components; display value is handled in UI, but keep street free in manual mode
       // Reset errors since data from MapTiler is trusted
       hydrateFromComponents(streetName, number, s.city ?? '', s.postalCode ?? '', s.country ?? '', fullAddress, true);
-      lastSelectedRef.current = { s: streetName, n: number, c: s.city ?? '', p: s.postalCode ?? '', co: s.country ?? '', display: fullAddress };
-      setManualEdited(false);
       setAddressSelected(true);
       setManualMode(false);
-      // User selected a new address in search mode - update draft mode and original data
-      draftMode.current = false;
-      // Only update originalDraftData if NOT in alwaysClearOnSwitch mode
-      if (!alwaysClearOnSwitch) {
-        originalDraftData.current = {
-          components: {
-            street: streetName,
-            streetNumber: number,
-            city: s.city ?? '',
-            postalCode: s.postalCode ?? '',
-            country: s.country ?? '',
-            latitude: s.lat,
-            longitude: s.lng,
-            mapPinConfirmed: false,
-          },
-          address: fullAddress,
-          mode: false
-        };
-      }
       // Save the full display name as the address, not the composed version
       onChange(fullAddress);
       onAddressComponentsChange?.({ 
@@ -151,6 +123,7 @@ export default function AddressComposer({ value, onChange, className, addressCom
         longitude: s.lng,
         mapPinConfirmed: false, // Reset to false when selecting new address from search
       });
+      onSuggestionPicked?.(c.suggestion as AddressSuggestion);
       return;
     }
     // User is typing but didn't select a suggestion yet — keep search mode
@@ -158,29 +131,8 @@ export default function AddressComposer({ value, onChange, className, addressCom
     setManualMode(false);
     // Reset components fully; do not mark fields as touched on reset
     hydrateFromComponents('', '', '', '', '');
-    lastSelectedRef.current = null;
     onChange(c.address);
-  }, [onChange, onAddressComponentsChange]);
-
-  const handleStreetNumberChange = useCallback((next: string) => {
-    setManualEdited(true);
-    onNumberChange(next);
-  }, [onNumberChange]);
-
-  const handlePostcodeChange = useCallback((next: string) => {
-    setManualEdited(true);
-    onPostalChange(next);
-  }, [onPostalChange]);
-
-  const handleCityChange = useCallback((next: string) => {
-    setManualEdited(true);
-    onCityChange(next);
-  }, [onCityChange]);
-
-  const handleCountryChange = useCallback((next: string) => {
-    setManualEdited(true);
-    onCountryChange(next);
-  }, [onCountryChange]);
+  }, [onChange, onAddressComponentsChange, onSuggestionPicked]);
 
   // Helper to update mode state
   const setManualMode = useCallback((isManual: boolean) => {
@@ -191,260 +143,56 @@ export default function AddressComposer({ value, onChange, className, addressCom
     }
   }, [onManualModeChange]);
 
-  // Segmented control handlers
-  const handleSelectSearchMode = useCallback(() => {
-    // If alwaysClearOnSwitch is true, always clear everything (for Add Location)
-    if (alwaysClearOnSwitch) {
-      setManualMode(false);
-      setAddressSelected(false);
-      hydrateFromComponents('', '', '', '', '');
-      lastSelectedRef.current = null;
-      setManualEdited(false);
-      onChange('');
-      onAddressComponentsChange?.({
-        street: '',
-        streetNumber: '',
-        city: '',
-        postalCode: '',
-        country: '',
-        latitude: undefined,
-        longitude: undefined,
-        mapPinConfirmed: false,
-      });
-      setShouldAutoFocus(true);
-      setSearchKey(prev => prev + 1);
-      return;
+  const switchTab = useCallback((toManual: boolean) => {
+    if (toManual === manualMode) return;
+    if (!toManual) {
+      const hasManual = addressComponents && [addressComponents.street, addressComponents.streetNumber, addressComponents.city, addressComponents.postalCode, addressComponents.country].some(v => (v ?? '').trim().length > 0);
+      drafts.current.manual = addressComponents && hasManual ? { address: value || '', components: { ...addressComponents } } : null;
+    } else {
+      drafts.current.search = addressSelected && addressComponents ? { address: value || '', components: { ...addressComponents } } : null;
     }
-    
-    // If preserving initial data, only restore if original was in search mode
-    if (preserveInitialData) {
-      if (originalDraftData.current && originalDraftData.current.mode === false) {
-        const draft = originalDraftData.current;
-        setManualMode(false);
-        setAddressSelected(true);
-        hydrateFromComponents(
-          draft.components.street || '',
-          draft.components.streetNumber || '',
-          draft.components.city || '',
-          draft.components.postalCode || '',
-          draft.components.country || '',
-          draft.address,
-          true
-        );
-        onChange(draft.address);
-        onAddressComponentsChange?.({
-          street: draft.components.street || '',
-          streetNumber: draft.components.streetNumber || '',
-          city: draft.components.city || '',
-          postalCode: draft.components.postalCode || '',
-          country: draft.components.country || '',
-          latitude: draft.components.latitude,
-          longitude: draft.components.longitude,
-          mapPinConfirmed: draft.components.mapPinConfirmed ?? false,
-        });
-        return;
-      }
-      // Not the original mode, clear everything
-      setManualMode(false);
-      setAddressSelected(false);
-      hydrateFromComponents('', '', '', '', '');
-      lastSelectedRef.current = null;
-      onChange('');
-      onAddressComponentsChange?.({
-        street: '',
-        streetNumber: '',
-        city: '',
-        postalCode: '',
-        country: '',
-        latitude: undefined,
-        longitude: undefined,
-        mapPinConfirmed: false,
-      });
-      setShouldAutoFocus(true);
-      setSearchKey(prev => prev + 1);
-      return;
-    }
-    
-    // Original wizard behavior: restore last selected if not edited
-    if (!manualEdited && lastSelectedRef.current) {
-      const { s, n, c, p, co, display } = lastSelectedRef.current;
-      setManualMode(false);
+    const draft = toManual ? drafts.current.manual : drafts.current.search;
+    if (draft) {
+      const c = draft.components;
+      setManualMode(toManual);
       setAddressSelected(true);
-      hydrateFromComponents(s, n, c, p, co, display);
-      onChange(composeFullAddress(s, n, c, p, co));
-      return;
-    }
-    
-    // If draft was saved in search mode, restore the ORIGINAL draft data
-    if (originalDraftData.current && originalDraftData.current.mode === false) {
-      const draft = originalDraftData.current;
-      setManualMode(false);
-      setAddressSelected(true);
-      hydrateFromComponents(
-        draft.components.street || '',
-        draft.components.streetNumber || '',
-        draft.components.city || '',
-        draft.components.postalCode || '',
-        draft.components.country || '',
-        draft.address,
-        true
-      );
+      restoreFromComponents(c.street ?? '', c.streetNumber ?? '', c.city ?? '', c.postalCode ?? '', c.country ?? '', draft.address);
       onChange(draft.address);
-      // Restore original draft components including coordinates
-      onAddressComponentsChange?.({
-        street: draft.components.street || '',
-        streetNumber: draft.components.streetNumber || '',
-        city: draft.components.city || '',
-        postalCode: draft.components.postalCode || '',
-        country: draft.components.country || '',
-        latitude: draft.components.latitude,
-        longitude: draft.components.longitude,
-        mapPinConfirmed: draft.components.mapPinConfirmed ?? false,
-      });
+      onAddressComponentsChange?.(c as Parameters<NonNullable<Props['onAddressComponentsChange']>>[0]);
       return;
     }
-    
-    // Otherwise clear everything and start fresh search
+    const cleared = {
+      street: '',
+      streetNumber: '',
+      city: '',
+      postalCode: '',
+      country: '',
+      latitude: undefined,
+      longitude: undefined,
+      mapPinConfirmed: false,
+    };
+    if (toManual) {
+      setManualMode(true);
+      setAddressSelected(true);
+      hydrateFromComponents('', '', '', '', '', undefined, true);
+      onAddressComponentsChange?.(cleared);
+      onChange('');
+      return;
+    }
     setManualMode(false);
     setAddressSelected(false);
     hydrateFromComponents('', '', '', '', '');
-    lastSelectedRef.current = null;
     onChange('');
-    
-    // Clear address components including coordinates
-    onAddressComponentsChange?.({
-      street: '',
-      streetNumber: '',
-      city: '',
-      postalCode: '',
-      country: '',
-      latitude: undefined,
-      longitude: undefined,
-      mapPinConfirmed: false,
-    });
-    
+    onAddressComponentsChange?.(cleared);
     setShouldAutoFocus(true);
     setSearchKey(prev => prev + 1);
-  }, [alwaysClearOnSwitch, preserveInitialData, manualEdited, onChange, hydrateFromComponents, setManualMode, onAddressComponentsChange]);
-
-  const handleSelectManualMode = useCallback(() => {
-    setManualMode(true);
-    setAddressSelected(true);
-    
-    // If alwaysClearOnSwitch is true, always clear everything (for Add Location)
-    if (alwaysClearOnSwitch) {
-      hydrateFromComponents('', '', '', '', '', undefined, true);
-      onAddressComponentsChange?.({
-        street: '',
-        streetNumber: '',
-        city: '',
-        postalCode: '',
-        country: '',
-        latitude: undefined,
-        longitude: undefined,
-        mapPinConfirmed: false,
-      });
-      setManualEdited(false);
-      onChange('');
-      return;
-    }
-    
-    // If preserving initial data, only restore if original was in manual mode
-    if (preserveInitialData) {
-      if (originalDraftData.current && originalDraftData.current.mode === true) {
-        const draft = originalDraftData.current;
-        hydrateFromComponents(
-          draft.components.street || '',
-          draft.components.streetNumber || '',
-          draft.components.city || '',
-          draft.components.postalCode || '',
-          draft.components.country || '',
-          undefined,
-          true
-        );
-        onChange(draft.address);
-        onAddressComponentsChange?.({
-          street: draft.components.street || '',
-          streetNumber: draft.components.streetNumber || '',
-          city: draft.components.city || '',
-          postalCode: draft.components.postalCode || '',
-          country: draft.components.country || '',
-          latitude: draft.components.latitude,
-          longitude: draft.components.longitude,
-          mapPinConfirmed: draft.components.mapPinConfirmed ?? false,
-        });
-        setManualEdited(false);
-        return;
-      }
-      // Not the original mode, clear everything
-      hydrateFromComponents('', '', '', '', '', undefined, true);
-      onAddressComponentsChange?.({
-        street: '',
-        streetNumber: '',
-        city: '',
-        postalCode: '',
-        country: '',
-        latitude: undefined,
-        longitude: undefined,
-        mapPinConfirmed: false,
-      });
-      setManualEdited(false);
-      onChange('');
-      return;
-    }
-    
-    // Original wizard behavior: restore if draft was saved in manual mode
-    if (originalDraftData.current && originalDraftData.current.mode === true) {
-      const draft = originalDraftData.current;
-      hydrateFromComponents(
-        draft.components.street || '',
-        draft.components.streetNumber || '',
-        draft.components.city || '',
-        draft.components.postalCode || '',
-        draft.components.country || '',
-        undefined,
-        true
-      );
-      onChange(draft.address);
-      // Restore original draft components including coordinates
-      onAddressComponentsChange?.({
-        street: draft.components.street || '',
-        streetNumber: draft.components.streetNumber || '',
-        city: draft.components.city || '',
-        postalCode: draft.components.postalCode || '',
-        country: draft.components.country || '',
-        latitude: draft.components.latitude,
-        longitude: draft.components.longitude,
-        mapPinConfirmed: draft.components.mapPinConfirmed ?? false,
-      });
-      setManualEdited(false);
-      return;
-    }
-    
-    // Otherwise clear everything when switching to manual mode
-    hydrateFromComponents('', '', '', '', '', undefined, true);
-    
-    // Clear address components including coordinates
-    onAddressComponentsChange?.({
-      street: '',
-      streetNumber: '',
-      city: '',
-      postalCode: '',
-      country: '',
-      latitude: undefined,
-      longitude: undefined,
-      mapPinConfirmed: false,
-    });
-    
-    setManualEdited(false);
-    onChange('');
-  }, [alwaysClearOnSwitch, preserveInitialData, onChange, setManualMode, hydrateFromComponents, onAddressComponentsChange]);
+  }, [manualMode, addressSelected, value, addressComponents, onChange, onAddressComponentsChange, setManualMode, hydrateFromComponents, restoreFromComponents]);
 
   const handleChangeAddressClick = useCallback(() => {
     setManualMode(false);
     setAddressSelected(false);
     hydrateFromComponents('', '', '', '', '');
-    lastSelectedRef.current = null;
+    drafts.current.search = null;
     onChange('');
     setShouldAutoFocus(true);
     // Force remount of AddressAutocomplete to clear and focus
@@ -461,12 +209,16 @@ export default function AddressComposer({ value, onChange, className, addressCom
     setShowStreetTip(false);
   }, []);
 
+  // A selected address that lacks a required part says so at once: the owner did not type it, so no box was touched to show its message
+  const selectedFromSearch = !manualMode && addressSelected;
+  const missing = (value: string, validate: typeof validateCity) => (selectedFromSearch && !value.trim() ? validate('', t) : null);
+
   return (
     <div className={className}>
       <SegmentedControl
         options={[{ value: 'search', label: t('address.search') }, { value: 'manual', label: t('address.manual') }]}
         value={manualMode ? 'manual' : 'search'}
-        onChange={(v) => (v === 'manual' ? handleSelectManualMode() : handleSelectSearchMode())}
+        onChange={(v) => switchTab(v === 'manual')}
         className="mb-4 w-[224px]"
       />
 
@@ -492,20 +244,21 @@ export default function AddressComposer({ value, onChange, className, addressCom
           postalCode={postalCode}
           country={country}
           streetError={streetError}
-          numberError={numberError}
-          cityError={cityError}
-          postalError={postalError}
-          countryError={countryError}
-          onStreetChange={(v) => { setManualEdited(true); onStreetChange(v); }}
-          onNumberChange={(v) => { setManualEdited(true); handleStreetNumberChange(v); }}
-          onCityChange={(v) => { setManualEdited(true); handleCityChange(v); }}
-          onPostalChange={(v) => { setManualEdited(true); handlePostcodeChange(v); }}
-          onCountryChange={(v) => { setManualEdited(true); handleCountryChange(v); }}
-          isLocked={!manualMode && addressSelected}
+          numberError={numberError ?? missing(streetNumber, validateBuildingNumber)}
+          cityError={cityError ?? missing(city, validateCity)}
+          postalError={postalError ?? missing(postalCode, validatePostcode)}
+          countryError={countryError ?? missing(country, validateCountry)}
+          onStreetChange={onStreetChange}
+          onNumberChange={onNumberChange}
+          onCityChange={onCityChange}
+          onPostalChange={onPostalChange}
+          onCountryChange={onCountryChange}
+          isLocked={selectedFromSearch}
           onChangeAddressClick={handleChangeAddressClick}
           showStreetTip={showStreetTip}
           onStreetFocus={handleStreetFocus}
           onStreetBlur={handleStreetBlur}
+          postcodeNumeric={postcodeNumeric}
         />
       )}
     </div>

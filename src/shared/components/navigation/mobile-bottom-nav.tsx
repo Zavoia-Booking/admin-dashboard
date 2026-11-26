@@ -8,12 +8,13 @@ import {
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { cn } from '../../lib/utils';
 import { applyTheme } from '../../lib/theme';
 import { chooseLanguage } from '../../lib/i18n';
 import { useRef, useState } from 'react';
 import { logoutRequestAction } from '../../../features/auth/actions';
+import { selectIsLoggingOut } from '../../../features/auth/selectors';
 import { useAppNavigation } from './navigation-model';
 import {
   Drawer,
@@ -22,6 +23,7 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from '../ui/drawer';
+import { Spinner } from '../ui/spinner';
 import { requestGuardedUnsavedAction } from '../../hooks/useUnsavedChangesBlocker';
 import { useKeyboardVisibleForNav } from '../../hooks/useKeyboardVisible';
 import { preloadRoute } from '../../utils/routePreload';
@@ -31,6 +33,7 @@ export function MobileBottomNav() {
   const { pathname } = useLocation();
   const { i18n, t } = useTranslation('navigation');
   const dispatch = useDispatch();
+  const isLoggingOut = useSelector(selectIsLoggingOut);
   const { mobileMainItems, mobileMoreItems } = useAppNavigation();
   const [isOpen, setIsOpen] = useState(false);
   // Native keyboard covers the tab bar (like native apps) instead of pushing it up.
@@ -75,9 +78,13 @@ export function MobileBottomNav() {
   const tabCount = mobileMainItems.length + 1;
 
   const handleLogout = () => {
-    setIsOpen(false);
-    requestGuardedUnsavedAction(() => dispatch(logoutRequestAction.request()));
+    // Stays open with the spinner until logout ends; closes only for the unsaved-changes dialog.
+    const started = requestGuardedUnsavedAction(() => dispatch(logoutRequestAction.request()));
+    if (!started) setIsOpen(false);
   };
+
+  // Wait for navigation destinations before showing the bar on startup.
+  if (mobileMainItems.length === 0 && mobileMoreItems.length === 0) return null;
 
   return (
     <Drawer
@@ -172,10 +179,19 @@ export function MobileBottomNav() {
             <button
               type="button"
               onClick={handleLogout}
-              className="mb-[5px] flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-border bg-surface px-4 py-3 outline-none transition-colors duration-150 hover:bg-surface-hover focus-visible:ring-2 focus-visible:ring-focus/40 motion-reduce:transition-none"
+              disabled={isLoggingOut}
+              aria-busy={isLoggingOut || undefined}
+              className="mb-[5px] flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-border bg-surface px-4 py-3 outline-none transition-colors duration-150 hover:bg-surface-hover focus-visible:ring-2 focus-visible:ring-focus/40 disabled:pointer-events-none disabled:opacity-50 motion-reduce:transition-none"
             >
-              <LogOut className="size-4" aria-hidden />
-              <span className="font-medium text-sm">{t('sidebar.logOut')}</span>
+              {isLoggingOut ? (
+                // h-5 = the label's line height, so the row keeps its size.
+                <Spinner size="sm" className="h-5" />
+              ) : (
+                <>
+                  <LogOut className="size-4" aria-hidden />
+                  <span className="font-medium text-sm">{t('sidebar.logOut')}</span>
+                </>
+              )}
             </button>
           </div>
         </div>

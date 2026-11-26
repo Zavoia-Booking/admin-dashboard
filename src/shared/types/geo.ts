@@ -8,6 +8,8 @@ export interface AddressSuggestion {
   city?: string;
   postalCode?: string;
   country?: string;
+  county?: string; // region/county name
+  precision?: 'address' | 'street'; // whether the map knows the building or only the street
 }
 
 export interface AddressAutocompleteChange {

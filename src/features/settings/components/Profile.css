@@ -162,6 +162,21 @@
   gap: 10px;
 }
 
+.profile-hero-email-button {
+  display: inline-flex;
+  align-items: center;
+  padding: 0;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.profile-hero-email-button:hover .profile-pill {
+  text-decoration: underline;
+}
+.profile-hero-email-button:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
 @media (max-width: 720px) {
   .profile-hero {
     grid-template-columns: 1fr;
@@ -176,6 +191,40 @@
     align-items: center;
     gap: 8px;
   }
+}
+
+.profile-hero-business-mobile {
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: "identity owner";
+  align-items: start;
+  padding: 20px;
+  gap: 12px 16px;
+}
+.profile-hero-business-mobile .profile-hero-left {
+  grid-area: identity;
+}
+.profile-hero-business-mobile .profile-hero-right {
+  display: contents;
+}
+.profile-hero-business-mobile .profile-hero-owner {
+  grid-area: owner;
+  justify-self: end;
+}
+.profile-hero-business-mobile .profile-hero-meta .profile-eyebrow {
+  display: none;
+}
+.profile-hero-business-mobile .profile-hero-meta h2 {
+  font-size: 24px;
+  line-height: 1.2;
+}
+.profile-hero-business-mobile .profile-hero-meta .profile-row2 {
+  margin-top: 5px;
+  font-size: 15px;
+}
+.profile-hero-business-mobile .profile-hero-email-status {
+  grid-column: 1 / -1;
+  border-top: 1px solid var(--border);
+  padding-top: 4px;
 }
 
 /* ── Section card ── */

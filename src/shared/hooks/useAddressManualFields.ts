@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { composeFullAddress } from '../utils/address';
-import { sanitizeDigits, validateStreetAddress, validateBuildingNumber, validateCity, validatePostcode, validateCountry } from '../utils/validation';
+import { sanitizeDigits, sanitizePostcode, validateStreetAddress, validateBuildingNumber, validateCity, validatePostcode, validateCountry } from '../utils/validation';
 
 export type AddressComponents = {
   street?: string;
@@ -18,11 +18,12 @@ type Params = {
   components?: AddressComponents;
   fullAddressDisplay?: string; // full address string for display in locked mode (from location.address)
   onChange: (next: string) => void;
-  onComponentsChange?: (c: Required<AddressComponents>) => void;
+  onComponentsChange?: (c: Omit<Required<AddressComponents>, 'latitude' | 'longitude'> & { latitude?: number; longitude?: number }) => void;
   onValidityChange?: (isValid: boolean) => void;
+  postcodeDigitsOnly?: boolean;
 };
 
-export const useAddressManualFields = ({ components, fullAddressDisplay, onChange, onComponentsChange, onValidityChange }: Params) => {
+export const useAddressManualFields = ({ components, fullAddressDisplay, onChange, onComponentsChange, onValidityChange, postcodeDigitsOnly = true }: Params) => {
   const { t } = useTranslation('common');
   const [streetBase, setStreetBase] = useState(''); // Display value (full address for locked mode, street name for manual)
   const [actualStreet, setActualStreet] = useState(''); // Actual street component for composition
@@ -91,8 +92,8 @@ export const useAddressManualFields = ({ components, fullAddressDisplay, onChang
       city: c, 
       postalCode: p, 
       country: co,
-      latitude: components?.latitude ?? 0,
-      longitude: components?.longitude ?? 0,
+      latitude: components?.latitude,
+      longitude: components?.longitude,
       mapPinConfirmed: components?.mapPinConfirmed ?? false,
     });
   }, [onChange, onComponentsChange, components?.latitude, components?.longitude, components?.mapPinConfirmed]);
@@ -117,11 +118,11 @@ export const useAddressManualFields = ({ components, fullAddressDisplay, onChang
   }, [emitChange, actualStreet, streetNumber, postalCode, country, t]);
 
   const onPostalChange = useCallback((next: string) => {
-    const digits = sanitizeDigits(next);
-    setPostalCode(digits);
-    setPostalError(validatePostcode(digits, t));
-    emitChange(actualStreet, streetNumber, city, digits, country);
-  }, [emitChange, actualStreet, streetNumber, city, country, t]);
+    const kept = postcodeDigitsOnly ? sanitizeDigits(next) : sanitizePostcode(next);
+    setPostalCode(kept);
+    setPostalError(validatePostcode(kept, t));
+    emitChange(actualStreet, streetNumber, city, kept, country);
+  }, [emitChange, actualStreet, streetNumber, city, country, t, postcodeDigitsOnly]);
 
   const onCountryChange = useCallback((next: string) => {
     setCountry(next);
@@ -187,6 +188,28 @@ export const useAddressManualFields = ({ components, fullAddressDisplay, onChang
         setPostalError(validatePostcode(postalCode, t));
         setCountryError(validateCountry(country, t));
       }
+    },
+    // restores saved values; validates only the fields that have text
+    restoreFromComponents: (
+      street: string,
+      streetNumber: string,
+      city: string,
+      postalCode: string,
+      country: string,
+      display?: string
+    ) => {
+      const fullStreet = display ?? (streetNumber ? `${street} ${streetNumber}` : street);
+      setStreetBase(fullStreet);
+      setActualStreet(street);
+      setStreetNumber(streetNumber);
+      setCity(city);
+      setPostalCode(postalCode);
+      setCountry(country);
+      setStreetError(street.trim() ? validateStreetAddress(street, t) : null);
+      setNumberError(streetNumber.trim() ? validateBuildingNumber(streetNumber, t) : null);
+      setCityError(city.trim() ? validateCity(city, t) : null);
+      setPostalError(postalCode.trim() ? validatePostcode(postalCode, t) : null);
+      setCountryError(country.trim() ? validateCountry(country, t) : null);
     },
   } as const;
 };

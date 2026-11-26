@@ -17,7 +17,8 @@ import ContactInformationToggle from '../../../shared/components/common/ContactI
 import WorkingHoursEditor from '../../../shared/components/common/WorkingHoursEditor';
 import Open247Toggle from '../../../shared/components/common/Open247Toggle';
 import { MapDialog } from '../../../shared/components/map';
-import { maptilerGeocode } from '../../../shared/lib/maptiler';
+import { locateTypedAddress } from '../../../shared/lib/maptiler';
+import { useLocationPinState, pinKey, hasRealCoords, pinMapZoom } from '../../../shared/hooks/useLocationPinState';
 import { createLocationAction } from '../actions';
 import type { NewLocationPayload } from '../types';
 import type { WorkingHours } from '../../../shared/types/location';
@@ -93,8 +94,9 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
   const [isGeocodingAddress, setIsGeocodingAddress] = useState(false);
   const [_, setPinWasModified] = useState(false);
   const mapInstanceRef = useRef<any>(null);
-  const isConfirmingFromMap = useRef(false);
-  const originalAddressRef = useRef<string>("");
+  const [mapZoom, setMapZoom] = useState(16);
+  const [mapFoundLevel, setMapFoundLevel] = useState<'address' | 'street' | 'town' | undefined>(undefined);
+  const { isConfirmed: isPinKeyConfirmed, markConfirmed: markPinConfirmed, reset: resetPins, version: pinVersion, setHint: setPinHint, hintFor: pinHintFor, notePlace: notePinPlace, placeChanged: pinPlaceChanged } = useLocationPinState();
 
   const {
     control,
@@ -102,6 +104,7 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
     reset,
     watch,
     setValue,
+    getValues,
   } = useForm<NewLocationPayload>({
     defaultValues,
     mode: "onChange",
@@ -111,7 +114,7 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
   const open247 = !!watch('open247');
 
   // Get business contact info (if available from user/business)
-  const businessEmail = currentUser?.email || "";
+  const businessEmail = currentUser?.business?.email || currentUser?.email || "";
   const businessPhone = currentUser?.business?.phone || "";
 
   const applyWorkingHours = (next: WorkingHours) => {
@@ -133,12 +136,10 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
       ...suggestion,
       coordinates: coordinates
     });
+    const level = suggestion?.precision === 'street' ? 'street' as const : undefined;
+    setMapFoundLevel(level);
     if (mapInstanceRef.current) {
-      mapInstanceRef.current.flyTo({
-        center: coordinates,
-        zoom: 16,
-        essential: true
-      });
+      mapInstanceRef.current.flyTo({ center: coordinates, zoom: pinMapZoom(level), essential: true });
     }
   };
 
@@ -150,7 +151,7 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
     const addressComponents = watch('addressComponents') as any;
     const address = watch('address') as string;
     
-    const hasCoordinates = addressComponents?.latitude != null && addressComponents?.longitude != null;
+    const hasCoordinates = hasRealCoords(addressComponents?.latitude, addressComponents?.longitude);
     const hasAddress = address && address.trim().length > 0;
 
     if (!hasAddress) {
@@ -158,38 +159,54 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
       return;
     }
     
-    if (hasCoordinates) {
-      setInitialMapCenter([
-        addressComponents.longitude,
-        addressComponents.latitude
-      ]);
+    const openOnStoredPin = () => {
+      const lng = Number(addressComponents.longitude);
+      const lat = Number(addressComponents.latitude);
+      const level = isPinKeyConfirmed(pinKey(address, lat, lng)) ? null : pinHintFor(lat, lng);
+      setMapZoom(pinMapZoom(level));
+      setMapFoundLevel(level ?? undefined);
+      setInitialMapCenter([lng, lat]);
       setAdjustedCoordinates(null);
       setSearchedAddressData(null);
       setIsMapOpen(true);
+    };
+    const openWithoutPin = () => {
+      setInitialMapCenter([0, 0]);
+      setMapZoom(16);
+      setMapFoundLevel(undefined);
+      setIsMapOpen(true);
+    };
+
+    // The stored pin is reused unless the street or town was changed after it was set
+    if (hasCoordinates && !pinPlaceChanged(addressComponents.latitude, addressComponents.longitude, addressComponents.street, addressComponents.city)) {
+      openOnStoredPin();
     } else {
       setIsGeocodingAddress(true);
       try {
-        const geocodeResult = await maptilerGeocode(address, businessCountryCode);
+        const geocodeResult = await locateTypedAddress({
+          street: addressComponents?.street ?? '',
+          streetNumber: addressComponents?.streetNumber ?? '',
+          city: addressComponents?.city ?? '',
+          postalCode: addressComponents?.postalCode ?? '',
+        }, businessCountryCode);
         
         if (geocodeResult) {
-          const geocodedCoords: [number, number] = [
-            Number(geocodeResult.lon),
-            Number(geocodeResult.lat)
-          ];
-          
+          const geocodedCoords: [number, number] = geocodeResult.lngLat;
+          setMapZoom(pinMapZoom(geocodeResult.level));
+          setMapFoundLevel(geocodeResult.level);
           setInitialMapCenter(geocodedCoords);
           setAdjustedCoordinates(geocodedCoords);
           setIsMapOpen(true);
         } else {
           toast.error(t("addLocation.toasts.couldNotFindLocation"));
-          setInitialMapCenter([0, 0]);
-          setIsMapOpen(true);
+          if (hasCoordinates) openOnStoredPin();
+          else openWithoutPin();
         }
       } catch (error) {
         console.error('Geocoding error:', error);
         toast.error(t("addLocation.toasts.couldNotGeocode"));
-        setInitialMapCenter([0, 0]);
-        setIsMapOpen(true);
+        if (hasCoordinates) openOnStoredPin();
+        else openWithoutPin();
       } finally {
         setIsGeocodingAddress(false);
       }
@@ -199,8 +216,6 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
   const handleConfirmPin = () => {
     const addressComponents = watch('addressComponents') as any;
     const currentAddress = watch('address') as string;
-    
-    isConfirmingFromMap.current = true;
     
     let finalCoordinates: [number, number];
     
@@ -215,6 +230,7 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
         return;
       }
       
+      markPinConfirmed(pinKey(displayName, finalCoordinates[1], finalCoordinates[0]));
       setValue('address', displayName, { shouldDirty: true, shouldTouch: true });
       setValue('addressComponents', {
         street: searchedAddressData.address || '',
@@ -231,6 +247,7 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
     } 
     // CASE 2: User only moved the pin
     else if (adjustedCoordinates) {
+      markPinConfirmed(pinKey(currentAddress, adjustedCoordinates[1], adjustedCoordinates[0]));
       setValue('addressComponents', {
         ...addressComponents,
         latitude: adjustedCoordinates[1],
@@ -252,12 +269,17 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
         return;
       }
       
+      markPinConfirmed(pinKey(currentAddress, finalLat, finalLng));
       setValue('addressComponents', {
         ...addressComponents,
         latitude: finalLat,
         longitude: finalLng,
       } as any, { shouldDirty: true, shouldTouch: true });
     }
+
+    // The pin now belongs to this street + town
+    const pinned = getValues('addressComponents') as any;
+    notePinPlace(pinned?.latitude, pinned?.longitude, pinned?.street, pinned?.city);
 
     // Set mapPinConfirmed at the top level
     setValue('mapPinConfirmed' as any, true, { shouldDirty: true, shouldTouch: true });
@@ -267,11 +289,9 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
     setAdjustedCoordinates(null);
     setSearchedAddressData(null);
     setInitialMapCenter([0, 0]);
+    setMapZoom(16);
+    setMapFoundLevel(undefined);
     mapInstanceRef.current = null;
-
-    setTimeout(() => {
-      isConfirmingFromMap.current = false;
-    }, 100);
 
     toast.success(t("addLocation.toasts.pinConfirmed"));
   };
@@ -422,20 +442,14 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
     if (createStatus === 'success') onClose();
   }, [createStatus, isOpen, isSubmitting, onClose]);
 
-  // Reset pin confirmation when address changes (user-initiated only)
+  const watchedAddress = watch('address');
+  const watchedComponents = watch('addressComponents') as any;
   useEffect(() => {
-    const addressValue = watch('address');
-    
-    if (!isConfirmingFromMap.current && originalAddressRef.current && addressValue !== originalAddressRef.current) {
-      setIsPinConfirmed(false);
-      setValue('mapPinConfirmed' as any, false);
-    }
-    
-    // Store original address on first load
-    if (!originalAddressRef.current && addressValue) {
-      originalAddressRef.current = addressValue;
-    }
-  }, [watch('address'), setValue]);
+    const c = getValues('addressComponents') as any;
+    const ok = isPinKeyConfirmed(pinKey(getValues('address'), c?.latitude, c?.longitude));
+    setIsPinConfirmed(ok);
+    if (((getValues('mapPinConfirmed' as any) as boolean | undefined) ?? false) !== ok) setValue('mapPinConfirmed' as any, ok);
+  }, [watchedAddress, watchedComponents?.latitude, watchedComponents?.longitude, pinVersion, getValues, setValue, isPinKeyConfirmed]);
 
   // Reset map state when slider closes
   useEffect(() => {
@@ -444,12 +458,13 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
       setAdjustedCoordinates(null);
       setSearchedAddressData(null);
       setInitialMapCenter([0, 0]);
+      setMapZoom(16);
+      setMapFoundLevel(undefined);
       mapInstanceRef.current = null;
-      setIsPinConfirmed(false);
+      resetPins();
       setPinWasModified(false);
-      originalAddressRef.current = "";
     }
-  }, [isOpen]);
+  }, [isOpen, resetPins]);
 
   const handleContactToggleChange = useCallback(
     (checked: boolean) => {
@@ -463,18 +478,6 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
         setValue("phone", businessPhone, {
           shouldValidate: true,
           shouldDirty: false,
-        });
-      } else {
-        // Clear fields when toggling OFF (don't validate immediately)
-        setValue("email", "", {
-          shouldDirty: false,
-          shouldValidate: false,
-          shouldTouch: false,
-        });
-        setValue("phone", "", {
-          shouldDirty: false,
-          shouldValidate: false,
-          shouldTouch: false,
         });
       }
     },
@@ -621,12 +624,12 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
                         })
                       }
                       onValidityChange={(isValid) => setIsAddressValid(isValid)}
-                      alwaysClearOnSwitch={true}
+                      onSuggestionPicked={(s) => { setPinHint(s.lat, s.lng, s.precision ?? 'address'); notePinPlace(s.lat, s.lng, s.address, s.city); }}
                       countryCodes={businessCountryCode ? [businessCountryCode] : undefined}
                     />
                     
-                    {/* Map Pin Verification Indicator */}
-                    {isAddressValid && addressValue && addressValue.trim().length > 0 && (
+                    {/* Map pin status; a confirmed pin stays visible while a part of the address is still missing */}
+                    {(isAddressValid || isPinConfirmed) && addressValue && addressValue.trim().length > 0 && (
                       <PinVerificationIndicator
                         isPinConfirmed={isPinConfirmed}
                         isGeocodingAddress={isGeocodingAddress}
@@ -659,6 +662,7 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
                     phoneLabel={t("addLocation.form.phoneLabel")}
                     helperTextOn={t("addLocation.form.helperTextOn")}
                     helperTextOff={t("addLocation.form.helperTextOff")}
+                    revertLabel={t("addLocation.form.useBusinessContact")}
                   />
 
                   <div className="pt-4">
@@ -822,14 +826,18 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
               setAdjustedCoordinates(null);
               setSearchedAddressData(null);
               setInitialMapCenter([0, 0]);
+              setMapZoom(16);
+              setMapFoundLevel(undefined);
               mapInstanceRef.current = null;
             }}
             title={t("addLocation.mapDialog.title")}
             description={t("addLocation.mapDialog.description")}
             accessToken={import.meta.env.VITE_MAPBOX_ACCESS_TOKEN || ''}
             center={initialMapCenter}
-            zoom={hasValidCoords ? 16 : 2}
-            marker={hasValidCoords ? {
+            zoom={hasValidCoords ? mapZoom : 2}
+            foundLevel={hasValidCoords ? mapFoundLevel : undefined}
+            // Opened without a pin: it appears once the owner clicks the map or picks an address
+            marker={hasValidCoords || adjustedCoordinates ? {
               coordinates: adjustedCoordinates || initialMapCenter,
               color: '#3b82f6',
               draggable: true,
@@ -856,6 +864,8 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
                     setAdjustedCoordinates(null);
                     setSearchedAddressData(null);
                     setInitialMapCenter([0, 0]);
+                    setMapZoom(16);
+                    setMapFoundLevel(undefined);
                     mapInstanceRef.current = null;
                   }}
                 >

@@ -75,7 +75,8 @@
       "customDescription": "Creează un nume de brand unic pentru această listare. Folosește-l pentru a ieși în evidență în marketplace și a-l separa de profilul tău principal de business.",
       "customLabel": "Numele afișat în marketplace",
       "placeholder": "ex. Sarah's Salon & Spa",
-      "custom": "Personalizat"
+      "custom": "Personalizat",
+      "useBusiness": "Folosește numele businessului"
     },
     "contact": {
       "title": "Date publice de contact",
@@ -83,16 +84,17 @@
       "phoneLabel": "Telefon public",
       "helperTextOn": "Folosește detaliile tale principale de contact pentru ca clienții să te poată contacta. Toate solicitările vor merge la canalele tale principale.",
       "helperTextOff": "Adaugă informații de contact doar pentru clienții potențiali din marketplace. Te ajută să urmărești solicitările separat de businessul tău principal.",
-      "inheritedLabel": "profilul businessului tău"
+      "inheritedLabel": "profilul businessului tău",
+      "useBusinessEmail": "Folosește emailul businessului",
+      "useBusinessPhone": "Folosește telefonul businessului"
     },
     "description": {
       "label": "Descriere",
-      "placement": "Apare pe pagina ta publică din marketplace, acolo unde clienții citesc despre tine înainte să rezerve.",
-      "useBusinessDescription": "Preluată automat din profilul businessului tău și afișată pe pagina ta publică din marketplace.",
-      "customDescription": "O prezentare scurtă pentru pagina ta publică din marketplace — ce oferi și de ce ar trebui să te aleagă clienții. Păstrează-o la una–două propoziții.",
+      "useBusinessDescription": "Apare pe pagina ta din marketplace. Preluată automat din <settingsLink>profilul businessului</settingsLink>.",
+      "customDescription": "Apare pe pagina ta din marketplace. Scrisă special pentru marketplace.",
       "placeholder": "Ce oferi și de ce ar trebui oamenii să te aleagă?",
-      "noDescription": "Nicio descriere de profil găsită. Pentru a păstra brandul tău consistent, actualizează setările businessului — sau schimbă pe modul personalizat pentru a scrie o versiune adaptată pentru marketplace.",
-      "custom": "Personalizat"
+      "custom": "Personalizat",
+      "useBusiness": "Folosește descrierea businessului"
     }
   },
   "industry": {
@@ -123,6 +125,8 @@
     "checklist": {
       "industryTag": "Cel puțin o specializare",
       "detailsValid": "Detaliile businessului sunt valide",
+      "brandPhotoDone": "Fotografia brandului a fost adăugată",
+      "brandPhotoNeeded": "Adaugă fotografia brandului",
       "websiteBuilder": "Web Studio este valid",
       "locationPhotosDone": "Fotografiile necesare pentru locații au fost adăugate",
       "locationPhotoNeeded": "Adaugă o fotografie la cel puțin o locație",
@@ -194,6 +198,21 @@
     "teamMember_other": "Membri ai echipei",
     "noTeamMembers": "Niciun membru adăugat"
   },
+  "brandPhoto": {
+    "title": "Fotografia brandului",
+    "description": "Apare pe pagina publică a brandului și pe cardurile din marketplace.",
+    "required": "Adaugă fotografia brandului înainte de publicare.",
+    "preview": "Previzualizarea fotografiei brandului",
+    "upload": "Încarcă fotografia",
+    "replace": "Înlocuiește fotografia",
+    "fileHint": "JPG, PNG, WebP sau AVIF, până la {{size}} MB.",
+    "toast": {
+      "uploaded": "Fotografia brandului a fost salvată.",
+      "removed": "Fotografia brandului a fost eliminată.",
+      "uploadFailed": "Fotografia brandului nu a putut fi salvată.",
+      "removeFailed": "Fotografia brandului nu a putut fi eliminată."
+    }
+  },
   "portfolio": {
     "visualIdentity": {
       "title": "Fotografiile listării",
@@ -215,7 +234,7 @@
     "uploadPhotos": "Încarcă fotografii",
     "dropToUpload": "Dă drumul pentru a încărca",
     "dragAndDrop": "Trage și plasează sau apasă pentru a selecta",
-    "releaseNow": "Lansează acum",
+    "releaseNow": "Eliberează acum",
     "professionalGallery": "Galerie foto",
     "uploadDescription": "Încarcă până la {{count}} fotografii pentru a prezenta businessul tău.",
     "images": "Imagini",

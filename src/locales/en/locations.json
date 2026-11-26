@@ -36,8 +36,12 @@
     "searchPlaceholder": "Search for the correct address...",
     "mobileHint": "Move the map until the pin sits on your exact location. Customers find you by the pin.",
     "mobileSearchFirst": "Search for your address, or tap the map, to place the pin.",
-    "addressWarningTitle": "Confirm Pin Location",
-    "addressWarningDescription": "We've attempted to place the pin based on your address. If it's correct, simply click \"Confirm Location\". If not, you can search for the correct address, click on the map, or drag the pin to adjust. Customers will find your business based on the pin location."
+    "streetOnlyDescription": "The map doesn't have your building number, so the pin is on the street. Drag the pin onto your building, then click \"Confirm Location\". Customers find you by this pin.",
+    "streetOnlyMobileHint": "We found the street, not the building. Move the map until the pin sits on your building.",
+    "townOnlyDescription": "The pin is in the centre of your town. Drag it to your exact location or search again, then click \"Confirm Location\".",
+    "townOnlyMobileHint": "We couldn't find the street. Move the map until the pin sits on your exact location.",
+    "viewMap": "Map",
+    "viewSatellite": "Satellite"
   },
   "addLocation": {
     "title": "Add New Location",
@@ -53,6 +57,7 @@
       "inheritedLabel": "your business",
       "helperTextOn": "Your business contact info will be used for this location.",
       "helperTextOff": "Provide different contact details for this location.",
+      "useBusinessContact": "Use business contact",
       "descriptionPlaceholder": "Describe this location (e.g. Main office with parking)",
       "workingHoursLabel": "Working Hours",
       "teamMembersTitle": "Team Members",
@@ -122,6 +127,7 @@
       "inheritedLabel": "your business",
       "helperTextOn": "Your business contact info will be used for this location.",
       "helperTextOff": "Provide different contact details for this location.",
+      "useBusinessContact": "Use business contact",
       "descriptionLabel": "Description",
       "descriptionPlaceholder": "Describe this location (e.g. Main office with parking)",
       "workingHoursLabel": "Working Hours"

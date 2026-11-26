@@ -20,6 +20,7 @@ interface MarketplacePublishStatusStripProps {
   hasValidationErrors: boolean;
   industryTagOk: boolean;
   businessDetailsOk: boolean;
+  brandPhotoOk: boolean;
   locationImagesOk: boolean;
   hasLocationPhoto: boolean;
   locations: LocationWithAssignments[];
@@ -33,6 +34,7 @@ interface MarketplacePublishStatusStripProps {
   ownerProfileSetupNeeded?: boolean;
   onManageOwnerProfile?: () => void;
   onPublish: () => void;
+  onBrandPhotoNeeded: () => void;
   onPhotosNeeded: () => void;
   onResolveChecklistItem?: (item: PublishChecklistItemKey) => void;
   mobileChecklistOpen?: boolean;
@@ -48,6 +50,7 @@ export function MarketplacePublishStatusStrip({
   hasValidationErrors,
   industryTagOk,
   businessDetailsOk,
+  brandPhotoOk,
   locationImagesOk,
   hasLocationPhoto,
   locations,
@@ -58,6 +61,7 @@ export function MarketplacePublishStatusStrip({
   ownerProfileSetupNeeded = false,
   onManageOwnerProfile,
   onPublish,
+  onBrandPhotoNeeded,
   onPhotosNeeded,
   onResolveChecklistItem,
   mobileChecklistOpen,
@@ -89,6 +93,17 @@ export function MarketplacePublishStatusStrip({
       ? () => onResolveChecklistItem(item.key)
       : undefined,
   }));
+
+  items.push({
+    key: "brandPhoto",
+    ok: brandPhotoOk,
+    label: t(
+      brandPhotoOk
+        ? "statusStrip.checklist.brandPhotoDone"
+        : "statusStrip.checklist.brandPhotoNeeded",
+    ),
+    onResolve: onBrandPhotoNeeded,
+  });
 
   if (locations.length > 0) {
     items.push({
@@ -201,7 +216,14 @@ export function MarketplacePublishStatusStrip({
 
   const renderActionButton = (mobile = false) => (
     <Button
-      onClick={() => (photosBlocked ? onPhotosNeeded() : onPublish())}
+      // A missing photo sends the click to its uploader instead of saving.
+      onClick={() =>
+        !brandPhotoOk
+          ? onBrandPhotoNeeded()
+          : photosBlocked
+            ? onPhotosNeeded()
+            : onPublish()
+      }
       disabled={publishDisabled}
       // Mobile: the app Spinner in place of the label, never loading text.
       loading={mobile && isPublishing}

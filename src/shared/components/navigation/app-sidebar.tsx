@@ -4,6 +4,7 @@ import { useSelector, useDispatch } from "react-redux"
 import { useTranslation } from "react-i18next"
 import type { RootState } from "../../../app/providers/store"
 import { logoutRequestAction } from "../../../features/auth/actions"
+import { selectIsLoggingOut } from "../../../features/auth/selectors"
 
 import { NavMain } from "./nav-main"
 import { CompanyLogo } from "./CompanyLogo"
@@ -20,6 +21,7 @@ import {
   SidebarTrigger,
   useSidebar,
 } from "../ui/sidebar"
+import { Spinner } from "../ui/spinner"
 import { usePermissions } from "../../hooks/usePermissions"
 import { NotificationBell } from "../common/NotificationBell"
 import { useAppNavigation } from "./navigation-model"
@@ -34,6 +36,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   // Get user data from Redux store
   const isAuthLoading = useSelector((state: RootState) => state.auth.isLoading)
+  const isLoggingOut = useSelector(selectIsLoggingOut)
 
   const isCollapsed = state === 'collapsed'
 
@@ -91,11 +94,20 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarMenuItem>
             <SidebarMenuButton 
               onClick={handleLogout} 
+              disabled={isLoggingOut}
+              aria-busy={isLoggingOut || undefined}
               tooltip={t("sidebar.logOut")}
               className="w-full h-full py-3 hover:bg-red-500/10 hover:text-red-600 dark:hover:text-red-400 transition-colors duration-200 cursor-pointer justify-center rounded-none group-data-[collapsible=icon]:w-full! group-data-[collapsible=icon]:h-auto! group-data-[collapsible=icon]:px-0! group-data-[collapsible=icon]:py-3!"
             >
-              <LogOut className="h-4 w-4 group-data-[collapsible=icon]:mx-auto" />
-              <span className="font-medium group-data-[collapsible=icon]:hidden">{t("sidebar.logOut")}</span>
+              {isLoggingOut ? (
+                // Label-line height when expanded, icon height when collapsed: the footer keeps its size.
+                <Spinner size="sm" className="h-5 group-data-[collapsible=icon]:h-4" />
+              ) : (
+                <>
+                  <LogOut className="h-4 w-4 group-data-[collapsible=icon]:mx-auto" />
+                  <span className="font-medium group-data-[collapsible=icon]:hidden">{t("sidebar.logOut")}</span>
+                </>
+              )}
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

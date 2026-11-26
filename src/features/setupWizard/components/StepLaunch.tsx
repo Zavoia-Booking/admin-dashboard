@@ -18,6 +18,7 @@ import type { LocationType } from "../../../shared/types/location";
 import type { TeamMember } from "../../../shared/types/team-member";
 import { getBusinessLoadingSelector } from "../../business/selectors";
 import { getLocationLoadingSelector } from "../../locations/selectors";
+import { selectTeamMembersLoading } from "../../teamMembers/selectors";
 import TrialStatusCard from "../../../shared/components/common/subscription/TrialStatusCard";
 
 interface StepLaunchProps {
@@ -35,6 +36,7 @@ const StepLaunch: React.FC<StepLaunchProps> = ({
   const { t } = useTranslation("setupWizard");
   const isBusinessLoading = useSelector(getBusinessLoadingSelector);
   const isLocationsLoading = useSelector(getLocationLoadingSelector);
+  const isTeamLoading = useSelector(selectTeamMembersLoading);
   const isLoading = isBusinessLoading || isLocationsLoading;
   const headingRef = useRef<HTMLHeadingElement>(null);
 
@@ -69,7 +71,7 @@ const StepLaunch: React.FC<StepLaunchProps> = ({
   };
 
   return (
-    <div className="space-y-6 px-4 md:px-0">
+    <div className="space-y-6 px-4 md:px-0" inert={isLoading}>
       <div className="text-center py-8 md:py-6 lg:py-8 md:mb-3">
         <h2
           ref={headingRef}
@@ -172,20 +174,9 @@ const StepLaunch: React.FC<StepLaunchProps> = ({
           <h3 className="text-sm text-foreground-3 dark:text-foreground-1">{t("stepLaunch.quickOverview")}</h3>
           <div className="flex-1 h-px bg-border dark:bg-border-strong"></div>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4" aria-busy={isLoading || isTeamLoading}>
           {/* Business Card */}
-          {isLoading ? (
-            <div className="bg-gradient-to-br from-surface to-surface-hover dark:from-neutral-900 dark:to-neutral-800 rounded-2xl p-4 md:p-5 border border-border overflow-hidden">
-              <div className="mb-3">
-                <Skeleton className="h-7 w-24 rounded-full" />
-              </div>
-              <div className="space-y-2.5">
-                <Skeleton className="h-6 w-32" />
-                <Skeleton className="h-4 w-24" />
-              </div>
-            </div>
-          ) : (
-            <div className="group relative bg-gradient-to-br from-surface to-surface-hover dark:from-neutral-900 dark:to-neutral-800 rounded-2xl p-4 md:p-5 border border-border hover:border-border-strong hover:shadow-[0_4px_6px_-1px_rgba(0,0,0,0.1),0_2px_4px_-1px_rgba(0,0,0,0.06)] dark:hover:shadow-[0_20px_25px_-5px_rgba(255,255,255,0.03),0_10px_10px_-5px_rgba(255,255,255,0.02)] transition-all duration-300 overflow-hidden">
+          <div className="group relative bg-gradient-to-br from-surface to-surface-hover dark:from-neutral-900 dark:to-neutral-800 rounded-2xl p-4 md:p-5 border border-border hover:border-border-strong hover:shadow-[0_4px_6px_-1px_rgba(0,0,0,0.1),0_2px_4px_-1px_rgba(0,0,0,0.06)] dark:hover:shadow-[0_20px_25px_-5px_rgba(255,255,255,0.03),0_10px_10px_-5px_rgba(255,255,255,0.02)] transition-all duration-300 overflow-hidden">
             <div className="absolute top-0 right-0 w-20 h-20 bg-primary/5 dark:bg-primary/20 rounded-full -translate-y-8 translate-x-8 group-hover:scale-150 transition-transform duration-500"></div>
             <div className="relative">
               <div className="mb-3">
@@ -197,7 +188,12 @@ const StepLaunch: React.FC<StepLaunchProps> = ({
                 </div>
               </div>
               <div className="space-y-2.5">
-                {business?.name ? (
+                {isBusinessLoading ? (
+                  <>
+                    <Skeleton className="h-5 w-32 max-w-full" />
+                    <Skeleton className="h-5 w-24 max-w-full" />
+                  </>
+                ) : business?.name ? (
                   <>
                     <div className="text-lg font-bold text-foreground-1 leading-tight tracking-tight">
                       {business.name}
@@ -216,22 +212,9 @@ const StepLaunch: React.FC<StepLaunchProps> = ({
               </div>
             </div>
           </div>
-          )}
 
           {/* Location Card */}
-          {isLoading ? (
-            <div className="bg-gradient-to-br from-surface to-surface-hover dark:from-neutral-900 dark:to-neutral-800 rounded-2xl p-4 md:p-5 border border-border overflow-hidden">
-              <div className="mb-3">
-                <Skeleton className="h-7 w-24 rounded-full" />
-              </div>
-              <div className="space-y-2.5">
-                <Skeleton className="h-6 w-32" />
-                <Skeleton className="h-4 w-20" />
-                <Skeleton className="h-3 w-28" />
-              </div>
-            </div>
-          ) : (
-            <div className="group relative bg-gradient-to-br from-surface to-surface-hover dark:from-neutral-900 dark:to-neutral-800 rounded-2xl p-4 md:p-5 border border-border hover:border-border-strong hover:shadow-[0_4px_6px_-1px_rgba(0,0,0,0.1),0_2px_4px_-1px_rgba(0,0,0,0.06)] dark:hover:shadow-[0_20px_25px_-5px_rgba(255,255,255,0.03),0_10px_10px_-5px_rgba(255,255,255,0.02)] transition-all duration-300 overflow-hidden">
+          <div className="group relative bg-gradient-to-br from-surface to-surface-hover dark:from-neutral-900 dark:to-neutral-800 rounded-2xl p-4 md:p-5 border border-border hover:border-border-strong hover:shadow-[0_4px_6px_-1px_rgba(0,0,0,0.1),0_2px_4px_-1px_rgba(0,0,0,0.06)] dark:hover:shadow-[0_20px_25px_-5px_rgba(255,255,255,0.03),0_10px_10px_-5px_rgba(255,255,255,0.02)] transition-all duration-300 overflow-hidden">
             <div className="absolute top-0 right-0 w-20 h-20 bg-info/5 dark:bg-info/20 rounded-full -translate-y-8 translate-x-8 group-hover:scale-150 transition-transform duration-500"></div>
             <div className="relative">
               <div className="mb-3">
@@ -243,32 +226,28 @@ const StepLaunch: React.FC<StepLaunchProps> = ({
                 </div>
               </div>
               <div className="space-y-2.5">
-                {location?.name && (
-                  <div className="text-lg font-bold text-foreground-1 leading-tight tracking-tight">
-                    {location.name}
+                {isLocationsLoading ? (
+                  <Skeleton className="h-5 w-32 max-w-full" />
+                ) : (
+                  location?.name && (
+                    <div className="text-lg font-bold text-foreground-1 leading-tight tracking-tight">
+                      {location.name}
+                    </div>
+                  )
+                )}
+                {isLocationsLoading || (!location?.timezone && isBusinessLoading) ? (
+                  <Skeleton className="h-4 w-28 max-w-full" />
+                ) : (
+                  <div className="text-xs text-foreground-3 dark:text-foreground-2 leading-relaxed">
+                    {location?.timezone || business?.timezone || "—"}
                   </div>
                 )}
-                <div className="text-xs text-foreground-3 dark:text-foreground-2 leading-relaxed">
-                  {location?.timezone || business?.timezone || "—"}
-                </div>
               </div>
             </div>
           </div>
-          )}
 
           {/* Team Card */}
-          {isLoading ? (
-            <div className="bg-gradient-to-br from-surface to-surface-hover dark:from-neutral-900 dark:to-neutral-800 rounded-2xl p-4 md:p-5 border border-border overflow-hidden">
-              <div className="mb-3">
-                <Skeleton className="h-7 w-20 rounded-full" />
-              </div>
-              <div className="space-y-2.5">
-                <Skeleton className="h-6 w-36" />
-                <Skeleton className="h-4 w-32" />
-              </div>
-            </div>
-          ) : (
-            <div className="group relative bg-gradient-to-br from-surface to-surface-hover dark:from-neutral-900 dark:to-neutral-800 rounded-2xl p-4 md:p-5 border border-border hover:border-border-strong hover:shadow-[0_4px_6px_-1px_rgba(0,0,0,0.1),0_2px_4px_-1px_rgba(0,0,0,0.06)] dark:hover:shadow-[0_20px_25px_-5px_rgba(255,255,255,0.03),0_10px_10px_-5px_rgba(255,255,255,0.02)] transition-all duration-300 overflow-hidden">
+          <div className="group relative bg-gradient-to-br from-surface to-surface-hover dark:from-neutral-900 dark:to-neutral-800 rounded-2xl p-4 md:p-5 border border-border hover:border-border-strong hover:shadow-[0_4px_6px_-1px_rgba(0,0,0,0.1),0_2px_4px_-1px_rgba(0,0,0,0.06)] dark:hover:shadow-[0_20px_25px_-5px_rgba(255,255,255,0.03),0_10px_10px_-5px_rgba(255,255,255,0.02)] transition-all duration-300 overflow-hidden">
             <div className="absolute top-0 right-0 w-20 h-20 bg-primary/5 dark:bg-primary/20 rounded-full -translate-y-8 translate-x-8 group-hover:scale-150 transition-transform duration-500"></div>
             <div className="relative">
               <div className="mb-3">
@@ -280,7 +259,12 @@ const StepLaunch: React.FC<StepLaunchProps> = ({
                 </div>
               </div>
               <div className="space-y-2.5">
-                {Array.isArray(teamMembers) && teamMembers.length > 0 ? (
+                {isTeamLoading ? (
+                  <>
+                    <Skeleton className="h-5 w-36 max-w-full" />
+                    <Skeleton className="h-5 w-32 max-w-full" />
+                  </>
+                ) : Array.isArray(teamMembers) && teamMembers.length > 0 ? (
                   <>
                     <div className="text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed">
                       <span className="font-semibold">
@@ -305,7 +289,6 @@ const StepLaunch: React.FC<StepLaunchProps> = ({
               </div>
             </div>
           </div>
-          )}
         </div>
       </div>
 

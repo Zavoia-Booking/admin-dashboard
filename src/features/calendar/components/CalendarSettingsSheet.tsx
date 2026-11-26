@@ -2,6 +2,7 @@ import { type FC, useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDispatch, useSelector } from 'react-redux';
 import { BaseSlider } from '../../../shared/components/common/BaseSlider';
+import ConfirmDialog from '../../../shared/components/common/ConfirmDialog';
 import { FormFooter } from '../../../shared/components/forms/FormFooter';
 import { Label } from '../../../shared/components/ui/label';
 import { Switch } from '../../../shared/components/ui/switch';
@@ -21,6 +22,7 @@ import { updateBookingSettingsApi } from '../../marketplace/api';
 import { toast } from 'sonner';
 import { fetchLocationContext, setDayFiltersAction } from '../actions';
 import { getDayFilters } from '../selectors';
+import { useDiscardChanges } from '../../../shared/hooks/useDiscardChanges';
 import {
   AdvancedSettingsSection,
   type AdvancedSettingsSectionRef,
@@ -82,6 +84,10 @@ export const CalendarSettingsSheet: FC<CalendarSettingsSheetProps> = ({ open, on
         colorCoding: prefs.colorCoding,
         showCancelled: prefs.showCancelled,
       };
+    } else {
+      initialDisplayPrefsRef.current = null;
+      setIsAdvancedDirty(false);
+      setHasAdvancedErrors(false);
     }
   }, [open]);
 
@@ -94,6 +100,12 @@ export const CalendarSettingsSheet: FC<CalendarSettingsSheetProps> = ({ open, on
       showCancelled !== initialDisplayPrefsRef.current.showCancelled);
 
   const isDirty = isTeamMember ? isDisplayPrefsDirty : (isDisplayPrefsDirty || isAdvancedDirty);
+  const { canClose, requestClose, dialogProps } = useDiscardChanges({
+    isOpen: open,
+    isDirty,
+    isSaving: saving,
+    onClose,
+  });
 
   // Display preference handlers (state only; persisted on Save)
   const handleDefaultViewChange = useCallback((mode: AppointmentViewMode) => {
@@ -171,10 +183,11 @@ export const CalendarSettingsSheet: FC<CalendarSettingsSheetProps> = ({ open, on
     onClose,
   ]);
 
-  return (
+  return (<>
     <BaseSlider
       isOpen={open}
       onClose={onClose}
+      onBeforeClose={canClose}
       title={t("page.settings.title")}
       subtitle={t("page.settings.subtitle")}
       icon={Settings}
@@ -182,7 +195,7 @@ export const CalendarSettingsSheet: FC<CalendarSettingsSheetProps> = ({ open, on
       contentClassName="bg-surface scrollbar-hide"
       footer={
         <FormFooter
-          onCancel={onClose}
+          onCancel={requestClose}
           onSubmit={handleSave}
           cancelLabel={t("page.settings.cancel")}
           submitLabel={t("page.settings.save")}
@@ -333,5 +346,6 @@ export const CalendarSettingsSheet: FC<CalendarSettingsSheetProps> = ({ open, on
         </div>
       </div>
     </BaseSlider>
-  );
+    <ConfirmDialog {...dialogProps} />
+  </>);
 };

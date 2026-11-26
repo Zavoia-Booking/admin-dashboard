@@ -14,7 +14,7 @@ import { BaseSlider } from '../common/BaseSlider';
 import { MapView } from './MapView';
 import AddressAutocomplete from '../address/AddressAutocomplete';
 import type { AddressAutocompleteChange } from '../../types/geo';
-import { AlertCircle, Info } from 'lucide-react';
+import { Info } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useIsMobile } from '../../hooks/use-mobile';
 import { useKeyboardVisible } from '../../hooks/useKeyboardVisible';
@@ -102,9 +102,13 @@ export interface MapDialogProps {
    */
   onSearchSelect?: (coordinates: [number, number], suggestion: any) => void;
   /**
-   * Show warning about pin position not updating address
+   * Show the pin guidance: the phone hint under the map, and on desktop the street-only / town-only line in place of the description
    */
   showAddressWarning?: boolean;
+  /**
+   * What the map found for the pin: changes the guidance wording (default: the building)
+   */
+  foundLevel?: 'address' | 'street' | 'town';
   /**
    * Additional CSS classes for the dialog content
    */
@@ -119,11 +123,14 @@ export interface MapDialogProps {
   countryCodes?: string[];
 }
 
+// Our map style hides these; owners place the pin by the shops around them.
+const SHOP_AND_PLACE_LABELS = { showPointOfInterestLabels: true, showPlaceLabels: true };
+
 /**
  * Dialog component that displays a map using Mapbox GL JS.
  *
- * Desktop: a centered dialog with search, the address note, a map with a
- * draggable marker, and the footer actions.
+ * Desktop: a centered dialog with search, a map with a draggable marker, and
+ * the footer actions.
  *
  * Mobile: a full-screen panel. Search sits on top and its results fill the map
  * area (so the keyboard can't cover them); the pin is fixed at the map's
@@ -156,6 +163,7 @@ export const MapDialog: React.FC<MapDialogProps> = ({
   showSearch = false,
   onSearchSelect,
   showAddressWarning = false,
+  foundLevel,
   className,
   overlayClassName,
   countryCodes,
@@ -252,8 +260,8 @@ export const MapDialog: React.FC<MapDialogProps> = ({
 
   // Map component (desktop). data-vaul-no-drag keeps panning the map and
   // dragging the pin from being read as a drag on a surrounding drawer. The
-  // requested height gives way to the rest of the dialog (~32rem of search,
-  // note, footer and padding) so Confirm stays on short laptop screens.
+  // requested height gives way to the rest of the dialog (~22rem of header,
+  // search, footer and padding) so Confirm stays on short laptop screens.
   const mapElement = (
     <div
       data-vaul-no-drag=""
@@ -262,11 +270,13 @@ export const MapDialog: React.FC<MapDialogProps> = ({
       <MapView
         {...mapProps}
         onMapLoad={handleMapLoad}
-        height={`min(${mapHeight}, max(200px, calc(100dvh - 32rem)))`}
+        height={`min(${mapHeight}, max(200px, calc(100dvh - 22rem)))`}
         width="100%"
         onMarkerDragEnd={onMarkerDragEnd}
         onMapClick={onMapClick}
         onError={onMapError}
+        basemapConfig={SHOP_AND_PLACE_LABELS}
+        satelliteToggle={{ map: t('locations:mapDialogShared.viewMap'), satellite: t('locations:mapDialogShared.viewSatellite') }}
       />
     </div>
   );
@@ -284,20 +294,14 @@ export const MapDialog: React.FC<MapDialogProps> = ({
     </div>
   );
 
-  // Info card component (reusable)
-  const infoCardElement = showAddressWarning && (
-    <div className="mt-4 flex items-start gap-3 p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
-      <AlertCircle className="h-5 w-5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
-      <div className="flex-1 text-sm">
-        <p className="font-medium text-blue-900 dark:text-foreground-1 mb-1">
-          {t('locations:mapDialogShared.addressWarningTitle')}
-        </p>
-        <p className="text-blue-800 dark:text-foreground-2">
-          {t('locations:mapDialogShared.addressWarningDescription')}
-        </p>
-      </div>
-    </div>
-  );
+  // Desktop: when only the street or the town was found, the description says so instead of the usual line
+  const foundNote = !showAddressWarning
+    ? null
+    : foundLevel === 'street'
+      ? t('locations:mapDialogShared.streetOnlyDescription')
+      : foundLevel === 'town'
+        ? t('locations:mapDialogShared.townOnlyDescription')
+        : null;
 
   // Footer actions component (reusable)
   const footerElement = footerActions && (
@@ -306,11 +310,10 @@ export const MapDialog: React.FC<MapDialogProps> = ({
     </div>
   );
 
-  // Desktop content: search, info, map, footer
+  // Desktop content: search, map, footer
   const desktopContentElement = (
     <>
       {searchElement}
-      {infoCardElement}
       {mapElement}
       {footerElement}
     </>
@@ -382,6 +385,8 @@ export const MapDialog: React.FC<MapDialogProps> = ({
               onMapClick={handleMapTap}
               shouldIgnoreTap={shouldIgnoreTap}
               onError={onMapError}
+              basemapConfig={SHOP_AND_PLACE_LABELS}
+              satelliteToggle={{ map: t('locations:mapDialogShared.viewMap'), satellite: t('locations:mapDialogShared.viewSatellite') }}
             />
           </div>
         </div>
@@ -390,7 +395,7 @@ export const MapDialog: React.FC<MapDialogProps> = ({
             <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-foreground-3" aria-hidden />
             <span>
               {pinVisible
-                ? t('locations:mapDialogShared.mobileHint')
+                ? t(foundLevel === 'street' ? 'locations:mapDialogShared.streetOnlyMobileHint' : foundLevel === 'town' ? 'locations:mapDialogShared.townOnlyMobileHint' : 'locations:mapDialogShared.mobileHint')
                 : t('locations:mapDialogShared.mobileSearchFirst')}
             </span>
           </div>
@@ -407,7 +412,8 @@ export const MapDialog: React.FC<MapDialogProps> = ({
           data-slot="dialog-content"
           className={cn(
             "bg-white dark:bg-surface data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-2xl border border-border p-6 shadow-lg hover:border-border-strong duration-200 sm:max-w-lg",
-            "max-w-4xl",
+            // Desktop: wide enough for a usable map, with a margin on narrower windows
+            "sm:w-[calc(100%-2rem)] sm:max-w-4xl",
             // Safety net on very short viewports: the dialog scrolls rather
             // than pushing Confirm off-screen.
             "max-h-[calc(100dvh-2rem)] overflow-y-auto",
@@ -418,10 +424,10 @@ export const MapDialog: React.FC<MapDialogProps> = ({
           <DialogHeader>
             <DialogTitle className="text-foreground-1">{title}</DialogTitle>
             <DialogDescription className={cn(
-              !description && "sr-only",
-              "text-foreground-3 dark:text-foreground-2"
+              !(foundNote || description) && "sr-only",
+              "max-w-[72ch] text-foreground-3 dark:text-foreground-2 [text-wrap:pretty]"
             )}>
-              {description || title}
+              {foundNote || description || title}
             </DialogDescription>
           </DialogHeader>
           

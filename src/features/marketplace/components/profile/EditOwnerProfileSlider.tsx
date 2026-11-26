@@ -170,6 +170,7 @@ export const EditOwnerProfileSlider: React.FC<EditOwnerProfileSliderProps> = ({
                       .join(" ")
                       .trim()}
                     onUploaded={handlePhotoUploaded}
+                    appearance="crest"
                   />
                 )}
                 <ProfileTab

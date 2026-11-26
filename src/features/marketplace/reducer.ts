@@ -27,6 +27,8 @@ const initialState: MarketplaceState = {
   industryTags: [],
   selectedIndustryTags: [],
   isPublishing: false,
+  brandPhotoMutation: null,
+  brandPhotoRevision: 0,
   updatingLocationFlags: [],
   // Booking settings
   bookingSettings: null,
@@ -63,13 +65,18 @@ export const MarketplaceReducer: Reducer<MarketplaceState, any> = (state: Market
     case getType(actions.fetchMarketplaceListingAction.request):
       return { ...state, isLoading: true, error: null };
 
-    case getType(actions.fetchMarketplaceListingAction.success):
+    case getType(actions.fetchMarketplaceListingAction.success): {
       if (action.payload.scopeBusinessId !== state.scopeBusinessId) return state;
+      // A listing read already in flight when a photo is saved may carry its previous URL.
+      const listing =
+        action.payload.brandPhotoRevisionAtStart !== state.brandPhotoRevision && state.listing
+          ? { ...action.payload.listing, brandPhotoUrl: state.listing.brandPhotoUrl }
+          : action.payload.listing;
       return {
         ...state,
         isLoading: false,
         business: action.payload.business,
-        listing: action.payload.listing,
+        listing,
         locationCatalog: action.payload.locationCatalog || [],
         industries: action.payload.industries || [],
         industryTags: action.payload.industryTags || [],
@@ -77,6 +84,7 @@ export const MarketplaceReducer: Reducer<MarketplaceState, any> = (state: Market
         bookingSettings: action.payload.bookingSettings,
         error: null,
       };
+    }
 
     case getType(actions.fetchMarketplaceListingAction.failure):
       if (action.payload.scopeBusinessId !== state.scopeBusinessId) return state;
@@ -100,6 +108,37 @@ export const MarketplaceReducer: Reducer<MarketplaceState, any> = (state: Market
     case getType(actions.publishMarketplaceListingAction.failure):
       if (action.payload.scopeBusinessId !== state.scopeBusinessId) return state;
       return { ...state, isPublishing: false, error: action.payload.message };
+
+    case getType(actions.changeMarketplaceBrandPhotoAction.request): {
+      const { businessId, requestId, file } = action.payload;
+      if (String(businessId) !== state.scopeBusinessId || !state.listing || state.brandPhotoMutation) {
+        return state;
+      }
+      return {
+        ...state,
+        brandPhotoMutation: { requestId, kind: file ? 'upload' : 'remove' },
+      };
+    }
+
+    case getType(actions.changeMarketplaceBrandPhotoAction.success): {
+      const { scopeBusinessId, requestId, brandPhotoUrl } = action.payload;
+      if (scopeBusinessId !== state.scopeBusinessId || requestId !== state.brandPhotoMutation?.requestId) {
+        return state;
+      }
+      return {
+        ...state,
+        listing: state.listing ? { ...state.listing, brandPhotoUrl } : state.listing,
+        brandPhotoMutation: null,
+        brandPhotoRevision: state.brandPhotoRevision + 1,
+      };
+    }
+
+    case getType(actions.changeMarketplaceBrandPhotoAction.failure):
+      if (
+        action.payload.scopeBusinessId !== state.scopeBusinessId ||
+        action.payload.requestId !== state.brandPhotoMutation?.requestId
+      ) return state;
+      return { ...state, brandPhotoMutation: null };
 
     case getType(actions.updateLocationMarketplaceFlagsAction.request):
       return {

@@ -12,13 +12,27 @@ export const fetchMarketplaceListingAction = createAsyncAction(
   'marketplace/FETCH_LISTING_REQUEST',
   'marketplace/FETCH_LISTING_SUCCESS',
   'marketplace/FETCH_LISTING_FAILURE',
-)<void, ScopedMarketplaceResult<MarketplaceListingResponse>, ScopedMarketplaceError>();
+)<
+  void,
+  ScopedMarketplaceResult<MarketplaceListingResponse> & { brandPhotoRevisionAtStart: number },
+  ScopedMarketplaceError
+>();
 
 export const publishMarketplaceListingAction = createAsyncAction(
   'marketplace/PUBLISH_LISTING_REQUEST',
   'marketplace/PUBLISH_LISTING_SUCCESS',
   'marketplace/PUBLISH_LISTING_FAILURE',
 )<PublishMarketplaceListingPayload, MarketplaceScope, ScopedMarketplaceError>();
+
+export const changeMarketplaceBrandPhotoAction = createAsyncAction(
+  'marketplace/CHANGE_BRAND_PHOTO_REQUEST',
+  'marketplace/CHANGE_BRAND_PHOTO_SUCCESS',
+  'marketplace/CHANGE_BRAND_PHOTO_FAILURE',
+)<
+  { businessId: number; requestId: string; file: File | null },
+  ScopedMarketplaceResult<{ requestId: string; brandPhotoUrl: string | null }>,
+  ScopedMarketplaceError & { requestId: string }
+>();
 
 export interface UpdateLocationMarketplaceFlagsRequest {
   locationId: number;

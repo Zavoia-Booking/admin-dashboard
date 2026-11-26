@@ -1,11 +1,13 @@
 import { takeLatest, takeEvery, call, put, all, select } from "redux-saga/effects";
 import {
+  changeMarketplaceBrandPhotoAction,
   fetchMarketplaceListingAction,
   publishMarketplaceListingAction,
   updateLocationMarketplaceFlagsAction,
   updateBookingSettingsAction,
 } from "./actions";
 import {
+  changeMarketplaceBrandPhotoApi,
   getMarketplaceListingApi,
   publishMarketplaceListingApi,
   updateLocationMarketplaceFlagsApi,
@@ -16,7 +18,7 @@ import type { MarketplaceListingResponse, BookingSettings } from "./types";
 import type { ActionType } from "typesafe-actions";
 import { toast } from "sonner";
 import i18n from "../../shared/lib/i18n";
-import { getErrorMessage } from "../../shared/utils/error";
+import { getErrorMessage, wasGlobalHttpErrorToastHandled } from "../../shared/utils/error";
 import type { RootState } from "../../app/providers/store";
 
 function* getMarketplaceScopeBusinessId(): Generator<any, string | null, any> {
@@ -32,10 +34,18 @@ function* isCurrentMarketplaceScope(scopeBusinessId: string | null): Generator<a
 
 function* handleFetchMarketplaceListing() {
   const scopeBusinessId: string | null = yield* getMarketplaceScopeBusinessId();
+  const brandPhotoRevisionAtStart: number = yield select(
+    (state: RootState) => state.marketplace.brandPhotoRevision,
+  );
   try {
     const response: MarketplaceListingResponse = yield call(getMarketplaceListingApi);
     if (!(yield* isCurrentMarketplaceScope(scopeBusinessId))) return;
-    yield put(fetchMarketplaceListingAction.success({ ...response, scopeBusinessId }));
+    if (String(response.listing.businessId) !== scopeBusinessId) return;
+    yield put(fetchMarketplaceListingAction.success({
+      ...response,
+      scopeBusinessId,
+      brandPhotoRevisionAtStart,
+    }));
   } catch (error: unknown) {
     if (!(yield* isCurrentMarketplaceScope(scopeBusinessId))) return;
     const message = getErrorMessage(error);
@@ -65,6 +75,38 @@ function* handlePublishMarketplaceListing(action: ActionType<typeof publishMarke
     const message = getErrorMessage(error);
     toast.error(message || i18n.t('marketplace:page.toasts.listingPublishFailed'));
     yield put(publishMarketplaceListingAction.failure({ message, scopeBusinessId }));
+  }
+}
+
+function* isCurrentBrandPhotoRequest(scopeBusinessId: string, requestId: string): Generator<any, boolean, any> {
+  return yield select(
+    (state: RootState) =>
+      state.auth.businessId === scopeBusinessId &&
+      state.marketplace.scopeBusinessId === scopeBusinessId &&
+      state.marketplace.brandPhotoMutation?.requestId === requestId,
+  );
+}
+
+function* handleChangeMarketplaceBrandPhoto(action: ActionType<typeof changeMarketplaceBrandPhotoAction.request>) {
+  const { businessId, requestId, file } = action.payload;
+  const scopeBusinessId = String(businessId);
+  if (!(yield* isCurrentBrandPhotoRequest(scopeBusinessId, requestId))) return;
+
+  try {
+    const { brandPhotoUrl }: Awaited<ReturnType<typeof changeMarketplaceBrandPhotoApi>> = yield call(
+      changeMarketplaceBrandPhotoApi,
+      businessId,
+      file,
+    );
+    if (!(yield* isCurrentBrandPhotoRequest(scopeBusinessId, requestId))) return;
+    yield put(changeMarketplaceBrandPhotoAction.success({ brandPhotoUrl, requestId, scopeBusinessId }));
+    toast.success(i18n.t(file ? 'marketplace:brandPhoto.toast.uploaded' : 'marketplace:brandPhoto.toast.removed'));
+  } catch (error: unknown) {
+    if (!(yield* isCurrentBrandPhotoRequest(scopeBusinessId, requestId))) return;
+    const fallback = i18n.t(file ? 'marketplace:brandPhoto.toast.uploadFailed' : 'marketplace:brandPhoto.toast.removeFailed');
+    const message = getErrorMessage(error, fallback);
+    yield put(changeMarketplaceBrandPhotoAction.failure({ message, requestId, scopeBusinessId }));
+    if (!wasGlobalHttpErrorToastHandled(error, 'subscription_required')) toast.error(message);
   }
 }
 
@@ -119,6 +161,7 @@ export function* marketplaceSaga(): Generator<any, void, any> {
   yield all([
     takeLatest(fetchMarketplaceListingAction.request, handleFetchMarketplaceListing),
     takeLatest(publishMarketplaceListingAction.request, handlePublishMarketplaceListing),
+    takeEvery(changeMarketplaceBrandPhotoAction.request, handleChangeMarketplaceBrandPhoto),
     takeEvery(updateLocationMarketplaceFlagsAction.request, handleUpdateLocationMarketplaceFlags),
     takeLatest(updateBookingSettingsAction.request, handleUpdateBookingSettings),
   ]);

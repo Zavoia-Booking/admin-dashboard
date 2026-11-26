@@ -14,6 +14,7 @@ import {
 import { Label } from "../../../../shared/components/ui/label";
 import { Input } from "../../../../shared/components/ui/input";
 import { BaseSlider } from "../../../../shared/components/common/BaseSlider";
+import ConfirmDialog from "../../../../shared/components/common/ConfirmDialog";
 import { FormFooter } from "../../../../shared/components/forms/FormFooter";
 import { TextField } from "../../../../shared/components/forms/fields/TextField";
 import { TextareaField } from "../../../../shared/components/forms/fields/TextareaField";
@@ -77,10 +78,13 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
   const servicesError = useSelector(getServicesErrorSelector);
   const isServicesLoading = useSelector(getServicesLoadingSelector);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [pendingDiscard, setPendingDiscard] = useState<{ destination?: string } | null>(null);
+  const [hasCategoryDraft, setHasCategoryDraft] = useState(false);
   
   const justOpenedRef = useRef(false);
   const prevLoadingRef = useRef(isServicesLoading);
   const hasInitializedSelectionsRef = useRef(false);
+  const initialLocationIdsRef = useRef(initialFormData.locationIds);
   const {
     control,
     handleSubmit,
@@ -243,6 +247,7 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
   useEffect(() => {
     if (isOpen && allLocations.length > 0 && !isLocationsLoading && !hasInitializedSelectionsRef.current) {
       const allLocationIds = allLocations.map((location) => location.id);
+      initialLocationIdsRef.current = allLocationIds;
       
       setValue('locationIds', allLocationIds, { shouldDirty: false });
       
@@ -266,6 +271,9 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
     if (!isOpen) {
       reset(initialFormData);
       setNewlyCreatedCategories([]);
+      setHasCategoryDraft(false);
+      setPendingDiscard(null);
+      initialLocationIdsRef.current = initialFormData.locationIds;
       // Do NOT reset isSubmitting here - keep it true during closing animation
       // to prevent button from being re-enabled
     }
@@ -383,9 +391,41 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
     // Don't close form here - wait for success/error response
   };
 
-  const handleCancel = () => {
+  const allowDismissal = (destination?: string) => {
+    if (isSubmitting) return false;
+
+    const values = getValues();
+    const initialLocationIds = initialLocationIdsRef.current;
+    const isDirty =
+      values.name !== initialFormData.name ||
+      values.description !== initialFormData.description ||
+      values.price !== initialFormData.price ||
+      values.duration !== initialFormData.duration ||
+      values.categoryId != null ||
+      Boolean(values.categoryName) ||
+      hasCategoryDraft ||
+      newlyCreatedCategories.length > 0 ||
+      values.locationIds.length !== initialLocationIds.length ||
+      initialLocationIds.some((id) => !values.locationIds.includes(id));
+
+    if (!isDirty) return true;
+    setPendingDiscard((pending) => pending ?? { destination });
+    return false;
+  };
+
+  const closeAndNavigate = (destination?: string) => {
     onClose();
-    reset(initialFormData);
+    if (destination) navigate(destination);
+  };
+
+  const requestDismissal = (destination?: string) => {
+    if (allowDismissal(destination)) closeAndNavigate(destination);
+  };
+
+  const handleDiscard = () => {
+    if (!pendingDiscard) return;
+    setPendingDiscard(null);
+    closeAndNavigate(pendingDiscard.destination);
   };
 
   return (
@@ -393,6 +433,7 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
       <BaseSlider
         isOpen={isOpen}
         onClose={onClose}
+        onBeforeClose={allowDismissal}
         title={text("addService.title")}
         subtitle={text("addService.subtitle")}
         icon={ClipboardPlus}
@@ -400,7 +441,7 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
         contentClassName="bg-surface scrollbar-hide"
         footer={
           <FormFooter
-            onCancel={handleCancel}
+            onCancel={() => requestDismissal()}
             formId="add-service-form"
             cancelLabel={text("addService.buttons.cancel")}
             submitLabel={text("addService.buttons.create")}
@@ -422,7 +463,10 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
                 <AssignmentReminderNote
                   text={text("addService.form.assignmentNote.text")}
                   linkLabel={text("addService.form.assignmentNote.link")}
-                  onNavigate={onClose}
+                  onNavigate={(destination) => {
+                    if (!allowDismissal(destination)) return false;
+                    onClose();
+                  }}
                 />
 
                 {/* Essential Fields */}
@@ -489,7 +533,7 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
                       </span>{" "}
                       (
                       <span
-                        onClick={() => navigate("/account")}
+                        onClick={() => requestDismissal("/account")}
                         className="inline-flex items-center gap-0.5 cursor-pointer font-bold text-foreground-1 dark:text-foreground-1 hover:text-primary dark:hover:text-primary transition-colors duration-200"
                       >
                         {text("addService.form.currency.editText")}{" "}
@@ -613,7 +657,7 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
                     <p className="text-xs text-foreground-3 dark:text-foreground-2">
                       {text("addService.form.pricingNote.text")}{" "}
                       <span
-                        onClick={() => navigate("/assignments")}
+                        onClick={() => requestDismissal("/assignments")}
                         className="inline-flex pl-0.5 items-center gap-0.5 cursor-pointer font-bold text-foreground-1 dark:text-foreground-1 hover:text-primary dark:hover:text-primary transition-colors duration-200"
                       >
                         {text("addService.form.pricingNote.link")}
@@ -677,6 +721,7 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
                     onNewlyCreatedCategoriesChange={
                       handleNewlyCreatedCategoriesChange
                     }
+                    onCreateDraftChange={setHasCategoryDraft}
                   />
                 </div>
 
@@ -756,6 +801,17 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
           </div>
         </form>
       </BaseSlider>
+      <ConfirmDialog
+        open={isOpen && pendingDiscard !== null}
+        onCancel={() => setPendingDiscard(null)}
+        onConfirm={handleDiscard}
+        title={text("addService.discard.title")}
+        description={text("addService.discard.description")}
+        cancelTitle={text("addService.discard.keepEditing")}
+        confirmTitle={text("addService.discard.confirm")}
+        variant="destructive"
+        mobileDrawer
+      />
     </>
   );
 };

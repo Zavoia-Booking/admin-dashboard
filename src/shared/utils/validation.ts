@@ -109,6 +109,9 @@ const FIELD_KEYS = {
 export const sanitizeDigits = (value: string): string =>
   value.replace(/\D+/g, "");
 
+// Keeps the characters validatePostcode and the API accept (letters, digits, spaces, hyphens)
+export const sanitizePostcode = (value: string): string => value.replace(/[^a-zA-Z0-9\s-]+/g, "");
+
 export const minLengthError = (
   fieldLabel: string,
   value: string,

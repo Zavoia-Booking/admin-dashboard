@@ -47,7 +47,8 @@ export default function MarketplacePage() {
   // the gate's children, so no request fires while the setup prompt is up; this page
   // fetches at page level, so it has to skip explicitly or the guaranteed 403
   // ("You need a business account…") toasts over the gate's screen.
-  const hasBusiness = Boolean(currentUser?.businessId);
+  const businessId = currentUser?.businessId;
+  const hasBusiness = Boolean(businessId);
 
   const searchParams = new URLSearchParams(location.search);
   const requestedTab = searchParams.get("tab");
@@ -75,10 +76,10 @@ export default function MarketplacePage() {
 
   // Fetch marketplace data on mount and when navigating back to this page
   useEffect(() => {
-    if (!hasBusiness) return;
+    if (!businessId) return;
     dispatch(fetchMarketplaceListingAction.request());
     setEntryLoadState("loading");
-  }, [dispatch, location.pathname, hasBusiness]); // Refetch when pathname changes
+  }, [dispatch, location.pathname, businessId]);
 
   useEffect(() => {
     if (entryLoadState === "loading" && !isLoading && listing && !error) {
@@ -174,6 +175,7 @@ export default function MarketplacePage() {
             useBusinessEmail={listing.useBusinessEmail}
             useBusinessPhone={listing.useBusinessPhone}
             useBusinessDescription={listing.useBusinessDescription}
+            hasBrandPhoto={!!listing.brandPhotoUrl}
             industries={industries}
             industryTags={industryTags}
             selectedIndustryTags={selectedIndustryTags}

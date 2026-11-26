@@ -23,7 +23,13 @@
     "ownerCta": "Finish business setup"
   },
   "confirmDialog": {
-    "defaultTitle": "Are you sure?"
+    "defaultTitle": "Are you sure?",
+    "discardChanges": {
+      "title": "Discard changes?",
+      "description": "Your unsaved changes will be lost.",
+      "keepEditing": "Keep editing",
+      "confirm": "Discard changes"
+    }
   },
   "errorState": {
     "title": "Something went wrong",
@@ -65,6 +71,35 @@
     "title": "Select timezone",
     "noResults": "No timezone found.",
     "showingCount": "Showing {{shown}} of {{total}} timezones..."
+  },
+  "imageCrop": {
+    "title": {
+      "brand": "Frame your brand photo",
+      "logo": "Frame your logo",
+      "profile": "Frame your profile photo"
+    },
+    "description": {
+      "brand": "Zoom and drag to frame it. The previews show what each place keeps.",
+      "logo": "Fit your logo inside the circle. Drag to position, zoom in or out.",
+      "profile": "Drag to position. Zoom out to fit the whole photo."
+    },
+    "cropArea": "Image position. Use the arrow keys to move the image.",
+    "zoom": "Zoom",
+    "zoomIn": "Zoom in",
+    "zoomOut": "Zoom out",
+    "reset": "Reset",
+    "preview": {
+      "brandPage": "Brand page",
+      "app": "App",
+      "cards": "Cards",
+      "avatar": "Avatar",
+      "website": "Website"
+    },
+    "cancel": "Cancel",
+    "apply": "Use image",
+    "useOriginal": "Use original",
+    "previewError": "This device couldn’t preview the image. You can still use the original file.",
+    "exportError": "The image couldn’t be prepared. You can use the original file or choose another image."
   },
   "logoUpload": {
     "altPreview": "Business logo preview",
@@ -133,6 +168,7 @@
     "placeholder": "Start typing an address...",
     "searching": "Searching...",
     "noAddressesFound": "No addresses found. Try a different search or use Manual mode.",
+    "searchUnavailable": "Address search is unavailable right now. Please try again later.",
     "selectedAddress": "Selected Address",
     "street": "Street *",
     "changeAddress": "Change address",
@@ -153,8 +189,14 @@
     "buildingHelpExample2": "\"Building 3, Floor 2\"",
     "buildingHelpExample3": "\"Suite 205\""
   },
+  "inheritedEdit": {
+    "edit": "Edit",
+    "done": "Done"
+  },
   "contactToggle": {
     "customBadge": "Custom",
+    "emailPlaceholder": "e.g. contact@yourbusiness.com",
+    "phonePlaceholder": "+1 555 123 4567",
     "previousStep": "the previous step",
     "helperOn": {
       "emailAndPhone": "We'll use the email and phone number from {{source}}",

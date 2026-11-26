@@ -23,7 +23,7 @@ import {
   validateWebsiteCopy,
 } from "../../../../shared/utils/validation";
 import { cn } from "../../../../shared/lib/utils";
-import { AutoHeight } from "./AutoHeight";
+import { AutoHeight } from "../../../../shared/components/common/AutoHeight";
 import { InfoHint } from "./InfoHint";
 import {
   ANNOUNCEMENT_CTA_LABEL_MAX_LENGTH,

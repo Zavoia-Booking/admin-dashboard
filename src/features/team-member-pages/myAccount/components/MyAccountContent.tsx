@@ -35,6 +35,7 @@ import {
   modalPrimary,
 } from '../../../../shared/components/ui/modal-tokens';
 import { toast } from 'sonner';
+import { ImageCropDialog } from '../../../../shared/components/common/ImageCropDialog';
 import TextField from '../../../../shared/components/forms/fields/TextField';
 import '../../../settings/components/Profile.css';
 import { getTeamMemberProfile, updateTeamMemberProfile, changeTeamMemberPassword, uploadTeamMemberProfileImage, leaveOrganisationApi, type TeamMemberProfile } from '../api';
@@ -95,6 +96,7 @@ const MyAccountContent = ({ onDirtyChange, onSavingChange }: MyAccountContentPro
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [pendingImage, setPendingImage] = useState<File | null>(null);
 
   // Password change state
   const [currentPassword, setCurrentPassword] = useState('');
@@ -299,8 +301,9 @@ const MyAccountContent = ({ onDirtyChange, onSavingChange }: MyAccountContentPro
     }
   };
 
-  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.currentTarget.files?.[0];
+    event.currentTarget.value = '';
     if (!file) return;
 
     // Validate file type
@@ -317,6 +320,11 @@ const MyAccountContent = ({ onDirtyChange, onSavingChange }: MyAccountContentPro
       return;
     }
 
+    setPendingImage(file);
+  };
+
+  const uploadSelectedPhoto = async (file: File) => {
+    setPendingImage(null);
     try {
       setIsUploadingImage(true);
       const response = await uploadTeamMemberProfileImage(file);
@@ -339,10 +347,6 @@ const MyAccountContent = ({ onDirtyChange, onSavingChange }: MyAccountContentPro
       toast.error(getErrorMessage(error, t('profile.toast.imageUploadFailed')));
     } finally {
       setIsUploadingImage(false);
-      // Reset file input
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
     }
   };
 
@@ -505,6 +509,14 @@ const MyAccountContent = ({ onDirtyChange, onSavingChange }: MyAccountContentPro
             onChange={handleFileSelect}
             className="hidden"
           />
+          {pendingImage && (
+            <ImageCropDialog
+              file={pendingImage}
+              variant="profile"
+              onCancel={() => setPendingImage(null)}
+              onConfirm={uploadSelectedPhoto}
+            />
+          )}
 
           {/* Hero band */}
           <header className="profile-hero profile-tone-neutral">

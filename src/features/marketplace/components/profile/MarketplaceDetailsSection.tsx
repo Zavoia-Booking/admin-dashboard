@@ -1,14 +1,35 @@
-import React, { useState } from "react";
-import { Switch } from "../../../../shared/components/ui/switch";
+import React from "react";
+import { Link } from "react-router-dom";
 import type { Business } from "../../types";
 import { SectionDivider } from "../../../../shared/components/common/SectionDivider";
-import ContactInformationToggle from "../../../../shared/components/common/ContactInformationToggle";
-import { Building2 } from "lucide-react";
+import { InheritedEditPanel } from "../../../../shared/components/common/InheritedEditPanel";
+import { ContactInput } from "../../../../shared/components/common/ContactInformationToggle";
+import { ArrowUpRight, Building2, Mail, Phone, type LucideIcon } from "lucide-react";
 import { TextField } from "../../../../shared/components/forms/fields/TextField";
 import TextareaField from "../../../../shared/components/forms/fields/TextareaField";
-import { cn } from "../../../../shared/lib/utils";
-import { Badge } from "../../../../shared/components/ui/badge";
-import { useTranslation } from "react-i18next";
+import { Trans, useTranslation } from "react-i18next";
+
+const CARD = "rounded-2xl border border-border bg-surface p-4";
+// Full width on phones and tablets, 40% of the row on desktop.
+const FIELD_WIDTH = "w-full lg:w-2/5";
+
+const ValueLine = ({ icon: Icon, value, empty }: { icon: LucideIcon; value?: string | null; empty: string }) => (
+  <span className="inline-flex w-fit items-center gap-1.5 text-sm font-medium text-foreground-1">
+    <Icon className="h-4 w-4 text-foreground-3 dark:text-foreground-2" />
+    {value ? value : <span className="font-normal text-foreground-3 dark:text-foreground-2">{empty}</span>}
+  </span>
+);
+
+// Same look as the Settings link on the industry card.
+const BusinessProfileLink = ({ children }: { children?: React.ReactNode }) => (
+  <Link
+    to="/account"
+    className="inline-flex items-center gap-0.5 rounded-sm font-semibold text-foreground-1 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus/40"
+  >
+    {children}
+    <ArrowUpRight className="h-4 w-4 text-primary" aria-hidden="true" />
+  </Link>
+);
 
 interface MarketplaceDetailsSectionProps {
   business: Business | null;
@@ -32,6 +53,7 @@ interface MarketplaceDetailsSectionProps {
   emailError?: string;
   phoneError?: string;
   descriptionError?: string;
+  brandPhoto?: React.ReactNode;
 }
 
 export const MarketplaceDetailsSection: React.FC<
@@ -58,11 +80,11 @@ export const MarketplaceDetailsSection: React.FC<
   emailError,
   phoneError,
   descriptionError,
+  brandPhoto,
 }) => {
-  const [focusName, setFocusName] = useState(false);
-  const [focusContact, setFocusContact] = useState(false);
-  const [focusDescription, setFocusDescription] = useState(false);
   const { t } = useTranslation("marketplace");
+  const empty = t("details.businessName.notAvailable");
+  const shownDescription = useBusinessDescription ? business?.description : description;
 
   return (
     <div className="space-y-6">
@@ -71,215 +93,148 @@ export const MarketplaceDetailsSection: React.FC<
         className="uppercase tracking-wider text-foreground-2"
       />
 
-      {/* Business Name Card */}
-      <div
-        className={cn(
-          "group relative rounded-2xl p-4 border transition-all duration-300 flex flex-col gap-3",
+      <InheritedEditPanel
+        id="marketplace-name"
+        className={CARD}
+        title={t("details.businessName.label")}
+        helperText={
           useBusinessName
-            ? "border-info-300 bg-info-100 dark:border-border dark:bg-surface"
-            : "bg-surface border-border"
-        )}
-      >
-        <div className="flex items-center justify-between">
-          <h3
-            className={cn(
-              "text-base font-medium cursor-pointer",
-              useBusinessName
-                ? "text-neutral-900 dark:text-foreground-1"
-                : "text-foreground-1"
-            )}
-          >
-            {t("details.businessName.label")}
-          </h3>
-          <Switch
-            checked={useBusinessName}
-            onCheckedChange={(checked) => {
-              setUseBusinessName(checked);
-              if (!checked) setFocusName(true);
-            }}
-            className="!h-5 !w-9 !min-h-0 !min-w-0 cursor-pointer"
-          />
-        </div>
-        <p
-          className={cn(
-            "text-sm",
-            useBusinessName
-              ? "text-neutral-900 dark:text-foreground-2"
-              : "text-foreground-3 dark:text-foreground-2"
-          )}
-        >
-          {useBusinessName
             ? t("details.businessName.useBusinessDescription")
-            : t("details.businessName.customDescription")}
-        </p>
-
-        {useBusinessName ? (
-          // info-300, not info-200: the latter is not a defined token, so the
-          // rule fell back to currentColor and drew a hard black line.
-          <div className="text-sm pt-4 border-t border-info-300 dark:border-border">
-            <span className="inline-flex items-center gap-1.5 text-neutral-900 dark:text-foreground-1 font-medium w-fit">
-              <Building2 className="h-4 w-4 text-neutral-900 dark:text-foreground-2" />
-              {business?.name || t("details.businessName.notAvailable")}
-            </span>
-          </div>
-        ) : (
-          <div className="mt-4 pt-2 border-t border-border">
-            <TextField
-              id="marketplace-name-field"
-              label={t("details.businessName.customLabel")}
-              placeholder={t("details.businessName.placeholder")}
-              value={name}
-              onChange={(v) => {
-                setName(v);
-                setFocusName(false);
-              }}
-              error={nameError}
-              required={false}
-              icon={Building2}
-              className="!pt-0"
-              autoFocus={focusName}
-            />
-          </div>
-        )}
-
-        {!useBusinessName && (
-          <div className="absolute bottom-3 right-4 pointer-events-none">
-            <Badge
-              variant="secondary"
-              className="text-xs px-2 py-0.5 rounded-full font-medium flex items-center gap-1.5 bg-purple-50 border-purple-200 hover:bg-purple-100 shrink-0"
-            >
-              <div className="h-2 w-2 rounded-full bg-purple-500" />
-              <span className="text-neutral-900">
-                {t("details.businessName.custom")}
-              </span>
-            </Badge>
-          </div>
-        )}
-      </div>
-
-      <ContactInformationToggle
-        id="marketplace-contact-toggle"
-        useInheritedContact={useBusinessEmail && useBusinessPhone}
-        onToggleChange={(checked) => {
-          setUseBusinessEmail(checked);
-          setUseBusinessPhone(checked);
-          if (!checked) setFocusContact(true);
-        }}
-        inheritedEmail={business?.email || ""}
-        inheritedPhone={business?.phone || ""}
-        inheritedLabel={t("details.contact.inheritedLabel")}
-        localEmail={email}
-        onEmailChange={(v) => {
-          setEmail(v);
-          setFocusContact(false);
-        }}
-        localPhone={phone}
-        onPhoneChange={setPhone}
-        emailError={emailError}
-        phoneError={phoneError}
-        showPhone={true}
-        showEmail={true}
-        title={t("details.contact.title")}
-        emailLabel={t("details.contact.emailLabel")}
-        phoneLabel={t("details.contact.phoneLabel")}
-        helperTextOn={t("details.contact.helperTextOn")}
-        helperTextOff={t("details.contact.helperTextOff")}
-        // ! required: the component concatenates classes instead of cn()
-        className="!rounded-2xl !bg-surface"
-        autoFocusOnToggle={focusContact}
-      />
-
-      {/* Business Description Card */}
-      <div
-        className={cn(
-          "group relative rounded-2xl p-4 border transition-all duration-300 flex flex-col gap-3",
-          useBusinessDescription
-            ? "bg-surface border-border"
-            : "bg-surface border-border-strong shadow-sm"
-        )}
+            : t("details.businessName.customDescription")
+        }
+        summary={<ValueLine icon={Building2} value={useBusinessName ? business?.name : name} empty={empty} />}
+        isCustom={!useBusinessName}
+        revertLabel={t("details.businessName.useBusiness")}
+        onRevert={() => setUseBusinessName(true)}
+        forceOpen={!!nameError}
       >
-        <div className="flex items-center justify-between">
-          <h3 className="text-base font-medium text-foreground-1 cursor-pointer">
-            {t("details.description.label")}
-          </h3>
-          <Switch
-            checked={useBusinessDescription}
-            onCheckedChange={(checked) => {
-              setUseBusinessDescription(checked);
-              if (!checked) setFocusDescription(true);
+        <div className={FIELD_WIDTH}>
+          <TextField
+            id="marketplace-name-field"
+            label={t("details.businessName.customLabel")}
+            placeholder={t("details.businessName.placeholder")}
+            value={useBusinessName ? business?.name || "" : name}
+            onChange={(v) => {
+              if (useBusinessName) setUseBusinessName(false);
+              setName(v);
             }}
-            className="!h-5 !w-9 !min-h-0 !min-w-0 cursor-pointer"
+            error={nameError}
+            required={false}
+            icon={Building2}
+            className="!pt-0"
           />
         </div>
-        <p
-          className={cn(
-            "text-sm",
-            useBusinessDescription
-              ? "text-foreground-3 dark:text-foreground-2"
-              : "text-foreground-2"
-          )}
+      </InheritedEditPanel>
+
+      <div className={CARD} role="group" aria-labelledby="marketplace-contact-title">
+        <p id="marketplace-contact-title" className="text-base font-medium text-foreground-1">
+          {t("details.contact.title")}
+        </p>
+        <p className="mt-1 text-sm text-foreground-3 dark:text-foreground-2">
+          {useBusinessEmail && useBusinessPhone
+            ? t("details.contact.helperTextOn")
+            : t("details.contact.helperTextOff")}
+        </p>
+
+        <InheritedEditPanel
+          id="marketplace-email"
+          className="mt-4 border-t border-border-subtle pt-4"
+          title={t("details.contact.emailLabel")}
+          titleFor="marketplace-email-field"
+          titleClassName="text-sm"
+          summary={<ValueLine icon={Mail} value={useBusinessEmail ? business?.email : email} empty={empty} />}
+          isCustom={!useBusinessEmail}
+          revertLabel={t("details.contact.useBusinessEmail")}
+          onRevert={() => setUseBusinessEmail(true)}
+          forceOpen={!!emailError}
         >
-          {useBusinessDescription
-            ? t("details.description.useBusinessDescription")
-            : t("details.description.customDescription")}
-        </p>
-        <p className="text-xs text-foreground-3">
-          {t("details.description.placement")}
-        </p>
-
-        <div className="relative">
-          {useBusinessDescription ? (
-            <div
-              className={cn(
-                "p-4 rounded-xl border transition-colors min-h-[100px] flex items-center",
-                business?.description
-                  ? "bg-muted/30 dark:bg-neutral-900 border-border hover:border-border-strong"
-                  : "bg-muted/10 dark:bg-muted/5 border-dashed border-border-strong/30"
-              )}
-            >
-              {business?.description ? (
-                <p className="text-sm text-foreground-2 leading-relaxed">
-                  {business.description}
-                </p>
-              ) : (
-                <p className="text-sm text-foreground-3 dark:text-foreground-2 italic w-full text-left">
-                  {t("details.description.noDescription")}
-                </p>
-              )}
-            </div>
-          ) : (
-            <TextareaField
-              id="marketplaceDescription"
-              label=""
-              placeholder={t("details.description.placeholder")}
-              value={description}
+          <div className={FIELD_WIDTH}>
+            <ContactInput
+              id="marketplace-email-field"
+              kind="email"
+              value={useBusinessEmail ? business?.email || "" : email}
               onChange={(v) => {
-                setDescription(v);
-                setFocusDescription(false);
+                if (useBusinessEmail) setUseBusinessEmail(false);
+                setEmail(v);
               }}
-              maxLength={500}
-              rows={3}
-              error={descriptionError}
-              className="!pt-0"
-              autoFocus={focusDescription}
+              error={emailError}
             />
-          )}
-        </div>
-
-        {!useBusinessDescription && (
-          <div className="absolute bottom-3 right-4 pointer-events-none">
-            <Badge
-              variant="secondary"
-              className="text-xs px-2 py-0.5 rounded-full font-medium flex items-center gap-1.5 bg-purple-50 border-purple-200 hover:bg-purple-100 shrink-0"
-            >
-              <div className="h-2 w-2 rounded-full bg-purple-500" />
-              <span className="text-neutral-900">
-                {t("details.description.custom")}
-              </span>
-            </Badge>
           </div>
-        )}
+        </InheritedEditPanel>
+
+        <InheritedEditPanel
+          id="marketplace-phone"
+          className="mt-4 border-t border-border-subtle pt-4"
+          title={t("details.contact.phoneLabel")}
+          titleFor="marketplace-phone-field"
+          titleClassName="text-sm"
+          summary={<ValueLine icon={Phone} value={useBusinessPhone ? business?.phone : phone} empty={empty} />}
+          isCustom={!useBusinessPhone}
+          revertLabel={t("details.contact.useBusinessPhone")}
+          onRevert={() => setUseBusinessPhone(true)}
+          forceOpen={!!phoneError}
+        >
+          <div className={FIELD_WIDTH}>
+            <ContactInput
+              id="marketplace-phone-field"
+              kind="phone"
+              value={useBusinessPhone ? business?.phone || "" : phone}
+              onChange={(v) => {
+                if (useBusinessPhone) setUseBusinessPhone(false);
+                setPhone(v);
+              }}
+              error={phoneError}
+            />
+          </div>
+        </InheritedEditPanel>
       </div>
+
+      {/* Brand photo sits right above the description on every screen size. */}
+      {brandPhoto}
+
+      <InheritedEditPanel
+        id="marketplace-description"
+        className={CARD}
+        title={t("details.description.label")}
+        titleFor="marketplaceDescription"
+        helperText={
+          useBusinessDescription ? (
+            <Trans
+              t={t}
+              i18nKey="details.description.useBusinessDescription"
+              components={{ settingsLink: <BusinessProfileLink /> }}
+            />
+          ) : (
+            t("details.description.customDescription")
+          )
+        }
+        summary={
+          shownDescription ? (
+            <p className="text-sm leading-relaxed text-foreground-1">{shownDescription}</p>
+          ) : (
+            <p className="text-sm text-foreground-3 dark:text-foreground-2">{empty}</p>
+          )
+        }
+        isCustom={!useBusinessDescription}
+        revertLabel={t("details.description.useBusiness")}
+        onRevert={() => setUseBusinessDescription(true)}
+        forceOpen={!!descriptionError}
+      >
+        <TextareaField
+          id="marketplaceDescription"
+          label=""
+          placeholder={t("details.description.placeholder")}
+          value={useBusinessDescription ? business?.description || "" : description}
+          onChange={(v) => {
+            if (useBusinessDescription) setUseBusinessDescription(false);
+            setDescription(v);
+          }}
+          maxLength={500}
+          rows={3}
+          error={descriptionError}
+          className="!pt-0"
+        />
+      </InheritedEditPanel>
     </div>
   );
 };

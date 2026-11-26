@@ -51,6 +51,12 @@
   "addService": {
     "title": "Add New Service",
     "subtitle": "Create a new service for your business. Fill in the details below to get started",
+    "discard": {
+      "title": "Discard changes?",
+      "description": "Your unsaved changes to this service will be lost.",
+      "keepEditing": "Keep editing",
+      "confirm": "Discard changes"
+    },
     "sections": {
       "serviceInfo": "Service Information",
       "serviceInfoDescription": "Provide the essential information that identifies and describes your service",

@@ -112,7 +112,8 @@ function AppLayoutInner({ children, contentClassName, headerRightContent, noPadd
             // The scroll marker goes on whichever element scrolls: <main>, or
             // the content column below when it fills the mobile viewport.
             {...(fillMobileViewport ? {} : { [APP_SCROLL_CONTAINER_ATTR]: '' })}
-            className={`flex-1 bg-transparent overflow-y-auto overscroll-contain ${fillMobileViewport ? 'flex min-h-0 flex-col' : ''} ${isMobile && !isMobileWeb && !fillMobileViewport && !bottomNavHeight ? 'pb-19' : 'pb-0'} [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]`}
+            // tabbedPage: the md:absolute tab layout must be positioned inside this scroller.
+            className={`flex-1 bg-transparent overflow-y-auto overscroll-contain ${tabbedPage ? 'md:relative' : ''} ${fillMobileViewport ? 'flex min-h-0 flex-col' : ''} ${isMobile && !isMobileWeb && !fillMobileViewport && !bottomNavHeight ? 'pb-19' : 'pb-0'} [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]`}
             style={isMobile && !isMobileWeb && (fillMobileViewport || bottomNavHeight) ? { paddingBottom: bottomNavHeight } : undefined}
           >
             <div className={`w-full bg-transparent max-w-full content-container ${fillMobileViewport ? 'flex min-h-0 flex-1 flex-col' : ''} ${contentClassName ?? 'md:max-w-220'}`}>

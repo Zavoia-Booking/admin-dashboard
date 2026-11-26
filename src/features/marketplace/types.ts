@@ -23,6 +23,7 @@ export interface MarketplaceListing {
   marketplaceEmail?: string | null; // Public contact email
   marketplacePhone?: string | null; // Public contact phone
   marketplaceDescription?: string | null; // Business description
+  brandPhotoUrl?: string | null; // Optional business-level Marketplace cover
   useBusinessName?: boolean; // Use business name or custom
   useBusinessEmail?: boolean; // Use business email or custom
   useBusinessPhone?: boolean; // Use business phone or custom
@@ -200,6 +201,8 @@ export interface MarketplaceState {
   industryTags: IndustryTag[];
   selectedIndustryTags: IndustryTag[];
   isPublishing: boolean;
+  brandPhotoMutation: { requestId: string; kind: 'upload' | 'remove' } | null;
+  brandPhotoRevision: number;
   // Per-location flag updates in flight (location IDs)
   updatingLocationFlags: number[];
   // Booking settings

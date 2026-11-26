@@ -17,7 +17,7 @@ import type { FaqConfig, FaqItem } from "../../types";
 import { hasUnsafeWebsiteCopyCharacters } from "../../../../shared/utils/validation";
 import { OptionalCopyOverride } from "./OptionalCopyOverride";
 import { localeCopyIsHidden, setLocaleCopyHidden } from "./copyBlankState";
-import { AutoHeight } from "./AutoHeight";
+import { AutoHeight } from "../../../../shared/components/common/AutoHeight";
 import { validateFaqItemLocale } from "./faqValidation";
 import { completeFaqCount } from "./sectionReadiness";
 import type { WebsiteDraftIssue } from "./draftValidation";

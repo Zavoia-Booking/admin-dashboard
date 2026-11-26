@@ -20,6 +20,7 @@ import { TextField } from "../../../../shared/components/forms/fields/TextField"
 import { TextareaField } from "../../../../shared/components/forms/fields/TextareaField";
 import { PriceField } from "../../../../shared/components/forms/fields/PriceField";
 import { CategorySection } from "./CategorySection";
+import ConfirmDialog from "../../../../shared/components/common/ConfirmDialog";
 import { DeleteConfirmDialog } from "../../../../shared/components/common/DeleteConfirmDialog";
 import { AssignmentsCard } from "../../../../shared/components/common/AssignmentsCard";
 import type { DeleteResponse } from "../../../../shared/types/delete-response";
@@ -45,6 +46,7 @@ import { toast } from "sonner";
 import type { Service } from "../../../../shared/types/service";
 import { ServiceFormSkeleton } from "./ServiceFormSkeleton";
 import { sanitizeDurationInput, MAX_DURATION_MINUTES } from "../../../../shared/utils/duration";
+import { useDiscardChanges } from "../../../../shared/hooks/useDiscardChanges";
 
 interface EditServiceSliderProps {
   isOpen: boolean;
@@ -129,6 +131,7 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
   const [newlyCreatedCategories, setNewlyCreatedCategories] = useState<
     Category[]
   >([]);
+  const [hasCategoryDraft, setHasCategoryDraft] = useState(false);
   const [isCategoriesLoading, setIsCategoriesLoading] = useState(false);
 
   const categoryId = watch("categoryId");
@@ -277,6 +280,7 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
     if (!isOpen) {
       setIsCategoriesLoading(false);
       setNewlyCreatedCategories([]);
+      setHasCategoryDraft(false);
       // Do NOT reset isSubmitting here - keep it true during closing animation
       // to prevent button from being re-enabled
       // Reset delete state when closing
@@ -333,6 +337,28 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
     !areRequiredFieldsFilled ||
     isLoading ||
     !formState.isDirty;
+
+  const dirtyFields = formState.dirtyFields;
+  const { canClose, requestClose, requestAction, dialogProps } = useDiscardChanges({
+    isOpen,
+    // The category name and color are temporary fields. Selecting the original
+    // category can leave them empty while the saved selection is unchanged.
+    isDirty: Boolean(
+      dirtyFields.name ||
+      dirtyFields.description ||
+      dirtyFields.price ||
+      dirtyFields.duration ||
+      dirtyFields.categoryId ||
+      hasCategoryDraft ||
+      newlyCreatedCategories.length > 0
+    ),
+    isSaving: isSubmitting || isDeleting,
+    onClose: handleClose,
+  });
+
+  const navigateAway = (destination: string) => {
+    requestAction(() => navigate(destination));
+  };
 
   // Watch for errors and show toast, reset submitting state
   useEffect(() => {
@@ -406,10 +432,6 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
     // Don't close form here - wait for success/error response
   };
 
-  const handleCancel = () => {
-    handleClose();
-  };
-
   // Handle delete response from Redux state
   useEffect(() => {
     if (deleteResponseFromState && hasAttemptedDelete && !isDeleting) {
@@ -479,6 +501,7 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
       <BaseSlider
         isOpen={isOpen}
         onClose={handleClose}
+        onBeforeClose={canClose}
         title={text("editService.title")}
         subtitle={text("editService.subtitle")}
         icon={ClipboardPlus}
@@ -486,7 +509,7 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
         contentClassName="bg-surface scrollbar-hide"
         footer={
           <FormFooter
-            onCancel={handleCancel}
+            onCancel={requestClose}
             formId="edit-service-form"
             cancelLabel={text("editService.buttons.cancel")}
             submitLabel={text("editService.buttons.update")}
@@ -577,7 +600,7 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
                       </span>{" "}
                       (
                       <span
-                        onClick={() => navigate("/account")}
+                        onClick={() => navigateAway("/account")}
                         className="inline-flex items-center gap-0.5 cursor-pointer font-bold text-foreground-1 dark:text-foreground-1 hover:text-primary dark:hover:text-primary transition-colors duration-200"
                       >
                         {text("addService.form.currency.editText")}{" "}
@@ -701,7 +724,7 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
                     <p className="text-xs text-foreground-3 dark:text-foreground-2">
                       {text("addService.form.pricingNote.text")}{" "}
                       <span
-                        onClick={() => navigate("/assignments")}
+                        onClick={() => navigateAway("/assignments")}
                         className="inline-flex pl-0.5 items-center gap-0.5 cursor-pointer font-bold text-foreground-1 dark:text-foreground-1 hover:text-primary dark:hover:text-primary transition-colors duration-200"
                       >
                         {text("addService.form.pricingNote.link")}
@@ -780,6 +803,7 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
                     onNewlyCreatedCategoriesChange={
                       handleNewlyCreatedCategoriesChange
                     }
+                    onCreateDraftChange={setHasCategoryDraft}
                   />
                 </div>
 
@@ -803,9 +827,7 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
                     ]}
                     description={text("editService.assignments.description")}
                     buttonLabel={text("editService.assignments.goToAssignments")}
-                    onButtonClick={() => {
-                      navigate('/assignments');
-                    }}
+                    onButtonClick={() => navigateAway("/assignments")}
                   />
                 </div>
 
@@ -866,19 +888,20 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
           fallbackTimezone={businessTimezone || undefined}
           onGoToCalendar={(apt) => {
             handleCloseDeleteDialog(false);
-            navigate(buildCalendarLink({ date: apt.scheduledAt, locationId: apt.location?.id, serviceId: service.id }));
+            navigateAway(buildCalendarLink({ date: apt.scheduledAt, locationId: apt.location?.id, serviceId: service.id }));
           }}
           secondaryActions={[
             {
               label: text("editService.assignments.goToAssignments"),
               onClick: () => {
                 handleCloseDeleteDialog(false);
-                navigate('/assignments');
+                navigateAway("/assignments");
               }
             },
           ]}
         />
       )}
+      <ConfirmDialog {...dialogProps} />
     </>
   );
 };

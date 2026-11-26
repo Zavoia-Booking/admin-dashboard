@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
-import { MapPin } from 'lucide-react';
+import { Map as MapIcon, MapPin, Satellite } from 'lucide-react';
 import { Skeleton } from '../ui/skeleton';
 
 export interface MapViewProps {
@@ -91,10 +92,20 @@ export interface MapViewProps {
    */
   shouldIgnoreTap?: () => boolean;
   /**
+   * Settings for the style's `basemap` import (e.g. label toggles), read once at mount
+   */
+  basemapConfig?: Record<string, string | number | boolean>;
+  /**
+   * Names of the two views; when set at mount, a one-button Map / Satellite switch sits under the zoom buttons
+   */
+  satelliteToggle?: { map: string; satellite: string };
+  /**
    * Additional CSS classes for the container
    */
   className?: string;
 }
+
+const SATELLITE_STYLE_URL = 'mapbox://styles/mapbox/standard-satellite';
 
 /** originalEvent types Mapbox attaches to moves that no finger made. */
 const NON_GESTURE_EVENTS = new Set(['resize', 'orientationchange', 'fullscreenchange', 'webkitfullscreenchange']);
@@ -135,6 +146,8 @@ export const MapView: React.FC<MapViewProps> = ({
   pinColor = '#C94A2A',
   pinTarget = null,
   shouldIgnoreTap,
+  basemapConfig,
+  satelliteToggle,
 }) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
@@ -146,6 +159,15 @@ export const MapView: React.FC<MapViewProps> = ({
   const [isReady, setIsReady] = useState(false);
   // Center pin mode: lifts the pin while the map moves under it.
   const [isMoving, setIsMoving] = useState(false);
+  const [mapView, setMapView] = useState<'map' | 'satellite'>('map');
+  const styleUrlRef = useRef('');
+  // The Map / Satellite button lives in a Mapbox control box, so Mapbox stacks it under the zoom buttons.
+  const [viewToggleHost] = useState(() => {
+    if (!satelliteToggle) return null;
+    const host = document.createElement('div');
+    host.className = 'mapboxgl-ctrl mapboxgl-ctrl-group';
+    return host;
+  });
 
   // Keep the latest callbacks reachable from the init effect (which only runs
   // once and captures its dependencies via a ref).
@@ -180,13 +202,26 @@ export const MapView: React.FC<MapViewProps> = ({
     clickToPlace,
     onMapClick,
     centerPinMode,
+    basemapConfig,
   });
+
+  const switchView = (next: 'map' | 'satellite') => {
+    if (next === mapView || !map.current) return;
+    setMapView(next);
+    const { basemapConfig: baseConfig } = initialValuesRef.current;
+    // Markers and the centre pin are DOM and stay; the camera stays.
+    map.current.setStyle(
+      next === 'satellite' ? SATELLITE_STYLE_URL : styleUrlRef.current,
+      // Cast: the typings wrongly require the font keys, which GL fills in itself.
+      baseConfig ? ({ config: { basemap: baseConfig } } as unknown as Parameters<mapboxgl.Map['setStyle']>[1]) : undefined,
+    );
+  };
 
   // Initialize map once
   useEffect(() => {
     if (!mapContainer.current || initializedRef.current) return;
 
-    const { accessToken: initToken, center: initCenter, zoom: initZoom, style: initStyle, showControls: initShowControls, onMapLoad: initOnMapLoad, clickToPlace: initClickToPlace, onMapClick: initOnMapClick, centerPinMode: initCenterPinMode } = initialValuesRef.current;
+    const { accessToken: initToken, center: initCenter, zoom: initZoom, style: initStyle, showControls: initShowControls, onMapLoad: initOnMapLoad, clickToPlace: initClickToPlace, onMapClick: initOnMapClick, centerPinMode: initCenterPinMode, basemapConfig: initBasemapConfig } = initialValuesRef.current;
 
     // Set Mapbox access token
     mapboxgl.accessToken = initToken;
@@ -195,6 +230,7 @@ export const MapView: React.FC<MapViewProps> = ({
     const styleUrl = initStyle.startsWith('mapbox://') || initStyle.startsWith('http') 
       ? initStyle 
       : `mapbox://styles/mapbox/${initStyle}`;
+    styleUrlRef.current = styleUrl;
 
     // Initialize map. Mapbox throws synchronously ("Failed to initialize
     // WebGL") when the browser/GPU can't give it a WebGL context — catch it
@@ -203,6 +239,7 @@ export const MapView: React.FC<MapViewProps> = ({
       map.current = new mapboxgl.Map({
         container: mapContainer.current,
         style: styleUrl,
+        config: initBasemapConfig ? { basemap: initBasemapConfig } : undefined,
         center: initCenter,
         zoom: initZoom,
         // Center pin mode resizes from the ResizeObserver below: Mapbox's own
@@ -242,6 +279,9 @@ export const MapView: React.FC<MapViewProps> = ({
         ),
         'top-right'
       );
+    }
+    if (viewToggleHost) {
+      map.current.addControl({ onAdd: () => viewToggleHost, onRemove: () => viewToggleHost.remove() }, 'top-right');
     }
 
     if (initCenterPinMode) {
@@ -442,25 +482,44 @@ export const MapView: React.FC<MapViewProps> = ({
           </svg>
         </div>
       )}
-      {/* Ghost layout mirroring the loaded map: street strokes, center pin,
-          nav controls top-right, Mapbox badge bottom-left, info bottom-right. */}
+      {/* One button: its icon and name are the view a click switches to. */}
+      {satelliteToggle && viewToggleHost && createPortal(
+        <button
+          type="button"
+          title={mapView === 'map' ? satelliteToggle.satellite : satelliteToggle.map}
+          aria-label={mapView === 'map' ? satelliteToggle.satellite : satelliteToggle.map}
+          onClick={() => switchView(mapView === 'map' ? 'satellite' : 'map')}
+          className="!flex items-center justify-center text-[#333] transition-transform duration-150 ease-out active:scale-[0.97]"
+        >
+          {mapView === 'map' ? <Satellite className="h-[18px] w-[18px]" aria-hidden /> : <MapIcon className="h-[18px] w-[18px]" aria-hidden />}
+        </button>,
+        viewToggleHost,
+      )}
+      {/* In center-pin mode the real pin stays above the skeleton, so it only
+          appears when a location has been selected and stays put on reveal. */}
       <Skeleton
         aria-hidden
-        className={`absolute inset-0 z-10 rounded-lg transition-opacity duration-500 ${
+        className={`absolute inset-0 rounded-lg transition-opacity duration-500 ${
+          centerPinMode ? 'z-[2]' : 'z-10'
+        } ${
           isReady ? 'opacity-0 pointer-events-none' : 'opacity-100'
         }`}
       >
         <div className="absolute -left-[10%] top-[30%] h-3.5 w-[120%] -rotate-6 rounded-full bg-surface/50" />
         <div className="absolute -left-[10%] top-[70%] h-2.5 w-[120%] rotate-3 rounded-full bg-surface/35" />
         <div className="absolute -top-[10%] left-[63%] h-[120%] w-2.5 rotate-12 rounded-full bg-surface/35" />
-        <div className="absolute inset-0 flex items-center justify-center">
-          <MapPin className="h-8 w-8 text-foreground-3 opacity-50" />
-        </div>
+        {!centerPinMode && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <MapPin className="h-8 w-8 text-foreground-3 opacity-50" />
+          </div>
+        )}
         {showControls && (
-          <div className="absolute top-3 right-3 flex flex-col gap-px overflow-hidden rounded-lg shadow-sm">
+          <div className={`absolute flex flex-col overflow-hidden shadow-sm ${
+            centerPinMode ? 'right-2.5 top-2.5 rounded-sm' : 'right-3 top-3 gap-px rounded-lg'
+          }`}>
             <div className="h-8 w-8 bg-surface/90" />
-            <div className="h-8 w-8 bg-surface/90" />
-            <div className="h-8 w-8 bg-surface/90" />
+            <div className={`h-8 w-8 bg-surface/90 ${centerPinMode ? 'border-t border-border' : ''}`} />
+            {!centerPinMode && <div className="h-8 w-8 bg-surface/90" />}
           </div>
         )}
         <div className="absolute bottom-2 left-2 h-5 w-20 rounded-full bg-surface/70" />

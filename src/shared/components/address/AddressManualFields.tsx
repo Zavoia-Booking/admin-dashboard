@@ -30,6 +30,7 @@ type Props = {
   onChangeAddressClick: () => void;
   onStreetFocus: () => void;
   onStreetBlur: () => void;
+  postcodeNumeric?: boolean;
 };
 
 const AddressManualFields: React.FC<Props> = ({
@@ -54,6 +55,7 @@ const AddressManualFields: React.FC<Props> = ({
   onChangeAddressClick,
   onStreetFocus,
   onStreetBlur,
+  postcodeNumeric = true,
 }) => {
   const { t } = useTranslation('common');
   return (
@@ -226,8 +228,8 @@ const AddressManualFields: React.FC<Props> = ({
             <Input 
               value={postalCode} 
               onChange={(e) => onPostalChange(e.target.value)}
-              // Digit keypad without type="number", which would drop leading zeros (Bucharest's 0xxxxx).
-              inputMode="numeric"
+              // Digit keypad for Romanian postcodes, without type="number", which would drop leading zeros (Bucharest's 0xxxxx).
+              inputMode={postcodeNumeric ? 'numeric' : 'text'}
               placeholder={t('address.postcodePlaceholder')}
               className={`!pr-11 transition-all focus-visible:ring-1 focus-visible:ring-offset-0 ${
                 postalError ? 'border-destructive bg-error-bg focus-visible:ring-error' : 'border-border hover:border-border-strong focus:border-focus focus-visible:ring-focus'
