@@ -14,15 +14,15 @@ import {
   googleRegisterAction,
   openAccountLinkingModal,
   selectBusinessAction,
-  sendBusinessLinkEmailAction,
+  ownerUpgradeAction,
   setMemberRegistrationLoadingAction,
   checkTeamInvitationAction,
   completeTeamInvitationAction,
   clearAuthErrorAction,
 } from "./actions";
-import { logoutApi, registerOwnerRequestApi, loginApi, getCurrentUserApi, forgotPasswordApi, resetPasswordApi, googleLoginApi, googleRegisterApi, googleNativeLoginApi, googleNativeRegisterApi, reauthForLinkApi, linkGoogleApi, unlinkGoogleApi, linkGoogleByCodeApi, selectBusinessApi, sendBusinessLinkEmailApi, checkTeamInvitationApi, completeTeamInvitationApi } from "./api";
-import type { RegisterOwnerPayload, AuthResponse, AuthUser, GoogleNativeRegisterResponse } from "./types";
-import { reauthForLinkAction, linkGoogleAction, closeAccountLinkingModal, unlinkGoogleAction, linkGoogleByCodeAction, googleNativeEmailSentAction } from "./actions";
+import { logoutApi, registerOwnerRequestApi, loginApi, getCurrentUserApi, forgotPasswordApi, resetPasswordApi, googleLoginApi, googleRegisterApi, googleNativeLoginApi, googleNativeRegisterApi, reauthForLinkApi, linkGoogleApi, unlinkGoogleApi, linkGoogleByCodeApi, selectBusinessApi, ownerUpgradeApi, checkTeamInvitationApi, completeTeamInvitationApi } from "./api";
+import type { RegisterOwnerPayload, AuthResponse, AuthUser } from "./types";
+import { reauthForLinkAction, linkGoogleAction, closeAccountLinkingModal, unlinkGoogleAction, linkGoogleByCodeAction } from "./actions";
 import { listLocationsAction } from "../locations/actions";
 import { select } from "redux-saga/effects";
 import type { RootState } from "../../app/providers/store";
@@ -187,7 +187,7 @@ export function* authSaga(): Generator<any, void, any> {
     takeLatest(linkGoogleByCodeAction.request, handleLinkGoogleByCode),
     takeLatest(unlinkGoogleAction.request, handleUnlinkGoogle),
     takeLatest(selectBusinessAction.request, handleSelectBusiness),
-    takeLatest(sendBusinessLinkEmailAction.request, handleSendBusinessLinkEmail),
+    takeLatest(ownerUpgradeAction.request, handleOwnerUpgrade),
     takeLatest(checkTeamInvitationAction.request, handleCheckTeamInvitation),
     takeLatest(completeTeamInvitationAction.request, handleCompleteTeamInvitation),
   ]);
@@ -365,20 +365,11 @@ function* handleGoogleLogin(action: ReturnType<typeof googleLoginAction.request>
 function* handleGoogleRegister(action: ReturnType<typeof googleRegisterAction.request>) {
   try {
     yield put(setAuthLoadingAction({ isLoading: true }));
-    // Web sends an OAuth code (account is created right away); native sends an
-    // ID token and may resolve to the "continue on web" email funnel instead
-    // of a session.
-    const nativeFlow = 'idToken' in action.payload;
-    const rawResponse: GoogleNativeRegisterResponse = nativeFlow
-      ? yield call(googleNativeRegisterApi, action.payload as { idToken: string })
-      : yield call(googleRegisterApi, action.payload as { code: string; redirectUri: string });
-
-    if ('outcome' in rawResponse && rawResponse.outcome === 'email_sent') {
-      yield put(googleNativeEmailSentAction({ email: rawResponse.email }));
-      return;
-    }
-
-    const response = rawResponse as AuthResponse;
+    // Web sends an OAuth code; native sends an ID token from the on-device
+    // account picker. Both create the account and sign in.
+    const response: AuthResponse = 'idToken' in action.payload
+      ? yield call(googleNativeRegisterApi, action.payload)
+      : yield call(googleRegisterApi, action.payload);
 
     // Store access token in Redux (memory) + optional CSRF token + refresh token for native apps
     yield put(setTokensAction({ accessToken: response.accessToken, csrfToken: response.csrfToken ?? null, refreshToken: response.refreshToken ?? null }));
@@ -687,41 +678,24 @@ function* handleSelectBusiness(action: ReturnType<typeof selectBusinessAction.re
   }
 }
 
-function* handleSendBusinessLinkEmail(action: ReturnType<typeof sendBusinessLinkEmailAction.request>): Generator<any, void, any> {
+function* handleOwnerUpgrade(action: ReturnType<typeof ownerUpgradeAction.request>): Generator<any, void, any> {
   try {
-    const response: { message: string } = yield call(sendBusinessLinkEmailApi, action.payload);
-    
-    yield put(sendBusinessLinkEmailAction.success({ message: response.message }));
+    const response: AuthResponse = (yield call(ownerUpgradeApi, action.payload)) as AuthResponse;
 
-    // Show success toast
-    try {
-      const { toast } = yield import('sonner');
-      toast.success(i18n.t('auth:page.toasts.emailLinkSent'));
-    } catch {}
-  } catch (error: any) {
-    const status = error?.response?.status;
-    const code = error?.response?.data?.code;
-
-    // A valid link is already in the user's inbox (backend throttles resends).
-    // For the user this is the same outcome as sending one - close the modal
-    // and point them at their inbox instead of surfacing a raw error code.
-    if (status === 429 && code === 'token_already_sent') {
-      yield put(sendBusinessLinkEmailAction.success({ message: code }));
-      try {
-        const { toast } = yield import('sonner');
-        toast.info(i18n.t('auth:page.toasts.emailLinkAlreadySent'));
-      } catch {}
-      return;
+    yield put(setTokensAction({ accessToken: response.accessToken, csrfToken: response.csrfToken ?? null, refreshToken: response.refreshToken ?? null }));
+    if (response.refreshToken) {
+      yield call([tokenStorage, 'saveRefreshToken'], response.refreshToken);
+    }
+    if (response.csrfToken) {
+      yield put(setCsrfToken({ csrfToken: response.csrfToken }));
     }
 
-    // Backend failures arrive as bare message codes (e.g. "AUTH.S14",
-    // "SYSTEM.E01") which downstream toasts show verbatim - replace them
-    // with a friendly generic message. Machine-readable snake_case codes
-    // (e.g. "account_not_found") are left intact for flow logic.
-    const raw = getErrorMessage(error);
-    const isBareMessageCode = /^[A-Z_]+\.[A-Z]\d+$/.test(raw ?? '');
-    const message = isBareMessageCode ? i18n.t('auth:page.errors.emailLinkSendFailed') : raw;
-    yield put(sendBusinessLinkEmailAction.failure({ message }));
+    yield put(setAuthUserAction({ user: response.user }));
+    yield put(ownerUpgradeAction.success({ user: response.user }));
+    // The upgrade response has no entitlements; /me does.
+    yield put(fetchCurrentUserAction.request());
+  } catch (error: any) {
+    yield put(ownerUpgradeAction.failure({ message: getErrorMessage(error) }));
   }
 }
 

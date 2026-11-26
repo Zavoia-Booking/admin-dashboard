@@ -2,7 +2,6 @@ import { expect, test } from '@playwright/test'
 import {
   apiError,
   appleSignInCalls,
-  json,
   mockApplePost,
   mockSignedInShell,
   session,
@@ -64,23 +63,5 @@ test.describe('Sign in with Apple — register (web)', () => {
 
     await expect(page).toHaveURL(/\/welcome/, { timeout: 15_000 })
     expect(profiles).toEqual([{ tx_id: 'tx-name', firstName: 'Ana', lastName: 'Pop' }])
-  })
-
-  test('a welcome link from Apple on iPhone leads with Apple and sends the token', async ({ page }) => {
-    await stubAppleJs(page)
-    await mockSignedInShell(page, newOwner)
-    await page.route('**/api/auth/mobile-register-validate*', (route) =>
-      json(route, 200, { email: 'apple-user@test.com', provider: 'apple' }),
-    )
-    const bodies = await mockApplePost(page, '/auth/apple', () => ({ status: 200, body: session(newOwner, true) }))
-
-    await page.goto('/register?welcomeToken=welcome-123')
-    await expect(page.getByText('You started signing up with Apple on your phone.', { exact: false })).toBeVisible({ timeout: 10_000 })
-
-    await page.locator('#acceptTerms').click()
-    await appleButton(page).click()
-
-    await expect(page).toHaveURL(/\/welcome/, { timeout: 15_000 })
-    expect(bodies[0]).toMatchObject({ intent: 'register', welcomeToken: 'welcome-123' })
   })
 })

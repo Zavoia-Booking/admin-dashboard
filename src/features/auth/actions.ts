@@ -99,17 +99,6 @@ export const googleRegisterAction = createAsyncAction(
   'auth/GOOGLE_REGISTER_FAILURE',
 )<GoogleAuthRequestPayload, { accessToken: string, csrfToken: string | null, user: AuthUser | null }, { message: string }>();
 
-// Native Google register resolved to the "continue on web" email funnel
-// instead of a session — the register screen swaps to its "check your inbox"
-// card, same as the email-only flow.
-export const googleNativeEmailSentAction = createAction(
-  'auth/GOOGLE_NATIVE_EMAIL_SENT',
-)<{ email: string }>();
-
-export const clearGoogleNativeEmailSentAction = createAction(
-  'auth/CLEAR_GOOGLE_NATIVE_EMAIL_SENT',
-)<void>();
-
 // In-flow Google collision modal controls
 export const openAccountLinkingModal = createAction(
   'auth/OPEN_ACCOUNT_LINKING_MODAL',
@@ -151,11 +140,13 @@ export const selectBusinessAction = createAsyncAction(
   'auth/SELECT_BUSINESS_FAILURE',
 )<{ selectionToken: string; businessId: number }, { accessToken: string; csrfToken: string | null; user: AuthUser | null }, { message: string }>();
 
-export const sendBusinessLinkEmailAction = createAsyncAction(
-  'auth/SEND_BUSINESS_LINK_EMAIL_REQUEST',
-  'auth/SEND_BUSINESS_LINK_EMAIL_SUCCESS',
-  'auth/SEND_BUSINESS_LINK_EMAIL_FAILURE',
-)<{ email: string; tx_id?: string }, { message: string }, { message: string }>();
+// An existing customer / team member adds owner access by confirming their
+// password (web and native, no email).
+export const ownerUpgradeAction = createAsyncAction(
+  'auth/OWNER_UPGRADE_REQUEST',
+  'auth/OWNER_UPGRADE_SUCCESS',
+  'auth/OWNER_UPGRADE_FAILURE',
+)<{ email: string; password: string; tx_id?: string }, { user: AuthUser | null }, { message: string }>();
 
 export const closeAccountLinkingRequiredModal = createAction(
   'auth/CLOSE_ACCOUNT_LINKING_REQUIRED_MODAL',

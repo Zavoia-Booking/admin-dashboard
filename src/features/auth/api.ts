@@ -1,5 +1,5 @@
-import type { RegisterOwnerPayload, AuthResponse, AuthUser, CheckTeamInvitationResponse, CompleteTeamInvitationPayload, CompleteTeamInvitationResponse, AccountActionResponse, MobileRegisterRequestResponse, MobileRegisterTokenValidation, BusinessLinkTokenValidation, GoogleNativeRegisterResponse } from "./types";
-import type { AppleAccountResponse, AppleAuthRequestPayload, AppleAuthResponse, AppleCredential } from "./types";
+import type { RegisterOwnerPayload, AuthResponse, AuthUser, CheckTeamInvitationResponse, CompleteTeamInvitationPayload, CompleteTeamInvitationResponse, AccountActionResponse } from "./types";
+import type { AppleAccountResponse, AppleAuthRequestPayload, AppleCredential } from "./types";
 import { apiClient } from "../../shared/lib/http";
 import i18n from "../../shared/lib/i18n";
 
@@ -16,15 +16,10 @@ export const registerOwnerRequestApi = async (payload: RegisterOwnerPayload): Pr
     return data;
 }
 
-export const mobileRegisterRequestApi = async (payload: { email: string; locale?: string }): Promise<MobileRegisterRequestResponse> => {
-    const { data } = await apiClient().post<MobileRegisterRequestResponse>(`/auth/mobile-register-request`, payload);
-    return data;
-}
-
-export const validateMobileRegisterTokenApi = async (token: string): Promise<MobileRegisterTokenValidation> => {
-    const { data } = await apiClient().get<MobileRegisterTokenValidation>(`/auth/mobile-register-validate`, {
-        params: { token },
-    });
+// An existing customer / team member adds owner access to their account by
+// confirming the password. tx_id links a pending Google sign-in.
+export const ownerUpgradeApi = async (payload: { email: string; password: string; tx_id?: string }): Promise<AuthResponse> => {
+    const { data } = await apiClient().post<AuthResponse>(`/auth/owner-upgrade`, payload);
     return data;
 }
 
@@ -70,10 +65,8 @@ export const googleNativeLoginApi = async (payload: { idToken: string }): Promis
     return data;
 };
 
-// Native Google register never creates the account in-app: known emails may log
-// in, everything else resolves to the same "continue on web" email funnel.
-export const googleNativeRegisterApi = async (payload: { idToken: string }): Promise<GoogleNativeRegisterResponse> => {
-    const { data } = await apiClient().post<GoogleNativeRegisterResponse>('/auth/google/native', { ...payload, intent: 'register', locale: currentLocale() });
+export const googleNativeRegisterApi = async (payload: { idToken: string }): Promise<AuthResponse> => {
+    const { data } = await apiClient().post<AuthResponse>('/auth/google/native', { ...payload, intent: 'register', locale: currentLocale() });
     return data;
 };
 
@@ -99,23 +92,6 @@ export const linkGoogleByCodeApi = async (payload: { code: string; redirectUri: 
 
 export const selectBusinessApi = async (payload: { selectionToken: string; businessId: number }): Promise<AuthResponse> => {
     const { data } = await apiClient().post<AuthResponse>(`/auth/select-business`, payload);
-    return data;
-};
-
-export const validateBusinessLinkTokenApi = async (token: string): Promise<BusinessLinkTokenValidation> => {
-    const { data } = await apiClient().get<BusinessLinkTokenValidation>(`/auth/link-business-account/validate`, {
-        params: { token },
-    });
-    return data;
-};
-
-export const completeBusinessLinkApi = async (payload: { token: string; password: string }): Promise<AuthResponse> => {
-    const { data } = await apiClient().post<AuthResponse>(`/auth/link-business-account`, payload);
-    return data;
-};
-
-export const sendBusinessLinkEmailApi = async (payload: { email: string; tx_id?: string }): Promise<{ message: string }> => {
-    const { data} = await apiClient().post<{ message: string }>(`/auth/send-business-link-email`, { ...payload, locale: currentLocale() });
     return data;
 };
 
@@ -163,11 +139,10 @@ export const deleteAccountApi = async (): Promise<AccountActionResponse> => {
 // DTO accepts. Native requests carry `x-native-app: capacitor` (http client),
 // which makes the API return the refresh token in the body.
 
-export const appleAuthApi = async (payload: AppleAuthRequestPayload): Promise<AppleAuthResponse> => {
-    const { data } = await apiClient().post<AppleAuthResponse>('/auth/apple', {
+export const appleAuthApi = async (payload: AppleAuthRequestPayload): Promise<AuthResponse> => {
+    const { data } = await apiClient().post<AuthResponse>('/auth/apple', {
         ...payload.credential,
         intent: payload.intent,
-        ...(payload.welcomeToken ? { welcomeToken: payload.welcomeToken } : {}),
     });
     return data;
 };
@@ -184,11 +159,6 @@ export const appleLinkSendCodeApi = async (payload: { tx_id: string }): Promise<
 
 export const appleLinkVerifyApi = async (payload: { tx_id: string; password?: string; code?: string }): Promise<AuthResponse> => {
     const { data } = await apiClient().post<AuthResponse>('/auth/apple/link/verify', payload);
-    return data;
-};
-
-export const appleBusinessLinkApi = async (payload: { credential: AppleCredential; token: string }): Promise<AuthResponse> => {
-    const { data } = await apiClient().post<AuthResponse>('/auth/apple/business-link', { ...payload.credential, token: payload.token });
     return data;
 };
 

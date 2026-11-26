@@ -7,6 +7,8 @@ import { cn } from '../../../shared/lib/utils';
 import { SliderSectionHeader } from '../../../shared/components/forms/SliderSectionHeader';
 import { addCustomerApi } from '../../customers/api';
 import { toast } from 'sonner';
+import { isAxiosError } from 'axios';
+import { translateMessageCode } from '../../../shared/utils/error';
 import type { CustomerDisplay } from './addAppointmentSliderHelpers';
 import { getCustomerDisplayLabel } from './addAppointmentSliderHelpers';
 import QuickCreateCustomerForm from './QuickCreateCustomerForm';
@@ -15,6 +17,21 @@ import './addAppointmentSliderPopover.css';
 import '../../../shared/components/forms/CollapsibleFormSection.css';
 
 const QUICK_CREATE_ANIMATION_MS = 350;
+const DUPLICATE_EMAIL_CODE = 'BUSINESS_CUSTOMER.E02';
+
+/** A 409 for a duplicate email; carries the existing customer when the API provides it. */
+function getDuplicateEmailConflict(
+  error: unknown,
+): { existingCustomer: CustomerSearchResult | null } | null {
+  if (!isAxiosError(error) || error.response?.status !== 409) return null;
+  const data = error.response.data as
+    | { message?: string | string[]; details?: { existingCustomer?: CustomerSearchResult } }
+    | undefined;
+  const messages = Array.isArray(data?.message) ? data.message : [data?.message];
+  if (!messages.includes(DUPLICATE_EMAIL_CODE)) return null;
+  const existing = data?.details?.existingCustomer;
+  return { existingCustomer: existing && typeof existing.id === 'number' ? existing : null };
+}
 
 interface CustomerSelectedCardProps {
   display: CustomerDisplay | null;
@@ -87,6 +104,7 @@ const CustomerSearchPicker: React.FC<CustomerSearchPickerProps> = ({
   const [quickCreateRendered, setQuickCreateRendered] = useState(false);
   const [quickCreateClosing, setQuickCreateClosing] = useState(false);
   const [quickCreateSubmitting, setQuickCreateSubmitting] = useState(false);
+  const [existingCustomer, setExistingCustomer] = useState<CustomerSearchResult | null>(null);
 
   const quickCreateCollapsibleRef = useRef<HTMLDivElement>(null);
 
@@ -95,7 +113,12 @@ const CustomerSearchPicker: React.FC<CustomerSearchPickerProps> = ({
     setQuickCreateRendered(false);
     setQuickCreateClosing(false);
     setQuickCreateSubmitting(false);
+    setExistingCustomer(null);
   }, [isOpen]);
+
+  useEffect(() => {
+    if (!showQuickCreate) setExistingCustomer(null);
+  }, [showQuickCreate]);
 
   const updateQuickCreateHeight = useCallback(() => {
     const el = quickCreateCollapsibleRef.current;
@@ -138,19 +161,36 @@ const CustomerSearchPicker: React.FC<CustomerSearchPickerProps> = ({
   const handleQuickCreateSubmit = useCallback(
     async (payload: { firstName: string; lastName?: string; email?: string; phone?: string }) => {
       setQuickCreateSubmitting(true);
+      setExistingCustomer(null);
       try {
         const newCustomer = await addCustomerApi(payload);
         onSelectCustomer(newCustomer);
         setShowQuickCreate(false);
         toast.success(t('page.appointments.customer.customerCreated'));
-      } catch {
-        toast.error(t('page.appointments.customer.customerCreateFailed'));
+      } catch (error) {
+        const duplicate = getDuplicateEmailConflict(error);
+        if (duplicate?.existingCustomer) {
+          setExistingCustomer(duplicate.existingCustomer);
+        } else if (duplicate) {
+          toast.error(translateMessageCode(DUPLICATE_EMAIL_CODE));
+        } else {
+          toast.error(t('page.appointments.customer.customerCreateFailed'));
+        }
       } finally {
         setQuickCreateSubmitting(false);
       }
     },
     [onSelectCustomer],
   );
+
+  const handleUseExistingCustomer = useCallback((customer: CustomerSearchResult) => {
+    onSelectCustomer(customer);
+    setShowQuickCreate(false);
+  }, [onSelectCustomer]);
+
+  const handleQuickCreateEmailChange = useCallback(() => {
+    setExistingCustomer(null);
+  }, []);
 
   return (
     <div className="space-y-5 mb-4">
@@ -201,6 +241,9 @@ const CustomerSearchPicker: React.FC<CustomerSearchPickerProps> = ({
                 onSubmit={handleQuickCreateSubmit}
                 onBack={() => setShowQuickCreate(false)}
                 loading={quickCreateSubmitting}
+                existingCustomer={existingCustomer}
+                onUseExistingCustomer={handleUseExistingCustomer}
+                onEmailChange={handleQuickCreateEmailChange}
               />
             </div>
           )}

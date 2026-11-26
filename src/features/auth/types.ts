@@ -4,43 +4,12 @@ export type RegisterOwnerPayload = {
   firstName: string;
   lastName: string;
   phone?: string;
-  /** Token issued by the mobile welcome email; marks the email as pre-verified. */
-  welcomeToken?: string;
-};
-
-export type MobileRegisterRequestResponse = {
-  message: string;
-};
-
-export type MobileRegisterTokenValidation = {
-  email: string;
-  /** 'google' when the invite came from native Google sign-in — the web form leads with Google.
-   *  'apple' when it came from Sign in with Apple in the iOS app — the web form leads with Apple. */
-  provider?: 'google' | 'apple';
 };
 
 /** Payload for the unified Google actions: web sends an OAuth code, native an ID token. */
 export type GoogleAuthRequestPayload =
   | { code: string; redirectUri: string }
   | { idToken: string };
-
-/** Native Google email funnel outcome (register intent, no session issued). */
-export type GoogleNativeEmailSent = {
-  outcome: 'email_sent';
-  message: string;
-  email: string;
-};
-
-export type GoogleNativeRegisterResponse = AuthResponse | GoogleNativeEmailSent;
-
-/** Pre-flight info for the /link-business-account page. */
-export type BusinessLinkTokenValidation = {
-  email: string;
-  hasPassword: boolean;
-  googleLinked: boolean;
-  /** Apple is connected to the account: the page offers "Continue with Apple". */
-  appleLinked?: boolean;
-};
 
 export type AuthUser = {
   id: number;
@@ -165,11 +134,11 @@ export interface AuthState {
   linkingErrorCode?: string | null;
   businessSelectionRequired?: BusinessSelectionRequired | null;
   accountLinkingRequired?: AccountLinkingDetails | null;
+  /** Owner upgrade (password step) error, shown inside its modal. */
+  ownerUpgradeError?: string | null;
   isRegistration?: boolean;
   isMemberRegistrationLoading?: boolean;
   memberRegistrationError?: string | null;
-  /** Native Google register resolved to the email funnel — address the invite went to. */
-  mobileGoogleEmailSentTo?: string | null;
   teamInvitationStatus?: 'checking' | 'needs_registration' | 'accepted' | 'completed' | 'error' | null;
   teamInvitationData?: {
     token: string;
@@ -257,12 +226,7 @@ export type AppleCredential = {
 export type AppleAuthRequestPayload = {
   credential: AppleCredential;
   intent: 'login' | 'register';
-  /** Web register opened from the iOS app's "finish on the web" email. */
-  welcomeToken?: string;
 };
-
-/** POST /auth/apple: a session, or (iOS register, new person) the "finish on the web" email. */
-export type AppleAuthResponse = AuthResponse | GoogleNativeEmailSent;
 
 /** POST /auth/link/apple and /auth/unlink/apple. */
 export type AppleAccountResponse = {

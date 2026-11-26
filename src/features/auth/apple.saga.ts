@@ -7,7 +7,6 @@ import {
   appleProfileAction,
   closeAppleStep,
   fetchCurrentUserAction,
-  googleNativeEmailSentAction,
   openAppleLinkStep,
   openAppleProfileStep,
   setAuthLoadingAction,
@@ -16,7 +15,7 @@ import {
   setTokensAction,
 } from "./actions";
 import { appleAuthApi, appleLinkSendCodeApi, appleLinkVerifyApi, appleProfileApi, getCurrentUserApi } from "./api";
-import type { AppleAuthResponse, AppleLinkProof, AuthResponse, AuthUser } from "./types";
+import type { AppleLinkProof, AuthResponse, AuthUser } from "./types";
 import { listLocationsAction } from "../locations/actions";
 import type { RootState } from "../../app/providers/store";
 import { tokenStorage } from "../../shared/lib/tokenStorage";
@@ -123,14 +122,8 @@ function* routeAppleOutcome(error: unknown): Generator<any, boolean, any> {
 function* handleAppleAuth(action: ReturnType<typeof appleAuthAction.request>): Generator<any, void, any> {
   try {
     yield put(setAuthLoadingAction({ isLoading: true }));
-    const response: AppleAuthResponse = yield call(appleAuthApi, action.payload);
-
-    // iOS register, new person: the "finish on the web" email went out.
-    if ("outcome" in response && response.outcome === "email_sent") {
-      yield put(googleNativeEmailSentAction({ email: response.email }));
-      return;
-    }
-    yield call(completeAppleSession, response as AuthResponse);
+    const response: AuthResponse = yield call(appleAuthApi, action.payload);
+    yield call(completeAppleSession, response);
   } catch (error) {
     const routed: boolean = yield call(routeAppleOutcome, error);
     if (!routed) {

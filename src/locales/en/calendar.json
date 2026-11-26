@@ -294,6 +294,11 @@
         "searchPlaceholder": "Search clients...",
         "customerCreated": "Customer created",
         "customerCreateFailed": "Could not create customer. Please try again.",
+        "existingCustomer": {
+          "title": "This customer already exists",
+          "description": "A customer with this email is already in your list. Use them for this appointment.",
+          "use": "Use this customer"
+        },
         "quickCreate": {
           "firstNameRequired": "First name is required",
           "firstNameMin": "First name must be at least 2 characters",

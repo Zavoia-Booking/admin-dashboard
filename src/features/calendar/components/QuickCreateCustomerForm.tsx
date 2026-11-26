@@ -6,6 +6,8 @@ import { Button } from '../../../shared/components/ui/button';
 import { Spinner } from '../../../shared/components/ui/spinner';
 import { Input } from '../../../shared/components/ui/input';
 import { Label } from '../../../shared/components/ui/label';
+import { PersonAvatar } from '../../../shared/components/common/PersonAvatar';
+import type { CustomerSearchResult } from './CustomerSearchPopover';
 import {
   emailError,
   isE164,
@@ -23,6 +25,11 @@ interface QuickCreateCustomerFormProps {
   onSubmit: (payload: QuickCreateCustomerPayload) => void | Promise<void>;
   onBack: () => void;
   loading?: boolean;
+  /** Existing customer returned by the API when the email is already taken (409). */
+  existingCustomer?: CustomerSearchResult | null;
+  onUseExistingCustomer?: (customer: CustomerSearchResult) => void;
+  /** Called when the email input changes, so the parent can drop a stale existing-customer match. */
+  onEmailChange?: () => void;
 }
 
 const defaultValues = {
@@ -38,6 +45,9 @@ const QuickCreateCustomerForm: React.FC<QuickCreateCustomerFormProps> = ({
   onSubmit,
   onBack,
   loading = false,
+  existingCustomer = null,
+  onUseExistingCustomer,
+  onEmailChange,
 }) => {
   const { t } = useTranslation('calendar');
   const {
@@ -196,7 +206,10 @@ const QuickCreateCustomerForm: React.FC<QuickCreateCustomerFormProps> = ({
             type="email"
             placeholder={t("page.appointments.customer.quickCreate.emailPlaceholder")}
             value={emailField.value || ''}
-            onChange={(e) => emailField.onChange(e.target.value)}
+            onChange={(e) => {
+              emailField.onChange(e.target.value);
+              onEmailChange?.();
+            }}
             className={`!pr-11 transition-all focus-visible:ring-1 focus-visible:ring-offset-0 ${
               emailState.error
                 ? 'border-destructive bg-error-bg focus-visible:ring-0'
@@ -258,6 +271,54 @@ const QuickCreateCustomerForm: React.FC<QuickCreateCustomerFormProps> = ({
           )}
         </div>
       </div>
+      {existingCustomer && (
+        <div
+          className="rounded-lg border border-border-strong bg-white dark:bg-surface p-3 space-y-3"
+          role="alert"
+          aria-live="polite"
+        >
+          <div className="flex items-start gap-2 text-sm text-foreground-1">
+            <AlertCircle className="h-4 w-4 mt-0.5 shrink-0 text-primary" />
+            <div>
+              <div className="font-medium">{t('page.appointments.customer.existingCustomer.title')}</div>
+              <div className="text-foreground-3 dark:text-foreground-2">
+                {t('page.appointments.customer.existingCustomer.description')}
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <PersonAvatar
+              id={existingCustomer.id}
+              firstName={existingCustomer.firstName}
+              lastName={existingCustomer.lastName}
+              className="h-10 w-10"
+              initialsClassName="text-sm font-medium"
+            />
+            <div className="flex-1 min-w-0">
+              <div className="font-medium text-base truncate text-foreground-1">
+                {[existingCustomer.firstName, existingCustomer.lastName].filter(Boolean).join(' ')}
+              </div>
+              {existingCustomer.email && (
+                <div className="text-sm text-foreground-3 dark:text-foreground-2 truncate">{existingCustomer.email}</div>
+              )}
+              {existingCustomer.phone && (
+                <div className="text-sm text-foreground-3 dark:text-foreground-2 truncate">{existingCustomer.phone}</div>
+              )}
+            </div>
+            {onUseExistingCustomer && (
+              <Button
+                type="button"
+                variant="outline"
+                rounded="full"
+                onClick={() => onUseExistingCustomer(existingCustomer)}
+                className="shrink-0 h-9 cursor-pointer"
+              >
+                {t('page.appointments.customer.existingCustomer.use')}
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
       <div className="flex justify-between gap-2 mt-4">
         <Button
           type="button"

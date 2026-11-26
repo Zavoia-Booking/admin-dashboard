@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect } from "react"
 import { Outlet, useLocation, useSearchParams } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { AuthShell } from "./AuthShell"
@@ -7,7 +7,6 @@ import { ZavoiaWordmark } from "./ZavoiaWordmark"
 import { LanguageSwitcher } from "../../../shared/components/common/LanguageSwitcher"
 import { LanguageDrawer } from "../../../shared/components/common/LanguageDrawer"
 import { DarkModeToggle } from "../../../shared/components/common/DarkModeToggle"
-import { usePlatform } from "../../../shared/hooks/usePlatform"
 
 /**
  * Theme + language controls grouped as a single segmented pill, fixed
@@ -39,12 +38,6 @@ function MobileAuthControls() {
   )
 }
 
-/** Outlet context so the native register email-gate can tell AuthLayout when
- *  it has moved to its "check your inbox" state — see the subtitle logic below. */
-export type AuthOutletContext = {
-  onRegisterEmailSentChange: (sent: boolean) => void
-}
-
 /**
  * Layout for the auth routes (/login and /register). Owns the persistent
  * card shell, including the AuthHero panel — by living above the route
@@ -60,13 +53,8 @@ export function AuthLayout() {
   const location = useLocation()
   const [searchParams] = useSearchParams()
   const { t } = useTranslation("auth")
-  const { isNative } = usePlatform()
   const mode: "login" | "register" = location.pathname.startsWith("/register") ? "register" : "login"
   const isForgotMode = mode === "login" && searchParams.get("forgot") === "1"
-  // Once the native register email-gate has sent its confirmation, its own
-  // "Check your inbox" heading repeats this subtitle's instructions almost
-  // verbatim — drop the subtitle so the card doesn't say the same thing twice.
-  const [isRegisterEmailSent, setIsRegisterEmailSent] = useState(false)
 
   const title = isForgotMode
     ? t("forgotPassword.title")
@@ -77,11 +65,7 @@ export function AuthLayout() {
     ? t("forgotPassword.subtitle")
     : mode === "login"
       ? t("login.workspaceSubtitle")
-      : isNative && !isRegisterEmailSent
-        // Native register is the email gate; its explainer lives here so the
-        // form column stays single-titled like the login tab.
-        ? t("mobileRegister.subtitle")
-        : undefined
+      : undefined
 
   useEffect(() => {
     document.documentElement.classList.add("scrollbar-hide")
@@ -111,7 +95,7 @@ export function AuthLayout() {
         </div>
         <div className="splash-target-card w-full">
           <AuthCard mode={mode} title={title} subtitle={subtitle} isForgotMode={isForgotMode}>
-            <Outlet context={{ onRegisterEmailSentChange: setIsRegisterEmailSent } satisfies AuthOutletContext} />
+            <Outlet />
           </AuthCard>
         </div>
         <MobileAuthControls />

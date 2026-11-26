@@ -298,6 +298,11 @@
         "searchPlaceholder": "Caută clienți...",
         "customerCreated": "Client creat",
         "customerCreateFailed": "Clientul nu a putut fi creat. Te rugăm să încerci din nou.",
+        "existingCustomer": {
+          "title": "Clientul există deja",
+          "description": "Un client cu acest email este deja în lista ta. Folosește-l pentru această programare.",
+          "use": "Folosește acest client"
+        },
         "quickCreate": {
           "firstNameRequired": "Prenumele este obligatoriu",
           "firstNameMin": "Prenumele trebuie să aibă cel puțin 2 caractere",

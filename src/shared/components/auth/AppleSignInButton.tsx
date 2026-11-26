@@ -7,7 +7,6 @@ import { Button } from "../ui/button";
 import { Spinner } from "../ui/spinner";
 import { appleAuthAction } from "../../../features/auth/actions";
 import { selectAuthIsLoading } from "../../../features/auth/selectors";
-import type { AppleCredential } from "../../../features/auth/types";
 import {
   appleSignIn,
   isAppleSignInAvailable,
@@ -38,10 +37,6 @@ type AppleSignInButtonProps = {
   className?: string;
   /** Called before Apple opens; return false to block it (e.g. required terms checkbox not ticked). */
   onBeforeStart?: () => boolean;
-  /** Web register opened from the iOS app's email: sent along with the register call. */
-  welcomeToken?: string;
-  /** Use the credential yourself instead of signing in (e.g. /link-business-account). */
-  onCredential?: (credential: AppleCredential) => void | Promise<void>;
 };
 
 /**
@@ -55,8 +50,6 @@ export function AppleSignInButton({
   disabled,
   className,
   onBeforeStart,
-  welcomeToken,
-  onCredential,
 }: AppleSignInButtonProps) {
   const { t } = useTranslation('auth');
   const dispatch = useDispatch();
@@ -89,15 +82,10 @@ export function AppleSignInButton({
     setBusy(true);
     try {
       const credential = await appleSignIn();
-      if (onCredential) {
-        await onCredential(credential);
-        return;
-      }
       setAwaitingAuth(true);
       dispatch(appleAuthAction.request({
         credential,
         intent: context,
-        ...(welcomeToken ? { welcomeToken } : {}),
       }));
     } catch (error) {
       if (!isAppleSignInCancel(error)) {

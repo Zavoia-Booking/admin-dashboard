@@ -43,7 +43,6 @@ const InfoPageComponent = lazy(() => import('./features/settings/pages/info-page
 const AccountWebInfoPage = lazy(() => import('./features/settings/pages/AccountWebInfoPage'))
 const AssignmentsPage = lazy(() => import('./features/assignments/pages/assignments'))
 const VerifyEmailPage = lazy(() => import('./features/auth/pages/verify-email'))
-const LinkBusinessAccountPage = lazy(() => import('./features/auth/pages/link-business-account'))
 const TeamInvitationPage = lazy(() => import('./features/auth/pages/team-invitation'))
 const SupportPage = lazy(() => import('./features/support/pages/support'))
 const CustomersPage = lazy(() => import('./features/customers/pages/customers'))
@@ -226,7 +225,6 @@ const router = createBrowserRouter(
       <Route path="/team-invitation" element={<TeamInvitationPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/verify-email" element={<VerifyEmailPage />} />
-      <Route path="/link-business-account" element={<LinkBusinessAccountPage />} />
       <Route path="/auth/callback" element={<GoogleOAuthCallback />} />
       <Route path="/auth/apple/callback" element={<AppleCallbackPage />} />
 

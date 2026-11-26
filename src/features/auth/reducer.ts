@@ -1,5 +1,5 @@
 import * as actions from "./actions";
-import { hydrateSessionAction, loginAction, logoutRequestAction, registerOwnerRequestAction, setAuthLoadingAction, setAuthUserAction, setTokensAction, clearAuthErrorAction, googleLoginAction, googleRegisterAction, openAccountLinkingModal, closeAccountLinkingModal, reauthForLinkAction, linkGoogleAction, unlinkGoogleAction, selectBusinessAction, sendBusinessLinkEmailAction, closeAccountLinkingRequiredModal, dismissBusinessSelectorModal, setMemberRegistrationLoadingAction, checkTeamInvitationAction, completeTeamInvitationAction } from "./actions";
+import { hydrateSessionAction, loginAction, logoutRequestAction, registerOwnerRequestAction, setAuthLoadingAction, setAuthUserAction, setTokensAction, clearAuthErrorAction, googleLoginAction, googleRegisterAction, openAccountLinkingModal, closeAccountLinkingModal, reauthForLinkAction, linkGoogleAction, unlinkGoogleAction, selectBusinessAction, closeAccountLinkingRequiredModal, dismissBusinessSelectorModal, setMemberRegistrationLoadingAction, checkTeamInvitationAction, completeTeamInvitationAction } from "./actions";
 import { decrementUnreadCount, resetUnreadCount } from "../notifications/actions";
 import type { AuthState } from "./types";
 import { AuthStatusEnum  } from "./types";
@@ -27,7 +27,7 @@ const initialState: AuthState = {
   businessSelectionRequired: null,
   accountLinkingRequired: null,
   isRegistration: false,
-  mobileGoogleEmailSentTo: null,
+  ownerUpgradeError: null,
   isMemberRegistrationLoading: false,
   memberRegistrationError: null,
   teamInvitationStatus: null,
@@ -51,14 +51,6 @@ export const AuthReducer: Reducer<AuthState, any> = (state: AuthState = initialS
 
     case getType(actions.resetRegistrationFlag): {
       return { ...state, isRegistration: false };
-    }
-
-    case getType(actions.googleNativeEmailSentAction): {
-      return { ...state, isLoading: false, mobileGoogleEmailSentTo: action.payload.email };
-    }
-
-    case getType(actions.clearGoogleNativeEmailSentAction): {
-      return { ...state, mobileGoogleEmailSentTo: null };
     }
 
     case getType(setMemberRegistrationLoadingAction): {
@@ -374,32 +366,36 @@ export const AuthReducer: Reducer<AuthState, any> = (state: AuthState = initialS
       };
     }
 
-    case getType(sendBusinessLinkEmailAction.request): {
-      return { ...state, isLoading: true, error: null };
-    }
-
-    case getType(sendBusinessLinkEmailAction.success): {
-      return { 
-        ...state, 
-        isLoading: false, 
-        accountLinkingRequired: null, // Clear modal after success
-      };
-    }
-
-    case getType(sendBusinessLinkEmailAction.failure): {
-      return { 
-        ...state, 
-        isLoading: false, 
-        error: action.payload.message,
-      };
-    }
-
     case getType(closeAccountLinkingRequiredModal): {
       return { 
         ...state, 
         accountLinkingRequired: null,
+        ownerUpgradeError: null,
         error: null,
       };
+    }
+
+    case getType(actions.ownerUpgradeAction.request): {
+      return { ...state, isLoading: true, ownerUpgradeError: null };
+    }
+
+    case getType(actions.ownerUpgradeAction.success): {
+      // Same landing as a new registration: PublicRoute sends the new owner to /welcome.
+      return {
+        ...state,
+        isAuthenticated: true,
+        isLoading: false,
+        user: action.payload.user,
+        error: null,
+        status: AuthStatusEnum.AUTHENTICATED,
+        isRegistration: true,
+        accountLinkingRequired: null,
+        ownerUpgradeError: null,
+      };
+    }
+
+    case getType(actions.ownerUpgradeAction.failure): {
+      return { ...state, isLoading: false, ownerUpgradeError: action.payload.message };
     }
 
     case getType(dismissBusinessSelectorModal): {

@@ -29,7 +29,6 @@ const ALWAYS_ALLOWED = new Set<string>([
   '/privacy',
   '/verify-email',
   '/reset-password',
-  '/link-business-account',
   '/auth/callback',
   '/login',
   '/register',
