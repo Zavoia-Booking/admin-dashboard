@@ -305,18 +305,18 @@ const QuickCreateCustomerForm: React.FC<QuickCreateCustomerFormProps> = ({
                 <div className="text-sm text-foreground-3 dark:text-foreground-2 truncate">{existingCustomer.phone}</div>
               )}
             </div>
-            {onUseExistingCustomer && (
-              <Button
-                type="button"
-                variant="outline"
-                rounded="full"
-                onClick={() => onUseExistingCustomer(existingCustomer)}
-                className="shrink-0 h-9 cursor-pointer"
-              >
-                {t('page.appointments.customer.existingCustomer.use')}
-              </Button>
-            )}
           </div>
+          {onUseExistingCustomer && (
+            <Button
+              type="button"
+              variant="outline"
+              rounded="full"
+              onClick={() => onUseExistingCustomer(existingCustomer)}
+              className="w-full h-9 cursor-pointer"
+            >
+              {t('page.appointments.customer.existingCustomer.use')}
+            </Button>
+          )}
         </div>
       )}
       <div className="flex justify-between gap-2 mt-4">
