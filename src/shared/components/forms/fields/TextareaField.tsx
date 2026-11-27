@@ -1,7 +1,7 @@
 import React from "react";
 import { Label } from "../../ui/label";
 import { Textarea } from "../../ui/textarea";
-import { AlertCircle } from "lucide-react";
+import { InlineError } from "../../ui/inline-error";
 
 export interface TextareaFieldProps {
   value: string;
@@ -19,6 +19,7 @@ export interface TextareaFieldProps {
   className?: string;
   showCharacterCount?: boolean;
   error?: string;
+  reserveErrorSpace?: boolean;
   autoFocus?: boolean;
   onFocus?: () => void;
   onBlur?: () => void;
@@ -43,6 +44,7 @@ export const TextareaField: React.FC<TextareaFieldProps> = ({
   className = "",
   showCharacterCount = true,
   error,
+  reserveErrorSpace = true,
   autoFocus = false,
   onFocus,
   onBlur,
@@ -109,19 +111,7 @@ export const TextareaField: React.FC<TextareaFieldProps> = ({
         aria-invalid={!!error}
         aria-describedby={error ? errorId : undefined}
       />
-      <div className="min-h-5">
-        {error && (
-          <p
-            id={errorId}
-            className="mt-1 flex items-center gap-1.5 text-xs text-destructive"
-            role="alert"
-            aria-live="polite"
-          >
-            <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-            <span>{error}</span>
-          </p>
-        )}
-      </div>
+      <InlineError id={errorId} message={error} reserveSpace={reserveErrorSpace} />
     </div>
   );
 };

@@ -9,12 +9,10 @@ import { Button } from '../../../shared/components/ui/button';
 import {
   User,
   CreditCard,
-  Loader2,
 } from 'lucide-react';
 import BillingAndSubscriptionV2 from '../components/BillingAndSubscriptionV2';
 import { ResponsiveTabs, type ResponsiveTabItem } from '../../../shared/components/ui/responsive-tabs';
 import { LimitedAccessBanner } from '../../../shared/components/common/subscription/LimitedAccessBanner';
-import { getBusinessUpdatingSelector } from '../../business/selectors';
 import { usePlatform } from '../../../shared/hooks/usePlatform';
 import { useIsMobile } from '../../../shared/hooks/use-mobile';
 import { selectCurrentUser } from '../../auth/selectors';
@@ -25,10 +23,9 @@ const SettingsPage = () => {
   const { t } = useTranslation('settings');
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const isUpdating = useSelector(getBusinessUpdatingSelector) as boolean;
   const currentUser = useSelector(selectCurrentUser);
   const [isProfileDirty, setIsProfileDirty] = React.useState(false);
-  const [isPersonalSaving, setIsPersonalSaving] = React.useState(false);
+  const [isSaving, setIsSaving] = React.useState(false);
   const { isNative } = usePlatform();
   const isMobile = useIsMobile();
 
@@ -107,7 +104,7 @@ const SettingsPage = () => {
     const inner = (() => {
       switch (tabId) {
         case 'profile':
-          return <BusinessProfile onDirtyChange={setIsProfileDirty} onSavingChange={setIsPersonalSaving} />;
+          return <BusinessProfile onDirtyChange={setIsProfileDirty} onSavingChange={setIsSaving} />;
         case 'billing':
           return <BillingAndSubscriptionV2 />;
         default:
@@ -152,29 +149,16 @@ const SettingsPage = () => {
   // Pre-wizard there is no business form on the page, so nothing to save.
   const showSaveButton = activeTab === 'profile' && !isOwnerWithoutBusiness;
 
-  // Business updates report via redux; personal-info saves via onSavingChange.
-  const isSaving = isUpdating || isPersonalSaving;
-
   const SaveButton = (
     <Button
       type="button"
       onClick={handleSaveProfile}
       className="group btn-primary !min-h-0 rounded-full shadow-lg shadow-primary/20 active:scale-95 transition-all duration-300 font-bold flex items-center gap-2 !h-10 md:!h-11 !px-4 md:!px-6 md:-mt-4 text-xs md:text-sm !w-auto !min-w-34 md:!w-52 md:sm:w-auto"
-      disabled={!isProfileDirty || isSaving}
+      disabled={!isProfileDirty}
+      loading={isSaving}
+      aria-label={t('buttons.saveChanges')}
     >
-      {isSaving ? (
-        <>
-          <Loader2 className="h-4 w-4 animate-spin shrink-0" />
-          <span>
-            {t('buttons.saving')}
-            <span className="inline-block w-4 text-left animate-pulse" aria-hidden>
-              ...
-            </span>
-          </span>
-        </>
-      ) : (
-        <span>{t('buttons.saveChanges')}</span>
-      )}
+      <span>{t('buttons.saveChanges')}</span>
     </Button>
   );
 
@@ -182,24 +166,19 @@ const SettingsPage = () => {
     <Button
       type="button"
       onClick={handleSaveProfile}
-      className="group btn-primary !min-h-0 !h-8 px-3 rounded-full text-sm shadow-sm active:scale-95 flex items-center gap-1.5"
-      disabled={!isProfileDirty || isSaving}
+      className="group btn-primary !min-h-0 !h-8 px-3 rounded-full text-sm shadow-sm active:scale-95 inline-grid place-items-center after:invisible after:col-start-1 after:row-start-1 after:content-[attr(aria-label)] [&>*]:col-start-1 [&>*]:row-start-1"
+      disabled={!isProfileDirty}
+      loading={isSaving}
+      aria-label={t('buttons.saveChanges')}
     >
-      {isSaving ? (
-        <>
-          <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" />
-          <span>{t('buttons.saving')}</span>
-        </>
-      ) : (
-        <span>{t('buttons.saveChanges')}</span>
-      )}
+      <span>{t('buttons.saveChanges')}</span>
     </Button>
   );
 
   if (isNative) {
     return (
       <AppLayout headerRightContent={isMobile && !isOwnerWithoutBusiness ? HeaderSaveButton : undefined}>
-        <BusinessProfile onDirtyChange={setIsProfileDirty} onSavingChange={setIsPersonalSaving} />
+        <BusinessProfile onDirtyChange={setIsProfileDirty} onSavingChange={setIsSaving} />
       </AppLayout>
     );
   }

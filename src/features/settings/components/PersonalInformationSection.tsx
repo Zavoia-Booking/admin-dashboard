@@ -2,27 +2,25 @@ import {
   forwardRef,
   useEffect,
   useImperativeHandle,
+  useRef,
   useState,
 } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useDispatch, useSelector } from 'react-redux';
-import { toast } from 'sonner';
+import { useSelector } from 'react-redux';
 import { User as UserIcon } from 'lucide-react';
 import TextField from '../../../shared/components/forms/fields/TextField';
 import { sanitizeName, validatePersonName } from '../../../shared/utils/validation';
-import { getErrorMessage } from '../../../shared/utils/error';
-import { fetchCurrentUserAction } from '../../auth/actions';
 import { selectCurrentUser } from '../../auth/selectors';
-import {
-  getTeamMemberProfile,
-  updateTeamMemberProfile,
-} from '../../team-member-pages/myAccount/api';
+import { getTeamMemberProfile } from '../../team-member-pages/myAccount/api';
 import { ProfilePhotoUploader } from '../../team-member-pages/myAccount/components/ProfilePhotoUploader';
 
+type NameChanges = { firstName?: string; lastName?: string };
+
 export interface PersonalInformationSectionRef {
-  isDirty: () => boolean;
-  /** Validates + saves; toasts on both outcomes. Returns false when blocked/failed. */
-  save: () => Promise<boolean>;
+  getChanges: () => NameChanges;
+  validate: (changes: NameChanges) => boolean;
+  showErrors: (fields: NameChanges) => void;
+  acceptSaved: (changes: NameChanges) => void;
 }
 
 interface PersonalInformationSectionProps {
@@ -30,16 +28,14 @@ interface PersonalInformationSectionProps {
 }
 
 /**
- * Owner's own name + photo, reusing the self-scoped /team-member-account
- * endpoints (the same ones the team-member portal uses). Photo saves
- * immediately; names save via the page's Save changes submit.
+ * The account endpoint supplies the owner’s photograph and names. The photo
+ * uploads immediately. Name edits are part of the business profile save.
  */
 export const PersonalInformationSection = forwardRef<
   PersonalInformationSectionRef,
   PersonalInformationSectionProps
 >(({ onDirtyChange }, ref) => {
   const { t } = useTranslation('settings');
-  const dispatch = useDispatch();
   const user = useSelector(selectCurrentUser);
 
   const [firstName, setFirstName] = useState(user?.firstName || '');
@@ -48,6 +44,8 @@ export const PersonalInformationSection = forwardRef<
     firstName: user?.firstName || '',
     lastName: user?.lastName || '',
   });
+  const initialNames = useRef(original);
+  const savedNames = useRef<Partial<typeof original>>({});
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [errors, setErrors] = useState<{ firstName?: string; lastName?: string }>({});
   const [touched, setTouched] = useState<{ firstName?: boolean; lastName?: boolean }>({});
@@ -61,9 +59,12 @@ export const PersonalInformationSection = forwardRef<
         if (cancelled) return;
         const p = response.profile;
         setProfileImage(p.profileImage || null);
-        setFirstName(p.firstName || '');
-        setLastName(p.lastName || '');
-        setOriginal({ firstName: p.firstName || '', lastName: p.lastName || '' });
+        const names = {
+          firstName: p.firstName || '', lastName: p.lastName || '', ...savedNames.current,
+        };
+        setFirstName(value => value === initialNames.current.firstName ? names.firstName : value);
+        setLastName(value => value === initialNames.current.lastName ? names.lastName : value);
+        setOriginal(names);
       })
       .catch(() => {});
     return () => {
@@ -78,38 +79,43 @@ export const PersonalInformationSection = forwardRef<
     onDirtyChange?.(isDirty);
   }, [isDirty, onDirtyChange]);
 
-  const save = async (): Promise<boolean> => {
-    const nextErrors = {
-      firstName: validatePersonName('firstName', firstName, t) ?? undefined,
-      lastName: validatePersonName('lastName', lastName, t) ?? undefined,
-    };
-    setErrors(nextErrors);
-    if (nextErrors.firstName || nextErrors.lastName) {
-      setTouched({ firstName: true, lastName: true });
-      toast.error(t('profile.toast.fixErrorsBeforeSave'));
-      return false;
+  const getChanges = (): NameChanges => {
+    const changes: NameChanges = {};
+    if (firstName !== original.firstName) changes.firstName = firstName.trim();
+    if (lastName !== original.lastName) changes.lastName = lastName.trim();
+    return changes;
+  };
+
+  const showErrors = (fields: NameChanges) => {
+    setErrors(fields);
+    setTouched({ firstName: !!fields.firstName, lastName: !!fields.lastName });
+  };
+
+  const validate = (changes: NameChanges) => {
+    const fields: NameChanges = {};
+    if (changes.firstName !== undefined) {
+      fields.firstName = validatePersonName('firstName', changes.firstName, t) ?? undefined;
     }
-    try {
-      await updateTeamMemberProfile({
-        firstName: firstName.trim(),
-        lastName: lastName.trim(),
-      });
-      setOriginal({ firstName, lastName });
-      // Refresh the session user so the header/avatar initials update everywhere.
-      dispatch(fetchCurrentUserAction.request());
-      toast.success(t('profile.personal.toast.saved'));
-      return true;
-    } catch (error: any) {
-      toast.error(getErrorMessage(error, t('profile.personal.toast.saveFailed')));
-      return false;
+    if (changes.lastName !== undefined) {
+      fields.lastName = validatePersonName('lastName', changes.lastName, t) ?? undefined;
+    }
+    showErrors(fields);
+    return !fields.firstName && !fields.lastName;
+  };
+
+  const acceptSaved = (changes: NameChanges) => {
+    Object.assign(savedNames.current, changes);
+    setOriginal(previous => ({ ...previous, ...changes }));
+    const { firstName: acceptedFirst, lastName: acceptedLast } = changes;
+    if (acceptedFirst !== undefined) {
+      setFirstName(value => value.trim() === acceptedFirst ? acceptedFirst : value);
+    }
+    if (acceptedLast !== undefined) {
+      setLastName(value => value.trim() === acceptedLast ? acceptedLast : value);
     }
   };
 
-  useImperativeHandle(ref, () => ({ isDirty: () => isDirty, save }), [
-    isDirty,
-    firstName,
-    lastName,
-  ]);
+  useImperativeHandle(ref, () => ({ getChanges, validate, showErrors, acceptSaved }));
 
   const displayedName = [firstName, lastName].filter(Boolean).join(' ').trim();
 
@@ -137,6 +143,7 @@ export const PersonalInformationSection = forwardRef<
 
         <div className="profile-field-grid">
           <TextField
+            reserveErrorSpace={false}
             label={t('profile.personal.firstName')}
             placeholder={t('profile.personal.firstNamePlaceholder')}
             value={firstName}
@@ -154,6 +161,7 @@ export const PersonalInformationSection = forwardRef<
             required
           />
           <TextField
+            reserveErrorSpace={false}
             label={t('profile.personal.lastName')}
             placeholder={t('profile.personal.lastNamePlaceholder')}
             value={lastName}

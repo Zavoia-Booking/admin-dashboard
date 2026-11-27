@@ -19,7 +19,7 @@ import {
 } from "../../../calendar/timezone";
 import {
   hasUnsafeWebsiteCopyCharacters,
-  validateUrlField,
+  validateAnnouncementUrlField,
   validateWebsiteCopy,
 } from "../../../../shared/utils/validation";
 import { cn } from "../../../../shared/lib/utils";
@@ -119,7 +119,7 @@ export function AnnouncementEditor({
   const ctaLabelExternalError = issueFor("announcement-cta-label");
   const ctaUrlExternalError = issueFor("announcement-cta-url");
   const urlError = ctaUrlExternalError ?? (
-    cta.url.trim() !== "" ? validateUrlField(cta.url, t) ?? undefined : undefined
+    cta.url.trim() !== "" ? validateAnnouncementUrlField(cta.url, t) ?? undefined : undefined
   );
   // A visible, enabled button with text still needs a destination before publishing. This is
   // guidance rather than a save-blocking field error, so an unfinished draft remains saveable.

@@ -5,7 +5,7 @@ import type {
   SectionEntry,
 } from "../../types";
 import {
-  validateUrlField,
+  validateAnnouncementUrlField,
   validateWebsiteCopy,
 } from "../../../../shared/utils/validation";
 import { splitAboutContent } from "./aboutContent";
@@ -454,7 +454,7 @@ export function collectWebsiteDraftIssues({
       return t("common:validation.url");
     }
   })();
-  const editorialUrlMessage = currentUrl ? validateUrlField(currentUrl, t) : null;
+  const editorialUrlMessage = currentUrl ? validateAnnouncementUrlField(currentUrl, t) : null;
   // Existing API-valid URLs may predate the editor's tighter 300-character recommendation.
   // Keep those round-trippable up to the DTO's 500-character hard ceiling; new edits use 300.
   const urlMessage = apiUrlMessage ?? (

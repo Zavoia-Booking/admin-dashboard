@@ -82,15 +82,15 @@
       "title": "Social links",
       "description": "Add the links clients can use to find you online.",
       "instagram": "Instagram",
-      "instagramPlaceholder": "https://instagram.com/yourbusiness",
+      "instagramPlaceholder": "instagram.com/yourbusiness",
       "facebook": "Facebook",
-      "facebookPlaceholder": "https://facebook.com/yourbusiness",
+      "facebookPlaceholder": "facebook.com/yourbusiness",
       "tiktok": "TikTok",
-      "tiktokPlaceholder": "https://tiktok.com/@yourbusiness",
+      "tiktokPlaceholder": "tiktok.com/@yourbusiness",
       "website": "Website",
-      "websitePlaceholder": "https://yourbusiness.com",
+      "websitePlaceholder": "yourbusiness.com",
       "pinterest": "Pinterest",
-      "pinterestPlaceholder": "https://pinterest.com/yourbusiness"
+      "pinterestPlaceholder": "pinterest.com/yourbusiness"
     },
     "personal": {
       "title": "Your name & photo",
@@ -192,6 +192,7 @@
       "emailTaken": "This email is already in use",
       "emailChanged": "Email changed. Sign in again on your other devices to continue.",
       "emailChangeFailed": "Failed to change email",
+      "changesSaved": "Changes saved.",
       "fixErrorsBeforeSave": "Please fix the errors before saving."
     }
   },
@@ -338,7 +339,6 @@
         "noFurtherCharges": "No further charges",
         "paymentFailedShort": "Last charge failed · retry now to keep features",
         "endedOn": "Ended {{date}}",
-        "dataRetained": "Data retained 90 days",
         "lifetimeNote": "Lifetime access · No subscription needed",
         "lifetimeNoteSeatsBilled": "Lifetime access · Team seats billed monthly",
         "upgradeCta": "Upgrade · {{amount}} {{currency}}/mo",
@@ -390,7 +390,7 @@
         "removingSeatsTitle_other": "Removing {{count}} seats on {{date}}",
         "pendingSeatsBody": "Change applies at next renewal. No prorated charge today.",
         "canceledTitle": "Subscription ended",
-        "canceledBody": "Your data is read-only and will be kept for 90 days. Renew anytime to restore full access.",
+        "canceledBody": "Your data is read-only. Renew anytime to restore full access.",
         "inactiveTitle": "Subscribe to get started",
         "inactiveBody": "Full access will be granted once your subscription is activated.",
         "planChangeTitle": "Switching to {{plan}} on {{date}}",

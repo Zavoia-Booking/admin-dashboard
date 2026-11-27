@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useMemo } from "react";
-import { AlertCircle, ChevronDown, Check } from "lucide-react";
+import React, { useState, useEffect, useId, useMemo } from "react";
+import { ChevronDown, Check } from "lucide-react";
+import { InlineError } from "../ui/inline-error";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { Button } from "../ui/button";
 import { Command, CommandList, CommandGroup, CommandItem } from "../ui/command";
@@ -16,6 +17,7 @@ interface CurrencySelectProps {
   value: string;
   onChange: (currency: string) => void;
   error?: string | boolean;
+  reserveErrorSpace?: boolean;
   placeholder?: string;
   id?: string;
   className?: string;
@@ -46,12 +48,15 @@ export const CurrencySelect: React.FC<CurrencySelectProps> = ({
   value,
   onChange,
   error,
+  reserveErrorSpace = true,
   id,
   className,
   ariaLabelledBy,
 }) => {
   const [open, setOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const generatedId = useId();
+  const errorId = `${id ?? generatedId}-error`;
   const hasError = !!error;
   const errorMessage = typeof error === "string" ? error : undefined;
 
@@ -84,6 +89,8 @@ export const CurrencySelect: React.FC<CurrencySelectProps> = ({
       aria-haspopup="listbox"
       aria-expanded={open}
       aria-labelledby={ariaLabelledBy}
+      aria-invalid={hasError || undefined}
+      aria-describedby={errorMessage ? errorId : undefined}
       className={cn(
         "w-full !min-h-0 h-12 md:h-10 justify-between items-center font-normal transition-all focus-visible:ring-1 focus-visible:ring-offset-0 cursor-pointer",
         hasError
@@ -180,18 +187,7 @@ export const CurrencySelect: React.FC<CurrencySelectProps> = ({
           </PopoverContent>
         </Popover>
       )}
-      <div className="min-h-5">
-        {errorMessage && (
-          <p
-            className="mt-1 flex items-center gap-1.5 text-xs text-destructive"
-            role="alert"
-            aria-live="polite"
-          >
-            <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-            <span>{errorMessage}</span>
-          </p>
-        )}
-      </div>
+      <InlineError id={errorId} message={errorMessage} reserveSpace={reserveErrorSpace} />
     </div>
   );
 };

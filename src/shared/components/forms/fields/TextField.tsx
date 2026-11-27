@@ -1,17 +1,20 @@
 import React, { useId } from "react";
 import { Label } from "../../ui/label";
 import { Input } from "../../ui/input";
-import { AlertCircle, MapPin } from "lucide-react";
+import { MapPin } from "lucide-react";
+import { InlineError } from "../../ui/inline-error";
 
 export interface TextFieldProps {
   value: string;
   onChange: (value: string) => void;
   error?: string;
+  reserveErrorSpace?: boolean;
   label?: string;
   hint?: React.ReactNode; // optional helper rendered directly under the label
   placeholder?: string;
   required?: boolean;
-  maxLength?: number;
+  /** Set to null to show an overlong draft and validate it without truncating pasted text. */
+  maxLength?: number | null;
   id?: string;
   className?: string;
   disabled?: boolean;
@@ -32,6 +35,7 @@ export const TextField: React.FC<TextFieldProps> = ({
   value,
   onChange,
   error,
+  reserveErrorSpace = true,
   label = "Location Name",
   hint,
   placeholder = "Main Location",
@@ -71,7 +75,7 @@ export const TextField: React.FC<TextFieldProps> = ({
           placeholder={placeholder}
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          maxLength={type === 'password' ? undefined : maxLength}
+          maxLength={type === 'password' ? undefined : (maxLength ?? undefined)}
           disabled={disabled}
           autoFocus={autoFocus}
           autoComplete={autoComplete}
@@ -89,19 +93,7 @@ export const TextField: React.FC<TextFieldProps> = ({
         />
         {Icon ? <Icon className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" /> : null}
       </div>
-      <div className="min-h-5">
-        {error && (
-          <p
-            id={errorId}
-            className="mt-1 flex items-center gap-1.5 text-xs text-destructive"
-            role="alert"
-            aria-live="polite"
-          >
-            <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-            <span>{error}</span>
-          </p>
-        )}
-      </div>
+      <InlineError id={errorId} message={error} reserveSpace={reserveErrorSpace} />
     </div>
   );
 };

@@ -82,15 +82,15 @@
       "title": "Linkuri social media",
       "description": "Adaugă linkurile unde clienții te pot găsi online.",
       "instagram": "Instagram",
-      "instagramPlaceholder": "https://instagram.com/businessultau",
+      "instagramPlaceholder": "instagram.com/businessultau",
       "facebook": "Facebook",
-      "facebookPlaceholder": "https://facebook.com/businessultau",
+      "facebookPlaceholder": "facebook.com/businessultau",
       "tiktok": "TikTok",
-      "tiktokPlaceholder": "https://tiktok.com/@businessultau",
+      "tiktokPlaceholder": "tiktok.com/@businessultau",
       "website": "Website",
-      "websitePlaceholder": "https://businessultau.ro",
+      "websitePlaceholder": "businessultau.ro",
       "pinterest": "Pinterest",
-      "pinterestPlaceholder": "https://pinterest.com/businessultau"
+      "pinterestPlaceholder": "pinterest.com/businessultau"
     },
     "personal": {
       "title": "Numele și fotografia ta",
@@ -192,6 +192,7 @@
       "emailTaken": "Această adresă de email este deja folosită",
       "emailChanged": "Adresa de email a fost schimbată. Conectează-te din nou pe celelalte dispozitive pentru a continua.",
       "emailChangeFailed": "Eșec la schimbarea adresei de email",
+      "changesSaved": "Modificările au fost salvate.",
       "fixErrorsBeforeSave": "Te rugăm să corectezi erorile înainte de a salva."
     }
   },
@@ -340,7 +341,6 @@
         "noFurtherCharges": "Fără alte taxe",
         "paymentFailedShort": "Ultima plată a eșuat · reîncearcă pentru a păstra accesul",
         "endedOn": "Încheiat pe {{date}}",
-        "dataRetained": "Datele sunt păstrate 90 de zile",
         "lifetimeNote": "Acces pe viață · Fără abonament",
         "lifetimeNoteSeatsBilled": "Acces pe viață · Locurile din echipă se plătesc lunar",
         "upgradeCta": "Actualizează · {{amount}} {{currency}}/lună",
@@ -398,7 +398,7 @@
         "removingSeatsTitle_other": "Eliminare {{count}} de locuri pe {{date}}",
         "pendingSeatsBody": "Modificarea se aplică la următoarea reînnoire. Nu se aplică taxe pro-rata azi.",
         "canceledTitle": "Abonament încheiat",
-        "canceledBody": "Datele sunt read-only și vor fi păstrate 90 de zile. Reînnoiește oricând pentru acces complet.",
+        "canceledBody": "Datele sunt read-only. Reînnoiește oricând pentru acces complet.",
         "inactiveTitle": "Abonează-te pentru a începe",
         "inactiveBody": "Accesul complet va fi acordat după activarea abonamentului.",
         "planChangeTitle": "Trecere la {{plan}} pe {{date}}",

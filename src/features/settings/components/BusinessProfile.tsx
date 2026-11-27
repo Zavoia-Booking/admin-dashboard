@@ -16,7 +16,9 @@ import GoogleAccountManager from './GoogleAccountManager';
 import AppleAccountManager from './AppleAccountManager';
 import AdvancedSettings from './AdvancedSettings';
 import MobilePushNotifications from './MobilePushNotifications';
-import { fetchCurrentBusinessAction, updateBusinessAction } from '../../business/actions';
+import { fetchCurrentBusinessAction } from '../../business/actions';
+import { updateBusinessApi } from '../../business/api';
+import { profileLinkLimits, profileRequestError, profileSaveErrors } from './profileSaveErrors';
 import type { UpdateBusinessDTO } from '../../business/types';
 import { getCurrentBusinessSelector, getBusinessLoadingSelector, getBusinessErrorSelector } from '../../business/selectors';
 import { ErrorState } from '../../../shared/components/common/ErrorState';
@@ -38,6 +40,7 @@ import {
   isE164,
   sanitizePhoneToE164Draft,
   validateUrlField,
+  normalizeProfileLink,
 } from '../../../shared/utils/validation';
 import { Input } from '../../../shared/components/ui/input';
 import { Popover, PopoverTrigger, PopoverContent } from '../../../shared/components/ui/popover';
@@ -101,9 +104,25 @@ const getUpdatePayloadSnapshot = (data: BusinessFormData) => ({
   pinterestUrl: data.pinterestUrl,
 });
 
+type BusinessSnapshot = ReturnType<typeof getUpdatePayloadSnapshot>;
+
+const socialFields = [
+  { field: 'instagramUrl', label: 'instagram', icon: Instagram },
+  { field: 'facebookUrl', label: 'facebook', icon: Facebook },
+  { field: 'tiktokUrl', label: 'tiktok', icon: Globe },
+  { field: 'websiteUrl', label: 'website', icon: Globe },
+  { field: 'pinterestUrl', label: 'pinterest', icon: Globe },
+] as const;
+
+function changedBusinessFields(current: BusinessSnapshot, baseline?: BusinessSnapshot | null): Partial<BusinessSnapshot> {
+  if (!baseline) return {};
+  return Object.fromEntries(Object.entries(current).filter(
+    ([field, value]) => value !== baseline[field as keyof BusinessSnapshot],
+  ));
+}
+
 interface BusinessProfileProps {
   onDirtyChange?: (dirty: boolean) => void;
-  /** Reports personal-info save in flight — the business update already reports via redux isUpdating. */
   onSavingChange?: (saving: boolean) => void;
 }
 
@@ -124,11 +143,23 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange, onSavi
   const passwordInputRef = useRef<HTMLInputElement>(null);
   const emailVerificationRef = useRef<HTMLDivElement>(null);
   const personalRef = useRef<PersonalInformationSectionRef>(null);
-  const personalSavingRef = useRef(false);
+  const formRef = useRef<HTMLFormElement>(null);
+  const savingRef = useRef(false);
+  const mounted = useRef(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const baselineRef = useRef<{ id: number; snapshot: BusinessSnapshot } | null>(null);
+
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      onSavingChange?.(false);
+    };
+  }, [onSavingChange]);
   const [personalDirty, setPersonalDirty] = useState(false);
 
   const [formData, setFormData] = useState<BusinessFormData>(initialFormData);
-  const [originalSnapshot, setOriginalSnapshot] = useState<ReturnType<typeof getUpdatePayloadSnapshot> | null>(null);
+  const [originalSnapshot, setOriginalSnapshot] = useState<BusinessSnapshot | null>(null);
   const [industries, setIndustries] = useState<Industry[]>([]);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [pendingLogo, setPendingLogo] = useState<File | null>(null);
@@ -163,7 +194,7 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange, onSavi
 
   const validatePhone = (value: string): string | undefined => {
     const v = value.trim();
-    if (!v) return undefined;
+    if (!v) return t('common:validation.phoneRequired');
     return isE164(v) ? undefined : t('common:validation.phoneInvalid');
   };
 
@@ -175,11 +206,9 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange, onSavi
     businessCurrency: CURRENCY_WHITELIST.includes(formData.businessCurrency?.toLowerCase())
       ? undefined
       : t('common:validation.currencyInvalid'),
-    instagramUrl: validateUrlField(formData.instagramUrl, t) ?? undefined,
-    facebookUrl:  validateUrlField(formData.facebookUrl, t)  ?? undefined,
-    tiktokUrl:    validateUrlField(formData.tiktokUrl, t)    ?? undefined,
-    websiteUrl:   validateUrlField(formData.websiteUrl, t)   ?? undefined,
-    pinterestUrl: validateUrlField(formData.pinterestUrl, t) ?? undefined,
+    ...Object.fromEntries(socialFields.map(({ field }) => [
+      field, validateUrlField(formData[field], t, profileLinkLimits[field]) ?? undefined,
+    ])),
   });
 
   const userHasPassword = user?.hasPassword === true;
@@ -228,28 +257,29 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange, onSavi
         logo: currentBusiness.logo || null,
         logoKey: null,
       };
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setFormData(data);
-      setOriginalSnapshot(getUpdatePayloadSnapshot(data));
+      const previous = baselineRef.current;
+      const snapshot = getUpdatePayloadSnapshot(data);
+      baselineRef.current = { id: currentBusiness.id, snapshot };
+      setOriginalSnapshot(snapshot);
+      // Keep newer edits when a background fetch refreshes the same business.
+      setFormData(current => ({
+        ...data,
+        ...changedBusinessFields(getUpdatePayloadSnapshot(current),
+          previous?.id === currentBusiness.id ? previous.snapshot : null),
+      }));
+      if (previous?.id !== currentBusiness.id) {
+        setTouched({});
+        setErrors({});
+      }
+    } else {
+      baselineRef.current = null;
     }
   }, [currentBusiness]);
 
-  const isDirty = useMemo(() => {
-    if (originalSnapshot == null) return false;
-    const current = getUpdatePayloadSnapshot(formData);
-    return (
-      current.businessName !== originalSnapshot.businessName ||
-      current.description !== originalSnapshot.description ||
-      current.industryId !== originalSnapshot.industryId ||
-      current.businessPhone !== originalSnapshot.businessPhone ||
-      current.businessCurrency !== originalSnapshot.businessCurrency ||
-      current.instagramUrl !== originalSnapshot.instagramUrl ||
-      current.facebookUrl !== originalSnapshot.facebookUrl ||
-      current.tiktokUrl !== originalSnapshot.tiktokUrl ||
-      current.websiteUrl !== originalSnapshot.websiteUrl ||
-      current.pinterestUrl !== originalSnapshot.pinterestUrl
-    );
-  }, [formData, originalSnapshot]);
+  const changes = useMemo(() => changedBusinessFields(
+    getUpdatePayloadSnapshot(formData), originalSnapshot,
+  ), [formData, originalSnapshot]);
+  const isDirty = Object.keys(changes).length > 0;
 
   useEffect(() => {
     onDirtyChange?.(isDirty || personalDirty);
@@ -310,56 +340,96 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange, onSavi
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
 
-    // Pre-wizard the business form isn't rendered; an Enter keypress in an
-    // account-section input must not trigger a business update.
-    if (isOwnerWithoutBusiness) return;
+    if (isOwnerWithoutBusiness || !currentBusiness || savingRef.current) return;
 
-    // Personal info saves first (independent of business validation); a failed
-    // personal save blocks the submit so the user fixes it before anything ships.
-    if (personalRef.current?.isDirty()) {
-      if (personalSavingRef.current) return;
-      personalSavingRef.current = true;
-      onSavingChange?.(true);
-      let ok = false;
-      try {
-        ok = await personalRef.current.save();
-      } finally {
-        personalSavingRef.current = false;
-        onSavingChange?.(false);
-      }
-      if (!ok) return;
+    const personal = personalRef.current;
+    const names = personal?.getChanges() ?? {};
+    const savePersonal = Object.keys(names).length > 0;
+    if (!isDirty && !savePersonal) return;
+
+    const focusInvalid = () => requestAnimationFrame(() => {
+      formRef.current?.querySelector<HTMLElement>('fieldset [aria-invalid="true"]')?.focus();
+    });
+    const showBusinessErrors = (fields: Record<string, string>) => {
+      setErrors(fields);
+      setTouched(Object.fromEntries(Object.keys(fields).map(field => [field, true])));
+    };
+    const validation = validateAll();
+    const invalid: Record<string, string> = {};
+    for (const [field, message] of Object.entries(validation)) {
+      if (message && Object.hasOwn(changes, field)) invalid[field] = message;
     }
-
-    // Nothing business-side changed — don't re-send an identical business update.
-    if (!isDirty) return;
-
-    const next = validateAll();
-    setErrors(next);
-    if (Object.values(next).some(Boolean)) {
-      setTouched(Object.keys(next).reduce((a, k) => ({ ...a, [k]: true }), {} as Record<string, boolean>));
-      toast.error(t('profile.toast.fixErrorsBeforeSave'));
+    showBusinessErrors(invalid);
+    const personalValid = personal?.validate(names) ?? true;
+    if (!personalValid || Object.keys(invalid).length) {
+      focusInvalid();
       return;
     }
 
-    // Prepare update data (logo is handled separately via upload endpoint).
-    // Email is intentionally NOT sent here — owner's account email is changed via
-    // POST /auth/change-email (Account security section), which performs verification,
-    // dual notification, and session revocation.
-    const updateData: UpdateBusinessDTO = {
-      name: formData.businessName,
-      description: formData.description,
-      phone: formData.businessPhone,
-      businessCurrency: formData.businessCurrency,
-      instagramUrl: formData.instagramUrl,
-      facebookUrl: formData.facebookUrl,
-      tiktokUrl: formData.tiktokUrl,
-      websiteUrl: formData.websiteUrl,
-      pinterestUrl: formData.pinterestUrl,
-    };
-    if (formData.industryId != null) {
-      updateData.industryId = formData.industryId;
+    const submitted = getUpdatePayloadSnapshot(formData);
+    const businessId = currentBusiness.id;
+    const isCurrent = () => mounted.current && baselineRef.current?.id === businessId;
+    savingRef.current = true;
+    setIsSaving(true);
+    onSavingChange?.(true);
+    try {
+      const { businessName, businessPhone, industryId, ...rest } = changes;
+      const payload: UpdateBusinessDTO = {
+        ...rest,
+        ...names,
+        name: businessName?.trim(),
+        phone: businessPhone?.trim(),
+        industryId: industryId ?? undefined,
+      };
+      const accepted = { ...changes };
+      if (payload.name !== undefined) accepted.businessName = payload.name;
+      if (payload.phone !== undefined) accepted.businessPhone = payload.phone;
+      for (const { field } of socialFields) {
+        const raw = changes[field];
+        if (raw === undefined) continue;
+        const normalized = normalizeProfileLink(raw);
+        payload[field] = normalized;
+        accepted[field] = normalized;
+      }
+
+      const response = await updateBusinessApi(payload);
+      if (isDirty) dispatch(fetchCurrentBusinessAction.request());
+      dispatch(fetchCurrentUserAction.request());
+      const baseline = baselineRef.current;
+      if (!isCurrent() || !baseline) return;
+      if (savePersonal) personal?.acceptSaved(names);
+      if (isDirty) {
+        const snapshot = { ...baseline.snapshot, ...accepted };
+        baselineRef.current = { ...baseline, snapshot };
+        setOriginalSnapshot(snapshot);
+        setFormData(current => ({
+          ...current, ...accepted, ...changedBusinessFields(getUpdatePayloadSnapshot(current), submitted),
+        }));
+      }
+      const successKey = !savePersonal ? 'business:page.toasts.updateSuccess'
+        : isDirty ? 'profile.toast.changesSaved' : 'profile.personal.toast.saved';
+      toast.success(t(successKey));
+      if (response.shouldRedirectToMarketplace) {
+        window.location.href = '/marketplace?tab=business#industry';
+      }
+    } catch (error) {
+      if (!isCurrent()) return;
+      const { firstName, lastName, ...businessFields } = profileSaveErrors(error, t);
+      if (firstName || lastName || Object.keys(businessFields).length) {
+        personal?.showErrors({ firstName, lastName });
+        showBusinessErrors(businessFields);
+        focusInvalid();
+      } else {
+        const fallback = t(isDirty ? 'messages:BUSINESS.E02' : 'profile.personal.toast.saveFailed');
+        toast.error(profileRequestError(error, fallback));
+      }
+    } finally {
+      savingRef.current = false;
+      if (mounted.current) {
+        setIsSaving(false);
+        onSavingChange?.(false);
+      }
     }
-    dispatch(updateBusinessAction.request(updateData));
   };
 
   const handleSetPasswordClick = () => {
@@ -568,11 +638,11 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange, onSavi
   );
 
   return (
-    <form id="business-info-form" onSubmit={handleSubmit} className="w-full">
+    <form ref={formRef} noValidate id="business-info-form" onSubmit={handleSubmit} className="w-full">
       <div className="profile-grid">
         <div className="profile-col">
           {/* Business sections are hidden until the setup wizard is completed */}
-          {!isOwnerWithoutBusiness && (<>
+          {!isOwnerWithoutBusiness && (<fieldset disabled={isSaving} className="contents">
           {/* Hidden file input triggered by the logo edit button */}
           <input
             ref={fileInputRef}
@@ -640,6 +710,7 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange, onSavi
             <div className="profile-field-stack">
               <div className="profile-field-grid">
                 <TextField
+                  reserveErrorSpace={false}
                   label={t('profile.basicInfo.businessName')}
                   placeholder={t('profile.basicInfo.businessNamePlaceholder')}
                   value={formData.businessName}
@@ -653,6 +724,7 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange, onSavi
                   required
                 />
                 <OptionSelect
+                  reserveErrorSpace={false}
                   label={t('profile.basicInfo.industry')}
                   placeholder={t('profile.basicInfo.industryPlaceholder')}
                   value={formData.industryId != null ? String(formData.industryId) : ''}
@@ -684,6 +756,7 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange, onSavi
 
               <div className="space-y-1.5">
                 <TextareaField
+                  reserveErrorSpace={false}
                   label={t('profile.basicInfo.description')}
                   placeholder={t('profile.basicInfo.descriptionPlaceholder')}
                   value={formData.description}
@@ -710,6 +783,7 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange, onSavi
                     {t('profile.basicInfo.currencyDescription')}
                   </p>
                   <CurrencySelect
+                    reserveErrorSpace={false}
                     id="businessCurrency"
                     ariaLabelledBy="businessCurrency-label"
                     value={formData.businessCurrency}
@@ -738,9 +812,11 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange, onSavi
                 </div>
 
                 <TextField
+                  reserveErrorSpace={false}
                   label={t('profile.basicInfo.phone')}
                   placeholder={t('profile.basicInfo.phonePlaceholder')}
                   type="tel"
+                  required
                   value={formData.businessPhone}
                   onChange={(value) => {
                     const sanitized = sanitizePhoneToE164Draft(value);
@@ -765,75 +841,28 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange, onSavi
             </header>
 
             <div className="profile-field-grid">
-              <TextField
-                label={t('profile.social.instagram')}
-                placeholder={t('profile.social.instagramPlaceholder')}
-                value={formData.instagramUrl}
-                onChange={(value) => {
-                  setFormData(prev => ({ ...prev, instagramUrl: value }));
-                  setErrors(prev => ({ ...prev, instagramUrl: validateUrlField(value, t) ?? undefined }));
-                }}
-                onBlur={() => setTouched(prev => ({ ...prev, instagramUrl: true }))}
-                error={touched.instagramUrl ? errors.instagramUrl : undefined}
-                icon={Instagram}
-              />
-              <TextField
-                label={t('profile.social.facebook')}
-                placeholder={t('profile.social.facebookPlaceholder')}
-                value={formData.facebookUrl}
-                onChange={(value) => {
-                  setFormData(prev => ({ ...prev, facebookUrl: value }));
-                  setErrors(prev => ({ ...prev, facebookUrl: validateUrlField(value, t) ?? undefined }));
-                }}
-                onBlur={() => setTouched(prev => ({ ...prev, facebookUrl: true }))}
-                error={touched.facebookUrl ? errors.facebookUrl : undefined}
-                icon={Facebook}
-              />
-              <TextField
-                label={t('profile.social.tiktok')}
-                placeholder={t('profile.social.tiktokPlaceholder')}
-                value={formData.tiktokUrl}
-                onChange={(value) => {
-                  setFormData(prev => ({ ...prev, tiktokUrl: value }));
-                  setErrors(prev => ({ ...prev, tiktokUrl: validateUrlField(value, t) ?? undefined }));
-                }}
-                onBlur={() => setTouched(prev => ({ ...prev, tiktokUrl: true }))}
-                error={touched.tiktokUrl ? errors.tiktokUrl : undefined}
-                icon={Globe}
-              />
-              <TextField
-                label={t('profile.social.website')}
-                placeholder={t('profile.social.websitePlaceholder')}
-                value={formData.websiteUrl}
-                onChange={(value) => {
-                  setFormData(prev => ({ ...prev, websiteUrl: value }));
-                  setErrors(prev => ({ ...prev, websiteUrl: validateUrlField(value, t) ?? undefined }));
-                }}
-                onBlur={() => setTouched(prev => ({ ...prev, websiteUrl: true }))}
-                error={touched.websiteUrl ? errors.websiteUrl : undefined}
-                icon={Globe}
-              />
-              <TextField
-                label={t('profile.social.pinterest')}
-                placeholder={t('profile.social.pinterestPlaceholder')}
-                value={formData.pinterestUrl}
-                onChange={(value) => {
-                  setFormData(prev => ({ ...prev, pinterestUrl: value }));
-                  setErrors(prev => ({ ...prev, pinterestUrl: validateUrlField(value, t) ?? undefined }));
-                }}
-                onBlur={() => setTouched(prev => ({ ...prev, pinterestUrl: true }))}
-                error={touched.pinterestUrl ? errors.pinterestUrl : undefined}
-                icon={Globe}
-              />
+              {socialFields.map(({ field, label, icon }) => (
+                <TextField
+                  key={field}
+                  label={t(`profile.social.${label}`)}
+                  placeholder={t(`profile.social.${label}Placeholder`)}
+                  value={formData[field]}
+                  inputMode="url"
+                  maxLength={null}
+                  reserveErrorSpace={false}
+                  onChange={value => {
+                    setFormData(prev => ({ ...prev, [field]: value }));
+                    setErrors(prev => ({ ...prev, [field]: validateUrlField(value, t, profileLinkLimits[field]) ?? undefined }));
+                  }}
+                  onBlur={() => setTouched(prev => ({ ...prev, [field]: true }))}
+                  error={touched[field] ? errors[field] : undefined}
+                  icon={icon}
+                />
+              ))}
             </div>
           </section>
-          </>)}
-
-          {/* Section: Personal information (post-wizard only — the page's Save
-              button is hidden pre-wizard, so the name fields would be dead) */}
-          {!isOwnerWithoutBusiness && (
-            <PersonalInformationSection ref={personalRef} onDirtyChange={setPersonalDirty} />
-          )}
+          <PersonalInformationSection ref={personalRef} onDirtyChange={setPersonalDirty} />
+          </fieldset>)}
 
           {/* Section: Account Security */}
           <section className="profile-section" aria-labelledby="profile-section-security">

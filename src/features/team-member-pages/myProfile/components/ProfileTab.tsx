@@ -1,5 +1,7 @@
-import React, { useState, useEffect, forwardRef, useImperativeHandle, useCallback } from 'react';
+import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import { isAxiosError } from 'axios';
+import type { TFunction } from 'i18next';
 import { useSelector } from 'react-redux';
 import { selectCurrentUser } from '../../../auth/selectors';
 import { User, Briefcase, Instagram, Facebook, Link2, Award, X, Music2 } from 'lucide-react';
@@ -19,10 +21,11 @@ import {
   AVAILABLE_LANGUAGES,
   AVAILABLE_INTERESTS,
 } from '../api';
-import { getErrorMessage } from '../../../../shared/utils/error';
+import { getErrorMessage, getValidationFieldErrors } from '../../../../shared/utils/error';
 import { ProfilePhotoUploader } from '../../myAccount/components/ProfilePhotoUploader';
 import { getTeamMemberProfile } from '../../myAccount/api';
 import {
+  normalizeProfileLink,
   validateUrlField,
   validateDisplayName,
   validateProfessionalTitle,
@@ -37,6 +40,42 @@ interface ProfileFormData {
   languages: string[];
   interests: string[];
   socialLinks: SocialLinks;
+}
+
+function profileFieldMessages(error: unknown, t: TFunction): Record<string, string> {
+  const messages: Record<string, string> = {};
+  const issues = getValidationFieldErrors(error) ?? {};
+  // Earlier API versions send Nest's flattened nested-DTO messages.
+  if (!Object.keys(issues).length && isAxiosError(error) && error.response?.status === 400) {
+    const raw = error.response.data?.message;
+    for (const message of Array.isArray(raw) ? raw : [raw]) {
+      const field = typeof message === 'string' && /^(socialLinks\.(?:website|instagram|facebook|tiktok)) must be a URL address$/.exec(message)?.[1];
+      if (field) issues[field] = ['isUrl'];
+    }
+  }
+  for (const [path, codes] of Object.entries(issues)) {
+    const social = /^socialLinks\.(website|instagram|facebook|tiktok)$/.exec(path);
+    if (social) {
+      messages[social[1]] = codes.includes('maxLength')
+        ? t('common:validation.maxLengthGeneric', { max: 300 })
+        : t('common:validation.url');
+    } else if (path === 'yearsOfExperience') {
+      messages[path] = t('profileTab.yearsInvalid');
+    } else if (path === 'aboutMe') {
+      messages[path] = codes.includes('maxLength')
+        ? t('common:validation.maxLengthGeneric', { max: 1000 })
+        : t('common:validation.descriptionUnsafeChars');
+    } else if (path === 'displayName' || path === 'professionalTitle') {
+      if (codes.includes('maxLength')) {
+        messages[path] = t('common:validation.maxLengthGeneric', { max: path === 'displayName' ? 50 : 100 });
+      } else if (codes.includes('minLength') || codes.includes('isNotEmpty')) {
+        messages[path] = t('common:validation.minLengthGeneric', { min: 2 });
+      } else {
+        messages[path] = t('common:validation.nameSpecialChars');
+      }
+    }
+  }
+  return messages;
 }
 
 const initialFormData: ProfileFormData = {
@@ -144,6 +183,14 @@ function ProfileTabInner(
   const [errors, setErrors] = useState<Record<string, string | undefined>>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
 
+  const editorRef = useRef<HTMLDivElement>(null);
+  const focusErrorRef = useRef(false);
+  useEffect(() => {
+    if (isSaving || !focusErrorRef.current) return;
+    focusErrorRef.current = false;
+    editorRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
+  }, [errors, isSaving]);
+
   // All fields validate through the shared validation file: displayName is a
   // required 2–50 char public name, title is an optional 2–100 one, years must
   // be a whole 0–70, about-me is screened for unsafe markup, and each social
@@ -185,7 +232,7 @@ function ProfileTabInner(
         displayName: true, professionalTitle: true, yearsOfExperience: true,
         aboutMe: true, instagram: true, tiktok: true, facebook: true, website: true,
       });
-      toast.error(t('toast.fixErrors'));
+      focusErrorRef.current = true;
       return;
     }
     setIsSaving(true);
@@ -194,10 +241,10 @@ function ProfileTabInner(
       // Empty optionals go as null (the backend writes null); arrays go as-is so
       // removing every item clears them; socialLinks collapses to null when empty.
       const social = {
-        instagram: (formData.socialLinks.instagram || '').trim() || null,
-        tiktok: (formData.socialLinks.tiktok || '').trim() || null,
-        facebook: (formData.socialLinks.facebook || '').trim() || null,
-        website: (formData.socialLinks.website || '').trim() || null,
+        instagram: normalizeProfileLink(formData.socialLinks.instagram || '') || null,
+        tiktok: normalizeProfileLink(formData.socialLinks.tiktok || '') || null,
+        facebook: normalizeProfileLink(formData.socialLinks.facebook || '') || null,
+        website: normalizeProfileLink(formData.socialLinks.website || '') || null,
       };
       const payload = {
         displayName: formData.displayName.trim(),
@@ -215,9 +262,17 @@ function ProfileTabInner(
       setOriginalFormData(newFormData);
       onProfileSaved(response.marketplaceProfile);
       toast.success(t('toast.saveSuccess'));
-    } catch (error: any) {
-      const translatedMessage = getErrorMessage(error, t('toast.saveFailed'));
-      toast.error(translatedMessage);
+    } catch (error: unknown) {
+      const fieldMessages = profileFieldMessages(error, t);
+      if (Object.keys(fieldMessages).length) {
+        focusErrorRef.current = true;
+        setErrors(fieldMessages);
+        setTouched(Object.fromEntries(Object.keys(fieldMessages).map(field => [field, true])));
+      } else {
+        const status = isAxiosError(error) ? error.response?.status : undefined;
+        const fallback = t('toast.saveFailed');
+        toast.error(status === 400 || status === 422 ? fallback : getErrorMessage(error, fallback));
+      }
     } finally {
       setIsSaving(false);
     }
@@ -253,7 +308,7 @@ function ProfileTabInner(
   };
 
   return (
-    <div className={embedded ? "" : "max-w-5xl mb-0 md:mb-8"}>
+    <div ref={editorRef} className={embedded ? "" : "max-w-5xl mb-0 md:mb-8"}>
       <Card
         className={
           embedded
@@ -445,6 +500,9 @@ function ProfileTabInner(
               <TextField
                 label={t('profileTab.instagram')}
                 placeholder={t('profileTab.instagramPlaceholder')}
+                maxLength={null}
+                inputMode="url"
+                reserveErrorSpace={false}
                 value={formData.socialLinks.instagram || ''}
                 onChange={(value) => handleSocialChange('instagram', value)}
                 onBlur={() => setTouched(prev => ({ ...prev, instagram: true }))}
@@ -455,6 +513,9 @@ function ProfileTabInner(
               <TextField
                 label={t('profileTab.tiktok')}
                 placeholder={t('profileTab.tiktokPlaceholder')}
+                maxLength={null}
+                inputMode="url"
+                reserveErrorSpace={false}
                 value={formData.socialLinks.tiktok || ''}
                 onChange={(value) => handleSocialChange('tiktok', value)}
                 onBlur={() => setTouched(prev => ({ ...prev, tiktok: true }))}
@@ -465,6 +526,9 @@ function ProfileTabInner(
               <TextField
                 label={t('profileTab.facebook')}
                 placeholder={t('profileTab.facebookPlaceholder')}
+                maxLength={null}
+                inputMode="url"
+                reserveErrorSpace={false}
                 value={formData.socialLinks.facebook || ''}
                 onChange={(value) => handleSocialChange('facebook', value)}
                 onBlur={() => setTouched(prev => ({ ...prev, facebook: true }))}
@@ -475,6 +539,9 @@ function ProfileTabInner(
               <TextField
                 label={t('profileTab.website')}
                 placeholder={t('profileTab.websitePlaceholder')}
+                maxLength={null}
+                inputMode="url"
+                reserveErrorSpace={false}
                 value={formData.socialLinks.website || ''}
                 onChange={(value) => handleSocialChange('website', value)}
                 onBlur={() => setTouched(prev => ({ ...prev, website: true }))}

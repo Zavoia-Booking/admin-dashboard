@@ -18,15 +18,3 @@ export const getBusinessErrorSelector = createSelector(
   getBusinessStateSelector,
   (state): string | null => state.error
 );
-
-export const getBusinessUpdatingSelector = createSelector(
-  getBusinessStateSelector,
-  (state): boolean => state.isUpdating
-);
-
-export const getBusinessUpdateErrorSelector = createSelector(
-  getBusinessStateSelector,
-  (state): string | null => state.updateError
-);
-
-

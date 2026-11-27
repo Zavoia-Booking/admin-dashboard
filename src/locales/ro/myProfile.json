@@ -85,12 +85,12 @@
     "socialLinks": "Link-uri sociale",
     "socialLinksDescription": "Adaugă-ți profilurile de socializare și site-ul, ca să-ți vadă clienții mai mult din muncă.",
     "instagram": "Instagram",
-    "instagramPlaceholder": "https://instagram.com/username",
+    "instagramPlaceholder": "instagram.com/username",
     "tiktok": "TikTok",
-    "tiktokPlaceholder": "https://tiktok.com/@username",
+    "tiktokPlaceholder": "tiktok.com/@username",
     "facebook": "Facebook",
-    "facebookPlaceholder": "https://facebook.com/username",
+    "facebookPlaceholder": "facebook.com/username",
     "website": "Site web",
-    "websitePlaceholder": "https://siteultau.com"
+    "websitePlaceholder": "siteultau.com"
   }
 }

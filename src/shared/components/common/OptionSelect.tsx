@@ -1,5 +1,6 @@
 import React, { useId, useState, useMemo } from "react";
-import { AlertCircle, ChevronDown, Check } from "lucide-react";
+import { ChevronDown, Check } from "lucide-react";
+import { InlineError } from "../ui/inline-error";
 import { ResponsivePopover } from "../ui/responsive-popover";
 import { Button } from "../ui/button";
 import { Label } from "../ui/label";
@@ -19,6 +20,7 @@ export interface OptionSelectProps {
   label?: string;
   placeholder?: string;
   error?: string | boolean;
+  reserveErrorSpace?: boolean;
   id?: string;
   className?: string;
 }
@@ -30,6 +32,7 @@ export const OptionSelect: React.FC<OptionSelectProps> = ({
   label,
   placeholder = "Select...",
   error,
+  reserveErrorSpace = true,
   id,
   className,
 }) => {
@@ -125,19 +128,7 @@ export const OptionSelect: React.FC<OptionSelectProps> = ({
           </CommandList>
         </Command>
       </ResponsivePopover>
-      <div className="min-h-5">
-        {errorMessage && (
-          <p
-            id={errorId}
-            className="mt-1 flex items-center gap-1.5 text-xs text-destructive"
-            role="alert"
-            aria-live="polite"
-          >
-            <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-            <span>{errorMessage}</span>
-          </p>
-        )}
-      </div>
+      <InlineError id={errorId} message={errorMessage} reserveSpace={reserveErrorSpace} />
     </div>
   );
 };

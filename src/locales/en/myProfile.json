@@ -85,12 +85,12 @@
     "socialLinks": "Social Links",
     "socialLinksDescription": "Add your social profiles and website so customers can see more of your work.",
     "instagram": "Instagram",
-    "instagramPlaceholder": "https://instagram.com/username",
+    "instagramPlaceholder": "instagram.com/username",
     "tiktok": "TikTok",
-    "tiktokPlaceholder": "https://tiktok.com/@username",
+    "tiktokPlaceholder": "tiktok.com/@username",
     "facebook": "Facebook",
-    "facebookPlaceholder": "https://facebook.com/username",
+    "facebookPlaceholder": "facebook.com/username",
     "website": "Website",
-    "websitePlaceholder": "https://yourwebsite.com"
+    "websitePlaceholder": "yourwebsite.com"
   }
 }

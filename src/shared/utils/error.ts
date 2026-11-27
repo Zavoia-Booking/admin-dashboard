@@ -92,6 +92,20 @@ export function translateMessageCode(code: string): string {
   return code;
 }
 
+/** Field-level API validation errors that a form can localize and associate with its controls. */
+export function getValidationFieldErrors(error: unknown): Record<string, string[]> | undefined {
+  if (!isAxiosError<{ details?: { fieldErrors?: unknown } }>(error)) return undefined;
+  const response = error.response;
+  if (!response || response.status < 400 || response.status >= 500) return undefined;
+  const fields = response.data?.details?.fieldErrors;
+  if (!fields || typeof fields !== "object" || Array.isArray(fields)) return undefined;
+  const issues = Object.entries(fields).filter((entry): entry is [string, string[]] => {
+    const codes: unknown = entry[1];
+    return Array.isArray(codes) && codes.length > 0 && codes.every(code => typeof code === "string");
+  });
+  return issues.length ? Object.fromEntries(issues) : undefined;
+}
+
 /**
  * Extracts error message from axios error response
  * Handles various error response formats from the backend

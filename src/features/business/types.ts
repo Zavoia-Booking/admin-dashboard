@@ -39,6 +39,8 @@ export interface Business {
 }
 
 export interface UpdateBusinessDTO {
+  firstName?: string;
+  lastName?: string;
   name?: string;
   description?: string;
   email?: string;
@@ -93,8 +95,6 @@ export interface BusinessState {
   current: Business | null;
   isLoading: boolean;
   error: string | null;
-  isUpdating: boolean;
-  updateError: string | null;
 }
 
 

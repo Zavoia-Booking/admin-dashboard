@@ -1,5 +1,6 @@
 // Shared validation and sanitization utilities
 import type { TFunction } from "i18next";
+import { parseProfileLink } from "./profileLink";
 
 export const sanitizeName = (value: string): string =>
   value.replace(/[^\p{L}\s'’-]/gu, "");
@@ -201,12 +202,13 @@ export const requiredError = (
  * - Numbers (0-9)
  * - Spaces
  * - Hyphens (-)
- * - Apostrophes (')
+ * - Apostrophes, straight (') or typographic (’) — iPhone keyboards with
+ *   Smart Punctuation on type the typographic one
  * - Ampersands (&)
  * - Periods (.)
  * - Parentheses (())
  */
-export const NAME_PATTERN = /^[\p{L}0-9\s\-'&.()]+$/u;
+export const NAME_PATTERN = /^[\p{L}0-9\s\-'’&.()]+$/u;
 
 export const validateBusinessName = (
   value: string,
@@ -444,7 +446,7 @@ export const personNameRules = (
  * markup and control characters. Broader than a person name (allows "Dr. Ana",
  * "Salon X & Co.") but still a real, safe label.
  */
-export const DISPLAY_NAME_PATTERN = /^(?=.*\p{L})[\p{L}0-9\s\-'&.()]+$/u;
+export const DISPLAY_NAME_PATTERN = /^(?=.*\p{L})[\p{L}0-9\s\-'’&.()]+$/u;
 
 /** Required marketplace display name: trimmed, 2–50 chars, permissive but safe. */
 export const validateDisplayName = (value: string, t: TFunction): string | null => {
@@ -478,7 +480,7 @@ export const validateProfessionalTitle = (value: string, t: TFunction): string |
  * Non-empty values must be parseable as a URL — protocol is
  * optional (we prepend https:// for the parse check).
  */
-export const validateUrlField = (
+export const validateAnnouncementUrlField = (
   value: string,
   t: TFunction
 ): string | null => {
@@ -496,4 +498,21 @@ export const validateUrlField = (
   } catch {
     return t("common:validation.url");
   }
+};
+
+export const normalizeProfileLink = (value: string): string =>
+  parseProfileLink(value) ?? value.trim();
+
+/** Validate the stored URL, including any HTTPS prefix, against its field limit. */
+export const validateUrlField = (
+  value: string,
+  t: TFunction,
+  maxLength = 300,
+): string | null => {
+  const url = parseProfileLink(value);
+  if (url === null) return t("common:validation.url");
+  if (Array.from(url).length > maxLength) {
+    return t("common:validation.maxLengthGeneric", { max: maxLength });
+  }
+  return null;
 };
